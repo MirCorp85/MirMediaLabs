@@ -336,6 +336,7 @@ body.lcol-off .lrail{display:flex}
 .hchips .hck input{width:auto;height:auto;margin:0;padding:0;accent-color:#5ee08a}
 .hchips{display:flex;gap:8px;flex-wrap:wrap}.hck{display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line2);border-radius:10px;font-size:12.5px;cursor:pointer}
 .hsave{display:flex;justify-content:flex-end;margin-top:10px}.hlead{color:var(--dim);font-size:12.5px;margin:0 0 4px}
+.hguide{margin-top:12px;border:1px solid var(--line2);border-radius:12px;padding:10px 12px}.hguide summary{cursor:pointer;font-weight:600}.hguide ol{margin:10px 0 6px;padding-left:20px;font-size:12.5px;line-height:1.55}.hguide li{margin-bottom:6px}
 .hlog{display:grid;gap:4px;font-size:12.5px}.hlog div{padding:6px 10px;border:1px solid var(--line);border-radius:8px}
 .hlog span{color:var(--faint);margin-right:8px;font-family:var(--mono)}.hlog b{margin-right:4px}
 @media(max-width:760px){.hstats{grid-template-columns:1fr 1fr}.hinv{grid-template-columns:1fr}.hform{grid-template-columns:1fr}}
@@ -374,6 +375,7 @@ body.lcol-off .lrail{display:flex}
 .mp.aud .mp-track{background:color-mix(in srgb,var(--ink) 16%,transparent)}.mp.aud .mp-buf{background:color-mix(in srgb,var(--ink) 14%,transparent)}
 .mp.aud.lg{width:min(640px,92vw);padding:26px;gap:22px;border-radius:20px}.mp.aud.lg .mp-big{width:72px;height:72px}
 .mp.aud.lg .mp-viz{height:110px}.mp.aud.lg .mp-ttl{font-size:14px}
+.msg .lora-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin:-2px 0 8px}.msg .lora-line b{color:var(--ink)}.msg .lora-line .off{color:var(--faint)}
 </style>
 <script src="/static/miros-icons.js"></script>
 <style id="mml-themes">
@@ -846,7 +848,7 @@ async function go(){
   if(!prompt&&!atts.length)return toast('Write a message or attach a reference');
   if(ARMED?.needs&&!atts.some(a=>kindOf(a.name)===ARMED.needs))return toast(ARMED.name+' needs an attached '+ARMED.needs);
   $('#b-go').disabled=true;closeAC();
-  const body={model:cur,prompt,refs:atts.map(a=>a.name),loras:(typeof loraSel!=='undefined'?loraSel.filter(l=>cur==='auto'||!l.role||l.role===LROLE[cur]).map(l=>({file:l.file,strength:l.strength})):[])};
+  const body={model:cur,prompt,refs:atts.map(a=>a.name),loras:(typeof loraSel!=='undefined'?loraSel.map(l=>({file:l.file,strength:l.strength})):[])};
   if(ARMED)body[ARMED.type]=ARMED.id;
   try{await api('/api/generate',{method:'POST',body:JSON.stringify(body)});
     $('#prompt').value='';autosize();atts=[];saveAtts();renderAtts();disarm();stick=true;pollJobs(true);pollStatus()}
@@ -937,7 +939,7 @@ function renderThread(jobs){
     else body=`<div class="media">${(j.files||[]).map(mediaHTML).join('')}</div>
       <div class="acts">${(j.files||[]).map(fn=>`<button class="btn sm" data-open="${esc(fn)}">${MI.html('expand')} Open</button><button class="btn sm" data-use="${esc(fn)}">${MI.html('refresh')} Use as ref</button><a class="btn sm" href="/media/${encodeURIComponent(fn)}?dl=1" download="${esc(fn)}">${MI.html('download')} Download</a>`).join('')}<button class="btn sm" data-r="${j.id}">↺ Again</button></div>
       ${j.output?`<details data-id="${j.id}" ${open.has(j.id)?'open':''}><summary>details</summary><pre>${esc(j.output)}</pre></details>`:''}`;
-    const lab=`<div class="msg lab" data-job="${j.id}" data-model="${j.model}" style="--mc:${m.color||'#888'}"><div class="meta"><span class="chip">${esc(m.label||j.model)}</span>${j.pipeline&&j.step&&live?`<span class="pl-tag">step ${esc(j.step)}</span>`:''}<span class="st ${j.status}">${j.status.toUpperCase()}${t2?' · <span class="tm">'+t2+'</span>':''}</span>${j.finished?`<span>${stamp(j.finished)}</span>`:''}</div>${j.route?`<div class="route" title="${esc(j.route.by==='muse'?'decided by MUSE':'decided by the quick rules')}">${MI.html('sparkle','sm')} MUSE chose <b>${esc(j.route.label)}</b>${j.route.why?` <span>— ${esc(j.route.why)}</span>`:''}</div>`:''}${body}</div>`;
+    const lab=`<div class="msg lab" data-job="${j.id}" data-model="${j.model}" style="--mc:${m.color||'#888'}"><div class="meta"><span class="chip">${esc(m.label||j.model)}</span>${j.pipeline&&j.step&&live?`<span class="pl-tag">step ${esc(j.step)}</span>`:''}<span class="st ${j.status}">${j.status.toUpperCase()}${t2?' · <span class="tm">'+t2+'</span>':''}</span>${j.finished?`<span>${stamp(j.finished)}</span>`:''}</div>${j.route?`<div class="route" title="${esc(j.route.by==='muse'?'decided by MUSE':'decided by the quick rules')}">${MI.html('sparkle','sm')} MUSE chose <b>${esc(j.route.label)}</b>${j.route.why?` <span>— ${esc(j.route.why)}</span>`:''}</div>`:''}${loraLine(j)}${body}</div>`;
     return me+lab}).join('');
   if(stick)t.scrollTop=t.scrollHeight;
   $$('#thread [data-c]').forEach(b=>b.onclick=()=>api('/api/jobs/'+b.dataset.c+'/cancel',{method:'POST'}).then(()=>{toast('Cancelling…');pollJobs(true)}).catch(e=>toast(e.message)));
@@ -1116,7 +1118,7 @@ function lanBase(){const h=(location.hostname==='127.0.0.1'||location.hostname==
 /* ═══ HOST CONTROL — the GPU PC grants / revokes access (server enforces: host only) ═══ */
 let HOST={tab:'people',edit:null,made:null,d:null};
 const hostAgo=t=>t?ago(t)+' ago':'never';
-function hostInvite(key){return lanBase()+'/?key='+key}
+function hostInvite(key){const aw=HOST.d&&HOST.d.away;return lanBase()+'/?key='+key+(aw?'&away='+encodeURIComponent(aw):'')}
 function hostExp(u){if(!u.expires)return '';if(u.expired)return '<span class="hx bad">expired</span>';
   const d=Math.ceil((u.expires-Date.now()/1000)/86400);return `<span class="hx">expires in ${d} day${d===1?'':'s'}</span>`}
 function hostForm(u){const E=HOST.d.engines,al=u&&u.allow;const lim=u?u.daily:0;
@@ -1128,7 +1130,7 @@ function hostForm(u){const E=HOST.d.engines,al=u&&u.allow;const lim=u?u.daily:0;
 function hostFormVal(){return {name:$('#hf-name').value,allow:$$('.hchips input:checked').map(i=>i.value),daily:+$('#hf-daily').value,expires_days:+$('#hf-exp').value}}
 function hostInviteCard(u){const link=hostInvite(u.key);
   return `<div class="hinv"><img src="/api/host/qr?text=${encodeURIComponent(link)}" alt="QR invite" onerror="this.style.display='none'">
-    <div><b>Invite for ${esc(u.name)}</b><p>Scan with the phone camera, or send the link. In the Android app: home address <code>${esc(lanBase())}</code> + this key.</p>
+    <div><b>Invite for ${esc(u.name)}</b><p>In the MIR MEDIA LABS app: tap <b>Scan QR</b> or <b>Paste invite link</b> and they're in. The phone camera also opens it in the browser.${HOST.d&&HOST.d.away?' Works at home and away.':' Home Wi-Fi only until you set an away address (Phones tab).'}</p>
     <div class="hcopy"><code>${esc(link)}</code><button class="btn sm" data-cp="${esc(link)}">${MI.html('copy')} Copy link</button></div>
     <div class="hcopy"><code>${esc(u.key)}</code><button class="btn sm" data-cp="${esc(u.key)}">${MI.html('copy')} Copy key</button></div></div></div>`}
 function hostPeople(){const d=HOST.d,E=Object.fromEntries(d.engines.map(e=>[e.id,e.label]));
@@ -1153,10 +1155,11 @@ function hostRender(){const d=HOST.d;if(!d)return;
       <div><b>${d.enabled}</b><span>with access</span></div><div><b style="color:var(--grn)">${d.live}</b><span>live now · ${d.live_devices} device${d.live_devices===1?'':'s'}</span></div>
       <div><b>${d.today}</b><span>requests today</span></div>
       <div class="hremote ${d.remote?'on':''}"><button id="h-remote" title="Pause or allow phones / other PCs">${MI.html(d.remote?'live':'lock')} ${d.remote?'Remote access ON':'Remote access PAUSED'}</button><span>${d.remote?'phones & other PCs can connect':'only this PC can use the lab'}</span></div></div>
-    <div class="htabs">${[['people','People'],['invite','Invite someone'],['activity','Activity']].map(([k,t])=>`<button data-ht="${k}" class="${HOST.tab===k?'on':''}">${t}</button>`).join('')}</div>
+    <div class="htabs">${[['people','People'],['invite','Invite someone'],['phones','Phones'],['activity','Activity']].map(([k,t])=>`<button data-ht="${k}" class="${HOST.tab===k?'on':''}">${t}</button>`).join('')}</div>
     <div id="h-body">${HOST.tab==='people'?hostPeople():HOST.tab==='invite'?
       (HOST.made?hostInviteCard(HOST.made)+`<div class="hsave"><button class="btn" id="h-again">Invite someone else</button></div>`:
         `<p class="hlead">Create a personal key for one person. They only see their own creations; you can change or revoke it any time.</p>`+hostForm(null)+`<div class="hsave"><button class="btn pri" id="h-make">${MI.html('key')} Create access key</button></div>`):
+      HOST.tab==='phones'?hostPhones():
       `<div class="hlog">${d.log.length?d.log.map(l=>`<div><span>${stamp(l.t)}</span><b>${esc(l.who)}</b> ${esc(l.event)}</div>`).join(''):'<div>No activity yet.</div>'}</div>`}</div></div>`;
   $$('[data-ht]').forEach(b=>b.onclick=()=>{HOST.tab=b.dataset.ht;HOST.made=null;hostRender()});
   $('#h-remote').onclick=async()=>{if(d.remote&&!confirm('Pause remote access? Phones and other PCs are disconnected until you turn it back on. This PC keeps working.'))return;
@@ -1174,14 +1177,31 @@ function hostRender(){const d=HOST.d;if(!d)return;
   const mk=$('#h-make');if(mk)mk.onclick=async()=>{const v=hostFormVal();if(!v.allow.length)return toast('Pick at least one thing they can use');
     try{HOST.made=await api('/api/host/users',{method:'POST',body:JSON.stringify(v)});hostLoad()}catch(e){toast(e.message)}};
   const ag=$('#h-again');if(ag)ag.onclick=()=>{HOST.made=null;hostRender()};
+  const sa=$('#h-away-save');if(sa)sa.onclick=async()=>{try{await api('/api/host/away',{method:'POST',body:JSON.stringify({url:$('#h-away').value.trim()})});toast('Saved — new invites include it');hostLoad()}catch(e){toast(e.message)}};
+  const sn=$('#h-notice-send');if(sn)sn.onclick=async()=>{const t=$('#h-notice').value.trim();if(!t)return toast('Write a message first');
+    try{await api('/api/host/notice',{method:'POST',body:JSON.stringify({text:t})});$('#h-notice').value='';toast('Sent to every signed-in phone')}catch(e){toast(e.message)}};
 }
+/* Phones tab: away address for invites + a notice pushed to every phone / TV */
+function hostPhones(){const d=HOST.d;
+  return `<p class="hlead">The MIR MEDIA LABS app connects on home Wi-Fi by itself. To use it away from home, forward a port on your router and enter the address here — every invite link and QR code then carries it.</p>
+    <div class="hform"><div class="fld wide"><label>Away-from-home address</label><input id="h-away" value="${esc(d.away||'')}" placeholder="http://my-lab.duckdns.org:${d.port}"></div></div>
+    <div class="hsave"><button class="btn pri" id="h-away-save">${MI.html('globe')} Save address</button></div>
+    <details class="hguide"><summary>${MI.html('router')} How to set up port forwarding</summary><ol>
+      <li><b>Give this PC a fixed address.</b> In your router's admin page (often <code>192.168.0.1</code>, <code>192.168.1.1</code> or <code>10.0.0.1</code>) reserve <code>${esc(d.lan)}</code> for this PC (DHCP reservation).</li>
+      <li><b>Forward the port.</b> Find <i>Port Forwarding</i> / <i>Virtual Server</i> / <i>NAT</i>. Add a rule: TCP, external port <code>${d.port}</code> → <code>${esc(d.lan)}</code> port <code>${d.port}</code>.</li>
+      <li><b>Allow it in Windows.</b> Windows Defender Firewall → Advanced → Inbound Rules → New Rule → Port → TCP <code>${d.port}</code> → Allow (Private + Public).</li>
+      <li><b>Get a stable name.</b> Your home IP changes. A free dynamic-DNS name (No-IP, DuckDNS, or your router's built-in DDNS) keeps one address like <code>my-lab.duckdns.org</code>.</li>
+      <li><b>Test away from Wi-Fi.</b> On the phone, turn Wi-Fi off and open <code>http://&lt;your name&gt;:${d.port}</code>. If it never connects, your internet provider may use CGNAT (your router's WAN IP differs from the IP websites see) — then use a VPN like Tailscale or ZeroTier instead and enter that address.</li>
+    </ol><p class="hlead">Only people with a key get in, 10 wrong keys lock an address out for 15 minutes, and "Remote access" above pauses everything instantly.</p></details>
+    <div class="hform" style="margin-top:16px"><div class="fld wide"><label>Send a notice to every phone</label><input id="h-notice" maxlength="300" placeholder="e.g. The lab is down for maintenance until 6 pm"></div></div>
+    <div class="hsave"><button class="btn" id="h-notice-send">${MI.html('bell')} Send notification</button></div>`}
 async function hostLoad(){try{HOST.d=await api('/api/host/users')}catch(e){closeSheet();return toast(e.message)}
   if(document.activeElement&&/INPUT|SELECT/.test(document.activeElement.tagName)&&$('#s-body').contains(document.activeElement))return;
   hostRender()}
 async function openUsers(){HOST={tab:'people',edit:null,made:null,qr:null,d:null};
   head('shield','#5ee08a','HOST CONTROL');$('#s-ft').innerHTML='';$('#s-body').innerHTML='<div class="kv">Loading…</div>';
   $('#sheet').classList.add('wide');openSheet();await hostLoad();
-  clearInterval(window._hostTimer);window._hostTimer=setInterval(()=>{if($('#sheet').classList.contains('on')&&HOST.tab!=='invite'&&!HOST.edit)hostLoad()},6000)}
+  clearInterval(window._hostTimer);window._hostTimer=setInterval(()=>{if($('#sheet').classList.contains('on')&&HOST.tab!=='invite'&&HOST.tab!=='phones'&&!HOST.edit)hostLoad()},6000)}
 $('#b-users').onclick=()=>openUsers();
 
 /* status */
@@ -1247,7 +1267,12 @@ function civKeyWire(id,after){const box=document.getElementById(id);if(!box)retu
       toast(clear?'Civitai key removed':'Civitai key saved'+(r.user?' — signed in as '+r.user:''));after&&after(r)}
     catch(e){toast(e.message)}b.disabled=false})}
 const LAPI=(location.pathname.indexOf('/mlab')===0?'api/loras/':'/api/loras/');
-const LROLE={h3:'video',qimg:'image',ace:'music',music3:'music'};
+const LROLE={h3:'video',qimg:'image',ace:'music',music3:'music'};   // LoRA library tab per model
+const LCAN={h3:'video',qimg:'image',ace:'music'};                    // models that can load LoRAs (Music 3 can't)
+/* which LoRAs a finished request really used — and which it couldn't (wrong kind of model) */
+function loraLine(j){const on=j.loras||[],off=j.loras_skipped||[];if(!on.length&&!off.length)return '';
+  return `<div class="lora-line">${MI.html('layers','sm')}${on.length?` LoRA <b>${on.map(l=>esc(l.name)+' · '+(+l.strength).toFixed(2)).join(', ')}</b>`:''}${off.length?`<span class="off">${on.length?' · ':' '}not used for this request: ${off.map(esc).join(', ')}</span>`:''}</div>`}
+
 let lRole=LROLE[cur]||'video',lQ='',lSort='popular',lItems=[],lNext=null,lInst=[],lDL={},loraSel=LS.get('mml.loras',[]),lFull=false,lQT=0;
 function lSave(){LS.set('mml.loras',loraSel)}
 function lTile(it){const p=it.previews[0]||{};const v=p.kind==='video';
@@ -1272,16 +1297,18 @@ async function lLoadInst(){try{const j=await api(LAPI+'installed');lInst=(j.item
   if(Object.values(lDL).some(d=>d.state==='downloading'))setTimeout(lLoadInst,1500)}catch(e){}}
 function lRenderInst(){const box=$('#l-inst');if(!box)return;const mine=lInst.filter(i=>!i.role||i.role===lRole);
   box.innerHTML=mine.map(i=>{const on=loraSel.some(s=>s.file===i.file);
+    if(i.fits===false)return `<button class="lchip" data-lbad="${esc(i.name)}" style="opacity:.5" title="Made for a different version of this model — it can't apply here">${MI.html('warn','sm')}<span>${esc(i.name)} · won't load</span></button>`;
     return `<button class="lchip ${on?'on':''}" data-lf="${esc(i.file)}" title="${on?'Applied to the next renders — click to remove':'Click to apply to the next renders'}">${MI.html(on?'check':'layers','sm')}<span>${esc(i.name)}</span></button>`}).join('');
+  box.querySelectorAll('[data-lbad]').forEach(b=>b.onclick=()=>toast(b.dataset.lbad+' was made for a different version of this model — its layers don’t match, so it can’t change your renders'));
   box.querySelectorAll('[data-lf]').forEach(b=>b.onclick=()=>lToggle(b.dataset.lf))}
 function lToggle(file,strength){const i=loraSel.findIndex(s=>s.file===file);
   if(i>=0&&strength==null)loraSel.splice(i,1);
   else{const meta=lInst.find(x=>x.file===file)||{};const s={file,name:meta.name||file,role:meta.role||lRole,strength:strength==null?0.8:strength};
     if(i>=0)loraSel[i]=s;else{if(loraSel.length>=4)return toast('Up to 4 LoRAs per render');loraSel.push(s)}}
   lSave();lRenderInst();renderLsel()}
-function renderLsel(){const box=$('#lsel');if(!box)return;const role=LROLE[cur];
-  box.innerHTML=loraSel.map((s,i)=>{const off=s.role&&s.role!==role;
-    return `<div class="att" style="${off?'opacity:.45':''}" title="${off?'Not used by this model':'LoRA applied at strength '+s.strength}"><span class="ic">${MI.html('layers')}</span><span class="n">${esc(s.name)} · ${(+s.strength).toFixed(2)}</span><button class="x" data-li="${i}">${MI.html('close')}</button></div>`}).join('');
+function renderLsel(){const box=$('#lsel');if(!box)return;const role=LCAN[cur],auto=cur==='auto';
+  box.innerHTML=loraSel.map((s,i)=>{const meta=(typeof lInst!=='undefined'?lInst:[]).find(x=>x.file===s.file)||{},bad=meta.fits===false,off=bad||(!auto&&(!role||(s.role&&s.role!==role)));
+    return `<div class="att" style="${off?'opacity:.45':''}" title="${bad?'Made for a different version of this model — it can’t apply':off?(role?'Not used by this model':'This model can’t load LoRAs'):auto?'Applied when the model MUSE picks can use it':'LoRA applied at strength '+s.strength}"><span class="ic">${MI.html('layers')}</span><span class="n">${esc(s.name)} · ${(+s.strength).toFixed(2)}</span><button class="x" data-li="${i}">${MI.html('close')}</button></div>`}).join('');
   box.querySelectorAll('[data-li]').forEach(b=>b.onclick=()=>{loraSel.splice(+b.dataset.li,1);lSave();lRenderInst();renderLsel()})}
 function lSetRole(r){lRole=r;$$('#l-roles button,#lf-roles button').forEach(b=>b.classList.toggle('on',b.dataset.r===r));lItems=[];lNext=null;lLoad();lRenderInst()}
 function lOpen(){lFull=true;head('layers','var(--panel2)','LoRA LIBRARY');

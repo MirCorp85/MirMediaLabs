@@ -55,14 +55,27 @@ public class MainActivity extends Activity {
         Ui.init(this);
         Fonts.apply(this);   // MIR FONTS pick, before any view is built
         Theme.apply(this);   // MIR MEDIA LABS theme (same five palettes as the web)
-        if (!Prefs.configured(this)) { startActivity(new Intent(this, SetupActivity.class)); finish(); return; }
+        if (!Prefs.configured(this)) {     // first run: sign in (a shared invite link is passed along)
+            Intent s = new Intent(this, SetupActivity.class);
+            Intent in = getIntent();
+            if (in != null && Intent.ACTION_SEND.equals(in.getAction()) && in.getStringExtra(Intent.EXTRA_TEXT) != null)
+                s.putExtra("invite", in.getStringExtra(Intent.EXTRA_TEXT));
+            startActivity(s);
+            finish();
+            return;
+        }
         api = new Api(this);
         loras = new Loras(this);
         cur = Prefs.str(this, "model2", "auto");     // Auto (MUSE Director) is the default
         loadAtts();
         build();
-        api.probe(() -> { refreshModels(); poll(); library.reload(); Updater.check(this, false); Fonts.sync(this, api); Theme.sync(this, api); loras.refresh(null); });
+        api.probe(() -> {
+            refreshModels(); poll(); library.reload(); Fonts.sync(this, api); Theme.sync(this, api); loras.refresh(null);
+            if (!fromNotification(getIntent())) Updater.check(this, false);
+        });
         handleShare(getIntent());
+        PushJob.schedule(this);
+        h.postDelayed(() -> { if (!isFinishing()) { Crash.offer(this); askNotifications(); } }, 1200);
     }
 
     @Override public void onBackPressed() {
@@ -70,9 +83,39 @@ public class MainActivity extends Activity {
         else super.onBackPressed();
     }
 
-    @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); handleShare(i); }
-    @Override protected void onResume() { super.onResume(); resumed = true; h.removeCallbacks(loop); h.postDelayed(loop, 400); }
-    @Override protected void onPause() { super.onPause(); resumed = false; h.removeCallbacks(loop); }
+    @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); if (!fromNotification(i)) handleShare(i); }
+    @Override protected void onResume() { super.onResume(); resumed = true; Push.appVisible = true; h.removeCallbacks(loop); h.postDelayed(loop, 400); }
+    @Override protected void onPause() { super.onPause(); resumed = false; Push.appVisible = false; h.removeCallbacks(loop); }
+
+    /** Tapped a notification: open the finished piece, or the update. */
+    private boolean fromNotification(Intent i) {
+        if (i == null) return false;
+        if (i.getBooleanExtra("check_update", false)) {
+            i.removeExtra("check_update");
+            Updater.check(this, true);
+            return true;
+        }
+        String f = i.getStringExtra("open_file");
+        if (f != null) {
+            String m = i.getStringExtra("open_model");
+            i.removeExtra("open_file");
+            h.postDelayed(() -> { if (!isFinishing()) { showTab(1); openViewer(f, m); } }, 500);
+            return true;
+        }
+        return false;
+    }
+
+    /** Android 13+: ask once, with the reason, before the system prompt. */
+    private void askNotifications() {
+        if (Build.VERSION.SDK_INT < 33 || Tv.is(this) || Push.allowed(this) || Prefs.bool(this, "asked_notif", false)) return;
+        Prefs.put(this, "asked_notif", true);
+        Sheet sh = new Sheet(this, "Know when it's ready", "bell", Ui.pal());
+        sh.note("Renders take a minute or more. Allow notifications and MIR MEDIA LABS tells you the moment your image, video or song "
+                + "is done — with a preview — even when the app is closed. Your lab sends them directly; no outside service is involved.");
+        sh.button("bell", "Allow notifications", true, () -> requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 71));
+        sh.button("clock", "Not now", false, () -> {});
+        sh.show();
+    }
 
     private final Runnable loop = new Runnable() {
         @Override public void run() {
@@ -178,8 +221,9 @@ public class MainActivity extends Activity {
         sh.row("palette", "Theme", "Claude Dark · Graphite · Obsidian · Midnight · Paper", () -> Theme.pick(this));
         sh.row("type", "Font", "MIR FONTS", () -> Fonts.pick(this, api));
         sh.section("App");
-        sh.row("server", "Server & access key", Prefs.activeUrl(this) + (Prefs.onLan(this) ? " · home Wi-Fi" : ""), () -> startActivity(new Intent(this, SetupActivity.class)));
-        sh.row("download", "Check for updates", "installed v" + Updater.installedName(this), () -> Updater.check(this, true));
+        sh.row("server", "Server & access key", Api.host(Prefs.activeUrl(this)) + (Prefs.onLan(this) ? " · home Wi-Fi" : " · away"), () -> startActivity(new Intent(this, SetupActivity.class)));
+        sh.row("bell", "Notifications", Push.allowed(this) ? (Push.instant(this) ? "on · instant delivery" : "on") : "off on this phone", () -> Push.settings(this));
+        sh.row("download", "Check for updates", "installed v" + Updater.installedName(this) + " · GitHub + your lab", () -> Updater.check(this, true));
         sh.row("shield", "Isolation audit", "proof it never touches MirOS data", () -> api.get("/api/isolation", r -> {
             JSONObject j = r.obj();
             info("Isolation audit", r.ok() ? ("Separate from MirOS: " + (j.optBoolean("separate_from_miros") ? "YES" : "NO")
@@ -278,6 +322,11 @@ public class MainActivity extends Activity {
             if (!r.ok()) return;
             jobs = r.arr();
             JSONObject fresh = null;
+            for (int i = 0; i < jobs.length() && !PushService.running; i++) {   // started elsewhere (web / PC)? track it too
+                JSONObject j = jobs.optJSONObject(i);
+                String st = j.optString("status");
+                if (("queued".equals(st) || "running".equals(st)) && (!j.has("mine") || j.optBoolean("mine"))) { PushService.start(this); break; }
+            }
             for (int i = 0; i < jobs.length(); i++) {
                 JSONObject j = jobs.optJSONObject(i);
                 if (!"done".equals(j.optString("status"))) continue;
@@ -310,6 +359,7 @@ public class MainActivity extends Activity {
             create.clearPrompt();
             create.renderAtts();
             toast("Queued on " + model(cur).optString("label"));
+            PushService.start(this);      // live status + "it's ready" notification even if you leave the app
             tick = 0;
             poll();
         });

@@ -30,6 +30,13 @@ final class Loras {
 
     Loras(MainActivity m) { this.m = m; }
 
+    /** Models that can load LoRAs, and which kind (Music 3 and MUSE can't load any). */
+    static String canOf(String model) {
+        if ("h3".equals(model)) return "video";
+        if ("qimg".equals(model)) return "image";
+        if ("ace".equals(model)) return "music";
+        return null;
+    }
     static String roleOf(String model) {
         if ("h3".equals(model)) return "video";
         if ("qimg".equals(model)) return "image";
@@ -56,14 +63,12 @@ final class Loras {
         saveSel(out);
         m.create.renderAtts();
     }
-    /** What /api/generate gets: [{file, strength}] matching this engine's role. */
-    JSONArray forRender(String model) {
+    /** What /api/generate gets: [{file, strength}]. */
+    JSONArray forRender(String model) {        // every pick: the server applies what this request's model can load
         JSONArray a = sel(), out = new JSONArray();
-        String role = roleOf(model);
-        boolean auto = "auto".equals(model);            // MUSE picks the engine: the server keeps the matching ones
         for (int i = 0; i < a.length(); i++) {
             JSONObject o = a.optJSONObject(i);
-            if (auto || o.optString("role").isEmpty() || role.equals(o.optString("role"))) out.put(Api.obj("file", o.optString("file"), "strength", o.optDouble("strength", 0.8)));
+            out.put(Api.obj("file", o.optString("file"), "strength", o.optDouble("strength", 0.8)));
         }
         return out;
     }
@@ -161,8 +166,11 @@ final class Loras {
         TextView n = Ui.bold(m, it.optString("name"), 13.5f, Ui.INK);
         n.setSingleLine(true);
         r.addView(n, Ui.margins(new LinearLayout.LayoutParams(0, Ui.WRAP, 1), 10, 0, 6, 0));
-        r.addView(Ui.text(m, s != null ? String.format(java.util.Locale.US, "%.2f", s.optDouble("strength", .8)) : "use", 12, Ui.DIM));
+        boolean bad = it.has("fits") && !it.isNull("fits") && !it.optBoolean("fits");   // other model generation: no layer matches
+        r.addView(Ui.text(m, bad ? "[[warn]] won't load" : s != null ? String.format(java.util.Locale.US, "%.2f", s.optDouble("strength", .8)) : "use", 12, bad ? Ui.AMB : Ui.DIM));
+        if (bad) r.setAlpha(.6f);
         r.setOnClickListener(v -> {
+            if (bad) { m.toast(it.optString("name") + " was made for a different version of this model — it can't change your renders"); return; }
             if (s != null) setSel(it.optString("file"), null, null, null);
             else setSel(it.optString("file"), it.optString("name"), it.optString("role", role), 0.8f);
             sh.dismiss();

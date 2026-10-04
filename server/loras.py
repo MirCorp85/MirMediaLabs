@@ -15,6 +15,7 @@ apart from the import line.
 import json
 import os
 import re
+import struct
 import threading
 import time
 
@@ -32,7 +33,9 @@ ROLES = {
     "image": {"label": "Image", "engine": "qimg", "params": {"baseModels": "Qwen 2.1"}},
     "music": {"label": "Music", "engine": "ace", "params": {"query": "ACE-Step"}},
 }
-ENGINE_ROLE = {"h3": "video", "qimg": "image", "ace": "music", "music3": "music"}
+# LoRA-capable engines only, derived from ROLES. "music" LoRAs are ACE-Step LoRAs: MiniMax Music 3 (songs) can't load
+# them — mapping it to "music" made them "attach" and silently do nothing. Engines missing here take no LoRAs.
+ENGINE_ROLE = {v["engine"]: k for k, v in ROLES.items()}
 SORTS = {"popular": "Most Downloaded", "rated": "Highest Rated", "new": "Newest"}
 INDEX = os.path.join(core.DATA, "loras.json")
 LOADERS = {"UNETLoader", "LoraLoaderModelOnly", "CheckpointLoaderSimple", "UnetLoaderGGUF"}
@@ -177,10 +180,82 @@ def installed():
         if not fn.endswith(".safetensors"):
             continue
         meta = ix.get(fn) or {}
-        out.append({"file": fn, "name": meta.get("name") or os.path.splitext(fn)[0], "role": meta.get("role") or "",
+        role = meta.get("role") or ""
+        out.append({"file": fn, "name": meta.get("name") or os.path.splitext(fn)[0], "role": role,
                     "triggers": meta.get("triggers") or [], "preview": meta.get("preview"), "page": meta.get("page"),
-                    "ours": fn in ix, "builtin": fn.startswith("minimax_h3_")})
+                    "ours": fn in ix, "builtin": fn.startswith("minimax_h3_"),
+                    "fits": fits(fn, ROLES[role]["engine"]) if role in ROLES else None})
     return out
+
+
+# ── does a LoRA fit the model version that's installed? ─────────────────────
+# Civitai mixes model generations under one name (e.g. ACE-Step v1 LoRAs vs our ACE-Step 1.5): ComfyUI then
+# loads them with "lora key not loaded" for every layer — nothing applies. Compare the LoRA's layer names with
+# the model file's (safetensors headers only: no GPU, no ComfyUI, ~ms once cached).
+_FIT, _MODS = {}, {}
+_PRE = ("model.diffusion_model.", "diffusion_model.", "transformer.", "base_model.model.", "unet.", "model.")
+_SUF = re.compile(r"\.(lora_[AB]|lora_down|lora_up|lora\.down|lora\.up|lora_mid|alpha|dora_scale|diff|diff_b|"
+                  r"hada_w[12]_[ab]|lokr_w[12](_[ab])?|w_norm|b_norm)(\.weight)?$")
+
+
+def _st_keys(path):
+    with open(path, "rb") as f:
+        n = struct.unpack("<Q", f.read(8))[0]
+        if n > 64 * 1024 * 1024:
+            raise ValueError("header too large")
+        return [k for k in json.loads(f.read(n)) if k != "__metadata__"]
+
+
+def _strip(k):
+    for p in _PRE:
+        if k.startswith(p):
+            return k[len(p):]
+    return k
+
+
+def _engine_file(engine):
+    try:
+        from . import renderers as R          # MirOS copy (package)
+    except ImportError:
+        import renderers as R                  # standalone
+    f = {"h3": R.H3.get("unet"), "qimg": R.QIMG.get("dit"), "ace": R.ACE.get("dit")}.get(engine)
+    return f[0] if isinstance(f, list) else f
+
+
+def _model_path(name):
+    roots = [os.path.dirname(loras_dir().rstrip("/\\"))]
+    root = getattr(comfy, "COMFY_ROOT", "") or ""
+    roots += [os.path.join(root, "ComfyUI", "models"), os.path.join(root, "models")]
+    for r in roots:
+        for sub in ("diffusion_models", "unet"):
+            p = os.path.join(r, sub, name)
+            if os.path.isfile(p):
+                return p
+    return None
+
+
+def fits(file, engine):
+    """True / False: does this LoRA's layer layout match the engine's installed model? None = can't tell."""
+    lp = os.path.join(loras_dir(), os.path.basename(str(file)))
+    mf = _engine_file(engine)
+    mp = _model_path(mf) if mf else None
+    if not mp or not os.path.isfile(lp):
+        return None
+    key = (lp, os.path.getmtime(lp), mp)
+    if key not in _FIT:
+        try:
+            if mp not in _MODS:
+                _MODS[mp] = {_strip(k).rsplit(".", 1)[0] for k in _st_keys(mp)}
+            mods = _MODS[mp]
+            under = {m.replace(".", "_") for m in mods}
+            lmods = {m for m in (_SUF.sub("", k) for k in _st_keys(lp)) if m}
+            lmods = {m for m in lmods if m not in ("", None)}
+            hit = sum(1 for m in lmods if _strip(m) in mods or _strip(m).replace(".", "_") in under
+                      or (_strip(m).startswith("lora_unet_") and _strip(m)[10:] in under))
+            _FIT[key] = None if not lmods else hit / len(lmods) >= 0.5
+        except Exception:
+            _FIT[key] = None
+    return _FIT[key]
 
 
 def install(item, token=""):
@@ -248,17 +323,42 @@ def remove(fn):
 
 
 # ── apply to a render ──────────────────────────────────────────────────────
-def pick(model, wanted):
-    """Validate a request's [{file, strength}] against what's installed + the engine's role."""
+def selection(wanted):
+    """A request's LoRA picks, cleaned: [{file, strength}], at most 4."""
+    out = []
+    for w in (wanted or [])[:4]:
+        fn = os.path.basename(str((w or {}).get("file") or "")) if isinstance(w, dict) else ""
+        if fn:
+            try:
+                st = max(0.0, min(1.5, float(w.get("strength", 0.8))))
+            except (TypeError, ValueError):
+                st = 0.8
+            out.append({"file": fn, "strength": st})
+    return out
+
+
+def pick(model, wanted, skipped=None):
+    """Validate a request's [{file, strength}] against what's installed + what this engine can load.
+    LoRAs that can't apply are left out and, when `skipped` is a list, reported there as {file, name, why}."""
     role = ENGINE_ROLE.get(model)
     have = {x["file"]: x for x in installed()}
     out = []
-    for w in (wanted or [])[:4]:
-        fn = os.path.basename(str((w or {}).get("file") or ""))
+    for w in selection(wanted):
+        fn = w["file"]
         meta = have.get(fn)
         if not meta or meta.get("builtin"):
+            if not meta and skipped is not None:
+                skipped.append({"file": fn, "name": fn, "why": "no longer installed"})
             continue
-        if meta.get("role") and role and meta["role"] != role:
+        if role is None or (meta.get("role") and meta["role"] != role):
+            if skipped is not None:
+                r = meta.get("role")
+                skipped.append({"file": fn, "name": meta.get("name") or fn,
+                                "why": ("made for %s" % {"image": "images"}.get(r, r)) if r in ROLES else "this model can't load LoRAs"})
+            continue
+        if meta.get("fits") is False:      # right kind, wrong model generation: ComfyUI would load none of its layers
+            if skipped is not None:
+                skipped.append({"file": fn, "name": meta.get("name") or fn, "why": "made for a different version of this model"})
             continue
         try:
             s = max(0.0, min(1.5, float((w or {}).get("strength", 0.8))))

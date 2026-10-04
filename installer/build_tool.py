@@ -125,6 +125,22 @@ def publish(setup, notes):
     print("published v%s → %s" % (man["version"], out))
 
 
+def android(apk, code, name, cert, tag, outdir):
+    """android.json + android.json.sig for the app's updater (GitHub release when tag is set, else the lab's /updates/).
+    Same Ed25519 key as the PC channel; the app has the public key compiled in (Updater.PUBKEY)."""
+    h = hashlib.sha256(open(apk, "rb").read()).hexdigest()
+    man = {"app": "com.mirmedialabs.app", "versionCode": int(code), "versionName": name,
+           "notes": os.environ.get("MML_NOTES", "").strip(), "apk": "MirMediaLabs.apk", "sha256": h,
+           "size": os.path.getsize(apk), "cert": cert.lower().replace(":", ""), "minSdk": 24,
+           "tag": "" if tag in ("", "-") else tag, "published": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    raw = json.dumps(man, indent=1, ensure_ascii=False).encode("utf-8")
+    sig = base64.b64encode(_priv().sign(raw))
+    os.makedirs(outdir, exist_ok=True)
+    open(os.path.join(outdir, "android.json"), "wb").write(raw)
+    open(os.path.join(outdir, "android.json.sig"), "wb").write(sig)
+    print("signed android.json v%s (%s) sha256 %s… -> %s" % (name, code, h[:12], outdir))
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1]
     if cmd == "keys":
@@ -133,6 +149,8 @@ if __name__ == "__main__":
         stage(sys.argv[2], sys.argv[3])
     elif cmd == "publish":
         publish(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else "")
+    elif cmd == "android":
+        android(*sys.argv[2:8])
     elif cmd == "bump":
         v = [int(x) for x in version().split(".")]
         v[-1] += 1

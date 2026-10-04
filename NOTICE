@@ -11,6 +11,9 @@ works of MirCorp and are distributed under the same license as part of this prog
 The names "MirCorp" and "MIR MEDIA LABS" and the logos are trademarks of MirCorp and are
 NOT licensed under the GPL. See TRADEMARK.md.
 
+The Android app includes ZXing "core" (https://github.com/zxing/zxing), Copyright (C) ZXing
+authors, licensed under the Apache License 2.0, used to read invite QR codes.
+
 AI models (MiniMax H3, MiniMax Music 3.0, Qwen-Image, ACE-Step, Ollama models, ComfyUI and
 any LoRAs) are NOT part of this program. They are downloaded separately by the user and are
 subject to their own licenses and terms of use.

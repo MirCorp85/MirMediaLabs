@@ -71,6 +71,9 @@ def describe(paths, job):
     """Vision engine → one mood sentence per picture (music models can't see images)."""
     if not paths:
         return ""
+    if not core.engine_sees():       # text-only engine (MUSE / Llama 3.1): no guessing about pictures it can't see
+        log(job, "engine can't see pictures — reference picture%s skipped for the mood" % ("" if len(paths) == 1 else "s"))
+        return ""
     log(job, "engine looking at %d reference picture%s …" % (len(paths), "" if len(paths) == 1 else "s"))
     try:
         imgs = [prompts._b64(p, 640) for p in paths[:4]]

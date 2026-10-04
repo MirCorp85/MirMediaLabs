@@ -1,6 +1,6 @@
 """MIR MEDIA LABS prompt builders (standalone copy of the MirOS builders) — one per generative model, each following that model's
-official prompting guide. The console engine (local Qwen 3.5, vision-capable) does
-the rewriting; every builder fails soft and returns the user's own text.
+official prompting guide. The console engine (local Ollama — MUSE / Llama 3.1 8B by default; pictures are
+only sent to vision-capable engines) does the rewriting; every builder fails soft and returns the user's own text.
 
 Sources (Oct 2026):
   Qwen-Image 2.1  — official PE-T2I / PE-I2I rewriter specs (Comfy-Org workflow

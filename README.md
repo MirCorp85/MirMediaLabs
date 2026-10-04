@@ -36,7 +36,7 @@ MML comes with a **free native Android companion app**. One APK covers phones an
 <p align="center"><sub>Chat with a live render · Library · Menu · Paper Light theme · Skills (Midnight Studio)</sub></p>
 <p align="center"><img src="docs/screenshots/apk-6-tv.png" alt="Android TV: library on the big screen" width="80%"><br><sub><b>Android TV</b>: the same APK, with a D-pad-friendly layout</sub></p>
 
-**Get it:** download `MirMediaLabs.apk` from the [Releases page](../../releases/latest), or scan the QR code at the end of the Windows setup. Then enter your PC's address and an access key from the **People** menu.
+**Get it:** download `MirMediaLabs.apk` from the [Releases page](../../releases/latest), or scan the QR code at the end of the Windows setup. Then sign in with the invite from **Host Control**: tap **Scan QR code** and point the phone at the PC, or **Paste invite link**. The app also notices an invite link on your clipboard.
 
 **Why it's useful:**
 - It uses your home Wi-Fi when you're there and switches to your remote address when you're away.
@@ -144,7 +144,7 @@ Videos and songs play in MML's own themed player on desktop, web, phone and TV:
   - finds AI models already on your PC and reuses them instead of downloading them again
   - **fast**: models download 3 at a time, *while* the PyTorch runtime installs
   - installs a private Python/PyTorch runtime, the ComfyUI render engine and only the models you pick
-  - optionally installs Ollama for the prompt engine
+  - optionally installs **MUSE (Llama 3.1 8B)** through Ollama. MUSE handles general conversation, builds the prompt for each render model, and picks the model for each request in Auto mode. It never renders: images, video and music always come from the render models.
   - shows a gallery of real MML renders while it works, then a **QR code for the mobile companion**
   - downloads resume, and re-running it offers Modify and Repair
 - **Signed auto-updates**: Ed25519-verified manifests, with SHA-256 checks and downgrade protection
@@ -160,6 +160,9 @@ Videos and songs play in MML's own themed player on desktop, web, phone and TV:
 - **Share to MML** from any app (photos, clips, songs, text) to use as references
 - Full console, skills, pipelines, LoRAs, library and viewer
 - 5 themes and 10 original **MIR FONTS**, synced with the desktop
+- **Sign in with an invite**: scan the host's QR code (or a screenshot of it), paste the link, or type it in. If it can't connect, the app explains why and how to fix it, and includes a step-by-step **port-forwarding guide** for using the lab away from home.
+- **Push notifications from your own lab**, without Firebase or Google services. You get "your video is ready" with a preview the moment a render finishes, plus messages from the host. Turn on *Instant delivery* to stay connected all the time.
+- **Signed self-updates from GitHub Releases** (or from your own lab). Each update has an Ed25519-signed manifest, a SHA-256 check and a signing-certificate match before Android installs it. After the first one, updates install without extra taps on Android 12+.
 
 ### Multi-user and security
 - **Per-person access keys**: invite family or a team. Each user sees only their own jobs, and the owner sees everything.
@@ -187,7 +190,7 @@ Only download from this repository. Windows SmartScreen may warn about the unsig
 1. Run **`MirMediaLabs-Setup.exe`**, pick your models, and let it install.
 2. Open **MIR MEDIA LABS** from the desktop or Start menu, then pin it to the taskbar if you like.
 3. Type an idea, e.g. `/video a neon city at night, slow drone shot --vertical`, or tap a **Skill**.
-4. **Phone/TV:** install the APK, then enter the PC address from **Settings** and your access key.
+4. **Phone/TV:** install the APK. On the PC open **Host Control > Invite someone**, then scan the QR code with the app (or paste the link). To use it away from home, add your address under **Host Control > Phones** (port-forwarding steps are in the app).
 
 ## Run from source
 ```
@@ -195,7 +198,7 @@ cd server
 pip install flask requests
 python medialab.py        # http://127.0.0.1:5400
 ```
-Rendering needs a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with the models installed. The prompt engine and MUSE need [Ollama](https://ollama.com).
+Rendering needs a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with the models installed. MUSE (chat, prompt building and the Auto-mode model picker) needs [Ollama](https://ollama.com) with `llama3.1:8b`.
 Android: open `app/` in Android Studio, or run `powershell -File build_apk.ps1`.
 
 ## Support development
