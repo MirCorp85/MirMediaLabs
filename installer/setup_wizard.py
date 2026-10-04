@@ -207,6 +207,30 @@ def comp_bytes(key):
 
 
 # ─────────────────────────────── system checks ───────────────────────────────
+def long_path(p):
+    """Normalized long form of a Windows path (expands 8.3 names like MIRMED~1), lower-cased for comparison."""
+    p = os.path.abspath(p)
+    try:
+        buf = ctypes.create_unicode_buffer(32768)
+        if ctypes.windll.kernel32.GetLongPathNameW(p, buf, 32768):
+            p = buf.value
+    except Exception:
+        pass
+    return os.path.normcase(p)
+
+
+def list_processes():
+    """[(pid, executable path)] via WMI."""
+    out = run_quiet(["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                     "Get-CimInstance Win32_Process | Select-Object ProcessId,ExecutablePath | ConvertTo-Json -Compress"], 60)
+    try:
+        rows = json.loads(out or "[]")
+    except ValueError:
+        return []
+    rows = [rows] if isinstance(rows, dict) else rows
+    return [(r.get("ProcessId"), r.get("ExecutablePath") or "") for r in rows]
+
+
 def run_quiet(cmd, timeout=20):
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, creationflags=NO_WINDOW)
@@ -384,13 +408,17 @@ class Installer:
 
     # steps
     def stop_running(self):
-        """Stop this install's app + engine (never the setup running from data\\updates)."""
-        dirs = " -or ".join("$_.ExecutablePath -like '%s\\*'" % os.path.join(self.dir, d).replace("'", "''")
-                            for d in ("app", "runtime"))
-        run_quiet(["powershell", "-NoProfile", "-Command",
-                   "Get-CimInstance Win32_Process | Where-Object { (%s) -and $_.ProcessId -ne %d } | ForEach-Object "
-                   "{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" % (dirs, os.getpid())], 60)
-        time.sleep(1.5)
+        """Stop this install's app + engine (never the setup running from data/updates).
+        Paths are compared in long form: a copy started as C:/MIRMED~1/app/... is still this install."""
+        roots = [long_path(os.path.join(self.dir, d)) + os.sep for d in ("app", "runtime")]
+        for attempt in range(3):
+            pids = [pid for pid, exe in list_processes()
+                    if pid != os.getpid() and exe and any(long_path(exe).startswith(r) for r in roots)]
+            if not pids:
+                break
+            for pid in pids:
+                run_quiet(["taskkill", "/F", "/T", "/PID", str(pid)], 30)
+            time.sleep(1.5)
 
     def step_files(self):
         os.makedirs(self.dir, exist_ok=True)
@@ -690,6 +718,9 @@ class Installer:
                 self.cancel = True                          # a failed step stops the downloads too (they resume later)
                 self._dl_thread.join(30)
             self.logf.close()
+
+
+RESULT = {"failed": False}     # exit code for scripted runs (--update): 1 if the last install attempt failed
 
 
 # ─────────────────────────────── wizard UI ───────────────────────────────
@@ -1203,6 +1234,7 @@ class Wizard(tk.Tk):
                     if self._step[1].startswith("Finishing model"):
                         self.pb_all["value"] = (self._step[2] + self._step[3] * (done / total if total else 1)) * 1000
                 elif k == "done":
+                    RESULT["failed"] = False
                     self._ended = True
                     if self.update_mode:                   # relaunch the updated app and get out of the way
                         self.lbl_step.config(text="Updated to v%s — restarting MIR MEDIA LABS …" % VERSION)
@@ -1213,6 +1245,7 @@ class Wizard(tk.Tk):
                     self.show()
                     return
                 elif k == "failed":
+                    RESULT["failed"] = True
                     self._ended = True
                     self.lbl_step.config(text="Stopped: " + v[:300], fg=BAD)
                     if not self.logbox.winfo_ismapped():
@@ -1359,3 +1392,4 @@ if __name__ == "__main__":
         Wizard(update_dir=d).mainloop() if d and read_config(d) else Wizard().mainloop()
     else:
         Wizard().mainloop()
+    sys.exit(1 if RESULT["failed"] else 0)
