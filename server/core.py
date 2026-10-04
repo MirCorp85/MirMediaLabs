@@ -211,7 +211,7 @@ def new_name(prefix, ext):
 
 # ── prompt engine (local Ollama) — rewrites prompts only, never sees anything else ──
 OLLAMA = "http://127.0.0.1:11434"
-DEFAULT_ENGINE = "qwen3.5:9b"   # vision-capable; falls back to any installed qwen3.5 / first model
+DEFAULT_ENGINE = "llama3.1:8b"  # MUSE: chat, prompt building + Auto-mode model picker (never renders); falls back to any installed llama3.1 / first model
 
 
 def engine_model():
@@ -222,13 +222,30 @@ def engine_model():
         return want
     if want in tags or not tags:
         return want
-    pick = next((t for t in tags if t.startswith("qwen3.5")), None) or tags[0]
+    pick = next((t for t in tags if t.startswith("llama3.1")), None) or tags[0]
     return pick
 
 
+_CAPS = {}
+
+
+def engine_sees(model=None):
+    """True when the prompt engine can look at pictures (Ollama 'vision' capability). MUSE (Llama 3.1) is
+    text-only: pictures are then left out of engine requests instead of failing them."""
+    m = model or engine_model()
+    if m not in _CAPS:
+        try:
+            r = requests.post(OLLAMA + "/api/show", json={"model": m}, timeout=5)
+            _CAPS[m] = "vision" in (r.json().get("capabilities") or [])
+        except Exception:
+            return False
+    return _CAPS[m]
+
+
 def ask(prompt, system, timeout=120, images=None):
-    body = {"model": engine_model(), "prompt": prompt, "system": system, "stream": False, "think": False}
-    if images:
+    model = engine_model()
+    body = {"model": model, "prompt": prompt, "system": system, "stream": False, "think": False}
+    if images and engine_sees(model):
         body["images"] = images
     r = requests.post(OLLAMA + "/api/generate", json=body, timeout=timeout)
     r.raise_for_status()

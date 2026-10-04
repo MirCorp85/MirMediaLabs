@@ -66,20 +66,60 @@ final class Api {
     }
     void probe(Runnable done) { POOL.execute(() -> { probeSync(); if (done != null) MAIN.post(done); }); }
 
-    private boolean quick(String base) {
+    private boolean quick(String base) { return ping(base, 1800, 2500) == null; }
+
+    /** null = a MIR MEDIA LABS server answered at base; otherwise a plain-words reason. Blocking. */
+    static String ping(String base, int connectMs, int readMs) {
+        if (base == null || base.isEmpty()) return "no address";
         HttpURLConnection c = null;
         try {
             c = (HttpURLConnection) new URL(base + "/api/ping").openConnection();
-            c.setConnectTimeout(1800); c.setReadTimeout(2500);
-            return c.getResponseCode() == 200;
-        } catch (Exception e) { return false; }
+            c.setConnectTimeout(connectMs); c.setReadTimeout(readMs);
+            c.setInstanceFollowRedirects(false);
+            int code = c.getResponseCode();
+            if (code != 200) return "something answered at " + host(base) + " (HTTP " + code + "), but it isn't a Media Lab — check the port";
+            String body = new String(readAll(c.getInputStream()), StandardCharsets.UTF_8);
+            return new JSONObject(body).has("app") ? null : "something answered at " + host(base) + ", but it isn't a Media Lab — check the port";
+        } catch (org.json.JSONException e) {
+            return "something answered at " + host(base) + ", but it isn't a Media Lab — check the port";
+        } catch (Exception e) { return explain(e, base); }
         finally { if (c != null) c.disconnect(); }
+    }
+
+    static String host(String url) {
+        try { Uri u = Uri.parse(url); return u.getHost() + (u.getPort() > 0 ? ":" + u.getPort() : ""); } catch (Exception e) { return url; }
+    }
+
+    static String explain(Exception e) { return explain(e, null); }
+
+    /** Network failure → what it means and what to try, never a bare exception class name. */
+    static String explain(Exception e, String base) {
+        String h = base == null ? "the lab" : host(base);
+        if (e instanceof java.net.MalformedURLException) return "that address isn't valid — open Server settings and fix it";
+        if (e instanceof java.net.UnknownHostException) return "can't find " + h + " — check the address, or your internet connection";
+        if (e instanceof java.net.SocketTimeoutException) return "no answer from " + h + " — the PC may be asleep, the firewall blocks it, or the port isn't forwarded";
+        if (e instanceof java.net.NoRouteToHostException) return "can't reach " + h + " from this network";
+        if (e instanceof java.net.ConnectException) return "connection refused by " + h + " — is MIR MEDIA LABS running on the PC? (away: is the port forwarded?)";
+        if (e instanceof javax.net.ssl.SSLException) return "secure connection to " + h + " failed — try http:// instead of https://";
+        if (e instanceof java.io.InterruptedIOException) return "connection to " + h + " was interrupted";
+        String m = e.getMessage();
+        return "offline — " + (m == null || m.isEmpty() ? e.getClass().getSimpleName() : m);
+    }
+
+    /** The phone switched networks (Wi-Fi ↔ mobile data): pick the route again right away. */
+    static void networkChanged(Context c) {
+        lastProbe = 0;
+        failStreak = 0;
+        POOL.execute(() -> new Api(c).probeSync());
     }
 
     void get(String path, Cb cb) { async(() -> request("GET", path, null, false, 20000), cb); }
     void post(String path, JSONObject body, Cb cb) { async(() -> request("POST", path, body == null ? new JSONObject() : body, false, 60000), cb); }
     void bytes(String path, Cb cb) { async(() -> request("GET", path, null, true, 60000), cb); }
     Resp getSync(String path) { return request("GET", path, null, false, 20000); }
+    Resp getSync(String path, int timeoutMs) { return request("GET", path, null, false, timeoutMs); }
+    Resp bytesSync(String path) { return request("GET", path, null, true, 30000); }
+    Resp postSync(String path, JSONObject body) { return request("POST", path, body == null ? new JSONObject() : body, false, 20000); }
 
     private interface Call { Resp run(); }
     private void async(Call c, Cb cb) {
@@ -112,7 +152,7 @@ final class Api {
             return r;
         } catch (Exception e) {
             if (++failStreak >= 3 && System.currentTimeMillis() - lastProbe > 15000) POOL.execute(this::probeSync);
-            return new Resp(0, null, null, "offline — " + e.getClass().getSimpleName());
+            return new Resp(0, null, null, explain(e, base()));
         } finally {
             if (c != null) c.disconnect();
         }
@@ -164,7 +204,7 @@ final class Api {
                 }
                 return finish(c, false);
             } catch (Exception e) {
-                return new Resp(0, null, null, e.getMessage());
+                return new Resp(0, null, null, explain(e, base()));
             } finally {
                 if (c != null) c.disconnect();
             }
@@ -194,7 +234,7 @@ final class Api {
         int code = c.getResponseCode();
         InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
         byte[] raw = in == null ? new byte[0] : readAll(in);
-        if (code == 401) return new Resp(code, null, null, "unauthorized — check the Media Lab access key");
+        if (code == 401) return new Resp(code, null, null, "your access key was not accepted — ask the lab host for a new invite");
         if (wantBytes && code < 400) return new Resp(code, null, raw, null);
         String s = new String(raw, StandardCharsets.UTF_8);
         return new Resp(code, s, null, null);
