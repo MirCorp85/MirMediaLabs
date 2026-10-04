@@ -204,7 +204,8 @@ final class CreatePage extends LinearLayout {
             LinearLayout chip = Ui.hbox(m);
             chip.setPadding(Ui.dp(8), Ui.dp(5), Ui.dp(4), Ui.dp(5));
             chip.setBackground(Ui.box(10, Ui.alpha(Ui.VIO, .14f), Ui.VIO));
-            chip.setAlpha(l.optString("role").isEmpty() || role.equals(l.optString("role")) ? 1f : .45f);
+            String can = Loras.canOf(m.cur);              // Auto: MUSE's pick decides, so nothing is greyed out
+            chip.setAlpha("auto".equals(m.cur) || (can != null && (l.optString("role").isEmpty() || can.equals(l.optString("role")))) ? 1f : .45f);
             chip.addView(Ui.text(m, "[[layers]]", 13, Ui.VIO));
             String nm = l.optString("name");
             chip.addView(Ui.text(m, (nm.length() > 18 ? nm.substring(0, 17) + "…" : nm) + String.format(java.util.Locale.US, " · %.2f", l.optDouble("strength", .8)), 11.5f, Ui.INK),
@@ -216,6 +217,24 @@ final class CreatePage extends LinearLayout {
             chip.setOnClickListener(v -> m.loras.browse(Loras.roleOf(m.cur), ""));
             attRow.addView(chip, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 0, 6, 6));
         }
+    }
+
+    /** Which LoRAs a request really used, and which it couldn't (wrong kind of model) — from the server's job record. */
+    private android.view.View loraLine(JSONObject j) {
+        org.json.JSONArray on = j.optJSONArray("loras"), off = j.optJSONArray("loras_skipped");
+        int n = on == null ? 0 : on.length(), k = off == null ? 0 : off.length();
+        if (n == 0 && k == 0) return null;
+        StringBuilder s = new StringBuilder("[[layers]] ");
+        for (int i = 0; i < n; i++) {
+            JSONObject l = on.optJSONObject(i);
+            if (l != null) s.append(i > 0 ? ", " : "LoRA ").append(l.optString("name"))
+                    .append(String.format(java.util.Locale.US, " · %.2f", l.optDouble("strength", .8)));
+        }
+        if (k > 0) {
+            s.append(n > 0 ? "  ·  " : "").append("not used for this request: ");
+            for (int i = 0; i < k; i++) s.append(i > 0 ? ", " : "").append(off.optString(i));
+        }
+        return Ui.text(m, s.toString(), 12, Ui.DIM);
     }
 
     private static final java.util.regex.Pattern CMD_LINE = java.util.regex.Pattern.compile("^/[a-zA-Z0-9]{2,20}\\s+\\S.*");
@@ -361,6 +380,8 @@ final class CreatePage extends LinearLayout {
             Icons.set(rv, "[[sparkle]] MUSE chose " + str(route, "label") + (why.isEmpty() ? "" : " — " + why));
             b.addView(rv, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
         }
+        android.view.View loraV = loraLine(j);
+        if (loraV != null) b.addView(loraV, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
         final boolean routed = route != null;
         LinearLayout acts = Ui.hbox(m);
         final boolean text = "llama".equals(model);      // writer model: the reply IS the result

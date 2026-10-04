@@ -29,6 +29,7 @@ import llm
 import skills
 import loras
 import users
+import events
 import perf
 import router
 
@@ -36,6 +37,7 @@ app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = 600 * 1024 * 1024
 UPLOAD_MAX_MB = 500
 users.load()
+events.load()
 
 # -- access gate: every person has their own key (users.py). Loopback = the owner on this PC. --
 OPEN_PATHS = ("/api/ping",)
@@ -144,7 +146,8 @@ ORDER = []
 Q = queue.Queue()
 _JLOCK = threading.Lock()
 PUBLIC = ("id", "model", "prompt", "refs", "loras", "status", "stage", "log", "output", "files", "created", "started",
-          "finished", "error", "params", "user", "input", "skill", "pipeline", "steps", "step", "route")
+          "finished", "error", "params", "user", "input", "skill", "pipeline", "steps", "step", "route", "lora_sel",
+          "loras_skipped")
 
 
 def _persist():
@@ -170,6 +173,37 @@ def public(j):
         d["user_name"] = u["name"] if u else (j.get("user") or "owner")
         d["mine"] = (j.get("user") or "owner") == uid()
     return d
+
+
+def _what(model):
+    """'a song request', 'an image request' — role words, never engine names."""
+    lbl = next((v["label"] for v in skills.ROLES.values() if v["model"] == model), "media").lower()
+    return ("an " if lbl[:1] in "aeiou" else "a ") + lbl + " request"
+
+
+def _lora_note(job, skipped, what):
+    """Say which picked LoRAs this request can't use (wrong kind of model) instead of dropping them silently."""
+    if not skipped:
+        return
+    names = [x["name"] for x in skipped]
+    job["loras_skipped"] = sorted(set((job.get("loras_skipped") or []) + names))
+    for x in skipped:
+        job["log"] = (job.get("log") or "") + "LoRA not used: %s (%s) — this is %s\n" % (x["name"], x["why"], what)
+
+
+def _lora_apply(job, model, what):
+    """Pick the job's LoRAs for the engine that renders now (pipelines change engine per step) + add trigger words."""
+    skipped = []
+    picked = loras.pick(model, job.get("lora_sel"), skipped)
+    _lora_note(job, skipped, what)
+    job["loras"] = picked
+    trig = [t for l in picked for t in l["triggers"] if t and t.lower() not in (job.get("prompt") or "").lower()]
+    if trig:
+        job["prompt"] = ((job["prompt"] + ", ") if job.get("prompt") else "") + ", ".join(trig[:8])
+    if picked:
+        job["log"] = (job.get("log") or "") + "LoRA applied: %s\n" % ", ".join(
+            "%s · %.2f" % (l["name"], l["strength"]) for l in picked)
+    return picked
 
 
 def _run_once(job):
@@ -199,6 +233,8 @@ def _run_pipeline(job):
                    prompt=skills.fill(st["tpl"], job.get("input"), i == 1 and any(core.kind_of(r) == "image" for r in base)),
                    params=params.get(mdl, override=skills.overrides(st, mdl), uid=owner))
         renderers.log(job, "▶ step %d/%d · %s" % (i, n, skills.ROLES[st["role"]]["label"]))
+        if job.get("lora_sel"):
+            _lora_apply(job, mdl, "a %s step" % skills.ROLES[st["role"]]["label"].lower())
         res = _run_once(job)
         files += res["files"]
         texts.append("── step %d · %s ──" % (i, skills.ROLES[st["role"]]["label"]) + chr(10) + (res.get("text") or ""))
@@ -239,9 +275,14 @@ def worker():
             job["stage"] = ""
             job.pop("_cancel", None)
             _persist()
+            events.job_event(job)          # phone / TV notification (long-poll feed)
 
 
 # ── MUSE Director: Auto mode decides the tool for each message ─────────────
+# If the LoRAs you picked can't load on the engine MUSE chose, use the sibling role whose engine can
+# (songs → music: the LoRA library's music LoRAs are for the music engine; the song engine takes none).
+_LORA_ALT = {"song": "music"}
+
 def _recent(owner, limit=4):
     """This person's last finished turns, for follow-ups like 'now animate it'."""
     with _JLOCK:
@@ -278,6 +319,13 @@ def _route(job):
     renderers.log(job, "MUSE is reading your message …")
     recent = _recent(owner)
     d = router.decide(job.get("input") or "", job.get("refs"), recent, model=llm.MODEL_TAG)
+    alt = _LORA_ALT.get(d.get("role")) if d["action"] == "render" else None
+    sel = job.get("lora_sel")
+    if alt and sel and not loras.pick(skills.model_for(d["role"]), sel) and loras.pick(skills.model_for(alt), sel):
+        who0 = users.by_id(owner)
+        if not who0 or not users.can_use(who0, skills.model_for(alt)):
+            d["why"] = ((d.get("why") or "") + "; " if d.get("why") else "") + "%s instead, so your LoRA applies" % skills.ROLES[alt]["label"]
+            d["role"] = alt
     if d.get("use_previous") and d["action"] != "chat":
         want = "image" if d.get("role") == "video" or d.get("skill") == "animate" else None
         _attach_previous(job, recent, want) or _attach_previous(job, recent)
@@ -321,12 +369,8 @@ def _route(job):
     else:
         model = skills.model_for(d["role"])
         job.update(model=model, prompt=prompt, params=params.get(model, uid=owner))
-    picked = loras.pick(model, job.pop("_loras", None))
-    if picked:
-        trig = [t for l in picked for t in l["triggers"] if t and t.lower() not in job["prompt"].lower()]
-        if trig:
-            job["prompt"] = (job["prompt"] + ", " if job["prompt"] else "") + ", ".join(trig[:8])
-        job["loras"] = picked
+    if job.get("lora_sel"):
+        _lora_apply(job, model, _what(model))
 
 
 # ── pages + static ─────────────────────────────────────────────────────────
@@ -358,7 +402,26 @@ def static_files(fn):
 
 @app.route("/api/ping")
 def ping():
-    return jsonify({"app": core.APP_NAME, "version": core.APP_VERSION})
+    return jsonify({"app": core.APP_NAME, "version": core.APP_VERSION, "features": ["events", "invite-away"]})
+
+
+# ── notifications: long-poll feed for the phone / TV apps (events.py) ───────
+@app.route("/api/events")
+def events_feed():
+    try:
+        since = int(request.args.get("since", 0))
+        wait = float(request.args.get("wait", 0))
+    except ValueError:
+        return jsonify({"error": "bad cursor"}), 400
+    out, last = events.wait(uid(), since, wait)
+    return jsonify({"events": out, "last": last})
+
+
+@app.route("/api/events/test", methods=["POST"])
+def events_test():
+    ev = events.push(uid(), "notice", "Notifications are working",
+                     "This is how MIR MEDIA LABS tells you a render is ready.", test=True)
+    return jsonify({"ok": True, "id": ev["id"]})
 
 
 # ── status ─────────────────────────────────────────────────────────────────
@@ -565,26 +628,23 @@ def generate():
     if busy:   # one request at a time: the next can't start until the previous finishes
         return jsonify({"error": "the lab is still working on your previous request — wait for it to finish",
                         "busy": busy["id"]}), 409
-    picked = [] if model in ("llama", "auto") else loras.pick(model, body.get("loras"))   # LoRAs are for the media engines
-    if picked:
-        trig = [t for l in picked for t in l["triggers"] if t and t.lower() not in prompt.lower()]
-        if trig:
-            prompt = (prompt + ", " if prompt else "") + ", ".join(trig[:8])
+    sel = [] if model == "llama" else loras.selection(body.get("loras"))     # LoRAs are for the media engines
     if body.get("params") and model != "auto":
         params.save(model, body["params"], uid())
     jid = "j%d" % int(time.time() * 1000)
     job = {"id": jid, "model": model, "prompt": prompt, "refs": refs, "status": "queued", "stage": "queued",
            "log": "", "output": "", "files": [], "created": time.time(),
            "params": {} if model == "auto" else params.get(model, uid=uid()),
-           "user": uid(), "input": prompt, "loras": picked}
+           "user": uid(), "input": prompt, "loras": [], "lora_sel": sel}
     if sk:
         job.update(skill=sk["name"], prompt=skills.fill(sk["tpl"], prompt, sk["role"] != "text" and any(core.kind_of(r) == "image" for r in refs)),
                    params=params.get(model, override=skills.overrides(sk, model), uid=uid()))
     elif pl:
         job.update(pipeline=pl["name"], steps=pl["steps"], step="0/%d" % len(pl["steps"]))
+    if sel and model != "auto" and not pl:          # direct request: LoRAs + trigger words go in now (Auto: after MUSE picks)
+        _lora_apply(job, model, _what(model))
     if model == "auto":
         job["who"] = {"name": g.user.get("name", ""), "role": g.user.get("role", "")}
-        job["_loras"] = body.get("loras")
     if model == "llama":
         with _JLOCK:
             hist = [JOBS[i] for i in ORDER if i in JOBS and JOBS[i].get("model") == "llama" and JOBS[i].get("status") == "done"
@@ -829,7 +889,7 @@ def host_users():
         u = users.create(b.get("name"), b.get("allow"), b.get("daily"), b.get("expires_days"))
         return jsonify({"id": u["id"], "name": u["name"], "key": u["key"]})
     d = users.summary(include_keys=True, running_by_user=_running_by_user())
-    d.update(remote=REMOTE["on"], log=users.recent_log(), lan=_lan_ip(), port=core.PORT,
+    d.update(remote=REMOTE["on"], log=users.recent_log(), lan=_lan_ip(), port=core.PORT, away=core.prefs().get("away_url") or "",
              engines=[{"id": k, "label": users.ENGINE_NAMES[k]} for k in users.ENGINES])
     return jsonify(d)
 
@@ -847,6 +907,7 @@ def host_user(user_id):
                 n += 1
                 if j["status"] == "queued":
                     j["status"], j["error"], j["finished"] = "cancelled", "stopped by the host", time.time()
+                    events.job_event(j)
                 else:
                     j["_cancel"] = True
                     if j.get("comfy_pid"):
@@ -869,6 +930,31 @@ def host_remote():
     core.save_pref("remote_access", REMOTE["on"])
     users.log("remote access " + ("ON" if REMOTE["on"] else "PAUSED"), "host")
     return jsonify({"remote": REMOTE["on"]})
+
+
+@app.route("/api/host/notice", methods=["POST"])
+def host_notice():
+    """Push a short message to every phone / TV signed in to this lab."""
+    if (r := _host_only()):
+        return r
+    text = str((request.get_json(silent=True) or {}).get("text") or "").strip()[:300]
+    if not text:
+        return jsonify({"error": "write a message first"}), 400
+    events.push("*", "notice", "Message from the lab host", text)
+    users.log("sent a notice: " + text[:60], "host")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/host/away", methods=["POST"])
+def host_away():
+    """The lab's away-from-home address (router port-forward / DDNS name), added to invite links + QR codes."""
+    if (r := _host_only()):
+        return r
+    url = str((request.get_json(silent=True) or {}).get("url") or "").strip()[:200]
+    if url and not re.match(r"^https?://[^\s/?#]+(:\d+)?/?$", url, re.I):
+        return jsonify({"error": "use a form like http://my-lab.duckdns.org:5400"}), 400
+    core.save_pref("away_url", url.rstrip("/"))
+    return jsonify({"away": url.rstrip("/")})
 
 
 @app.route("/api/host/qr")
@@ -894,12 +980,12 @@ def admin_presence():
     return jsonify(users.summary(include_keys=False, running_by_user=_running_by_user()))
 
 
-# ── update server (the Android app checks /updates/version.json) ───────────
+# ── update server: the Android app checks /updates/android.json (+ .sig, Ed25519) — version.json for pre-2.0 apps ──
 @app.route("/updates/<path:fn>")
 def updates(fn):
     if fn in ("pc/version.json", "pc/version.json.sig", "pc/MirMediaLabs-Setup.exe"):
         p = core.in_dir(os.path.join(core.UPDATES, "pc"), fn[3:])
-    elif fn == "version.json" or (fn.lower().endswith(".apk") and "/" not in fn):
+    elif fn in ("version.json", "android.json", "android.json.sig") or (fn.lower().endswith(".apk") and "/" not in fn):
         p = core.in_dir(core.UPDATES, fn)
     else:
         abort(404)
