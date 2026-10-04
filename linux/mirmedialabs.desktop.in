@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=MIR MEDIA LABS
+Comment=Local AI media studio (video, image, music)
+Exec="@ROOT@/start-mirmedialabs.sh"
+Icon=@ROOT@/MirMediaLabs-icon-1024.png
+Terminal=false
+Categories=AudioVideo;Graphics;
+StartupWMClass=MirMediaLabs

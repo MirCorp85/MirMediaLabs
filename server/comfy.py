@@ -13,12 +13,19 @@ import time
 import requests
 
 import core
+import platform_util as pu
 
 LOCAL = os.environ.get("LOCALAPPDATA", "")
 _CFG = core.CONFIG                   # set by the installer; empty on the build PC (Comfy Desktop paths)
-COMFY_ROOT = _CFG.get("comfy_root") or os.path.join(LOCAL, "Comfy-Desktop", "ComfyUI-Installs", "ComfyUI")
-COMFY_PY = _CFG.get("comfy_python") or os.path.join(COMFY_ROOT, "ComfyUI", ".venv", "Scripts", "python.exe")
-COMFY_SHARED = _CFG.get("comfy_shared") or os.path.join(LOCAL, "Comfy-Desktop", "ComfyUI-Shared")
+if pu.IS_WIN:
+    _DEF_ROOT = os.path.join(LOCAL, "Comfy-Desktop", "ComfyUI-Installs", "ComfyUI")
+    _DEF_SHARED = os.path.join(LOCAL, "Comfy-Desktop", "ComfyUI-Shared")
+else:                                # Linux: headless ComfyUI installed by install.sh
+    _DEF_ROOT = os.path.join(core.ROOT, "comfy")
+    _DEF_SHARED = os.path.join(core.ROOT, "comfy", "shared")
+COMFY_ROOT = _CFG.get("comfy_root") or _DEF_ROOT
+COMFY_PY = _CFG.get("comfy_python") or pu.venv_python(os.path.join(COMFY_ROOT, "ComfyUI", ".venv"))
+COMFY_SHARED = _CFG.get("comfy_shared") or _DEF_SHARED
 PORTS = (8188, 8000, 8189, 8001)
 BASE = "http://127.0.0.1:8188"
 OUT_PREFIX = "mirmedialabs"          # our own subfolder in ComfyUI's output dir
@@ -31,6 +38,8 @@ WEIGHTS = {
     "qimg": ["qwen_image_2.1_int8_convrot.safetensors", "qwen3vl_8b_int8_convrot.safetensors"],
     "ace": ["acestep_v1.5_xl_turbo_bf16.safetensors", "qwen_4b_ace15.safetensors"],
 }
+for _ws in WEIGHTS.values():
+    core.apply_model_overrides(_ws)
 
 
 def _model_paths_yaml():
@@ -85,12 +94,10 @@ def start(wait=True, timeout=240):
         if up():
             return True
         if not os.path.isfile(COMFY_PY):
-            raise RuntimeError("ComfyUI engine not found — run MirMediaLabs-Setup.exe (Repair)")
-        busy = subprocess.run(
-            ["powershell", "-NoProfile", "-NonInteractive", "-Command",
-             "(Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*ComfyUI*main.py*--port 8188*' }).Count"],
-            capture_output=True, text=True, timeout=20, creationflags=core.NO_WINDOW).stdout.strip()
-        if busy and busy != "0":
+            raise RuntimeError("ComfyUI engine not found — run MirMediaLabs-Setup.exe (Repair)" if pu.IS_WIN else
+                               "ComfyUI engine not found — run install.sh --engine")
+        busy = pu.find_pids(r"ComfyUI.*main\.py.*--port 8188")
+        if busy:
             # an engine process exists but isn't answering: give it a grace period (it may be loading),
             # then treat it as frozen (crashed but still holding :8188), kill it and start fresh
             t0 = time.time()
@@ -98,13 +105,10 @@ def start(wait=True, timeout=240):
                 time.sleep(3)
             if up():
                 return True
-            subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command",
-                            "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*ComfyUI*main.py*--port 8188*' } | "
-                            "ForEach-Object { taskkill /F /T /PID $_.ProcessId }"],
-                           capture_output=True, timeout=30, creationflags=core.NO_WINDOW)
+            pu.kill_pids(busy)
             time.sleep(3)
-            busy = "0"
-        if not busy or busy == "0":
+            busy = []
+        if not busy:
             cmd = [COMFY_PY, "-s", os.path.join("ComfyUI", "main.py"), "--listen", "127.0.0.1", "--port", "8188",
                    "--input-directory", os.path.join(COMFY_SHARED, "input"),
                    "--output-directory", os.path.join(COMFY_SHARED, "output")] + (_CFG.get("comfy_args") or [])
@@ -113,7 +117,8 @@ def start(wait=True, timeout=240):
                 cmd += ["--extra-model-paths-config", yml]
             with open(os.path.join(core.LOGS, "comfy_engine_out.log"), "a") as lf, \
                     open(os.path.join(core.LOGS, "comfy_engine_err.log"), "a") as ef:
-                subprocess.Popen(cmd, cwd=COMFY_ROOT, stdout=lf, stderr=ef, creationflags=0x00000008 | core.NO_WINDOW)
+                subprocess.Popen(cmd, cwd=COMFY_ROOT, stdout=lf, stderr=ef, **pu.detached_kwargs(),
+                                 env=dict(os.environ, **{k: str(v) for k, v in (_CFG.get("comfy_env") or {}).items()}))  # e.g. HSA_OVERRIDE_GFX_VERSION
     if not wait:
         return True
     t0 = time.time()

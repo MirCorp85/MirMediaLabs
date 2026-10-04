@@ -36,3 +36,8 @@ theme_options.html
 
 installer/showcase/
 installer/icon-64.png
+
+# -- linux build outputs --
+dist/
+installer/build-linux/
+*.tar.gz
