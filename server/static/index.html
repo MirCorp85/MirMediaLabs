@@ -135,6 +135,8 @@ a{color:inherit;text-decoration:none}
 .media img,.media video{max-width:100%;max-height:340px;border-radius:12px;display:block;background:#000}
 .media img{cursor:zoom-in}
 .media audio{width:min(380px,100%)}
+.msg .route{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin:-2px 0 8px}
+.msg .route b{color:var(--ink)}.msg .route span{color:var(--faint)}.msg .route .mi{color:#b48cff}
 .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .err{color:var(--red);white-space:pre-wrap;font-size:12.5px}
 .msg details{margin-top:8px}.msg summary{cursor:pointer;color:var(--dim);font-size:11.5px}
@@ -302,6 +304,42 @@ body.lcol-off .main{grid-template-columns:46px minmax(0,1fr) 300px}
 body.lcol-off .col.left>.card{display:none}
 body.lcol-off .lrail{display:flex}
 @media (max-width:860px){.lrail,.lcbtn{display:none!important}body.lcol-off .col.left>.card{display:block}}
+
+/* ═══ MML player ═══ */
+.mp{--mpbar:rgba(8,8,12,.72);position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);max-width:100%;color:#fff;user-select:none}
+:where(.mp) button{all:unset;cursor:pointer;display:grid;place-items:center;box-sizing:border-box}
+.mp.vid{background:#000;display:inline-block;line-height:0}
+.mp.vid video{display:block;max-width:100%;max-height:340px;cursor:pointer}
+.mp.vid.lg video{max-height:78vh;max-width:min(92vw,1400px)}
+.mp:fullscreen{border:0;border-radius:0;display:grid;place-items:center;background:#000}.mp:fullscreen video{max-height:100vh;max-width:100vw}
+.mp-big{position:absolute;left:50%;top:50%;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;
+  background:color-mix(in srgb,var(--mc,var(--orange)) 88%,transparent);box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 6px color-mix(in srgb,var(--mc,var(--orange)) 22%,transparent);
+  transition:transform .15s,opacity .2s}.mp-big:hover{transform:scale(1.07)}.mp-big .mi{width:26px;height:26px;margin-left:3px}
+.mp.vid.playing .mp-big{opacity:0;pointer-events:none}
+.mp-bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:10px;padding:22px 12px 9px;line-height:normal;
+  background:linear-gradient(transparent,var(--mpbar) 55%);font:600 11.5px var(--mono,monospace);transition:opacity .2s}
+.mp.vid.playing:not(:hover) .mp-bar{opacity:0}
+@media (hover:none){.mp.vid.playing .mp-bar{opacity:1}}
+.mp-b{width:28px;height:28px;border-radius:8px;color:#fff}.mp-b:hover{background:rgba(255,255,255,.12)}.mp-b .mi{width:17px;height:17px}
+.mp-t,.mp-d{min-width:34px;text-align:center;opacity:.9}
+.mp-track{position:relative;flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.18);cursor:pointer;touch-action:none}
+.mp-track:before{content:"";position:absolute;inset:-9px 0}
+.mp-buf{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:rgba(255,255,255,.22);width:0}
+.mp-fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--mc,var(--orange));width:0}
+.mp-knob{position:absolute;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#fff;left:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--mc,var(--orange)) 45%,transparent);transform:scale(0);transition:transform .15s}
+.mp:hover .mp-knob,.mp-track:active .mp-knob{transform:scale(1)}
+.mp.aud{display:flex;align-items:center;gap:14px;padding:14px 14px 12px;width:min(460px,100%);color:var(--ink);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--mc,var(--orange)) 26%,var(--panel2,#1a1a1a)),var(--panel2,#1a1a1a) 72%)}
+.mp.aud .mp-big{position:static;margin:0;flex:none;width:52px;height:52px;color:#fff}
+.mp.aud .mp-main{flex:1;min-width:0}
+.mp-ttl{display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;overflow:hidden}.mp-ttl b{letter-spacing:.06em}
+.mp-ttl span{color:var(--dim);overflow:hidden;text-overflow:ellipsis}.mp-ttl .mi{color:var(--mc,var(--orange))}
+.mp-viz{display:block;width:100%;height:42px;margin:8px 0 4px}
+.mp.aud .mp-bar{position:static;padding:0;background:none;color:var(--ink);gap:8px}
+.mp.aud .mp-b{color:var(--ink)}.mp.aud .mp-b:hover{background:color-mix(in srgb,var(--ink) 10%,transparent)}
+.mp.aud .mp-track{background:color-mix(in srgb,var(--ink) 16%,transparent)}.mp.aud .mp-buf{background:color-mix(in srgb,var(--ink) 14%,transparent)}
+.mp.aud.lg{width:min(640px,92vw);padding:26px;gap:22px;border-radius:20px}.mp.aud.lg .mp-big{width:72px;height:72px}
+.mp.aud.lg .mp-viz{height:110px}.mp.aud.lg .mp-ttl{font-size:14px}
 </style>
 <script src="/static/miros-icons.js"></script>
 <style id="mml-themes">
@@ -571,12 +609,12 @@ window.MML_THEMES=[
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ICON={image:MI.html('image'),video:MI.html('video'),audio:MI.html('music'),text:MI.html('note')};
-const SHORT={h3:'H3',music3:'MUSIC 3',qimg:'QWEN',ace:'ACE',llama:'MUSE'};
+const SHORT={auto:'AUTO',h3:'H3',music3:'MUSIC 3',qimg:'QWEN',ace:'ACE',llama:'MUSE'};
 /* MUSE hand-off: lines in a reply that start with a lab command get a Use button */
 const MUSE_SKIP=['/help','/skills','/clear','/commands'];
 function museLines(t){return (t||'').split('\n').map(l=>l.trim().replace(/^(?:[-*•]|\d+[.)])\s+/,'')).filter(l=>/^\/[a-z0-9]{2,20}\s+\S/i.test(l)&&!MUSE_SKIP.includes(l.split(/\s/)[0].toLowerCase()))}
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-let openModel=null, MODELS={}, ORDER=['h3','music3','qimg','ace','llama'], cur=LS.get('mml.model','h3'), atts=LS.get('mml.atts',[]);
+let openModel=null, MODELS={}, ORDER=['auto','h3','music3','qimg','ace','llama'], cur=LS.get('mml.model2','auto'), atts=LS.get('mml.atts',[]);
 let viewing=null, libKind='', libItems=[], jobsSig='', seeded=false, seen=new Set(), status={}, stick=true;
 
 async function api(path,opt={}){
@@ -618,8 +656,9 @@ function renderModels(){
   $$('#models .model').forEach(b=>b.onclick=e=>{if(e.target.dataset.g){openParams(e.target.dataset.g);return}
     const k=b.dataset.m;openModel=(k===cur&&openModel===k)?null:k;if(k!==cur)setModel(k);else renderModels()});
 }
-function setModel(k){cur=k;if(typeof lSetRole==='function'&&LROLE[k]&&LROLE[k]!==lRole)setTimeout(()=>lSetRole(LROLE[k]),0);if(typeof renderLsel==='function')setTimeout(renderLsel,0);LS.set('mml.model',k);(document.documentElement.dataset.theme||document.documentElement.style.setProperty('--acc',mcol(k)));renderModels();renderHint();renderAtts()}
-const PH={h3:'Ask H3 for a video… e.g. a lighthouse keeper climbs the stairs at dusk, slow crane up 8s',
+function setModel(k){cur=k;if(typeof lSetRole==='function'&&LROLE[k]&&LROLE[k]!==lRole)setTimeout(()=>lSetRole(LROLE[k]),0);if(typeof renderLsel==='function')setTimeout(renderLsel,0);LS.set('mml.model2',k);(document.documentElement.dataset.theme||document.documentElement.style.setProperty('--acc',mcol(k)));renderModels();renderHint();renderAtts()}
+const PH={auto:'Just say what you want — MUSE picks the tool… e.g. a neon city at night, 8 s video · or ask anything',
+  h3:'Ask H3 for a video… e.g. a lighthouse keeper climbs the stairs at dusk, slow crane up 8s',
   music3:'Ask Music 3 for a song… e.g. uplifting synth-pop anthem, bright female vocal --90s',
   qimg:'Ask Qwen for an image… e.g. neon jazz club poster, the sign reads "BLUE NOTE"',
   ace:'Ask ACE for a track… e.g. lo-fi beat, dusty drums, warm Rhodes --30s (attach audio to remix)',
@@ -628,6 +667,7 @@ function renderHint(){
   const m=MODELS[cur];if(!m)return;
   $('#prompt').placeholder=PH[cur]||'Message the lab…';
   const v=m.values||{};let b='';
+  if(cur==='auto')b='MUSE picks the model, skill or pipeline';
   if(cur==='h3')b=`<b>${esc(v.mode)}</b> · ${esc(v.aspect)} · ${esc(v.res)} · ${esc(v.seconds)}s · ${esc(v.quality)}`;
   if(cur==='music3')b=`≤${esc(v.duration)}s · lyrics ${esc(v.lyrics)} · ${esc(v.steps)} steps`;
   if(cur==='qimg')b=`<b>${esc(v.mode)}</b> · ${esc(v.aspect)} · ${esc(v.size)} · ${esc(v.steps)} steps`;
@@ -772,7 +812,7 @@ async function go(){
   if(!prompt&&!atts.length)return toast('Write a message or attach a reference');
   if(ARMED?.needs&&!atts.some(a=>kindOf(a.name)===ARMED.needs))return toast(ARMED.name+' needs an attached '+ARMED.needs);
   $('#b-go').disabled=true;closeAC();
-  const body={model:cur,prompt,refs:atts.map(a=>a.name),loras:(typeof loraSel!=='undefined'?loraSel.filter(l=>!l.role||l.role===LROLE[cur]).map(l=>({file:l.file,strength:l.strength})):[])};
+  const body={model:cur,prompt,refs:atts.map(a=>a.name),loras:(typeof loraSel!=='undefined'?loraSel.filter(l=>cur==='auto'||!l.role||l.role===LROLE[cur]).map(l=>({file:l.file,strength:l.strength})):[])};
   if(ARMED)body[ARMED.type]=ARMED.id;
   try{await api('/api/generate',{method:'POST',body:JSON.stringify(body)});
     $('#prompt').value='';autosize();atts=[];saveAtts();renderAtts();disarm();stick=true;pollJobs(true);pollStatus()}
@@ -796,16 +836,60 @@ async function pollJobs(force){
 }
 function mediaHTML(fn){const k=kindOf(fn),u='/media/'+encodeURIComponent(fn);
   if(k==='image')return `<img src="/thumb/${encodeURIComponent(fn)}" data-open="${esc(fn)}" loading="lazy" alt="">`;
-  if(k==='video')return `<video src="${u}" controls loop playsinline preload="metadata"></video>`;
-  if(k==='audio')return `<audio src="${u}" controls preload="none"></audio>`;
+  if(k==='video'||k==='audio')return mpHTML(k,u,{name:fn});
   return ''}
+/* MML player — themed video + audio player (model colour = --mc, theme tokens for the rest) */
+function mpHTML(k,u,o={}){const big=o.big?' lg':'',auto=o.autoplay?' autoplay':'';
+  const bar=`<div class="mp-bar"><button class="mp-b" data-mp="play" title="Play / pause (space)">${MI.html('play')}</button><span class="mp-t">0:00</span>
+    <div class="mp-track" data-mp="seek"><div class="mp-buf"></div><div class="mp-fill"></div><div class="mp-knob"></div></div>
+    <span class="mp-d">--:--</span><button class="mp-b" data-mp="mute" title="Mute">${MI.html('volume')}</button>${k==='video'?`<button class="mp-b" data-mp="fs" title="Full screen">${MI.html('expand')}</button>`:''}</div>`;
+  if(k==='video')return `<div class="mp vid${big}"><video src="${u}"${o.name?` poster="/thumb/${encodeURIComponent(o.name)}"`:''} playsinline loop preload="metadata"${auto}></video><button class="mp-big" data-mp="play" title="Play">${MI.html('play')}</button>${bar}</div>`;
+  return `<div class="mp aud${big}"><button class="mp-big" data-mp="play" title="Play">${MI.html('play')}</button><div class="mp-main"><div class="mp-ttl">${MI.html('music','sm')} <b>${esc(o.label||'AUDIO')}</b> <span>${esc(o.name||'')}</span></div>
+    <canvas class="mp-viz" data-seed="${(o.name||u).length}"></canvas>${bar}</div><audio src="${u}" preload="${o.autoplay?'auto':'metadata'}"${auto}></audio></div>`}
+const mpFmt=t=>!isFinite(t)?'--:--':Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+function mpOf(el){return el&&el.closest&&el.closest('.mp')}
+function mpSync(p){const m=p.querySelector('video,audio');if(!m)return;const d=m.duration,c=m.currentTime||0,f=isFinite(d)&&d>0?c/d:0;
+  p.querySelector('.mp-fill').style.width=(f*100)+'%';p.querySelector('.mp-knob').style.left=(f*100)+'%';
+  p.querySelector('.mp-t').textContent=mpFmt(c);p.querySelector('.mp-d').textContent=mpFmt(d);
+  try{const b=m.buffered;if(b.length&&isFinite(d))p.querySelector('.mp-buf').style.width=(b.end(b.length-1)/d*100)+'%'}catch(e){}
+  p.classList.toggle('playing',!m.paused);
+  p.querySelectorAll('[data-mp="play"]').forEach(x=>x.innerHTML=MI.html(m.paused?'play':'pause'));
+  const mu=p.querySelector('[data-mp="mute"]');if(mu)mu.innerHTML=MI.html(m.muted?'mute':'volume')}
+function mpViz(p){const cv=p.querySelector('.mp-viz');if(!cv)return;const m=p.querySelector('audio');
+  const W=cv.clientWidth,H=cv.clientHeight,r=devicePixelRatio||1;if(!W)return;cv.width=W*r;cv.height=H*r;const g=cv.getContext('2d');g.scale(r,r);
+  const col=getComputedStyle(p).getPropertyValue('--mc').trim()||'#ff5a1f',n=Math.max(24,Math.floor(W/7)),seed=+cv.dataset.seed||7;
+  let data=null;
+  if(!m.paused&&window.AudioContext){try{if(!m._an){const ac=window._mpAC||(window._mpAC=new AudioContext());const src=ac.createMediaElementSource(m);
+      const an=ac.createAnalyser();an.fftSize=256;src.connect(an);an.connect(ac.destination);m._an=an}
+    if(window._mpAC.state==='suspended')window._mpAC.resume();data=new Uint8Array(m._an.frequencyBinCount);m._an.getByteFrequencyData(data)}catch(e){data=null}}
+  const prog=m.duration?m.currentTime/m.duration:0;g.clearRect(0,0,W,H);
+  for(let i=0;i<n;i++){const v=data?Math.max(.06,data[Math.floor(i/n*data.length*.72)]/255):.18+Math.abs(Math.sin(i*1.7+seed))*.62;
+    const h=Math.max(2,v*H),x=i*(W/n);g.globalAlpha=i/n<=prog?1:.35;g.fillStyle=col;g.beginPath();
+    (g.roundRect?g.roundRect(x+1,(H-h)/2,Math.max(2,W/n-3),h,2):g.rect(x+1,(H-h)/2,Math.max(2,W/n-3),h));g.fill()}
+  if(!m.paused)requestAnimationFrame(()=>mpViz(p))}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-mp]');if(!b||b.dataset.mp==='seek')return;const p=mpOf(b),m=p&&p.querySelector('video,audio');if(!m)return;
+  e.preventDefault();e.stopPropagation();const a=b.dataset.mp;
+  if(a==='play'){if(m.paused){document.querySelectorAll('.mp video,.mp audio').forEach(o=>{if(o!==m)o.pause()});m.play().catch(()=>{})}else m.pause()}
+  else if(a==='mute')m.muted=!m.muted;
+  else if(a==='fs'){const el=p;(document.fullscreenElement?document.exitFullscreen():(el.requestFullscreen||el.webkitRequestFullscreen).call(el))}
+  mpSync(p)});
+document.addEventListener('click',e=>{const v=e.target.closest('.mp.vid video');if(!v)return;v.paused?v.play().catch(()=>{}):v.pause()});
+document.addEventListener('pointerdown',e=>{const tr=e.target.closest('.mp-track');if(!tr)return;const p=mpOf(tr),m=p.querySelector('video,audio');
+  const seek=ev=>{const r=tr.getBoundingClientRect(),f=Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width));if(isFinite(m.duration))m.currentTime=f*m.duration;mpSync(p);mpViz(p)};
+  seek(e);tr.setPointerCapture(e.pointerId);tr.onpointermove=seek;tr.onpointerup=()=>{tr.onpointermove=null}});
+['timeupdate','play','pause','loadedmetadata','progress','volumechange','ended'].forEach(t=>document.addEventListener(t,e=>{const p=mpOf(e.target);if(!p)return;mpSync(p);
+  if(t==='play'||t==='loadedmetadata')mpViz(p)},true));
+new MutationObserver(()=>document.querySelectorAll('.mp.aud:not([data-v])').forEach(p=>{p.dataset.v=1;requestAnimationFrame(()=>mpViz(p))})).observe(document.body,{childList:true,subtree:true});
+document.addEventListener('keydown',e=>{if(e.code!=='Space'||/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
+  const m=document.querySelector('#lb.on .mp video,#lb.on .mp audio')||[...document.querySelectorAll('.mp video,.mp audio')].find(x=>!x.paused);
+  if(m){e.preventDefault();m.paused?m.play().catch(()=>{}):m.pause()}});
 function renderThread(jobs){
   const t=$('#thread');
-  if(!jobs.length){t.innerHTML=`<div class="welcome"><img src="/static/icon-512.png" alt=""><h3>MIR MEDIA LABS</h3>Pick a model, then message the lab.<br>Attach pictures, clips, songs or text with ${MI.html('attach')} — results come back right here.</div>`;return}
+  if(!jobs.length){t.innerHTML=`<div class="welcome"><img src="/static/icon-512.png" alt=""><h3>MIR MEDIA LABS</h3>Just say what you want — <b>MUSE</b> picks the right model, skill or pipeline, or simply answers.<br>Prefer control? Pick a model yourself on the left. Attach pictures, clips, songs or text with ${MI.html('attach')}.</div>`;return}
   const open=new Set($$('#thread details[open]').map(d=>d.dataset.id));
   t.innerHTML=jobs.slice().reverse().map(j=>{const m=MODELS[j.model]||{};
     const live=j.status==='running'||j.status==='queued';
-    const me=`<div class="msg me${j.mine===false?' guest':''}"><div class="meta">${j.mine===false?`<span class="who">${MI.html('user','sm')} ${esc(j.user_name)}</span>`:''}<span class="chip" style="--mc:${m.color||'#888'}">→ ${esc(SHORT[j.model]||j.model)}</span><span title="${ago(j.created)} ago">${stamp(j.created)}</span></div>
+    const me=`<div class="msg me${j.mine===false?' guest':''}"><div class="meta">${j.mine===false?`<span class="who">${MI.html('user','sm')} ${esc(j.user_name)}</span>`:''}<span class="chip" style="--mc:${(j.route||j.model==='auto')?'#b48cff':(m.color||'#888')}">→ ${esc((j.route||j.model==='auto')?'AUTO':(SHORT[j.model]||j.model))}</span><span title="${ago(j.created)} ago">${stamp(j.created)}</span></div>
       ${j.skill||j.pipeline?`<div style="margin-bottom:5px"><span class="pl-tag">${j.skill?MI.html('sparkle','sm')+' '+esc(j.skill):MI.html('chain','sm')+' '+esc(j.pipeline)}</span></div>`:''}
       ${(j.input??j.prompt)?`<div class="txt">${esc(j.input??j.prompt)}</div>`:'<div class="txt" style="color:var(--dim)">(references only)</div>'}
       ${j.refs?.length?`<div class="reftags">${j.refs.map(r=>`<span class="tag">${ICON[kindOf(r)]||MI.html('attach')} ${esc(refLabel(r))}</span>`).join('')}</div>`:''}</div>`;
@@ -819,11 +903,11 @@ function renderThread(jobs){
     else body=`<div class="media">${(j.files||[]).map(mediaHTML).join('')}</div>
       <div class="acts">${(j.files||[]).map(fn=>`<button class="btn sm" data-open="${esc(fn)}">${MI.html('expand')} Open</button><button class="btn sm" data-use="${esc(fn)}">${MI.html('refresh')} Use as ref</button><a class="btn sm" href="/media/${encodeURIComponent(fn)}?dl=1" download="${esc(fn)}">${MI.html('download')} Download</a>`).join('')}<button class="btn sm" data-r="${j.id}">↺ Again</button></div>
       ${j.output?`<details data-id="${j.id}" ${open.has(j.id)?'open':''}><summary>details</summary><pre>${esc(j.output)}</pre></details>`:''}`;
-    const lab=`<div class="msg lab" data-job="${j.id}" data-model="${j.model}" style="--mc:${m.color||'#888'}"><div class="meta"><span class="chip">${esc(m.label||j.model)}</span>${j.pipeline&&j.step&&live?`<span class="pl-tag">step ${esc(j.step)}</span>`:''}<span class="st ${j.status}">${j.status.toUpperCase()}${t2?' · <span class="tm">'+t2+'</span>':''}</span>${j.finished?`<span>${stamp(j.finished)}</span>`:''}</div>${body}</div>`;
+    const lab=`<div class="msg lab" data-job="${j.id}" data-model="${j.model}" style="--mc:${m.color||'#888'}"><div class="meta"><span class="chip">${esc(m.label||j.model)}</span>${j.pipeline&&j.step&&live?`<span class="pl-tag">step ${esc(j.step)}</span>`:''}<span class="st ${j.status}">${j.status.toUpperCase()}${t2?' · <span class="tm">'+t2+'</span>':''}</span>${j.finished?`<span>${stamp(j.finished)}</span>`:''}</div>${j.route?`<div class="route" title="${esc(j.route.by==='muse'?'decided by MUSE':'decided by the quick rules')}">${MI.html('sparkle','sm')} MUSE chose <b>${esc(j.route.label)}</b>${j.route.why?` <span>— ${esc(j.route.why)}</span>`:''}</div>`:''}${body}</div>`;
     return me+lab}).join('');
   if(stick)t.scrollTop=t.scrollHeight;
   $$('#thread [data-c]').forEach(b=>b.onclick=()=>api('/api/jobs/'+b.dataset.c+'/cancel',{method:'POST'}).then(()=>{toast('Cancelling…');pollJobs(true)}).catch(e=>toast(e.message)));
-  $$('#thread [data-r]').forEach(b=>b.onclick=()=>{const j=jobs.find(x=>x.id===b.dataset.r);if(!j)return;setModel(j.model);$('#prompt').value=j.prompt||'';autosize();$('#prompt').focus()});
+  $$('#thread [data-r]').forEach(b=>b.onclick=()=>{const j=jobs.find(x=>x.id===b.dataset.r);if(!j)return;setModel(j.route?'auto':j.model);$('#prompt').value=(j.route?(j.input||j.prompt):j.prompt)||'';autosize();$('#prompt').focus()});
   $$('#thread [data-use]').forEach(b=>b.onclick=()=>useAsRef(b.dataset.use));
   const jtext=id=>(jobs.find(x=>x.id===id)||{}).output||'';
   $$('#thread [data-ul]').forEach(b=>b.onclick=()=>{if(ARMED)disarm();$('#prompt').value=b.dataset.ul;autosize();setTab('create');$('#prompt').focus();toast('Loaded into the message box — press Send when ready')});
@@ -854,9 +938,8 @@ function showFile(name,model){
   const k=kindOf(name),url='/media/'+encodeURIComponent(name),m=MODELS[model]||{};
   viewing={name,model};const v=$('#lb-view');v.style.setProperty('--mc',m.color||'#ff5a1f');
   if(k==='image')v.innerHTML=`<img src="${url}" alt="">`;
-  else if(k==='video')v.innerHTML=`<video src="${url}" controls autoplay loop playsinline></video>`;
-  else{const bars=Array.from({length:48},(_,i)=>`<i style="height:${18+Math.abs(Math.sin(i*1.7+name.length))*82}%"></i>`).join('');
-    v.innerHTML=`<div class="audiocard"><div class="ttl">${esc(m.label||'AUDIO')}</div><div class="nm">${esc(name)}</div><div class="bars">${bars}</div><audio src="${url}" controls autoplay></audio></div>`}
+  else if(k==='video')v.innerHTML=mpHTML('video',url,{big:1,autoplay:1,name});
+  else v.innerHTML=mpHTML('audio',url,{big:1,autoplay:1,name,label:m.label||'AUDIO'});
   $('#lb-chip').textContent=SHORT[model]||'';$('#lb-chip').style.background=m.color||'#888';
   $('#lb-name').textContent=name;$('#lb-dl').href=url+'?dl=1';$('#lb').classList.add('on');
 }
@@ -883,6 +966,12 @@ addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();closeLB()}});
 function head(chip,color,title){$('#s-chip').innerHTML=MI.html(chip);$('#s-chip').style.background=color;$('#s-title').textContent=title}
 $('#b-params').onclick=()=>openParams(cur);
 function openParams(k){
+  if(k==='auto'){head('sparkle','#b48cff','AUTO · MUSE DIRECTOR');
+    $('#s-body').innerHTML=`<div class="kv"><div>MUSE reads every message and decides what happens: <b>answer it</b> (questions, ideas, lyrics, scripts), <b>render</b> it on the right model (image · video · song · music), use a <b>skill</b> preset, or run a <b>pipeline</b>.</div>
+      <div>Follow-ups work: "now animate it" or "make a song for that" reuse your last result automatically.</div>
+      <div>Flags you type (<code>--8s</code>, <code>--vertical</code>, <code>--bpm 120</code>…) are always kept. Slash commands (<code>/video</code>, <code>/skill product</code>…) and picking a model yourself skip MUSE.</div>
+      <div>Each model keeps its own settings — open its <span style="color:var(--dim)">sliders</span> to change them.</div></div>`;
+    $('#s-ft').innerHTML='';openSheet();return}
   const m=MODELS[k];const v=m.values||{};
   head(m.label,m.color,'PARAMETERS');
   document.documentElement.style.setProperty('--acc',m.color);
@@ -1051,7 +1140,7 @@ $$('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
 
 (async function boot(){
   try{MODELS=await api('/api/models')}catch(e){toast(e.message);return}
-  if(!MODELS[cur])cur='h3';
+  if(!MODELS[cur])cur='auto';
   try{ME=await api('/api/me')}catch(e){}
   loadSkills();
   if(ME.role==='owner'){$('#b-users').style.display='grid';pcUpdate()}

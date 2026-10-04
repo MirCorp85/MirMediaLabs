@@ -16,10 +16,7 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.MediaController;
-import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.VideoView;
 
 /** Full-screen viewer: image / video / audio player + Save · Use as ref · Delete. */
 final class Viewer extends Dialog {
@@ -79,54 +76,13 @@ final class Viewer extends Dialog {
                 if (b != null) iv.setImageBitmap(b);
             });
         } else if ("video".equals(kind)) {
-            VideoView vv = new VideoView(c);
-            MediaController mc = new MediaController(c);
-            mc.setAnchorView(vv);
-            vv.setMediaController(mc);
-            vv.setVideoURI(Uri.parse(url));
-            vv.setOnPreparedListener(p -> { p.setLooping(true); vv.start(); });
-            stage.addView(vv, new FrameLayout.LayoutParams(Ui.MATCH, Ui.WRAP, Gravity.CENTER));
+            stage.addView(MPlayer.video(c, url, col, h), new FrameLayout.LayoutParams(Ui.MATCH, Ui.MATCH));
         } else {
-            LinearLayout card = Ui.vbox(c);
-            card.setPadding(Ui.dp(22), Ui.dp(22), Ui.dp(22), Ui.dp(22));
-            card.setBackground(Ui.accent(Ui.mix(col, 0xFF0B0B12, 0.5f), 20));
-            card.addView(Ui.label(c, m.model(model).optString("label", "AUDIO")));
-            TextView nm = Ui.bold(c, name, 16, Ui.INK);
-            card.addView(nm, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 8, 0, 18));
-            SeekBar sb = new SeekBar(c);
-            card.addView(sb);
-            LinearLayout row = Ui.hbox(c);
-            TextView play = Ui.button(c, "[[play]]  PLAY", col, true);
-            TextView time = Ui.mono(c, "loading…", 12, Ui.DIM);
-            row.addView(play, Ui.lp(Ui.dp(130), Ui.dp(46)));
-            row.addView(time, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 14, 0, 0, 0));
-            card.addView(row, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 16, 0, 0));
+            MediaPlayer[] hold = {null};
             FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Ui.MATCH, Ui.WRAP, Gravity.CENTER);
             lp.setMargins(Ui.dp(18), 0, Ui.dp(18), 0);
-            stage.addView(card, lp);
-            mp = new MediaPlayer();
-            try {
-                mp.setDataSource(c, Uri.parse(url));
-                mp.setOnPreparedListener(p -> {
-                    sb.setMax(p.getDuration());
-                    time.setText(fmt(0) + " / " + fmt(p.getDuration()));
-                    p.start();
-                    Icons.set(play, "[[pause]][[pause]]  PAUSE");
-                    tickAudio(sb, time);
-                });
-                mp.setOnCompletionListener(p -> Icons.set(play, "[[play]]  PLAY"));
-                mp.prepareAsync();
-            } catch (Exception e) { time.setText("can't play: " + e.getMessage()); }
-            play.setOnClickListener(v -> {
-                if (mp == null) return;
-                if (mp.isPlaying()) { mp.pause(); Icons.set(play, "[[play]]  PLAY"); }
-                else { mp.start(); Icons.set(play, "[[pause]][[pause]]  PAUSE"); tickAudio(sb, time); }
-            });
-            sb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                @Override public void onProgressChanged(SeekBar s, int p, boolean user) { if (user && mp != null) mp.seekTo(p); }
-                @Override public void onStartTrackingTouch(SeekBar s) {}
-                @Override public void onStopTrackingTouch(SeekBar s) {}
-            });
+            stage.addView(MPlayer.audio(c, url, col, m.model(model).optString("label", "AUDIO"), name, h, hold), lp);
+            mp = hold[0];
         }
         root.addView(stage, new LinearLayout.LayoutParams(Ui.MATCH, 0, 1));
 
@@ -149,20 +105,6 @@ final class Viewer extends Dialog {
         bar.addView(del, Ui.lp(Ui.dp(56), ViewGroup.LayoutParams.WRAP_CONTENT));
         root.addView(bar);
         setContentView(root);
-    }
-
-    private void tickAudio(SeekBar sb, TextView time) {
-        h.removeCallbacksAndMessages(null);
-        h.post(new Runnable() {
-            @Override public void run() {
-                if (mp == null) return;
-                try {
-                    sb.setProgress(mp.getCurrentPosition());
-                    time.setText(fmt(mp.getCurrentPosition()) + " / " + fmt(mp.getDuration()));
-                    if (mp.isPlaying()) h.postDelayed(this, 400);
-                } catch (Exception ignored) {}
-            }
-        });
     }
 
     private static String fmt(int ms) { int s = ms / 1000; return (s / 60) + ":" + String.format("%02d", s % 60); }

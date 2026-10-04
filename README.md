@@ -45,6 +45,37 @@ MML comes with a **free native Android companion app**. One APK covers phones an
 
 ---
 
+## Just say what you want: MUSE Director
+You don't need to know which model does what. In **Auto** mode (the default), every message goes to **MUSE**, MML's local AI. MUSE reads the message, any attachments and the last few turns, then decides:
+
+| You type | MUSE does |
+|---|---|
+| "what's the difference between a verse and a chorus?" | **answers** it (general knowledge, ideas, advice, writing) |
+| "a cozy cabin in snowy woods at night" | renders a **picture** |
+| "8 second clip of waves on rocks at sunset" | renders a **video with sound** |
+| "design a logo for my coffee shop" | runs the **Logo Mark** skill |
+| "now animate it" | runs **Animate Photo** and **attaches your last result automatically** |
+| "a music video for a synthwave song about neon nights" | runs the **Music Video** pipeline |
+
+- The chat shows what MUSE chose and why. Flags like `--8s` are always kept.
+- Slash commands, or picking a model yourself, bypass MUSE whenever you want full control.
+- If the AI model is unavailable, a built-in rule engine takes over, so Auto never blocks.
+
+<p align="center"><img src="docs/screenshots/7-auto-muse.png" alt="Auto mode: MUSE answers a question, then routes a logo request to the Logo Mark skill" width="100%"></p>
+
+## A media player that fits the studio
+Videos and songs play in MML's own themed player on desktop, web, phone and TV:
+- the accent colour of the model that made the result
+- a scrubber with buffering, time, mute and full screen
+- for songs, a **live audio visualizer** that reacts to the music
+- the same design in the Android app, with ±10 s skip
+
+<p align="center">
+<img src="docs/screenshots/8-player.png" alt="Audio player with live visualizer" width="62%">
+<img src="docs/screenshots/apk-8-player.png" alt="Android audio player" width="17%">
+<img src="docs/screenshots/apk-7-auto.png" alt="Android: Auto mode with MUSE's decision" width="17%">
+</p>
+
 ## Why MIR MEDIA LABS
 - **One agent, many models.** You ask for an image, video, song, beat or story. MML routes it to the right engine, so you never deal with node graphs or model-specific settings.
 - **Prompts written for you.** A local LLM, the *Prompt director*, rewrites your idea in each model's official prompt style before rendering.

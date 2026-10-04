@@ -30,6 +30,7 @@ import skills
 import loras
 import users
 import perf
+import router
 
 app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = 600 * 1024 * 1024
@@ -127,7 +128,7 @@ ORDER = []
 Q = queue.Queue()
 _JLOCK = threading.Lock()
 PUBLIC = ("id", "model", "prompt", "refs", "loras", "status", "stage", "log", "output", "files", "created", "started",
-          "finished", "error", "params", "user", "input", "skill", "pipeline", "steps", "step")
+          "finished", "error", "params", "user", "input", "skill", "pipeline", "steps", "step", "route")
 
 
 def _persist():
@@ -207,6 +208,9 @@ def worker():
         job["status"], job["started"] = "running", time.time()
         _persist()
         try:
+            if job.get("model") == "auto":
+                _route(job)
+                _persist()
             res = _run_pipeline(job) if job.get("steps") else _run_once(job)
             job["files"], job["output"] = res["files"], res["text"]
             job["status"] = "done"
@@ -219,6 +223,86 @@ def worker():
             job["stage"] = ""
             job.pop("_cancel", None)
             _persist()
+
+
+# ── MUSE Director: Auto mode decides the tool for each message ─────────────
+def _recent(owner, limit=4):
+    """This person's last finished turns, for follow-ups like 'now animate it'."""
+    with _JLOCK:
+        js = [JOBS[i] for i in ORDER if i in JOBS and (JOBS[i].get("user") or "owner") == owner
+              and JOBS[i].get("status") == "done"]
+    out = []
+    for j in js[-limit:]:
+        tool = (j.get("route") or {}).get("label") or params.MODELS.get(j.get("model"), {}).get("label", j.get("model"))
+        made = ", ".join(sorted({core.kind_of(f) or "file" for f in j.get("files") or []}))
+        out.append({"q": j.get("input") or j.get("prompt") or "", "tool": tool, "made": made, "files": j.get("files") or []})
+    return out
+
+
+def _attach_previous(job, recent, want_kind=None):
+    """Copy the newest earlier result into this job's references (the Director said 'use_previous')."""
+    for h in reversed(recent):
+        for f in h["files"]:
+            if want_kind and core.kind_of(f) != want_kind:
+                continue
+            p = core.in_dir(core.LIB, f)
+            if not p:
+                continue
+            stem, ext = os.path.splitext(os.path.basename(p))
+            ref = _store_ref(stem, ext.lower(), owner=job.get("user") or "owner")
+            shutil.copy2(p, core.safe_path(os.path.join(core.REFS, ref)))
+            job["refs"] = list(job.get("refs") or []) + [ref]
+            return ref
+    return None
+
+
+def _route(job):
+    owner = job.get("user") or "owner"
+    job["stage"] = "MUSE is deciding …"
+    renderers.log(job, "MUSE is reading your message …")
+    recent = _recent(owner)
+    d = router.decide(job.get("input") or "", job.get("refs"), recent, model=llm.MODEL_TAG)
+    if d.get("use_previous") and d["action"] != "chat":
+        want = "image" if d.get("role") == "video" or d.get("skill") == "animate" else None
+        _attach_previous(job, recent, want) or _attach_previous(job, recent)
+    lbl = router.label(d)
+    job["route"] = {"label": lbl, "why": d.get("why", ""), "by": d.get("by", "rules"), "action": d["action"]}
+    renderers.log(job, "MUSE → %s%s" % (lbl, (" — " + d["why"]) if d.get("why") else ""))
+    prompt, refs = d.get("prompt") or job.get("input") or "", job.get("refs") or []
+    if d["action"] == "chat" or (d["action"] == "skill" and d.get("role") == "text"):
+        job["model"] = "llama"
+        job["params"] = params.get("llama", uid=owner)
+        if d["action"] == "skill":
+            sk = skills.skill(d["skill"])
+            job.update(skill=sk["name"], prompt=skills.fill(sk["tpl"], prompt),
+                       params=params.get("llama", override=skills.overrides(sk, "llama"), uid=owner))
+        else:
+            job["prompt"] = prompt
+        with _JLOCK:
+            hist = [JOBS[i] for i in ORDER if i in JOBS and JOBS[i].get("model") == "llama" and JOBS[i].get("status") == "done"
+                    and (JOBS[i].get("user") or "owner") == owner and JOBS[i].get("output") and JOBS[i] is not job]
+        job["history"] = [{"q": h.get("input") or h.get("prompt") or "", "a": h["output"][:6000]} for h in hist[-12:]]
+        return
+    if d["action"] == "pipeline":
+        pl = skills.pipeline(d["pipeline"])
+        job.update(model=skills.model_for(pl["steps"][0]["role"]), pipeline=pl["name"], steps=pl["steps"],
+                   step="0/%d" % len(pl["steps"]), input=prompt)
+        return
+    has_img = any(core.kind_of(r) == "image" for r in refs)
+    if d["action"] == "skill":
+        sk = skills.skill(d["skill"])
+        model = skills.model_for(sk["role"])
+        job.update(model=model, skill=sk["name"], prompt=skills.fill(sk["tpl"], prompt, has_img),
+                   params=params.get(model, override=skills.overrides(sk, model), uid=owner))
+    else:
+        model = skills.model_for(d["role"])
+        job.update(model=model, prompt=prompt, params=params.get(model, uid=owner))
+    picked = loras.pick(model, job.pop("_loras", None))
+    if picked:
+        trig = [t for l in picked for t in l["triggers"] if t and t.lower() not in job["prompt"].lower()]
+        if trig:
+            job["prompt"] = (job["prompt"] + ", " if job["prompt"] else "") + ", ".join(trig[:8])
+        job["loras"] = picked
 
 
 # ── pages + static ─────────────────────────────────────────────────────────
@@ -326,7 +410,15 @@ def settings():
 # ── models + parameters ────────────────────────────────────────────────────
 @app.route("/api/models")
 def models():
-    return jsonify({k: dict(v, values=params.get(k, uid=uid())) for k, v in params.MODELS.items()})
+    out = {"auto": AUTO_MODEL}                     # first = the default: MUSE Director picks the engine per message
+    out.update({k: dict(v, values=params.get(k, uid=uid())) for k, v in params.MODELS.items()})
+    return jsonify(out)
+
+
+AUTO_MODEL = {"label": "AUTO · MUSE", "kind": "auto", "color": "#b48cff", "params": [], "values": {},
+              "desc": "Just say what you want. MUSE reads it and picks the model, skill or pipeline, or simply answers.",
+              "accepts": {"image": "pictures to edit or animate", "video": "motion reference", "audio": "tracks to remix",
+                          "text": "lyrics, scripts, notes"}}
 
 
 @app.route("/api/params/<model>", methods=["GET", "POST"])
@@ -429,7 +521,7 @@ def generate():
         model = skills.model_for(sk["role"])
     elif pl:
         model = skills.model_for(pl["steps"][0]["role"])
-    if model not in renderers.RUNNERS:
+    if model not in renderers.RUNNERS and model != "auto":      # auto = MUSE Director decides in the worker
         return jsonify({"error": "unknown model"}), 400
     refs = [os.path.basename(str(n)) for n in (body.get("refs") or [])][:16]
     refs = [n for n in refs if core.in_dir(core.REFS, n) and _my_ref(n)]
@@ -443,22 +535,26 @@ def generate():
     if busy:   # one request at a time: the next can't start until the previous finishes
         return jsonify({"error": "the lab is still working on your previous request — wait for it to finish",
                         "busy": busy["id"]}), 409
-    picked = [] if model == "llama" else loras.pick(model, body.get("loras"))   # LoRAs are for the media engines
+    picked = [] if model in ("llama", "auto") else loras.pick(model, body.get("loras"))   # LoRAs are for the media engines
     if picked:
         trig = [t for l in picked for t in l["triggers"] if t and t.lower() not in prompt.lower()]
         if trig:
             prompt = (prompt + ", " if prompt else "") + ", ".join(trig[:8])
-    if body.get("params"):
+    if body.get("params") and model != "auto":
         params.save(model, body["params"], uid())
     jid = "j%d" % int(time.time() * 1000)
     job = {"id": jid, "model": model, "prompt": prompt, "refs": refs, "status": "queued", "stage": "queued",
-           "log": "", "output": "", "files": [], "created": time.time(), "params": params.get(model, uid=uid()),
+           "log": "", "output": "", "files": [], "created": time.time(),
+           "params": {} if model == "auto" else params.get(model, uid=uid()),
            "user": uid(), "input": prompt, "loras": picked}
     if sk:
         job.update(skill=sk["name"], prompt=skills.fill(sk["tpl"], prompt, sk["role"] != "text" and any(core.kind_of(r) == "image" for r in refs)),
                    params=params.get(model, override=skills.overrides(sk, model), uid=uid()))
     elif pl:
         job.update(pipeline=pl["name"], steps=pl["steps"], step="0/%d" % len(pl["steps"]))
+    if model == "auto":
+        job["who"] = {"name": g.user.get("name", ""), "role": g.user.get("role", "")}
+        job["_loras"] = body.get("loras")
     if model == "llama":
         with _JLOCK:
             hist = [JOBS[i] for i in ORDER if i in JOBS and JOBS[i].get("model") == "llama" and JOBS[i].get("status") == "done"

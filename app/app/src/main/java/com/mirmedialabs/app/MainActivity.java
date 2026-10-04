@@ -29,7 +29,7 @@ import java.util.Set;
 
 /** Shell: header + 3 pages (CREATE · LIBRARY · QUEUE) + shared state and polling. */
 public class MainActivity extends Activity {
-    static final String[] ORDER = {"h3", "music3", "qimg", "ace", "llama"};
+    static final String[] ORDER = {"auto", "h3", "music3", "qimg", "ace", "llama"};
     static final int PICK = 41;
 
     Api api;
@@ -58,7 +58,7 @@ public class MainActivity extends Activity {
         if (!Prefs.configured(this)) { startActivity(new Intent(this, SetupActivity.class)); finish(); return; }
         api = new Api(this);
         loras = new Loras(this);
-        cur = Prefs.str(this, "model", "h3");
+        cur = Prefs.str(this, "model2", "auto");     // Auto (MUSE Director) is the default
         loadAtts();
         build();
         api.probe(() -> { refreshModels(); poll(); library.reload(); Updater.check(this, false); Fonts.sync(this, api); Theme.sync(this, api); loras.refresh(null); });
@@ -232,6 +232,7 @@ public class MainActivity extends Activity {
     int accent() { return Ui.VIO; }   // theme accent
     static String shortName(String k) {
         switch (k == null ? "" : k) {
+            case "auto": return "AUTO";
             case "h3": return "H3";
             case "music3": return "MUSIC 3";
             case "qimg": return "QWEN";
@@ -243,7 +244,7 @@ public class MainActivity extends Activity {
 
     void setModel(String k) {
         cur = k;
-        Prefs.put(this, "model", k);
+        Prefs.put(this, "model2", k);
         create.render();
         showTab(tab);
     }
@@ -252,7 +253,7 @@ public class MainActivity extends Activity {
         api.get("/api/models", r -> {
             if (!r.ok()) { pill.setText(r.err()); pill.setTextColor(Ui.RED); return; }
             models = r.obj();
-            if (!models.has(cur)) cur = "h3";
+            if (!models.has(cur)) cur = "auto";
             create.render();
             create.renderThread(jobs, true);
             Tv.focusify(create);
@@ -566,7 +567,17 @@ public class MainActivity extends Activity {
     }
 
     void openViewer(String name, String model) { new Viewer(this, name, model).show(); }
-    void openParams(String k) { new ParamsDialog(this, k).show(); }
+    void openParams(String k) {
+        if ("auto".equals(k)) {
+            info("Auto · MUSE Director", "MUSE reads every message and decides what happens: it answers questions and writes "
+                    + "(lyrics, scripts, ideas), or renders on the right model (image, video, song, music), picks a skill "
+                    + "preset, or runs a pipeline.\n\nFollow-ups work: \"now animate it\" or \"make a song for that\" reuse "
+                    + "your last result.\n\nFlags you type (--8s, --vertical, --bpm 120) are always kept. Slash commands and "
+                    + "picking a model yourself skip MUSE. Each model keeps its own settings: long-press a model to change them.");
+            return;
+        }
+        new ParamsDialog(this, k).show();
+    }
 
     void libraryChanged() { library.reload(); }
 
