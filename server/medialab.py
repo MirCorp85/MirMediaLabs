@@ -55,10 +55,10 @@ def gate():
         return None if _loopback() else (jsonify({"error": "local only"}), 403)
     supplied = request.cookies.get("mml_key") or request.headers.get("X-MML-Key") or request.args.get("key")
     ip = request.remote_addr or "?"
-    if _locked_out(ip):
+    if not _loopback() and _locked_out(ip):
         return jsonify({"error": "too many wrong keys - try again in 15 minutes"}), 429
     u = users.by_key(supplied) or (users.owner() if _loopback() else None)
-    if not u and supplied:
+    if not u and supplied and not _loopback():
         _note_fail(ip)
     if not u:
         if request.path.startswith(("/api/", "/media/", "/thumb/", "/refs/", "/updates/")):

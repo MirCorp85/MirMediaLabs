@@ -140,6 +140,7 @@ final class LibraryPage extends LinearLayout {
                 iv.setTag(null);
                 iv.setImageDrawable(null);
                 f.setBackground(Ui.accent(Ui.mix(c, 0xFF0E0E16, 0.55f), 12));
+                note.setTextColor(0xFFFFFFFF);         // tile is always dark, whatever the theme
                 Icons.set(note, "[[music]]");
             } else {
                 f.setBackground(Ui.box(12, 0xFF0E0E16, Ui.LINE));
