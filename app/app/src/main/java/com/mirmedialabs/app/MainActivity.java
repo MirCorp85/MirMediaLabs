@@ -160,6 +160,7 @@ public class MainActivity extends Activity {
 
     private void openMenu(View anchor) {
         Sheet sh = new Sheet(this, "Media Lab", "lab", Ui.pal());
+        sh.row("heart", "Support on Patreon", "keep MIR MEDIA LABS free · patreon.com/MirCorp", () -> open(Creator.PATREON));
         sh.section("Create");
         sh.row("layers", "LoRA samples", "browse + apply community LoRAs", () -> loras.browse(Loras.roleOf(cur), ""));
         sh.row("sparkle", "Skills", "one tuned render", () -> { withSkills(() -> pickSkill(false)); });
