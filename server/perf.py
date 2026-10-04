@@ -71,7 +71,7 @@ def _verdict(cpu, ram, gpu, rendering):
         return "warn", "System RAM almost full — close other apps; the page file is slowing renders."
     if gpu and gpu["temp"] >= 85:
         return "warn", "GPU is hot (%d°C) — it may slow itself down. Improve airflow." % gpu["temp"]
-    if gpu and gpu.get("throttle") and rendering and gpu["util"] < 90:
+    if gpu and gpu.get("throttle") and rendering and 50 <= gpu["util"] < 90:
         return "info", "GPU is power/thermal limited right now."
     if rendering and gpu and gpu["util"] < 40 and cpu >= 85:
         return "warn", "CPU-bound — the GPU is waiting on the CPU (loading models / encoding)."
