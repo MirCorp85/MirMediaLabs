@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Release signing comes from keystore.properties (private, gitignored — never commit it or the .jks).
+def ksFile = rootProject.file("keystore.properties")
+def ks = new Properties()
+if (ksFile.exists()) { ks.load(new FileInputStream(ksFile)) }
+
+android {
+    namespace 'com.mirmedialabs.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.mirmedialabs.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 24
+        versionName "1.23"
+    }
+
+    signingConfigs {
+        release {
+            if (ksFile.exists()) {
+                storeFile rootProject.file(ks['storeFile'])
+                storePassword ks['storePassword']
+                keyAlias ks['keyAlias']
+                keyPassword ks['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig ksFile.exists() ? signingConfigs.release : null
+            debuggable false
+        }
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+dependencies {
+}

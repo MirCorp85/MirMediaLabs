@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<defs>
+<radialGradient id="sun" cx="42%" cy="38%" r="65%"><stop offset="0" stop-color="#fff7a8"/><stop offset=".55" stop-color="#ffe53b"/><stop offset="1" stop-color="#f7b500"/></radialGradient>
+<linearGradient id="m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff3b2f"/><stop offset="1" stop-color="#c8100b"/></linearGradient>
+<linearGradient id="orb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7a1a"/><stop offset="1" stop-color="#ff2d1a"/></linearGradient>
+<radialGradient id="e" cx="38%" cy="35%" r="70%"><stop offset="0" stop-color="#7fe9f2"/><stop offset=".6" stop-color="#14a3b3"/><stop offset="1" stop-color="#086a78"/></radialGradient>
+</defs>
+<rect width="1024" height="1024" fill="#0b0b10"/>
+<circle cx="512" cy="512" r="300" fill="url(#sun)"/>
+<path d="M300 760 L360 300 L512 520 L664 300 L724 760 L630 760 L600 520 L512 650 L424 520 L394 760 Z" fill="url(#m)" stroke="#7a0805" stroke-width="10" stroke-linejoin="round"/>
+<g fill="none" stroke="url(#orb)" stroke-width="34" stroke-linecap="round">
+<ellipse cx="512" cy="512" rx="430" ry="150"/>
+<ellipse cx="512" cy="512" rx="430" ry="150" transform="rotate(60 512 512)"/>
+<ellipse cx="512" cy="512" rx="430" ry="150" transform="rotate(-60 512 512)"/>
+</g>
+<g stroke="#04343b" stroke-width="8">
+<circle cx="140" cy="440" r="58" fill="url(#e)"/>
+<circle cx="770" cy="150" r="50" fill="url(#e)"/>
+<circle cx="880" cy="640" r="56" fill="url(#e)"/>
+</g>
+<g fill="#fff" opacity=".9"><circle cx="122" cy="420" r="16"/><circle cx="755" cy="134" r="13"/><circle cx="863" cy="621" r="15"/></g>
+</svg>

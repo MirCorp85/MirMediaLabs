@@ -1,0 +1,35 @@
+# -- secrets & private machine config (NEVER commit) --
+installer/signing/
+app/keystore.properties
+*.jks
+*.keystore
+*.key
+*.pem
+.env
+mml_config.json
+OWNER_NOTES.md
+
+# -- user data & runtime --
+data/
+updates/
+*.log
+
+# -- build outputs (published via GitHub Releases instead) --
+*.apk
+*.exe
+*.zip
+installer/build/
+installer/dist/
+app/app/build/
+app/build/
+app/.gradle/
+app/local.properties
+__pycache__/
+*.pyc
+
+# -- scratch / backups / one-off dev tools --
+*.bak_*
+*.bak
+tools/patch_*.py
+mascot_options.html
+theme_options.html
