@@ -6,9 +6,11 @@
 #   MirMediaLabs-Setup.exe      native one-file setup wizard carrying the app (payload.zip)
 #   -Publish                    signs the setup (Ed25519) into updates\pc\ = the PC update server,
 #                               served by this PC's MIR MEDIA LABS at /updates/pc/
-param([switch]$Bump, [switch]$Publish, [string]$Notes = "", [string]$UpdateUrl = "")
+param([switch]$Bump, [switch]$Publish, [switch]$Public, [string]$Notes = "", [string]$UpdateUrl = "")
+# -Public: GitHub release build - no private update URL or channel token inside the binary.
 # Update channel: -UpdateUrl, else $env:MML_UPDATE_URL, else installer\signing\update_url.txt (private, gitignored).
 # Empty = auto-update off (public builds get updates from GitHub Releases).
+if ($Public) { $UpdateUrl = "-" }
 if (-not $UpdateUrl) { $UpdateUrl = $env:MML_UPDATE_URL }
 $urlFile = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) 'signing\update_url.txt'
 if (-not $UpdateUrl -and (Test-Path $urlFile)) { $UpdateUrl = (Get-Content $urlFile -Raw).Trim() }
@@ -51,7 +53,7 @@ $ico  = Join-Path $root 'MirMediaLabs.ico'
 # plain string arrays: PowerShell 5.1 splits "--opt=(expr)" into two arguments
 $common = @("-m", "nuitka", "--assume-yes-for-downloads", "--windows-console-mode=disable", "--python-flag=no_docstrings",
             "--windows-icon-from-ico=$ico", "--company-name=MirCorp", "--product-name=MIR MEDIA LABS",
-            "--file-version=$ver.0", "--product-version=$ver.0", "--copyright=MirCorp")
+            "--file-version=$ver.0", "--product-version=$ver.0", "--copyright=(c) 2026 MirCorp. GPL-3.0")
 $appArgs = $common + @("--standalone", "--nofollow-import-to=imageio_ffmpeg", "--nofollow-import-to=tkinter",
                        "--output-filename=MirMediaLabs.exe", "--file-description=MIR MEDIA LABS",
                        "--output-dir=$appOut", (Join-Path $src 'app_main.py'))
