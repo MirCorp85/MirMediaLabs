@@ -58,7 +58,7 @@ IMG_EXT = (".png", ".jpg", ".jpeg", ".webp")
 VID_EXT = (".mp4", ".mov", ".webm", ".m4v", ".mkv")
 AUD_EXT = (".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac")
 TXT_EXT = (".txt", ".md", ".lrc", ".srt", ".json", ".csv")
-NO_WINDOW = 0x08000000
+from platform_util import IS_WIN, NO_WINDOW  # noqa: E402  (0 on Linux)
 
 # Installed copies (MirMediaLabs-Setup.exe) write mml_config.json at ROOT with their own engine and
 # ffmpeg paths; the dev copy on the build PC has no config and keeps the paths it always used.
@@ -68,6 +68,25 @@ try:
         CONFIG = json.load(_f)
 except (OSError, ValueError):
     pass
+
+# Optional model-file swaps, e.g. a GPU without NVFP4 support (AMD / pre-Blackwell) can point a model slot at a
+# portable fp8/bf16 file with the same architecture: {"model_overrides": {"<shipped file>": "<replacement file>"}}
+MODEL_OVERRIDES = {k: v for k, v in (CONFIG.get("model_overrides") or {}).items() if k and v}
+
+
+def apply_model_overrides(table):
+    """Swap overridden file names inside a renderer's model table (str / list / '|'-alternatives), in place."""
+    def one(v):
+        if isinstance(v, str):
+            return "|".join(MODEL_OVERRIDES.get(x, x) for x in v.split("|"))
+        if isinstance(v, list):
+            return [one(x) for x in v]
+        return v
+    items = table.items() if isinstance(table, dict) else enumerate(table)
+    for k, v in list(items):
+        table[k] = one(v)
+    return table
+
 
 # Compiled PC builds (installer\build.ps1) add two generated modules: _buildinfo (version + signed
 # update channel) and _assets (web UI embedded in the binary, so no readable files ship).

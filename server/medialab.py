@@ -62,11 +62,14 @@ def gate():
         return Response(PAUSED_HTML, mimetype="text/html", status=503)
     supplied = request.cookies.get("mml_key") or request.headers.get("X-MML-Key") or request.args.get("key")
     ip = request.remote_addr or "?"
-    if not _loopback() and _locked_out(ip):
-        return jsonify({"error": "too many wrong keys - try again in 15 minutes"}), 429
     u = users.by_key(supplied) or (users.owner() if _loopback() else None)
-    if not u and supplied and not _loopback():
-        _note_fail(ip)
+    if u and not _loopback():
+        _clear_fails(ip)                            # a right key always gets in and lifts the lockout
+    if not u and not _loopback():
+        if _locked_out(ip):
+            return jsonify({"error": "too many wrong keys - try again in 15 minutes"}), 429
+        if supplied:
+            _note_fail(ip, supplied)
     if not u:
         if request.path.startswith(("/api/", "/media/", "/thumb/", "/refs/", "/updates/")):
             return jsonify({"error": "unauthorized - Media Lab access key required"}), 401
@@ -80,20 +83,31 @@ def gate():
     return None
 
 
-# brute-force guard: 10 wrong keys from one address -> 15 min lockout
-_FAILS = {}
+# brute-force guard: 10 DIFFERENT wrong keys from one address in 15 min -> lockout. Counting distinct keys
+# (not requests) matters: an app holding one stale key polls many endpoints and must not lock itself out.
+_FAILS = {}                                         # ip -> {sha256(key): last_seen}
 _FAIL_LOCK = threading.Lock()
 
 
-def _note_fail(ip):
+def _note_fail(ip, key):
+    import hashlib
+    h = hashlib.sha256(key.encode("utf-8", "replace")).hexdigest()
     with _FAIL_LOCK:
         now = time.time()
-        _FAILS[ip] = [t for t in _FAILS.get(ip, []) if now - t < 900] + [now]
+        d = {k: t for k, t in _FAILS.get(ip, {}).items() if now - t < 900}
+        d[h] = now
+        _FAILS[ip] = d
 
 
 def _locked_out(ip):
     with _FAIL_LOCK:
-        return len([t for t in _FAILS.get(ip, []) if time.time() - t < 900]) >= 10
+        now = time.time()
+        return sum(1 for t in _FAILS.get(ip, {}).values() if now - t < 900) >= 10
+
+
+def _clear_fails(ip):
+    with _FAIL_LOCK:
+        _FAILS.pop(ip, None)
 
 
 REMOTE = {"on": core.prefs().get("remote_access", True) is not False}

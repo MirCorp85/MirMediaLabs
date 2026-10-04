@@ -145,6 +145,8 @@ H3 = {"unet": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
       "r2v_lora": "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors"}
 H3_FLF_LORA = {"turbo4": "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
                "turbo8": "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors"}
+core.apply_model_overrides(H3)
+core.apply_model_overrides(H3_FLF_LORA)
 H3_ASPECTS = {"16:9": 16 / 9, "9:16": 9 / 16, "1:1": 1.0, "4:3": 4 / 3, "3:4": 3 / 4, "21:9": 21 / 9}
 H3_RES = {"draft": 0.25, "standard": 0.4, "high": 0.6, "max": 0.98}
 H3_STEPS = {"turbo4": 4, "turbo8": 8, "full": 20}
@@ -403,6 +405,7 @@ def run_h3(job):
 # ══ MINIMAX MUSIC 3.0 — full songs ═════════════════════════════════════════
 MUSIC = {"dit": ["minimax_music3_dit_fp16.safetensors", "minimax_music3_dit_int8_convrot.safetensors"],
          "te": "minimax_music3_text_encoder_pruned_int8_convrot.safetensors", "vae": "minimax_music3_dav.safetensors"}
+core.apply_model_overrides(MUSIC)
 
 
 def run_music3(job):
@@ -476,6 +479,7 @@ def run_music3(job):
 # ══ QWEN IMAGE 2.1 — t2i · edit · cutout ═══════════════════════════════════
 QIMG = {"dit": "qwen_image_2.1_int8_convrot.safetensors", "te": "qwen3vl_8b_int8_convrot.safetensors",
         "vae": "qwen_image_2.1_vae_bf16.safetensors"}
+core.apply_model_overrides(QIMG)
 QIMG_ASPECT = {"1:1": (1024, 1024), "16:9": (1344, 768), "9:16": (768, 1344), "4:3": (1152, 896), "3:4": (896, 1152),
                "3:2": (1216, 832), "2:3": (832, 1216), "21:9": (1536, 640), "2:1": (1440, 720), "1:2": (720, 1440),
                "4:5": (928, 1152), "5:4": (1152, 928)}
@@ -594,6 +598,7 @@ def run_qimg(job):
 # ══ ACE-STEP 1.5 XL TURBO — text→music · remix · cover · voice swap ═════════
 ACE = {"dit": "acestep_v1.5_xl_turbo_bf16.safetensors", "te1": "qwen_0.6b_ace15.safetensors",
        "te2": "qwen_4b_ace15.safetensors", "vae": "ace_1.5_vae.safetensors"}
+core.apply_model_overrides(ACE)
 
 
 def ace_graph(c, tags, lyrics, seed, bpm, secs, key, codes, strength, source=None, timbre=None):

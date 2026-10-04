@@ -3,6 +3,7 @@
   build_tool.py keys                       create the Ed25519 update-signing key + channel token (once)
   build_tool.py stage <src_dir> <url>      copy server code → src_dir, add _buildinfo.py + _assets.py
   build_tool.py publish <setup.exe> <notes>  sign + copy into updates\\pc\\ (served at /updates/pc/)
+  build_tool.py publish-linux <tar.gz> <notes>  same channel, Linux manifest (linux.json + .sig)
 
 The signing key (installer\\signing\\update_ed25519.key) must never ship and must be backed up:
 without it, already-installed copies can't receive updates.
@@ -125,6 +126,29 @@ def publish(setup, notes):
     print("published v%s → %s" % (man["version"], out))
 
 
+def publish_linux(tgz, notes):
+    """Linux channel = linux.json(.sig) beside the Windows version.json; same key, same folder."""
+    out = os.path.join(ROOT, "updates", "pc")
+    os.makedirs(out, exist_ok=True)
+    name = os.path.basename(tgz)
+    if not name.endswith("-linux-x86_64.tar.gz"):
+        raise SystemExit("expected MirMediaLabs-<ver>-linux-x86_64.tar.gz")
+    dest = os.path.join(out, name)
+    shutil.copy2(tgz, dest + ".tmp")
+    data = open(dest + ".tmp", "rb").read()
+    man = {"version": version(), "platform": "linux-x86_64", "notes": notes, "file": name, "size": len(data),
+           "sha256": hashlib.sha256(data).hexdigest(), "published": time.strftime("%Y-%m-%d %H:%M")}
+    raw = json.dumps(man, indent=1).encode("utf-8")
+    sig = base64.b64encode(_priv().sign(raw))
+    os.replace(dest + ".tmp", dest)                     # tarball first, then the manifest that points at it
+    open(os.path.join(out, "linux.json.sig"), "wb").write(sig)
+    open(os.path.join(out, "linux.json"), "wb").write(raw)
+    for f in os.listdir(out):                           # keep only the published Linux tarball
+        if f.endswith("-linux-x86_64.tar.gz") and f != name:
+            os.remove(os.path.join(out, f))
+    print("published Linux v%s → %s" % (man["version"], out))
+
+
 def android(apk, code, name, cert, tag, outdir):
     """android.json + android.json.sig for the app's updater (GitHub release when tag is set, else the lab's /updates/).
     Same Ed25519 key as the PC channel; the app has the public key compiled in (Updater.PUBKEY)."""
@@ -149,6 +173,8 @@ if __name__ == "__main__":
         stage(sys.argv[2], sys.argv[3])
     elif cmd == "publish":
         publish(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else "")
+    elif cmd == "publish-linux":
+        publish_linux(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else "")
     elif cmd == "android":
         android(*sys.argv[2:8])
     elif cmd == "bump":

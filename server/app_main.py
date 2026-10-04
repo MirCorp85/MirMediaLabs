@@ -16,13 +16,14 @@ import webbrowser
 def _own_exe():
     """This program's real path. Not sys.argv[0]: when the one-file setup wizard starts the app, its
     environment can make argv[0] point at MirMediaLabs-Setup.exe, which then got pinned to the taskbar."""
-    here = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MirMediaLabs.exe")
+    here = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "MirMediaLabs.exe" if sys.platform == "win32" else "MirMediaLabs")
     return here if os.path.isfile(here) else os.path.abspath(sys.argv[0])
 
 
 EXE = _own_exe()
 ROOT = os.path.dirname(os.path.dirname(EXE))
-NO_WINDOW, DETACHED = 0x08000000, 0x00000008
+import platform_util as pu  # noqa: E402
 
 
 def port_open(port):
@@ -43,7 +44,7 @@ def run_server():
 def start_server(port):
     if port_open(port):
         return
-    subprocess.Popen([EXE, "--server"], cwd=os.path.dirname(EXE), creationflags=DETACHED | NO_WINDOW)
+    subprocess.Popen([EXE, "--server"], cwd=os.path.dirname(EXE), **pu.detached_kwargs())
     for _ in range(80):
         if port_open(port):
             return
@@ -51,26 +52,20 @@ def start_server(port):
 
 
 def stop():
-    dirs = " -or ".join("$_.ExecutablePath -like '%s\\*'" % os.path.join(ROOT, d).replace("'", "''")
-                        for d in ("app", "runtime"))
-    ps = ("Get-CimInstance Win32_Process | Where-Object { (%s) -and $_.ProcessId -ne %d } | "
-          "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" % (dirs, os.getpid()))
-    subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps], creationflags=NO_WINDOW)
+    pu.kill_pids(pu.find_pids(exe_prefixes=[os.path.join(ROOT, d) for d in ("app", "runtime")]))
 
 
 def open_window(port):
     url = "http://127.0.0.1:%d/?client=desktop" % port
     # own browser profile → own process + window, never merged into the user's normal browser
     profile = os.path.join(ROOT, "data", "window")
-    for base in (os.environ.get(k, "") for k in ("ProgramFiles(x86)", "ProgramFiles", "LOCALAPPDATA")):
-        for rel in (r"Microsoft\Edge\Application\msedge.exe", r"Google\Chrome\Application\chrome.exe"):
-            exe = os.path.join(base, rel)
-            if base and os.path.isfile(exe):
-                subprocess.Popen([exe, "--app=" + url, "--window-size=1500,950", "--user-data-dir=" + profile,
-                                  "--no-first-run", "--no-default-browser-check"], creationflags=DETACHED)
-                import taskbar      # taskbar/pin identity = MirMediaLabs.exe + its icon, not Edge
-                taskbar.brand_window(EXE)
-                return
+    cmd = pu.browser_app_cmd(url, profile)
+    if cmd:
+        subprocess.Popen(cmd, **pu.detached_kwargs(hide=False))
+        if pu.IS_WIN:
+            import taskbar      # taskbar/pin identity = MirMediaLabs.exe + its icon, not Edge
+            taskbar.brand_window(EXE)
+        return
     webbrowser.open(url)
 
 
@@ -80,8 +75,9 @@ def main():
         return run_server()
     if "--stop" in args:
         return stop()
-    import taskbar
-    taskbar.set_process_app_id()
+    if pu.IS_WIN:
+        import taskbar
+        taskbar.set_process_app_id()
     import core                     # port from mml_config.json
     start_server(core.PORT)
     if "--server-only" not in args:

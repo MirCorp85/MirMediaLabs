@@ -1,0 +1,13 @@
+[Unit]
+Description=MIR MEDIA LABS server (:5400)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@ROOT@/server
+ExecStart="@ROOT@/start-mirmedialabs.sh" --server-only --foreground
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
