@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- The app talks to the user's own Media Lab server, usually plain HTTP on the home LAN.
+         Only system CAs are trusted for HTTPS (user-installed certificates are ignored). -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

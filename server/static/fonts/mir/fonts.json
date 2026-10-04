@@ -1,0 +1,52 @@
+[
+ {
+  "id": "orbit",
+  "name": "Mir Orbit",
+  "desc": "Round monoline geometric \u2014 calm, friendly HUD sans"
+ },
+ {
+  "id": "vector",
+  "name": "Mir Vector",
+  "desc": "Square-cut technical strokes with mitred corners"
+ },
+ {
+  "id": "horizon",
+  "name": "Mir Horizon",
+  "desc": "Extended hairline \u2014 airy, wide, cinematic titles"
+ },
+ {
+  "id": "bastion",
+  "name": "Mir Bastion",
+  "desc": "Condensed heavy \u2014 dense data and loud headings"
+ },
+ {
+  "id": "stencil",
+  "name": "Mir Stencil",
+  "desc": "Military stencil \u2014 bridged gaps cut through every letter"
+ },
+ {
+  "id": "pixel",
+  "name": "Mir Pixel",
+  "desc": "8-bit pixel grid \u2014 retro terminal energy"
+ },
+ {
+  "id": "matrix",
+  "name": "Mir Matrix",
+  "desc": "LED dot-matrix \u2014 scoreboard / ticker display"
+ },
+ {
+  "id": "velocity",
+  "name": "Mir Velocity",
+  "desc": "Forward-slanted speed sans \u2014 motion and momentum"
+ },
+ {
+  "id": "hollow",
+  "name": "Mir Hollow",
+  "desc": "Outlined inline letters \u2014 neon-tube display"
+ },
+ {
+  "id": "quill",
+  "name": "Mir Quill",
+  "desc": "Broad-nib contrast \u2014 thick stems, hairline joins"
+ }
+]
