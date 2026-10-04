@@ -74,7 +74,7 @@ final class Mascot extends View {
         if (comfy != null && !comfy.optBoolean("up", true) && run == null) { set("offline", "Off air", "gpu engine down"); return; }
         if (run != null) {
             double now = System.currentTimeMillis() / 1000.0;
-            String stg = run.optString("stage");
+            String stg = CreatePage.str(run, "stage");
             String s2 = MainActivity.shortName(run.optString("model")) + " · " + (stg.isEmpty() ? "rendering" : stg);
             set("render", "Rec · " + Ui.dur(run.optDouble("started", now), now), s2.length() > 30 ? s2.substring(0, 30) + "…" : s2);
             return;

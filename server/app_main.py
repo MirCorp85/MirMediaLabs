@@ -13,7 +13,14 @@ import sys
 import time
 import webbrowser
 
-EXE = os.path.abspath(sys.argv[0])
+def _own_exe():
+    """This program's real path. Not sys.argv[0]: when the one-file setup wizard starts the app, its
+    environment can make argv[0] point at MirMediaLabs-Setup.exe, which then got pinned to the taskbar."""
+    here = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MirMediaLabs.exe")
+    return here if os.path.isfile(here) else os.path.abspath(sys.argv[0])
+
+
+EXE = _own_exe()
 ROOT = os.path.dirname(os.path.dirname(EXE))
 NO_WINDOW, DETACHED = 0x08000000, 0x00000008
 
