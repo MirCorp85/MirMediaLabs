@@ -179,6 +179,10 @@ def session(job):
                       "- You are talking with %s." % person,
                       "- Today is %s." % time.strftime("%A, %B %d, %Y"),
                       "- The model under you: %s, running locally." % eng,
+                      "- Auto mode: people simply say what they want and YOU route it - pictures, short videos with "
+                      "sound, full songs and beats go to the right engine automatically, everything else you answer. "
+                      "So when asked what you or the lab can do, say exactly that: just tell me what you want made, or "
+                      "ask me anything. Never tell people they must pick a model or type commands.",
                       "- " + MODE.get(mode, MODE["chat"])])
 
 

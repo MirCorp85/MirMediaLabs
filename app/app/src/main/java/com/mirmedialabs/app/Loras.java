@@ -60,9 +60,10 @@ final class Loras {
     JSONArray forRender(String model) {
         JSONArray a = sel(), out = new JSONArray();
         String role = roleOf(model);
+        boolean auto = "auto".equals(model);            // MUSE picks the engine: the server keeps the matching ones
         for (int i = 0; i < a.length(); i++) {
             JSONObject o = a.optJSONObject(i);
-            if (o.optString("role").isEmpty() || role.equals(o.optString("role"))) out.put(Api.obj("file", o.optString("file"), "strength", o.optDouble("strength", 0.8)));
+            if (auto || o.optString("role").isEmpty() || role.equals(o.optString("role"))) out.put(Api.obj("file", o.optString("file"), "strength", o.optDouble("strength", 0.8)));
         }
         return out;
     }

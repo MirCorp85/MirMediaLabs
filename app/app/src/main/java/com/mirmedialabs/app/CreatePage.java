@@ -121,6 +121,7 @@ final class CreatePage extends LinearLayout {
 
     static String placeholder(String k) {
         switch (k) {
+            case "auto": return "Just say what you want — MUSE picks the tool…";
             case "h3": return "Ask H3 for a video…";
             case "music3": return "Ask Music 3 for a song…";
             case "qimg": return "Ask Qwen for an image…";
@@ -303,7 +304,8 @@ final class CreatePage extends LinearLayout {
         LinearLayout top = Ui.hbox(m);
         top.setGravity(Gravity.CENTER_VERTICAL);
         if (guest) top.addView(Ui.chip(m, "[[user]] " + j.optString("user_name", "guest"), 0xFF1FC8DC), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 0, 6, 0));
-        top.addView(Ui.chip(m, "→ " + MainActivity.shortName(model), m.colorOf(model)), Ui.lp(Ui.WRAP, Ui.WRAP));
+        boolean auto = "auto".equals(model) || j.optJSONObject("route") != null;
+        top.addView(Ui.chip(m, "→ " + (auto ? "AUTO" : MainActivity.shortName(model)), auto ? m.colorOf("auto") : m.colorOf(model)), Ui.lp(Ui.WRAP, Ui.WRAP));
         top.addView(Ui.mono(m, stamp(j.optDouble("created", 0)), 10, Ui.DIM), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 8, 0, 0, 0));
         b.addView(top);
         String tag = str(j, "skill");
@@ -352,6 +354,14 @@ final class CreatePage extends LinearLayout {
         // finish time on its own line: squeezed into the header row of a narrow card it wrapped into a vertical stack
         if (!j.isNull("finished") && j.has("finished"))
             b.addView(Ui.mono(m, stamp(j.optDouble("finished", 0)), 10, Ui.DIM), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 3, 0, 0));
+        JSONObject route = j.optJSONObject("route");          // Auto mode: what MUSE decided, and why
+        if (route != null) {
+            String why = str(route, "why");
+            TextView rv = Ui.text(m, "[[sparkle]] MUSE chose " + str(route, "label") + (why.isEmpty() ? "" : " — " + why), 12, Ui.DIM);
+            Icons.set(rv, "[[sparkle]] MUSE chose " + str(route, "label") + (why.isEmpty() ? "" : " — " + why));
+            b.addView(rv, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
+        }
+        final boolean routed = route != null;
         LinearLayout acts = Ui.hbox(m);
         final boolean text = "llama".equals(model);      // writer model: the reply IS the result
         final String reply = j.isNull("output") ? "" : j.optString("output");
@@ -380,8 +390,8 @@ final class CreatePage extends LinearLayout {
                 m.startActivity(android.content.Intent.createChooser(i, "Share / save text"));
             }));
             acts.addView(small("Use as text ref", Ui.INK, v -> { m.attachText(reply, "llama_text"); m.toast("Attached — pick a model and send"); }));
-            final String p0 = j.optString("prompt");
-            acts.addView(small("↺ Again", Ui.DIM, v -> m.reuse(model, p0)));
+            final String p0 = routed ? str(j, "input") : j.optString("prompt");
+            acts.addView(small("↺ Again", Ui.DIM, v -> m.reuse(routed ? "auto" : model, p0)));
         } else if ("running".equals(st) || "queued".equals(st)) {
             String stage = str(j, "stage");
             b.addView(Ui.mono(m, "⟳ " + (stage.isEmpty() || "queued".equals(stage) ? "waiting for the GPU…" : stage), 12, Ui.AMB),
@@ -396,21 +406,16 @@ final class CreatePage extends LinearLayout {
                 media.setClipToOutline(true);
                 media.setBackground(Ui.box(12, 0xFF000000, 0));
                 if ("audio".equals(kind)) {
-                    media.setBackground(Ui.accent(Ui.mix(c, 0xFF120A07, 0.45f), 12));
-                    TextView play = Ui.bold(m, "[[play]]  PLAY SONG", 13, Ui.INK);
-                    play.setGravity(Gravity.CENTER);
-                    media.addView(play, new FrameLayout.LayoutParams(Ui.MATCH, Ui.MATCH));
-                    b.addView(media, Ui.margins(Ui.lp(Ui.dp(240), Ui.dp(64)), 0, 9, 0, 0));
+                    media.setBackground(MPlayer.cardBg(c, 14));
+                    media.addView(MPlayer.miniAudio(m, c, MainActivity.shortName(model), fn), new FrameLayout.LayoutParams(Ui.MATCH, Ui.MATCH));
+                    b.addView(media, Ui.margins(Ui.lp(Ui.dp(270), Ui.dp(76)), 0, 9, 0, 0));
                 } else {
                     ImageView iv = new ImageView(m);
                     iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
                     Thumbs.load(m, iv, "/thumb/" + Api.enc(fn));
                     media.addView(iv, new FrameLayout.LayoutParams(Ui.MATCH, Ui.MATCH));
-                    if ("video".equals(kind)) {
-                        TextView play = Ui.text(m, "[[play]]", 30, Ui.INK);
-                        play.setGravity(Gravity.CENTER);
-                        media.addView(play, new FrameLayout.LayoutParams(Ui.MATCH, Ui.MATCH));
-                    }
+                    if ("video".equals(kind))
+                        media.addView(MPlayer.playBadge(m, c, 54), new FrameLayout.LayoutParams(Ui.dp(54), Ui.dp(54), Gravity.CENTER));
                     b.addView(media, Ui.margins(Ui.lp(Ui.dp(250), Ui.dp(170)), 0, 9, 0, 0));
                 }
                 media.setOnClickListener(v -> m.openViewer(fn, model));
@@ -421,8 +426,8 @@ final class CreatePage extends LinearLayout {
             }
             final String out = j.optString("output");
             if (!out.isEmpty()) acts.addView(small("Details", Ui.DIM, v -> m.info(MainActivity.shortName(model) + " · details", out)));
-            final String p = j.optString("prompt");
-            acts.addView(small("↺ Again", Ui.DIM, v -> m.reuse(model, p)));
+            final String p = routed ? str(j, "input") : j.optString("prompt");
+            acts.addView(small("↺ Again", Ui.DIM, v -> m.reuse(routed ? "auto" : model, p)));
         } else {
             String err = str(j, "error");
             if ("error".equals(st) && !err.isEmpty() && !"null".equals(err))
