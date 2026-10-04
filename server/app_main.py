@@ -52,7 +52,7 @@ def stop():
 
 
 def open_window(port):
-    url = "http://127.0.0.1:%d/" % port
+    url = "http://127.0.0.1:%d/?client=desktop" % port
     # own browser profile → own process + window, never merged into the user's normal browser
     profile = os.path.join(ROOT, "data", "window")
     for base in (os.environ.get(k, "") for k in ("ProgramFiles(x86)", "ProgramFiles", "LOCALAPPDATA")):
