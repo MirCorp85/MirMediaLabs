@@ -729,7 +729,7 @@ function arm(type,id){
   if(ARMED?.id===id)return disarm();
   const o=type==='skill'?SK.skills.find(s=>s.id===id):SK.pipelines.find(p=>p.id===id);if(!o)return;
   ARMED={...o,type};setModel(type==='skill'?o.model:o.steps[0].model);
-  renderSkills();renderHint();$('#prompt').placeholder=o.icon+' '+o.name+' — describe it…'+(o.needs?' (attach a '+o.needs+')':'');
+  renderSkills();renderHint();$('#prompt').placeholder=o.name+' — describe it…'+(o.needs?' (attach '+(/^[aeiou]/i.test(o.needs)?'an ':'a ')+o.needs+')':'');
   if(innerWidth<=860)setTab('create');$('#prompt').focus();toast((type==='skill'?'Skill: ':'Pipeline: ')+o.name)}
 function disarm(){ARMED=null;renderSkills();renderHint();$('#prompt').placeholder='Message the lab…'}
 document.addEventListener('click',e=>{if(e.target.id==='unarm')disarm()});

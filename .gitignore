@@ -33,3 +33,6 @@ __pycache__/
 tools/patch_*.py
 mascot_options.html
 theme_options.html
+
+installer/showcase/
+installer/icon-64.png

@@ -259,6 +259,9 @@ final class CreatePage extends LinearLayout {
         if (atBottom || grew) scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
     }
 
+    /** optString() turns JSON null into the text "null" (it showed up as a "null" skill chip and "STEP null") */
+    static String str(JSONObject j, String k) { return j == null || j.isNull(k) ? "" : j.optString(k, ""); }
+
     /** chat timestamp: "7:42 PM" today, "Oct 3 · 7:42 PM" otherwise */
     static String stamp(double sec) {
         if (sec <= 0) return "";
@@ -303,8 +306,8 @@ final class CreatePage extends LinearLayout {
         top.addView(Ui.chip(m, "→ " + MainActivity.shortName(model), m.colorOf(model)), Ui.lp(Ui.WRAP, Ui.WRAP));
         top.addView(Ui.mono(m, stamp(j.optDouble("created", 0)), 10, Ui.DIM), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 8, 0, 0, 0));
         b.addView(top);
-        String tag = j.optString("skill", "");
-        if (tag.isEmpty() && !j.optString("pipeline", "").isEmpty()) tag = "" + j.optString("pipeline");
+        String tag = str(j, "skill");
+        if (tag.isEmpty() && !str(j, "pipeline").isEmpty()) tag = str(j, "pipeline");
         else if (!tag.isEmpty()) tag = "" + tag;
         if (!tag.isEmpty()) b.addView(Ui.chip(m, tag, 0xFFFFC21A), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
         String p = j.has("input") && !j.isNull("input") ? j.optString("input") : j.optString("prompt");
@@ -332,6 +335,7 @@ final class CreatePage extends LinearLayout {
         int c = m.colorOf(model);
         LinearLayout b = Ui.vbox(m);
         b.setPadding(Ui.dp(12), Ui.dp(9), Ui.dp(12), Ui.dp(11));
+        b.setMinimumWidth(Ui.dp(290));               // a short stage line ("rendering") squeezed the header chip + status
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(0x0EFFDCBE);
         bg.setCornerRadii(new float[]{Ui.dp(18), Ui.dp(18), Ui.dp(18), Ui.dp(18), Ui.dp(18), Ui.dp(18), Ui.dp(5), Ui.dp(5)});
@@ -342,11 +346,12 @@ final class CreatePage extends LinearLayout {
         String t = "running".equals(st) ? Ui.dur(j.optDouble("started", now), now)
                 : !j.isNull("finished") && !j.isNull("started") && j.has("finished") ? Ui.dur(j.optDouble("started"), j.optDouble("finished")) : "";
         int col = "running".equals(st) || "queued".equals(st) ? Ui.AMB : "done".equals(st) ? Ui.GRN : "error".equals(st) ? Ui.RED : Ui.FAINT;
-        String stp = ("running".equals(st) || "queued".equals(st)) && !j.optString("pipeline", "").isEmpty() ? "STEP " + j.optString("step") + " · " : "";
+        String stp = ("running".equals(st) || "queued".equals(st)) && !str(j, "pipeline").isEmpty() && !str(j, "step").isEmpty() ? "STEP " + str(j, "step") + " · " : "";
         top.addView(Ui.mono(m, stp + st.toUpperCase() + (t.isEmpty() ? "" : " · " + t), 11, col), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 8, 0, 0, 0));
-        if (!j.isNull("finished") && j.has("finished"))
-            top.addView(Ui.mono(m, stamp(j.optDouble("finished", 0)), 10, Ui.DIM), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 8, 0, 0, 0));
         b.addView(top);
+        // finish time on its own line: squeezed into the header row of a narrow card it wrapped into a vertical stack
+        if (!j.isNull("finished") && j.has("finished"))
+            b.addView(Ui.mono(m, stamp(j.optDouble("finished", 0)), 10, Ui.DIM), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 3, 0, 0));
         LinearLayout acts = Ui.hbox(m);
         final boolean text = "llama".equals(model);      // writer model: the reply IS the result
         final String reply = j.isNull("output") ? "" : j.optString("output");
@@ -378,7 +383,7 @@ final class CreatePage extends LinearLayout {
             final String p0 = j.optString("prompt");
             acts.addView(small("↺ Again", Ui.DIM, v -> m.reuse(model, p0)));
         } else if ("running".equals(st) || "queued".equals(st)) {
-            String stage = j.optString("stage");
+            String stage = str(j, "stage");
             b.addView(Ui.mono(m, "⟳ " + (stage.isEmpty() || "queued".equals(stage) ? "waiting for the GPU…" : stage), 12, Ui.AMB),
                     Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 8, 0, 0));
             acts.addView(small("Cancel", Ui.RED, v -> m.cancel(id)));
@@ -419,7 +424,7 @@ final class CreatePage extends LinearLayout {
             final String p = j.optString("prompt");
             acts.addView(small("↺ Again", Ui.DIM, v -> m.reuse(model, p)));
         } else {
-            String err = j.optString("error");
+            String err = str(j, "error");
             if ("error".equals(st) && !err.isEmpty() && !"null".equals(err))
                 b.addView(Ui.text(m, err, 12.5f, Ui.RED), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 8, 0, 0));
             final String p = j.optString("prompt");

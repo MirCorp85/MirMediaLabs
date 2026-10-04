@@ -87,6 +87,14 @@ public class MainActivity extends Activity {
     private void build() {
         Window w = getWindow();
         w.setStatusBarColor(Ui.BG);
+        w.setNavigationBarColor(Ui.BG);
+        // light themes (Paper) need dark status/nav bar icons, or the clock is white on white
+        int lum = (int) (0.299 * ((Ui.BG >> 16) & 0xFF) + 0.587 * ((Ui.BG >> 8) & 0xFF) + 0.114 * (Ui.BG & 0xFF));
+        if (lum > 160) {
+            int fl = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            if (android.os.Build.VERSION.SDK_INT >= 26) fl |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            w.getDecorView().setSystemUiVisibility(w.getDecorView().getSystemUiVisibility() | fl);
+        }
         LinearLayout root = Ui.vbox(this);
         root.setBackgroundColor(Ui.BG);
 
@@ -207,6 +215,9 @@ public class MainActivity extends Activity {
         i.putExtra(Intent.EXTRA_TEXT, body);
         try { startActivity(Intent.createChooser(i, kind)); } catch (Exception e) { info(kind, "No mail app found. Email " + Creator.EMAIL); }
     }
+
+    /** "an image", "a video" */
+    static String an(String w) { return (!w.isEmpty() && "aeiou".indexOf(Character.toLowerCase(w.charAt(0))) >= 0 ? "an " : "a ") + w; }
 
     void info(String title, String msg) {
         Sheet sh = new Sheet(this, title, "note", Ui.pal());
@@ -349,11 +360,11 @@ public class MainActivity extends Activity {
             String flow = "";
             JSONArray st = o.optJSONArray("steps");
             for (int k = 0; st != null && k < st.length(); k++) flow += (k > 0 ? " → " : "") + st.optJSONObject(k).optString("label");   // role, never the engine name
-            String sub = o.optString("desc") + (o.has("needs") ? "  ·  attach a " + o.optString("needs") : "") + (flow.isEmpty() ? "" : "\n" + flow);
+            String sub = o.optString("desc") + (o.has("needs") ? "  ·  attach " + an(o.optString("needs")) : "") + (flow.isEmpty() ? "" : "\n" + flow);
             String ic = pipes ? "chain" : o.optString("icon", "sparkle");
             sh.row(ic, o.optString("name"), sub, () -> {
                 create.setPrompt("/" + o.optString("id") + " ");
-                toast(o.optString("name") + (o.has("needs") ? " — attach a " + o.optString("needs") + " first" : " — describe it and send"));
+                toast(o.optString("name") + (o.has("needs") ? " — attach " + an(o.optString("needs")) + " first" : " — describe it and send"));
             });
         }
         sh.show();

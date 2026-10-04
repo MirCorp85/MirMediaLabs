@@ -19,9 +19,29 @@ Video, songs, music, images and writing, controlled from your PC, phone or Andro
 | | |
 |---|---|
 | <img src="docs/screenshots/2-parameters.png" alt="Per-model parameters (Midnight Studio theme)"><br><sub><b>Per-model parameters</b> · Midnight Studio theme</sub> | <img src="docs/screenshots/3-commands.png" alt="Command book (Paper Light theme)"><br><sub><b>Command book</b> with 21 skills and 5 pipelines · Paper Light theme</sub> |
-| <img src="docs/screenshots/4-about.png" alt="About, bug report and Patreon (Obsidian Gold theme)"><br><sub><b>About · Report a bug · Support</b> · Obsidian Gold theme</sub> | <img src="docs/screenshots/5-phone.png" alt="Phone layout (Graphite theme)" width="45%"><br><sub><b>Phone layout</b> · Graphite theme</sub> |
+| <img src="docs/screenshots/4-about.png" alt="About, bug report and Patreon (Obsidian Gold theme)"><br><sub><b>About · Report a bug · Support</b> · Obsidian Gold theme</sub> | <img src="docs/screenshots/5-phone.png" alt="Phone layout (Graphite theme)" width="45%"><br><sub><b>Phone browser layout</b> · Graphite theme</sub> |
 
 <sub>Every render shown was made locally by MML on an RTX 5070: the H3 video with audio, the Qwen images, the Music 3 song, the ACE-Step lo-fi track and the MUSE lyrics.</sub>
+
+## Mobile companion: phone and Android TV
+MML comes with a **free native Android companion app**. One APK covers phones and Android TV. Your PC does the rendering, and the app gives you the whole studio from the couch or on the go: chat, skills, pipelines, LoRAs, the library and live render progress. The theme you pick follows you to every device.
+
+<p align="center">
+<img src="docs/screenshots/apk-1-chat.png" alt="Phone: chat with a live render" width="19%">
+<img src="docs/screenshots/apk-2-library.png" alt="Phone: library" width="19%">
+<img src="docs/screenshots/apk-3-menu.png" alt="Phone: menu with Patreon, skills and themes" width="19%">
+<img src="docs/screenshots/apk-4-paper.png" alt="Phone: Paper Light theme" width="19%">
+<img src="docs/screenshots/apk-5-skills.png" alt="Phone: skills in the Midnight Studio theme" width="19%">
+</p>
+<p align="center"><sub>Chat with a live render · Library · Menu · Paper Light theme · Skills (Midnight Studio)</sub></p>
+<p align="center"><img src="docs/screenshots/apk-6-tv.png" alt="Android TV: library on the big screen" width="80%"><br><sub><b>Android TV</b>: the same APK, with a D-pad-friendly layout</sub></p>
+
+**Get it:** download `MirMediaLabs.apk` from the [Releases page](../../releases/latest), or scan the QR code at the end of the Windows setup. Then enter your PC's address and an access key from the **People** menu.
+
+**Why it's useful:**
+- It uses your home Wi-Fi when you're there and switches to your remote address when you're away.
+- You can **share** photos, clips, songs or text to MML from any app and use them as references.
+- Each family member or teammate gets their **own key** and sees only their own creations.
 
 ---
 
@@ -77,12 +97,21 @@ Video, songs, music, images and writing, controlled from your PC, phone or Andro
 - **Live PC performance card**: CPU, RAM, GPU, VRAM, temperature and power, with plain-language bottleneck hints while rendering ("VRAM full", "CPU-bound", "GPU at full speed")
 - **Guided installer**:
   - checks GPU, driver, RAM, page file, disk and network
+  - **one-click model sets**: Recommended for your GPU (picked from your VRAM), Everything, or Light
+  - finds AI models already on your PC and reuses them instead of downloading them again
+  - **fast**: models download 3 at a time, *while* the PyTorch runtime installs
   - installs a private Python/PyTorch runtime, the ComfyUI render engine and only the models you pick
   - optionally installs Ollama for the prompt engine
+  - shows a gallery of real MML renders while it works, then a **QR code for the mobile companion**
   - downloads resume, and re-running it offers Modify and Repair
 - **Signed auto-updates**: Ed25519-verified manifests, with SHA-256 checks and downgrade protection
 
-### Android app (phone and TV)
+<p align="center">
+<img src="docs/screenshots/setup-1-welcome.png" alt="Setup wizard: welcome page with the render showcase" width="49%">
+<img src="docs/screenshots/setup-2-install.png" alt="Setup wizard: installing, with parallel model downloads" width="49%">
+</p>
+
+### Mobile companion app (phone and TV)
 - **One APK for phones and Android TV**, with a lightweight native app (plain Java, no frameworks)
 - Uses your home Wi-Fi when available and falls back to a remote address
 - **Share to MML** from any app (photos, clips, songs, text) to use as references

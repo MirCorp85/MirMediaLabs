@@ -86,11 +86,19 @@ Remove-Item $zip -ErrorAction SilentlyContinue
 "{`"version`": `"$ver`"}" | Set-Content -Encoding ascii (Join-Path $build 'build.json')
 if (-not (Test-Path (Join-Path $build 'icon-64.png'))) { Copy-Item (Join-Path $root 'server\static\icon-512.png') (Join-Path $build 'icon-64.png') }
 
+# 3b. showcase gallery (real MML renders) + mobile-companion QR for the wizard — Pillow runs here, not in the setup
+& $py -c "import PIL, qrcode" 2>$null
+if ($LASTEXITCODE) { & (Join-Path $tools 'uv.exe') pip install --python $py pillow qrcode }
+$show = Join-Path $build 'showcase'
+& $py (Join-Path $here 'make_showcase.py') $show
+if ($LASTEXITCODE) { throw 'showcase failed' }
+
 # 4. compile the setup wizard (one file)
 $setupOut = Join-Path $build 'setupout'
 $setupArgs = $common + @("--onefile", "--enable-plugin=tk-inter",
     "--include-data-files=$zip=payload.zip", "--include-data-files=$build\build.json=build.json",
     "--include-data-files=$ico=MirMediaLabs.ico", "--include-data-files=$build\icon-64.png=icon-64.png",
+    "--include-data-dir=$show=showcase",
     "--output-filename=MirMediaLabs-Setup.exe", "--file-description=MIR MEDIA LABS Setup",
     "--output-dir=$setupOut", (Join-Path $here 'setup_wizard.py'))
 & $py @setupArgs

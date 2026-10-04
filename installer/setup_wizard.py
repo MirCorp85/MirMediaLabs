@@ -99,9 +99,28 @@ ENGINES = {"qwen3.5:9b": ("Qwen 3.5 9B (recommended)", 6.6),
            "qwen3.5:4b": ("Qwen 3.5 4B (lighter, for 12 GB GPUs that also game)", 3.4),
            "": ("None — prompts are used exactly as typed", 0)}
 RUNTIME_GB = 9.0      # python + torch CUDA + ComfyUI deps (+ download cache, removed afterwards)
+PARALLEL_DOWNLOADS = 3   # model files fetched at once (a single HTTPS stream rarely fills a fast line)
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\%s" % APP_ID
+APK_URL = "https://github.com/MirCorp85/MirMediaLabs/releases/latest/download/MirMediaLabs.apk"
 
 BG, PANEL, FG, DIM, ACCENT, BAD, OK = "#0c0e13", "#151922", "#e9edf5", "#8a93a6", "#ffc83d", "#ff6b6b", "#5fd38d"
+SIDE, LINE, BRAND = "#10131a", "#232a38", "#ff5a1f"
+
+# one-click model sets; "recommended" is picked from the GPU's VRAM on the system check
+PRESETS = {"recommended": "Recommended for your GPU", "all": "Everything", "light": "Light — images + beats",
+           "custom": "Custom"}
+
+
+def preset_components(name, vram_gb):
+    if name == "all":
+        return set(COMPONENTS)
+    if name == "light":
+        return {"image", "ace"}
+    if vram_gb >= 24:
+        return set(COMPONENTS)
+    if vram_gb >= 11.5:
+        return {"video", "music", "image", "ace"}
+    return {"music", "image", "ace"}                   # the video model needs 12 GB+
 
 
 _APPDATA = os.environ.get("APPDATA", "")
@@ -281,14 +300,17 @@ class Installer:
         self.cache = os.path.join(self.rt, "cache")
         self.cancel = False
         self.logf = None
+        self._log_lock = threading.Lock()
+        self._dl_thread, self._dl_error = None, None
 
     # helpers
     def log(self, msg):
         line = time.strftime("%H:%M:%S ") + msg
         self.emit("log", line)
-        if self.logf:
-            self.logf.write(line + "\n")
-            self.logf.flush()
+        with self._log_lock:                                # downloads log from worker threads
+            if self.logf and not self.logf.closed:
+                self.logf.write(line + "\n")
+                self.logf.flush()
 
     def check(self):
         if self.cancel:
@@ -314,11 +336,13 @@ class Installer:
         if p.wait() != 0:
             raise RuntimeError("command failed (%d): %s\n%s" % (p.returncode, cmd[0], "\n".join(tail[-6:])))
 
-    def download(self, url, dest, size=0, label=None):
-        """Resumable HTTP download → dest (skips when already complete)."""
+    def download(self, url, dest, size=0, label=None, progress=None):
+        """Resumable HTTP download → dest (skips when already complete).
+        progress(label, have, total) replaces the per-file UI event (used by the parallel model downloads)."""
         label = label or os.path.basename(dest)
+        report = progress or (lambda lb, h, t, rate=0: self.emit("file", (lb, h, t, rate)))
         if os.path.isfile(dest) and (not size or os.path.getsize(dest) == size):
-            self.emit("file", (label, 1, 1, 0))
+            report(label, size or 1, size or 1)
             return dest
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         part = dest + ".part"
@@ -343,7 +367,7 @@ class Installer:
                             f.write(chunk)
                             have += len(chunk)
                             dt = time.time() - t0
-                            self.emit("file", (label, have, total, (have - done0) / dt if dt > 0.5 else 0))
+                            report(label, have, total, (have - done0) / dt if dt > 0.5 else 0)
                 if size and os.path.getsize(part) != size:
                     raise IOError("incomplete: %d of %d bytes" % (os.path.getsize(part), size))
                 os.replace(part, dest)
@@ -487,6 +511,9 @@ class Installer:
         json.dump(prefs, open(prefs_f, "w", encoding="utf-8"), indent=1)
 
     def step_models(self):
+        """Download the chosen models PARALLEL_DOWNLOADS files at a time (one stream rarely fills a fast line),
+        reporting one combined progress: ("dl", (done_bytes, total_bytes, bytes_per_s, files_done, files_total))."""
+        from concurrent.futures import ThreadPoolExecutor
         files = [f for k in self.o["components"] for f in COMPONENTS[k][2]]
         reuse = self.o.get("reuse") or ""
         todo = []
@@ -496,13 +523,44 @@ class Installer:
                 continue
             todo.append((rel, base, size))
         total = sum(s for _, _, s in todo) or 1
-        done = 0
-        for i, (rel, base, size) in enumerate(todo):
+        have, lock = {}, threading.Lock()
+        state = {"files": 0, "t0": time.time(), "b0": None, "last": 0.0}
+
+        def prog(label, h, t, rate=0):
+            with lock:
+                have[label] = h
+                done = sum(have.values())
+                now = time.time()
+                if state["b0"] is None:                     # resumed bytes don't count toward the speed
+                    state["b0"], state["t0"] = done, now
+                if now - state["last"] < 0.25 and done < total:
+                    return
+                state["last"] = now
+                dt = now - state["t0"]
+                bps = (done - state["b0"]) / dt if dt > 1 else 0
+                self.emit("dl", (done, total, bps, state["files"], len(todo)))
+
+        def one(item):
+            rel, base, size = item
             self.check()
-            self.emit("overall_sub", "model %d of %d" % (i + 1, len(todo)))
-            self.download(base + rel, os.path.join(self.models, rel.replace("/", os.sep)), size, rel.split("/")[-1])
-            done += size
-            self.emit("models_frac", done / total)
+            name = rel.split("/")[-1]
+            self.download(base + rel, os.path.join(self.models, rel.replace("/", os.sep)), size, name, progress=prog)
+            with lock:
+                state["files"] += 1
+            prog(name, size or have.get(name, 0), size)
+            self.log("model ready: %s" % name)
+
+        self.emit("dl", (0, total, 0, 0, len(todo)))
+        # biggest first, so the long poles start early and small files fill the gaps
+        with ThreadPoolExecutor(max_workers=PARALLEL_DOWNLOADS) as ex:
+            futs = [ex.submit(one, it) for it in sorted(todo, key=lambda x: -x[2])]
+            try:
+                for f in futs:
+                    f.result()                              # re-raises Cancelled / download errors
+            except BaseException:
+                self.cancel = True                          # stop the other streams, then report the first error
+                raise
+        self.emit("dl", (total, total, 0, len(todo), len(todo)))
 
     def step_finish(self):
         reuse = self.o.get("reuse") or ""
@@ -576,13 +634,28 @@ class Installer:
             winreg.SetValueEx(k, "EstimatedSize", 0, winreg.REG_DWORD, min(size_kb + int(RUNTIME_GB * 1024 * 1024), 0xFFFFFFFF))
             winreg.SetValueEx(k, "NoRepair", 0, winreg.REG_DWORD, 1)
 
+    def _models_bg(self):
+        """Model downloads run in the background WHILE the runtime installs (they used to wait for it)."""
+        try:
+            self.step_models()
+        except BaseException as e:                          # handed to the main thread by wait_models()
+            self._dl_error = e
+
+    def wait_models(self):
+        while self._dl_thread and self._dl_thread.is_alive():
+            self.check()
+            self._dl_thread.join(0.5)
+        if self._dl_error:
+            raise self._dl_error
+
     def run(self):
         steps = [("App files", self.step_files, 1), ("Python runtime", self.step_python, 3),
                  ("ComfyUI engine", self.step_comfy, 3), ("PyTorch + engine packages", self.step_packages, 18)]
         if self.o["engine"]:
             steps.append(("Prompt engine (Ollama)", self.step_ollama, 8))
+        self._dl_thread, self._dl_error = None, None
         if self.o["components"]:
-            steps.append(("AI models", self.step_models, 60))
+            steps.append(("Finishing model downloads", self.wait_models, 60))
         steps.append(("Shortcuts + self-test", self.step_finish, 4))
         os.makedirs(os.path.join(self.dir, "data", "logs"), exist_ok=True)
         self.logf = open(os.path.join(self.dir, "data", "logs", "install.log"), "a", encoding="utf-8")
@@ -596,6 +669,11 @@ class Installer:
                 self.log("── " + name)
                 fn()
                 acc += w
+                # models start once ComfyUI's folder is final (an upgrade moves models/), and then download
+                # while PyTorch + packages + the prompt engine install — the two longest jobs overlap
+                if fn == self.step_comfy and self.o["components"]:
+                    self._dl_thread = threading.Thread(target=self._models_bg, daemon=True)
+                    self._dl_thread.start()
             self.emit("step", (len(steps), "Done", 1.0, 0))
             self.emit("done", None)
         except Cancelled:
@@ -605,17 +683,76 @@ class Installer:
             self.log(traceback.format_exc())
             self.emit("failed", str(e))
         finally:
+            if self._dl_thread and self._dl_thread.is_alive():
+                self.cancel = True                          # a failed step stops the downloads too (they resume later)
+                self._dl_thread.join(30)
             self.logf.close()
 
 
 # ─────────────────────────────── wizard UI ───────────────────────────────
+class Showcase(tk.Frame):
+    """Rotating gallery of real MIR MEDIA LABS renders (built into the setup by installer\\make_showcase.py)."""
+
+    def __init__(self, parent, big=True, every=4500):
+        super().__init__(parent, bg=BG)
+        self.slides, self.i, self.every = [], 0, every
+        hi = float(parent.tk.call("tk", "scaling")) / (96 / 72) >= 1.4
+        try:
+            idx = json.load(open(resource(os.path.join("showcase", "index.json")), encoding="utf-8"))
+        except (OSError, ValueError):
+            idx = []
+        for s in idx:
+            fn = s["file"] + ("_2x" if hi else "_1x") + ("" if big else "_s") + ".png"
+            try:
+                self.slides.append((tk.PhotoImage(file=resource(os.path.join("showcase", fn))), s.get("caption", "")))
+            except tk.TclError:
+                pass
+        if not self.slides:
+            return
+        self.pic = tk.Label(self, bg=BG, bd=0)
+        self.pic.pack()
+        row = tk.Frame(self, bg=BG)
+        row.pack(fill="x", pady=(6, 0))
+        tk.Label(row, text="MADE WITH MIR MEDIA LABS", bg=BG, fg=BRAND, font=("Segoe UI Semibold", 8)).pack(side="left")
+        self.cap = tk.Label(row, bg=BG, fg=DIM, font=("Segoe UI", 9), anchor="w")
+        self.cap.pack(side="left", padx=8)
+        self.dots = tk.Label(row, bg=BG, fg=DIM, font=("Segoe UI", 9))
+        self.dots.pack(side="right")
+        self.pic.bind("<Button-1>", lambda e: self.step(1))
+        self.show()
+
+    def show(self):
+        img, cap = self.slides[self.i]
+        self.pic.config(image=img)
+        self.cap.config(text=cap)
+        self.dots.config(text=" ".join("●" if k == self.i else "○" for k in range(len(self.slides))))
+
+    def step(self, d=1):
+        if self.slides and self.winfo_exists():
+            self.i = (self.i + d) % len(self.slides)
+            self.show()
+
+    def start(self):
+        if self.slides:
+            self._tick()
+        return self
+
+    def _tick(self):
+        if not self.winfo_exists():
+            return
+        self.step(1)
+        self.after(self.every, self._tick)
+
+
 class Wizard(tk.Tk):
+    STEPS = ("Welcome", "Your PC", "Choose", "Ready", "Install", "Done")
+
     def __init__(self, update_dir=None):
         super().__init__()
         self.title("%s Setup" % APP)
         f = max(1.0, float(self.tk.call("tk", "scaling")) / (96 / 72))     # high-DPI screens
-        w = min(900 * f, self.winfo_screenwidth() * 0.9)
-        h = min(680 * f, self.winfo_screenheight() * 0.85)
+        w = min(1060 * f, self.winfo_screenwidth() * 0.92)
+        h = min(720 * f, self.winfo_screenheight() * 0.88)
         self.geometry("%dx%d+%d+%d" % (w, h, (self.winfo_screenwidth() - w) / 2, (self.winfo_screenheight() - h) / 3))
         self.minsize(int(w * 0.9), int(h * 0.9))
         self.configure(bg=BG)
@@ -626,35 +763,64 @@ class Wizard(tk.Tk):
         st = ttk.Style(self)
         st.theme_use("clam")
         st.configure(".", background=BG, foreground=FG, fieldbackground=PANEL, font=("Segoe UI", 10))
-        st.configure("TCheckbutton", background=BG, foreground=FG, indicatorbackground=PANEL,
-                     indicatorforeground=ACCENT, indicatorsize=int(13 * f))
-        st.map("TCheckbutton", background=[("active", BG)])
-        st.configure("TRadiobutton", background=BG, foreground=FG, indicatorbackground=PANEL,
-                     indicatorforeground=ACCENT, indicatorsize=int(13 * f))
-        st.map("TRadiobutton", background=[("active", BG)])
-        st.configure("Accent.TButton", background=ACCENT, foreground="#111", font=("Segoe UI Semibold", 10), padding=(18, 6))
+        for kind in ("TCheckbutton", "TRadiobutton"):
+            st.configure(kind, background=BG, foreground=FG, indicatorbackground=PANEL,
+                         indicatorforeground=ACCENT, indicatorsize=int(13 * f))
+            st.map(kind, background=[("active", BG)])
+            st.configure("Card." + kind, background=PANEL, foreground=FG, indicatorbackground=BG,
+                         indicatorforeground=ACCENT, indicatorsize=int(13 * f))
+            st.map("Card." + kind, background=[("active", PANEL)])
+        st.configure("Accent.TButton", background=ACCENT, foreground="#111", font=("Segoe UI Semibold", 10), padding=(20, 7))
         st.map("Accent.TButton", background=[("disabled", "#5a5235"), ("active", "#ffd768")])
-        st.configure("TButton", background=PANEL, foreground=FG, padding=(14, 6))
+        st.configure("TButton", background=PANEL, foreground=FG, padding=(14, 7), bordercolor=LINE)
         st.map("TButton", background=[("active", "#202634")])
-        st.configure("Horizontal.TProgressbar", background=ACCENT, troughcolor=PANEL, bordercolor=PANEL,
-                     lightcolor=ACCENT, darkcolor=ACCENT)
+        for name, col in (("Horizontal.TProgressbar", ACCENT), ("Dl.Horizontal.TProgressbar", "#1fc8dc")):
+            st.configure(name, background=col, troughcolor=PANEL, bordercolor=PANEL, lightcolor=col, darkcolor=col,
+                         thickness=int(8 * f))
         st.configure("TEntry", fieldbackground=PANEL, foreground=FG, insertcolor=FG)
-
         self.scale = f
-        head = tk.Frame(self, bg=BG)
-        head.pack(fill="x", padx=24, pady=(18, 4))
+
+        # ── left: brand + step list ──
+        side = tk.Frame(self, bg=SIDE, width=int(230 * f))
+        side.pack(side="left", fill="y")
+        side.pack_propagate(False)
+        brand = tk.Frame(side, bg=SIDE)
+        brand.pack(fill="x", padx=20, pady=(24, 26))
         try:
             self._logo = tk.PhotoImage(file=resource("icon-64.png"))
-            tk.Label(head, image=self._logo, bg=BG).pack(side="left", padx=(0, 12))
+            tk.Label(brand, image=self._logo, bg=SIDE).pack(anchor="w")
         except tk.TclError:
             pass
-        tk.Label(head, text=APP, bg=BG, fg=ACCENT, font=("Segoe UI Black", 20)).pack(anchor="w")
-        self.sub = tk.Label(head, text="Setup", bg=BG, fg=DIM, font=("Segoe UI", 10))
+        tk.Label(brand, text="MIR MEDIA LABS", bg=SIDE, fg=ACCENT, font=("Segoe UI Black", 13)).pack(anchor="w", pady=(10, 0))
+        tk.Label(brand, text="Setup · v%s" % VERSION, bg=SIDE, fg=DIM, font=("Segoe UI", 9)).pack(anchor="w")
+        self.step_lbls = []
+        for i, name in enumerate(self.STEPS):
+            r = tk.Frame(side, bg=SIDE)
+            r.pack(fill="x", padx=14, pady=1)
+            dot = tk.Label(r, text="○", bg=SIDE, fg=DIM, font=("Segoe UI", 11), width=2)
+            dot.pack(side="left")
+            lbl = tk.Label(r, text=name, bg=SIDE, fg=DIM, font=("Segoe UI", 10), anchor="w")
+            lbl.pack(side="left", fill="x", padx=4, pady=5)
+            self.step_lbls.append((dot, lbl))
+        foot = tk.Frame(side, bg=SIDE)
+        foot.pack(side="bottom", fill="x", padx=20, pady=18)
+        tk.Label(foot, text="© 2026 MirCorp · GPL-3.0", bg=SIDE, fg=DIM, font=("Segoe UI", 8)).pack(anchor="w")
+        tk.Label(foot, text="Free & open source", bg=SIDE, fg=DIM, font=("Segoe UI", 8)).pack(anchor="w")
+
+        # ── right: page title, body, navigation ──
+        main = tk.Frame(self, bg=BG)
+        main.pack(side="left", fill="both", expand=True)
+        head = tk.Frame(main, bg=BG)
+        head.pack(fill="x", padx=30, pady=(22, 2))
+        self.ttl = tk.Label(head, text="", bg=BG, fg=FG, font=("Segoe UI Semibold", 17))
+        self.ttl.pack(anchor="w")
+        self.sub = tk.Label(head, text="", bg=BG, fg=DIM, font=("Segoe UI", 10))
         self.sub.pack(anchor="w")
-        self.body = tk.Frame(self, bg=BG)
-        self.body.pack(fill="both", expand=True, padx=24, pady=8)
-        nav = tk.Frame(self, bg=BG)
-        nav.pack(fill="x", padx=24, pady=(0, 18))
+        self.body = tk.Frame(main, bg=BG)
+        self.body.pack(fill="both", expand=True, padx=30, pady=10)
+        tk.Frame(main, bg=LINE, height=1).pack(fill="x")
+        nav = tk.Frame(main, bg=BG)
+        nav.pack(fill="x", padx=30, pady=14)
         self.btn_back = ttk.Button(nav, text="Back", command=self.back)
         self.btn_next = ttk.Button(nav, text="Next", style="Accent.TButton", command=self.next)
         self.btn_cancel = ttk.Button(nav, text="Cancel", command=self.on_cancel)
@@ -669,6 +835,7 @@ class Wizard(tk.Tk):
         prev = cfg.get("components")
         self.v_dir = tk.StringVar(value=d)
         self.v_comp = {k: tk.BooleanVar(value=(k in prev) if prev is not None else (k != "video_ref")) for k in COMPONENTS}
+        self.v_preset = tk.StringVar(value="custom" if prev is not None else "recommended")
         self.v_engine = tk.StringVar(value=cfg.get("engine", "qwen3.5:9b") if cfg else "qwen3.5:9b")
         self.v_desktop = tk.BooleanVar(value=os.path.exists(LNK_DESKTOP) if cfg else True)
         self.v_auto = tk.BooleanVar(value=os.path.exists(LNK_STARTUP))
@@ -693,10 +860,19 @@ class Wizard(tk.Tk):
 
     def show(self):
         self.clear()
+        for i, (dot, lbl) in enumerate(self.step_lbls):
+            cur, past = i == self.idx, i < self.idx
+            dot.config(text="●" if cur else ("✓" if past else "○"), fg=ACCENT if cur else (OK if past else DIM))
+            lbl.config(fg=FG if cur else (OK if past else DIM),
+                       font=("Segoe UI Semibold" if cur else "Segoe UI", 10))
         self.btn_back.state(["!disabled"] if 0 < self.idx < 4 else ["disabled"])
         self.btn_next.state(["!disabled"])
         self.btn_next.config(text="Next")
         self.pages[self.idx]()
+
+    def head(self, title, sub=""):
+        self.ttl.config(text=title)
+        self.sub.config(text=sub)
 
     def next(self):
         if self.idx == 2 and not self.validate_options():
@@ -718,32 +894,50 @@ class Wizard(tk.Tk):
             return
         self.destroy()
 
-    def text(self, s, fg=FG, size=10, bold=False, pad=(0, 6), wrap=800):
+    def text(self, s, fg=FG, size=10, bold=False, pad=(0, 6), wrap=760, parent=None, bg=BG):
         wrap = int(wrap * self.scale)
-        lbl = tk.Label(self.body, text=s, bg=BG, fg=fg, justify="left", wraplength=wrap,
+        lbl = tk.Label(parent or self.body, text=s, bg=bg, fg=fg, justify="left", wraplength=wrap,
                        font=("Segoe UI Semibold" if bold else "Segoe UI", size))
         lbl.pack(anchor="w", pady=pad)
         return lbl
 
+    def card(self, parent=None, title=None, **pack):
+        c = tk.Frame(parent or self.body, bg=PANEL, highlightthickness=1, highlightbackground=LINE)
+        c.pack(fill="x", pady=(0, 10), **pack)
+        inner = tk.Frame(c, bg=PANEL)
+        inner.pack(fill="both", expand=True, padx=14, pady=10)
+        if title:
+            tk.Label(inner, text=title.upper(), bg=PANEL, fg=ACCENT, font=("Segoe UI Semibold", 9)).pack(anchor="w", pady=(0, 4))
+        return inner
+
     # ── pages
     def page_welcome(self):
-        self.sub.config(text="Welcome")
+        self.head("Welcome", "An independent AI agent front end for generative models — free and open source")
         prev = registry_install_dir()
-        self.text("Your own AI media studio — video, songs, images and beats, rendered on this PC's GPU.", size=12, bold=True)
-        self.text("This setup installs everything MIR MEDIA LABS needs, in one folder:")
-        for s in ("•  the MIR MEDIA LABS app — a compiled native program with signed automatic updates",
-                  "•  a private PyTorch runtime for your NVIDIA GPU (used only by the render engine)",
-                  "•  the ComfyUI render engine (headless — no extra window)",
-                  "•  the AI models you choose (downloaded from Hugging Face, resumable)",
-                  "•  optional: Ollama + a small model that turns short ideas into rich prompts"):
-            self.text(s, fg=DIM, pad=(0, 2))
-        self.text("Nothing else on your PC is changed. Uninstall from Windows Settings → Apps.", fg=DIM, pad=(14, 2))
+        Showcase(self.body).start().pack(anchor="w", pady=(0, 12))
+        self.text("Video with sound, full songs, images, beats and writing — rendered on this PC's GPU, "
+                  "controlled from here, your phone or your TV.", size=11, bold=True, pad=(0, 4))
+        grid = tk.Frame(self.body, bg=BG)
+        grid.pack(fill="x", pady=(6, 8))
+        feats = (("Video + sound", "MiniMax H3 · 4–15 s clips"), ("Full songs", "Music 3 · vocals, up to 5 min"),
+                 ("Images", "Qwen-Image · edits, cutouts"), ("Beats", "ACE-Step · remix, cover"),
+                 ("Writing", "MUSE · lyrics, scripts, stories"), ("Phone + TV", "free Android companion"))
+        for i, (t, d) in enumerate(feats):
+            c = tk.Frame(grid, bg=PANEL, highlightthickness=1, highlightbackground=LINE)
+            c.grid(row=i // 3, column=i % 3, sticky="nsew", padx=(0, 8), pady=(0, 8))
+            tk.Label(c, text=t, bg=PANEL, fg=FG, font=("Segoe UI Semibold", 10)).pack(anchor="w", padx=12, pady=(8, 0))
+            tk.Label(c, text=d, bg=PANEL, fg=DIM, font=("Segoe UI", 9)).pack(anchor="w", padx=12, pady=(0, 8))
+        for col in range(3):
+            grid.columnconfigure(col, weight=1)
+        self.text("Setup installs, in one folder: the compiled app with signed updates · a private PyTorch runtime · "
+                  "the ComfyUI render engine · the AI models you choose · optionally Ollama for the prompt engine. "
+                  "Nothing else on your PC changes; uninstall from Windows Settings → Apps.", fg=DIM)
         if prev:
             self.text("An existing install was found at %s — continuing will modify / repair it. "
-                      "Your library and settings are kept." % prev, fg=ACCENT, pad=(14, 2))
+                      "Your library and settings are kept." % prev, fg=ACCENT, pad=(8, 2))
 
     def page_system(self):
-        self.sub.config(text="Checking this PC")
+        self.head("Checking this PC", "MIR MEDIA LABS renders locally, so it needs an NVIDIA RTX card")
         if self.sysinfo is None:
             gpu = gpu_info()
             ram, commit = ram_gb()
@@ -756,9 +950,9 @@ class Wizard(tk.Tk):
             rows.append((BAD, "GPU", "No NVIDIA GPU found (nvidia-smi missing). MIR MEDIA LABS needs an NVIDIA RTX card."))
             block = True
         else:
-            col = OK if g["vram_gb"] >= 11.5 else BAD
+            col = OK if g["vram_gb"] >= 11.5 else ACCENT
             rows.append((col, "GPU", "%s — %.0f GB VRAM%s" % (g["name"], g["vram_gb"],
-                                                                "" if col == OK else "  (12 GB+ needed for the video model)")))
+                                                                "" if col == OK else "  (video needs 12 GB+; images, songs and beats work)")))
             drv = float(".".join(g["driver"].split(".")[:2]))
             if drv < 570:
                 rows.append((BAD, "Driver", "%s — update the NVIDIA driver to 570 or newer first" % g["driver"]))
@@ -775,54 +969,78 @@ class Wizard(tk.Tk):
         rows.append((OK if s["net"] else BAD, "Internet", "Hugging Face reachable" if s["net"] else
                      "can't reach huggingface.co — models can't download"))
         block = block or not s["net"]
+        box = self.card()
         for col, k, v in rows:
-            f = tk.Frame(self.body, bg=BG)
-            f.pack(fill="x", pady=3)
-            tk.Label(f, text="●", fg=col, bg=BG, font=("Segoe UI", 11)).pack(side="left")
-            tk.Label(f, text=k, fg=FG, bg=BG, width=10, anchor="w", font=("Segoe UI Semibold", 10)).pack(side="left", padx=6)
-            tk.Label(f, text=v, fg=DIM if col == OK else col, bg=BG, anchor="w", justify="left", wraplength=int(620 * self.scale)).pack(side="left")
-        self.text("Speed tip: the video model is tuned for RTX 50-series (Blackwell); other RTX cards with "
-                  "12 GB+ work, more slowly.", fg=DIM, pad=(16, 0))
+            f = tk.Frame(box, bg=PANEL)
+            f.pack(fill="x", pady=4)
+            tk.Label(f, text="●", fg=col, bg=PANEL, font=("Segoe UI", 11)).pack(side="left")
+            tk.Label(f, text=k, fg=FG, bg=PANEL, width=10, anchor="w", font=("Segoe UI Semibold", 10)).pack(side="left", padx=6)
+            tk.Label(f, text=v, fg=DIM if col == OK else col, bg=PANEL, anchor="w", justify="left",
+                     wraplength=int(560 * self.scale)).pack(side="left")
+        if g:
+            rec = preset_components("recommended", g["vram_gb"])
+            self.text("Recommended for this GPU: " + ",  ".join(COMPONENTS[k][0].split(" — ")[1] for k in COMPONENTS if k in rec)
+                      + ".  The video model is tuned for RTX 50-series; other RTX cards with 12 GB+ work, more slowly.",
+                      fg=DIM, pad=(4, 0))
         if block:
             self.btn_next.state(["disabled"])
             ttk.Button(self.body, text="Check again", command=lambda: (setattr(self, "sysinfo", None), self.show())).pack(anchor="w", pady=10)
 
+    def apply_preset(self):
+        name = self.v_preset.get()
+        if name == "custom":
+            return
+        vram = ((self.sysinfo or {}).get("gpu") or {}).get("vram_gb", 12)
+        want = preset_components(name, vram)
+        for k, v in self.v_comp.items():
+            v.set(k in want)
+        self.update_space()
+
     def page_options(self):
-        self.sub.config(text="Choose what to install")
+        self.head("Choose what to install", "Pick a set, or tick exactly the models you want")
         f = tk.Frame(self.body, bg=BG)
         f.pack(fill="x")
         tk.Label(f, text="Install to", bg=BG, fg=FG, font=("Segoe UI Semibold", 10)).pack(side="left")
-        e = ttk.Entry(f, textvariable=self.v_dir, width=60)
-        e.pack(side="left", padx=8, fill="x", expand=True)
+        ttk.Entry(f, textvariable=self.v_dir, width=56).pack(side="left", padx=8, fill="x", expand=True)
         ttk.Button(f, text="Browse…", command=self.pick_dir).pack(side="left")
         self.lbl_space = tk.Label(self.body, bg=BG, fg=DIM, anchor="w")
         self.lbl_space.pack(fill="x", pady=(2, 8))
 
-        tk.Label(self.body, text="AI models", bg=BG, fg=ACCENT, font=("Segoe UI Semibold", 11)).pack(anchor="w")
-        grid = tk.Frame(self.body, bg=BG)
+        box = self.card(title="AI models")
+        pr = tk.Frame(box, bg=PANEL)
+        pr.pack(fill="x", pady=(0, 6))
+        for key, label in PRESETS.items():
+            ttk.Radiobutton(pr, text=label, value=key, variable=self.v_preset, style="Card.TRadiobutton",
+                            command=self.apply_preset).pack(side="left", padx=(0, 14))
+        grid = tk.Frame(box, bg=PANEL)
         grid.pack(fill="x")
         for i, (k, (name, desc, _)) in enumerate(COMPONENTS.items()):
             ttk.Checkbutton(grid, text="%s  ·  %.0f GB" % (name, comp_bytes(k) / GB), variable=self.v_comp[k],
-                            command=self.update_space).grid(row=i, column=0, sticky="w", pady=1)
-            tk.Label(grid, text=desc, bg=BG, fg=DIM, font=("Segoe UI", 9)).grid(row=i, column=1, sticky="w", padx=10)
+                            style="Card.TCheckbutton",
+                            command=lambda: (self.v_preset.set("custom"), self.update_space())).grid(row=i, column=0, sticky="w", pady=1)
+            tk.Label(grid, text=desc, bg=PANEL, fg=DIM, font=("Segoe UI", 9)).grid(row=i, column=1, sticky="w", padx=10)
+        if self.v_preset.get() != "custom":
+            self.apply_preset()
 
-        tk.Label(self.body, text="Prompt engine", bg=BG, fg=ACCENT, font=("Segoe UI Semibold", 11)).pack(anchor="w", pady=(10, 0))
+        row = tk.Frame(self.body, bg=BG)
+        row.pack(fill="x")
+        eng = self.card(row, title="Prompt engine", side="left", expand=True, padx=(0, 10))
         installed = ollama_exe()
         for tag, (name, gb) in ENGINES.items():
-            extra = "" if not tag else ("  ·  %.1f GB%s" % (gb, "" if installed else " + Ollama app"))
-            ttk.Radiobutton(self.body, text=name + extra, value=tag, variable=self.v_engine,
+            extra = "" if not tag else ("  ·  %.1f GB%s" % (gb, "" if installed else " + Ollama"))
+            ttk.Radiobutton(eng, text=name + extra, value=tag, variable=self.v_engine, style="Card.TRadiobutton",
                             command=self.update_space).pack(anchor="w")
+        opt = self.card(row, title="Options", side="left", expand=True)
+        ttk.Checkbutton(opt, text="Desktop shortcut", variable=self.v_desktop, style="Card.TCheckbutton").pack(anchor="w")
+        ttk.Checkbutton(opt, text="Start the server at sign-in (phones can always connect)",
+                        variable=self.v_auto, style="Card.TCheckbutton").pack(anchor="w")
+        ttk.Checkbutton(opt, text="Let phones / TVs on my Wi-Fi connect (firewall rule)",
+                        variable=self.v_lan, style="Card.TCheckbutton").pack(anchor="w")
 
-        tk.Label(self.body, text="Options", bg=BG, fg=ACCENT, font=("Segoe UI Semibold", 11)).pack(anchor="w", pady=(10, 0))
-        ttk.Checkbutton(self.body, text="Desktop shortcut", variable=self.v_desktop).pack(anchor="w")
-        ttk.Checkbutton(self.body, text="Start the server when I sign in (so phones can always connect)",
-                        variable=self.v_auto).pack(anchor="w")
-        ttk.Checkbutton(self.body, text="Let phones/tablets on my Wi-Fi connect (adds a firewall rule — Windows will ask)",
-                        variable=self.v_lan).pack(anchor="w")
         r = tk.Frame(self.body, bg=BG)
-        r.pack(fill="x", pady=(6, 0))
+        r.pack(fill="x", pady=(2, 0))
         tk.Label(r, text="Already have ComfyUI models?", bg=BG, fg=DIM).pack(side="left")
-        ttk.Entry(r, textvariable=self.v_reuse, width=44).pack(side="left", padx=6)
+        ttk.Entry(r, textvariable=self.v_reuse, width=40).pack(side="left", padx=6)
         ttk.Button(r, text="Pick models folder…", command=self.pick_reuse).pack(side="left")
         self.lbl_found = tk.Label(self.body, bg=BG, fg=OK, anchor="w")
         self.lbl_found.pack(fill="x")
@@ -897,34 +1115,50 @@ class Wizard(tk.Tk):
                 "reuse": self.v_reuse.get().strip()}
 
     def page_ready(self):
-        self.sub.config(text="Ready to install")
+        self.head("Ready to install", "Check the summary, then press Install")
         o = self.options()
-        self.text("Folder:  " + o["dir"], bold=True)
+        box = self.card(title="Summary")
         names = [COMPONENTS[k][0] for k in o["components"]] or ["(no models — app + engine only)"]
-        self.text("Models:  " + ",  ".join(names))
-        self.text("Prompt engine:  " + (o["engine"] or "none"))
-        self.text("Download + disk:  about %.0f GB. On a 100 Mbit line the full set takes ~3 hours; "
-                  "you can stop any time and resume later." % self.need_gb(), fg=DIM)
+        for k, v in (("Folder", o["dir"]), ("Models", ",  ".join(names)), ("Prompt engine", o["engine"] or "none"),
+                     ("Download", "about %.0f GB" % self.need_gb())):
+            f = tk.Frame(box, bg=PANEL)
+            f.pack(fill="x", pady=3)
+            tk.Label(f, text=k, bg=PANEL, fg=DIM, width=14, anchor="w").pack(side="left")
+            tk.Label(f, text=v, bg=PANEL, fg=FG, anchor="w", justify="left", wraplength=int(560 * self.scale)).pack(side="left")
+        self.text("Models download %d at a time while the runtime installs, so the two longest jobs overlap. "
+                  "You can stop any time — downloads resume where they left off." % PARALLEL_DOWNLOADS, fg=DIM, pad=(4, 0))
         self.btn_next.config(text="Install")
 
     def page_install(self):
-        self.sub.config(text="Installing")
+        self.head("Installing", "Feel free to keep using your PC — here's what MIR MEDIA LABS makes")
         self.btn_next.state(["disabled"])
-        self.lbl_step = self.text("Starting …", bold=True, size=11)
+        Showcase(self.body).start().pack(anchor="w", pady=(0, 10))
+        self.lbl_step = self.text("Starting …", bold=True, size=11, pad=(0, 2))
         self.pb_all = ttk.Progressbar(self.body, maximum=1000)
-        self.pb_all.pack(fill="x", pady=(0, 10))
-        self.lbl_file = self.text("", fg=DIM)
-        self.pb_file = ttk.Progressbar(self.body, maximum=1000)
-        self.pb_file.pack(fill="x")
-        box = tk.Frame(self.body, bg=PANEL)
-        box.pack(fill="both", expand=True, pady=(12, 0))
-        self.logbox = tk.Text(box, bg=PANEL, fg=DIM, relief="flat", font=("Consolas", 9), wrap="none", height=12)
-        self.logbox.pack(fill="both", expand=True, padx=6, pady=6)
+        self.pb_all.pack(fill="x", pady=(0, 2))
+        self.lbl_file = self.text("", fg=DIM, pad=(0, 6))
+        self.lbl_dl = self.text("", bold=True, pad=(4, 2))
+        self.pb_dl = ttk.Progressbar(self.body, maximum=1000, style="Dl.Horizontal.TProgressbar")
+        self.lbl_dl2 = self.text("", fg=DIM, pad=(2, 4))
+        self._log_open = tk.BooleanVar(value=False)
+        self.btn_log = ttk.Button(self.body, text="Show details ▾", command=self.toggle_log)
+        self.btn_log.pack(anchor="w", pady=(4, 0))
+        self.logbox = tk.Text(self.body, bg=PANEL, fg=DIM, relief="flat", font=("Consolas", 9), wrap="none", height=9,
+                              highlightthickness=1, highlightbackground=LINE)
         self._ended = False
         self._step = (0, "", 0.0, 0.0)
         self.inst = Installer(self.options(), lambda k, v: self.q.put((k, v)))
         threading.Thread(target=self.inst.run, daemon=True).start()
         self.after(100, self.pump)
+
+    def toggle_log(self):
+        if self.logbox.winfo_ismapped():
+            self.logbox.pack_forget()
+            self.btn_log.config(text="Show details ▾")
+        else:
+            self.logbox.pack(fill="both", expand=True, pady=(6, 0))
+            self.logbox.see("end")
+            self.btn_log.config(text="Hide details ▴")
 
     def pump(self):
         try:
@@ -939,18 +1173,27 @@ class Wizard(tk.Tk):
                     self._step = v
                     self.lbl_step.config(text=v[1])
                     self.pb_all["value"] = v[2] * 1000
-                elif k == "models_frac":
-                    i, name, start, w = self._step
-                    self.pb_all["value"] = (start + w * v) * 1000
                 elif k == "overall_sub":
                     self.lbl_step.config(text="%s — %s" % (self._step[1], v))
                 elif k == "file":
                     label, have, total, rate = v
                     frac = have / total if total else 0
-                    self.pb_file["value"] = frac * 1000
-                    eta = (" · %d min left" % ((total - have) / rate / 60)) if rate > 0 else ""
+                    eta = (" · %s left" % self.fmt_eta((total - have) / rate)) if rate > 0 else ""
                     self.lbl_file.config(text="%s   %.2f / %.2f GB%s%s" % (
-                        label, have / GB, total / GB, ("   %.0f MB/s" % (rate / 1e6)) if rate else "", eta))
+                        label, have / GB, total / GB, ("   %.0f MB/s" % (rate / 1e6)) if rate else "", eta)
+                        if frac < 1 else "")
+                elif k == "dl":
+                    done, total, bps, fdone, ftotal = v
+                    if not self.pb_dl.winfo_ismapped():
+                        self.pb_dl.pack(fill="x", after=self.lbl_dl)
+                    self.pb_dl["value"] = done / total * 1000 if total else 1000
+                    self.lbl_dl.config(text="AI models — %d of %d files" % (fdone, ftotal) if fdone < ftotal
+                                       else "AI models — all %d downloaded" % ftotal)
+                    eta = (" · about %s left" % self.fmt_eta((total - done) / bps)) if bps > 0 and done < total else ""
+                    self.lbl_dl2.config(text="%.1f / %.1f GB%s%s   (%d at a time)" % (
+                        done / GB, total / GB, ("  ·  %.0f MB/s" % (bps / 1e6)) if bps else "", eta, PARALLEL_DOWNLOADS))
+                    if self._step[1].startswith("Finishing model"):
+                        self.pb_all["value"] = (self._step[2] + self._step[3] * (done / total if total else 1)) * 1000
                 elif k == "done":
                     self._ended = True
                     if self.update_mode:                   # relaunch the updated app and get out of the way
@@ -964,6 +1207,8 @@ class Wizard(tk.Tk):
                 elif k == "failed":
                     self._ended = True
                     self.lbl_step.config(text="Stopped: " + v[:300], fg=BAD)
+                    if not self.logbox.winfo_ismapped():
+                        self.toggle_log()
                     self.btn_next.config(text="Retry")
                     self.btn_next.state(["!disabled"])
                     self.btn_next.config(command=self.retry)
@@ -972,35 +1217,73 @@ class Wizard(tk.Tk):
             pass
         self.after(120, self.pump)
 
+    @staticmethod
+    def fmt_eta(sec):
+        m = int(sec // 60)
+        if m < 1:
+            return "under a minute"
+        return "%d h %02d min" % (m // 60, m % 60) if m >= 60 else "%d min" % m
+
     def retry(self):
         self.btn_next.config(command=self.next)
         self.idx = 4
         self.show()
 
     def page_finish(self):
-        self.sub.config(text="All set")
+        self.head("You're all set", "MIR MEDIA LABS is installed")
         self.btn_cancel.pack_forget()
         o = self.options()
-        self.text("MIR MEDIA LABS is installed.", size=13, bold=True)
-        self.text("Open it from the desktop or Start menu. The first render of each model loads it into memory "
-                  "and takes longer.", fg=DIM)
+        row = tk.Frame(self.body, bg=BG)
+        row.pack(fill="x")
+        left = tk.Frame(row, bg=BG)
+        left.pack(side="left", fill="both", expand=True, padx=(0, 16))
+        self.text("Open it from the desktop or the Start menu — and pin it to the taskbar if you like.", size=11, bold=True,
+                  parent=left, wrap=430)
+        self.text("The first render of each model loads it into memory and takes longer; after that it's quick. "
+                  "Type an idea in the chat, or tap a Skill.", fg=DIM, parent=left, wrap=430)
         ip = run_quiet(["powershell", "-NoProfile", "-Command",
                         "(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -eq 'Dhcp' } | "
                         "Select-Object -First 1).IPAddress"])
-        if o["lan"] and ip:
-            self.text("Phones on your Wi-Fi:  http://%s:5400  (the access key is shown in the app — "
-                      "people menu — and saved in data\\access_key.txt)" % ip, pad=(10, 4))
-            self.text("Android app:  http://%s:5400/updates/MirMediaLabs.apk" % ip, fg=DIM)
         self.v_launch = tk.BooleanVar(value=True)
-        ttk.Checkbutton(self.body, text="Open MIR MEDIA LABS now", variable=self.v_launch).pack(anchor="w", pady=12)
+        ttk.Checkbutton(left, text="Open MIR MEDIA LABS now", variable=self.v_launch).pack(anchor="w", pady=(4, 12))
+        tips = self.card(left, title="Things to try first")
+        for cmd, what in (("/video a lighthouse at dusk, slow crane up --8s", "a video with sound"),
+                          ("/song upbeat synthwave about city lights --90s", "a full vocal song"),
+                          ("/skill product a red sneaker", "a studio product shot"),
+                          ("/pipe musicvideo neon city synthwave", "song → cover art → music video"),
+                          ("/help", "every command, skill and pipeline")):
+            r = tk.Frame(tips, bg=PANEL)
+            r.pack(fill="x", pady=2)
+            tk.Label(r, text=cmd, bg=PANEL, fg=ACCENT, font=("Consolas", 9)).pack(side="left")
+            tk.Label(r, text="  " + what, bg=PANEL, fg=DIM, font=("Segoe UI", 9)).pack(side="left")
+
+        # mobile companion: the same studio on phone + Android TV
+        mob = self.card(row, title="Mobile companion · phone + TV", side="left")
+        try:
+            hi = float(self.tk.call("tk", "scaling")) / (96 / 72) >= 1.4
+            self._qr = tk.PhotoImage(file=resource(os.path.join("showcase", "qr_%s.png" % ("2x" if hi else "1x"))))
+            tk.Label(mob, image=self._qr, bg=PANEL).pack(anchor="w", pady=(2, 6))
+        except tk.TclError:
+            pass
+        self.text("Scan to get the free Android app (one APK for phones and Android TV).", parent=mob, bg=PANEL,
+                  wrap=300, pad=(0, 4))
+        if o["lan"] and ip:
+            self.text("Then connect it to  http://%s:5400  with a key from the People menu in the app." % ip,
+                      parent=mob, bg=PANEL, fg=DIM, wrap=300, pad=(0, 2))
+        else:
+            self.text("Then connect it to this PC's address (port 5400) with a key from the People menu.",
+                      parent=mob, bg=PANEL, fg=DIM, wrap=300, pad=(0, 2))
         self.btn_next.config(text="Finish")
         self.btn_back.state(["disabled"])
 
     def launch(self, server_only=False):
         exe = app_exe(self.options()["dir"])
         if os.path.isfile(exe):
+            # clean environment: the one-file wizard's own variables must not leak into the app
+            # (they made the app think it was the setup, so pinning it pinned the wizard)
+            env = {k: v for k, v in os.environ.items() if not k.upper().startswith(("NUITKA", "_MEI", "TCL_", "TK_"))}
             subprocess.Popen([exe] + (["--server-only"] if server_only else []), cwd=os.path.dirname(exe),
-                             creationflags=0x00000008)
+                             creationflags=0x00000008, env=env)
 
     def finish(self):
         if getattr(self, "v_launch", None) and self.v_launch.get():
@@ -1054,6 +1337,10 @@ def _rm(p):
 if __name__ == "__main__":
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    except Exception:
+        pass
+    try:   # own taskbar identity: the setup must never group (or get pinned) as the app itself
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("MirCorp.MirMediaLabs.Setup")
     except Exception:
         pass
     if "--uninstall" in sys.argv:
