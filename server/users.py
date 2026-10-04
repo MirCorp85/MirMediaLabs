@@ -1,11 +1,12 @@
 """MIR MEDIA LABS users — every person gets their OWN access key.
 
-  * owner  = you. The original key in data/access_key.txt; manages users, sees everything.
+  * owner  = you. The original key in data/access_key.txt; sees everything.
   * user   = an invited person. Generates media, sees only their own jobs, library and references.
 
-Keys are random `mml-…` tokens generated here and never derived from anything in MirOS
-(this app can't even read MirOS files — see core.safe_path). Presence is tracked per
-device so the owner (and the MirOS ACCESS panel, via loopback) can see who is live.
+Access is managed ONLY from the host PC (the machine with the GPU, in the MIR MEDIA LABS desktop app):
+grant a key, choose which engines a person may use, a daily request limit and an expiry date, revoke or
+restore access, rotate keys, and read the access log. Keys are random `mml-…` tokens generated here.
+Presence is tracked per device so the host can see who is live.
 """
 import secrets
 import threading
@@ -14,11 +15,13 @@ import time
 import core
 
 USERS_FILE = core.os.path.join(core.DATA, "users.json")
+LOG_FILE = core.os.path.join(core.DATA, "access_log.json")
 LIVE_S = 90                     # seen within this many seconds = live
 _LOCK = threading.Lock()
-_USERS = []                     # [{id, name, key, role, enabled, created, last_seen, last_ip, jobs}]
+_USERS = []                     # [{id, name, key, role, enabled, created, last_seen, last_ip, jobs, allow, daily, expires, today}]
 _SESS = {}                      # (uid, ip, device) -> {first, last, hits, path}
 _DIRTY = {"t": 0}
+ENGINES = ("h3", "music3", "qimg", "ace", "llama")    # what "allow" can list (Auto routes into these)
 
 
 def _new_key():
@@ -39,15 +42,31 @@ def _save():
     _DIRTY["t"] = time.time()
 
 
+# ── access log (host panel → Activity) ──────────────────────────────────────
+def log(event, who=""):
+    with _LOCK:
+        items = core.load_json(LOG_FILE, [])
+        items.append({"t": time.time(), "event": event, "who": who})
+        core.save_json(LOG_FILE, items[-300:])
+
+
+def recent_log(n=60):
+    return list(reversed(core.load_json(LOG_FILE, [])[-n:]))
+
+
 def owner():
     return next(u for u in _USERS if u.get("role") == "owner")
+
+
+def expired(u):
+    return bool(u.get("expires")) and time.time() > float(u["expires"])
 
 
 def by_key(key):
     if not key:
         return None
     for u in _USERS:
-        if u.get("enabled") and secrets.compare_digest(str(u.get("key", "")), str(key)):
+        if u.get("enabled") and secrets.compare_digest(str(u.get("key", "")), str(key)) and not expired(u):
             return u
     return None
 
@@ -79,46 +98,114 @@ def touch(u, ip, ua, path):
             _save()
 
 
+# ── permissions ────────────────────────────────────────────────────────────
+def _day():
+    return time.strftime("%Y-%m-%d")
+
+
+def used_today(u):
+    t = u.get("today") or {}
+    return int(t.get("n") or 0) if t.get("day") == _day() else 0
+
+
+ENGINE_NAMES = {"h3": "Video", "music3": "Song", "qimg": "Image", "ace": "Music", "llama": "Chat / writing"}
+
+
+def can_use(u, engine):
+    """None if allowed, else the reason (shown to the person)."""
+    if u.get("role") == "owner":
+        return None
+    allow = u.get("allow")
+    if allow and engine in ENGINES and engine not in allow:
+        return "your access doesn't include %s — ask the host to add it" % ENGINE_NAMES.get(engine, engine)
+    return None
+
+
+def over_limit(u):
+    if u.get("role") == "owner" or not int(u.get("daily") or 0):
+        return None
+    if used_today(u) >= int(u["daily"]):
+        n = int(u["daily"])
+        return "you've reached today's limit of %d request%s — it resets at midnight" % (n, "" if n == 1 else "s")
+    return None
+
+
 def count_job(u):
     with _LOCK:
         u["jobs"] = int(u.get("jobs") or 0) + 1
+        u["today"] = {"day": _day(), "n": used_today(u) + 1}
         _save()
 
 
-def create(name):
+def _clean_allow(allow):
+    if not allow:
+        return None                                   # None = every engine
+    a = [e for e in allow if e in ENGINES]
+    return a if a and len(a) < len(ENGINES) else None
+
+
+def _expiry(days):
+    try:
+        d = float(days or 0)
+    except (TypeError, ValueError):
+        d = 0
+    return time.time() + d * 86400 if d > 0 else 0
+
+
+def create(name, allow=None, daily=0, expires_days=0):
     with _LOCK:
         u = {"id": "u" + secrets.token_hex(4), "name": (name or "guest").strip()[:40] or "guest", "key": _new_key(),
-             "role": "user", "enabled": True, "created": time.time(), "last_seen": 0, "last_ip": "", "jobs": 0}
+             "role": "user", "enabled": True, "created": time.time(), "last_seen": 0, "last_ip": "", "jobs": 0,
+             "allow": _clean_allow(allow), "daily": max(0, int(daily or 0)), "expires": _expiry(expires_days)}
         _USERS.append(u)
         _save()
-        return u
+    log("granted access", u["name"])
+    return u
 
 
-def update(uid, action):
+def update(uid, action, data=None):
+    data = data or {}
     with _LOCK:
         u = by_id(uid)
         if not u:
             return None, "no such user"
-        if u["role"] == "owner" and action in ("disable", "delete"):
-            return None, "the owner can't be disabled or deleted"
+        if u["role"] == "owner" and action in ("disable", "delete", "settings"):
+            return None, "the owner always has full access"
         if action == "disable":
             u["enabled"] = False
+            what = "revoked access"
         elif action == "enable":
             u["enabled"] = True
+            what = "restored access"
         elif action == "newkey":
             u["key"] = _new_key()
+            for k in [k for k in _SESS if k[0] == uid]:   # old devices drop off the live list
+                _SESS.pop(k, None)
+            what = "issued a new key (the old one stopped working)"
         elif action == "delete":
             _USERS.remove(u)
             for k in [k for k in _SESS if k[0] == uid]:
                 _SESS.pop(k, None)
+            what = "removed"
+        elif action == "settings":
+            if "name" in data:
+                u["name"] = (str(data["name"]).strip()[:40]) or u["name"]
+            if "allow" in data:
+                u["allow"] = _clean_allow(data["allow"])
+            if "daily" in data:
+                u["daily"] = max(0, int(data.get("daily") or 0))
+            if "expires_days" in data:
+                u["expires"] = _expiry(data["expires_days"])
+            what = "changed access settings"
         else:
             return None, "unknown action"
         _save()
-        return u, None
+    log(what, u["name"])
+    return u, None
 
 
 def summary(include_keys=False, running_by_user=None):
-    """Who has access, their devices, and who is live right now."""
+    """Who has access, their limits, their devices, and who is live right now."""
     now = time.time()
     out = []
     with _LOCK:
@@ -130,10 +217,12 @@ def summary(include_keys=False, running_by_user=None):
             row = {"id": u["id"], "name": u["name"], "role": u["role"], "enabled": u["enabled"],
                    "created": u["created"], "last_seen": u.get("last_seen") or 0, "last_ip": u.get("last_ip", ""),
                    "jobs": u.get("jobs") or 0, "running": (running_by_user or {}).get(u["id"], 0),
-                   "live": any(d["live"] for d in devs), "devices": devs}
+                   "live": any(d["live"] for d in devs), "devices": devs, "allow": u.get("allow"),
+                   "daily": int(u.get("daily") or 0), "today": used_today(u), "expires": u.get("expires") or 0,
+                   "expired": expired(u)}
             if include_keys:
                 row["key"] = u["key"]
             out.append(row)
-    return {"total": len(out), "enabled": sum(1 for u in out if u["enabled"]),
+    return {"total": len(out), "enabled": sum(1 for u in out if u["enabled"] and not u["expired"]),
             "live": sum(1 for u in out if u["live"]), "live_devices": sum(1 for u in out for d in u["devices"] if d["live"]),
-            "users": out, "ts": now}
+            "today": sum(u["today"] for u in out), "users": out, "ts": now}

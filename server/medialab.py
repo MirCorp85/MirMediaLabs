@@ -54,6 +54,10 @@ def gate():
         return None if pcupdate.publisher_ok(request) else (jsonify({"error": "forbidden"}), 403)
     if request.path in LOOPBACK_ONLY:
         return None if _loopback() else (jsonify({"error": "local only"}), 403)
+    if not REMOTE["on"] and not _loopback():        # the host paused remote access
+        if request.path.startswith(("/api/", "/media/", "/thumb/", "/refs/", "/updates/")):
+            return jsonify({"error": "the host has paused remote access to this Media Lab"}), 503
+        return Response(PAUSED_HTML, mimetype="text/html", status=503)
     supplied = request.cookies.get("mml_key") or request.headers.get("X-MML-Key") or request.args.get("key")
     ip = request.remote_addr or "?"
     if not _loopback() and _locked_out(ip):
@@ -88,6 +92,18 @@ def _note_fail(ip):
 def _locked_out(ip):
     with _FAIL_LOCK:
         return len([t for t in _FAILS.get(ip, []) if time.time() - t < 900]) >= 10
+
+
+REMOTE = {"on": core.prefs().get("remote_access", True) is not False}
+PAUSED_HTML = """<!doctype html><meta name=viewport content="width=device-width,initial-scale=1">
+<title>MIR MEDIA LABS</title><body style="background:#07070b;color:#e9e7f5;font:15px system-ui;display:grid;place-items:center;height:100vh;margin:0">
+<div style="text-align:center"><div style="letter-spacing:.3em;font-weight:800;margin-bottom:14px">MIR MEDIA LABS</div>
+<p style="color:#aaa">The host has paused remote access. Try again later.</p></div>"""
+
+
+def _host():
+    """The PC running the server (and its GPU) — the only place access is managed from."""
+    return _loopback()
 
 
 def uid():
@@ -265,6 +281,14 @@ def _route(job):
     if d.get("use_previous") and d["action"] != "chat":
         want = "image" if d.get("role") == "video" or d.get("skill") == "animate" else None
         _attach_previous(job, recent, want) or _attach_previous(job, recent)
+    who = users.by_id(owner)
+    if who:
+        picks = [skills.model_for(st["role"]) for st in skills.pipeline(d["pipeline"])["steps"]] if d["action"] == "pipeline" \
+            else ["llama"] if d["action"] == "chat" or (d["action"] == "skill" and d.get("role") == "text") \
+            else [skills.model_for(d["role"])]
+        deny = next((users.can_use(who, m) for m in picks if users.can_use(who, m)), None)
+        if deny:
+            raise RuntimeError("MUSE wanted %s, but %s" % (router.label(d), deny))
     lbl = router.label(d)
     job["route"] = {"label": lbl, "why": d.get("why", ""), "by": d.get("by", "rules"), "action": d["action"]}
     renderers.log(job, "MUSE → %s%s" % (lbl, (" — " + d["why"]) if d.get("why") else ""))
@@ -529,6 +553,12 @@ def generate():
         return jsonify({"error": "write a prompt or attach a reference"}), 400
     if sk and sk.get("needs") and not any(core.kind_of(r) == sk["needs"] for r in refs):
         return jsonify({"error": "%s needs an attached %s (📎)" % (sk["name"], sk["needs"])}), 400
+    deny = users.over_limit(g.user) or (None if model == "auto" else users.can_use(g.user, model))
+    if not deny and pl:
+        deny = next((users.can_use(g.user, skills.model_for(st["role"])) for st in pl["steps"]
+                     if users.can_use(g.user, skills.model_for(st["role"]))), None)
+    if deny:
+        return jsonify({"error": deny}), 403
     with _JLOCK:
         busy = next((JOBS[i] for i in ORDER if i in JOBS and JOBS[i].get("status") in ("queued", "running")
                      and (JOBS[i].get("user") or "owner") == uid()), None)
@@ -781,27 +811,81 @@ def _running_by_user():
 
 @app.route("/api/me")
 def me():
-    return jsonify({"id": uid(), "name": g.user["name"], "role": g.user["role"]})
+    return jsonify({"id": uid(), "name": g.user["name"], "role": g.user["role"], "host": _host()})
 
 
-@app.route("/api/admin/users", methods=["GET", "POST"])
-def admin_users():
-    if not is_owner():
-        return jsonify({"error": "owner only"}), 403
+def _host_only():
+    if not _host():
+        return jsonify({"error": "host only — manage access from MIR MEDIA LABS on the GPU PC"}), 403
+    return None
+
+
+@app.route("/api/host/users", methods=["GET", "POST"])
+def host_users():
+    if (r := _host_only()):
+        return r
     if request.method == "POST":
-        u = users.create((request.get_json(silent=True) or {}).get("name"))
+        b = request.get_json(silent=True) or {}
+        u = users.create(b.get("name"), b.get("allow"), b.get("daily"), b.get("expires_days"))
         return jsonify({"id": u["id"], "name": u["name"], "key": u["key"]})
-    return jsonify(users.summary(include_keys=True, running_by_user=_running_by_user()))
+    d = users.summary(include_keys=True, running_by_user=_running_by_user())
+    d.update(remote=REMOTE["on"], log=users.recent_log(), lan=_lan_ip(), port=core.PORT,
+             engines=[{"id": k, "label": users.ENGINE_NAMES[k]} for k in users.ENGINES])
+    return jsonify(d)
 
 
-@app.route("/api/admin/users/<user_id>", methods=["POST"])
-def admin_user(user_id):
-    if not is_owner():
-        return jsonify({"error": "owner only"}), 403
-    u, err = users.update(user_id, (request.get_json(silent=True) or {}).get("action"))
+@app.route("/api/host/users/<user_id>", methods=["POST"])
+def host_user(user_id):
+    if (r := _host_only()):
+        return r
+    b = request.get_json(silent=True) or {}
+    act = b.get("action")
+    if act == "stop":                              # stop everything this person has running or waiting
+        n = 0
+        for j in list(JOBS.values()):
+            if (j.get("user") or "owner") == user_id and j.get("status") in ("queued", "running"):
+                n += 1
+                if j["status"] == "queued":
+                    j["status"], j["error"], j["finished"] = "cancelled", "stopped by the host", time.time()
+                else:
+                    j["_cancel"] = True
+                    if j.get("comfy_pid"):
+                        comfy.cancel(j["comfy_pid"])
+        _persist()
+        u = users.by_id(user_id)
+        users.log("stopped %d request%s" % (n, "" if n == 1 else "s"), u["name"] if u else user_id)
+        return jsonify({"ok": True, "stopped": n})
+    u, err = users.update(user_id, act, b)
     if err:
         return jsonify({"error": err}), 400
     return jsonify({"ok": True, "key": u["key"] if u else None})
+
+
+@app.route("/api/host/remote", methods=["POST"])
+def host_remote():
+    if (r := _host_only()):
+        return r
+    REMOTE["on"] = bool((request.get_json(silent=True) or {}).get("on"))
+    core.save_pref("remote_access", REMOTE["on"])
+    users.log("remote access " + ("ON" if REMOTE["on"] else "PAUSED"), "host")
+    return jsonify({"remote": REMOTE["on"]})
+
+
+@app.route("/api/host/qr")
+def host_qr():
+    """Invite QR as SVG (pure-Python encoder, no Pillow)."""
+    if (r := _host_only()):
+        return r
+    try:
+        import io
+        import qrcode
+        import qrcode.image.svg
+        img = qrcode.make(request.args.get("text", "")[:600], image_factory=qrcode.image.svg.SvgPathFillImage, border=2)
+        buf = io.BytesIO()
+        img.save(buf)
+        return Response(buf.getvalue(), mimetype="image/svg+xml")
+    except Exception as e:
+        return jsonify({"error": "QR unavailable: %s" % e}), 500
 
 
 @app.route("/api/admin/presence")

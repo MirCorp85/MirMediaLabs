@@ -63,6 +63,18 @@ You don't need to know which model does what. In **Auto** mode (the default), ev
 
 <p align="center"><img src="docs/screenshots/7-auto-muse.png" alt="Auto mode: MUSE answers a question, then routes a logo request to the Logo Mark skill" width="100%"></p>
 
+## Host Control: you decide who gets in
+The PC with the GPU is the **host**. Its desktop app (`MirMediaLabs.exe`) has a **Host Control** panel that only exists there:
+- **Invite someone:** give each person their own key, shared as a **QR code** or an invite link.
+- **Choose what they can use:** Video, Song, Image, Music and/or Chat, plus a **daily request limit** and an **expiry date**.
+- **Revoke or restore** access instantly, **issue a new key** (the old one stops working), **stop** someone's running request, or remove them.
+- **Pause remote access** with one switch. Phones and other PCs disconnect, and the host keeps working.
+- See who is **live right now**, on which devices, and how much they used today, plus an **activity log** of every change.
+
+The server enforces this: access can only be managed from the host PC itself. Even the owner key, used from a phone or another computer, can't change who has access.
+
+<p align="center"><img src="docs/screenshots/9-host-control.png" alt="Host Control panel: people, permissions, limits, revoke and restore" width="100%"></p>
+
 ## A media player that fits the studio
 Videos and songs play in MML's own themed player on desktop, web, phone and TV:
 - the accent colour of the model that made the result
