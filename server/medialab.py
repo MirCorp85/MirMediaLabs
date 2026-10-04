@@ -29,6 +29,7 @@ import llm
 import skills
 import loras
 import users
+import perf
 
 app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = 600 * 1024 * 1024
@@ -287,6 +288,15 @@ def status():
     return jsonify(dict(_STATUS["v"], app=core.APP_NAME, version=core.APP_VERSION, running=running, queued=queued,
                         creator=core.CREATOR, lan_ip=_lan_ip(), port=core.PORT,
                         apk=core.load_json(os.path.join(core.UPDATES, "version.json"), {})))
+
+
+@app.route("/api/perf")
+def api_perf():
+    """Live PC performance for the desktop client card - this PC only (never exposed to the LAN)."""
+    if not _loopback():
+        return jsonify({"error": "local only"}), 403
+    busy = any(JOBS.get(i, {}).get("status") == "running" for i in ORDER[-20:])
+    return jsonify(perf.snapshot(busy))
 
 
 @app.route("/api/engine/start", methods=["POST"])

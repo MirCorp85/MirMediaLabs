@@ -10,7 +10,7 @@ if "%~1"=="--server-only" exit /b 0
 timeout /t 2 /nobreak >nul
 set CHROME=C:\Program Files\Google\Chrome\Application\chrome.exe
 if exist "%CHROME%" (
-  start "" "%CHROME%" --app=http://127.0.0.1:5400/ --window-size=1500,950
+  start "" "%CHROME%" --app=http://127.0.0.1:5400/?client=desktop --window-size=1500,950
 ) else (
-  start "" http://127.0.0.1:5400/
+  start "" http://127.0.0.1:5400/?client=desktop
 )

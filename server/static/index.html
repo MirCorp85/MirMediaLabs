@@ -72,6 +72,18 @@ a{color:inherit;text-decoration:none}
 .msg.me.guest{align-self:flex-start;margin-left:24px;background:rgba(31,200,220,.08);border-color:rgba(31,200,220,.3)}
 .chat{position:relative}
 .composer{position:relative}
+/* desktop-app perf card (loopback only) */
+#perfcard{margin:0 14px 8px;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font:11px var(--mono,monospace);color:var(--dim);cursor:pointer;user-select:none}
+#perfcard .pc-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#perfcard .pc-m{display:flex;align-items:center;gap:6px;min-width:120px;flex:1}
+#perfcard .pc-m span{width:34px;color:var(--faint)}
+#perfcard .pc-m i{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden}
+#perfcard .pc-m b{display:block;height:100%;width:0;background:var(--grn);transition:width .6s,background .6s}
+#perfcard .pc-m em{font-style:normal;color:var(--ink);min-width:38px;text-align:right}
+#perfcard .pc-x{color:var(--faint);white-space:nowrap}
+#perfcard .pc-v{margin-top:5px;color:var(--ink)}
+#perfcard[data-l=warn] .pc-v{color:var(--yellow)}#perfcard[data-l=ok] .pc-v{color:var(--grn)}
+#perfcard.min .pc-v{display:none}
 #mascot{position:relative;height:0;z-index:3;pointer-events:none}
 #mascot .in{position:absolute;left:10px;bottom:6px;display:flex;align-items:center;gap:6px;padding:3px 9px 3px 5px;border-radius:14px;background:rgba(13,8,6,.72);border:1px solid var(--line);backdrop-filter:blur(8px)}
 #mascot .lbl{font:10px var(--mono);letter-spacing:.08em;color:var(--dim);text-transform:uppercase;line-height:1.35;white-space:nowrap}
@@ -484,6 +496,16 @@ window.MML_THEMES=[
 <circle cx="72" cy="32" r="6" fill="#0b0503"/><circle class="lens" cx="72" cy="32" r="4"/>
 <g class="rot"><line x1="72" y1="25" x2="72" y2="28" stroke="#6b4632"/><line x1="72" y1="36" x2="72" y2="39" stroke="#6b4632"/></g>
 </g></svg><div class="lbl"><b id="m-t">Standby</b><span id="m-s">lab ready</span></div></div></div>
+        <div id="perfcard" hidden title="Live PC performance (desktop app only) — click to collapse">
+          <div class="pc-row">
+            <div class="pc-m"><span>CPU</span><i><b id="pc-cpu-b"></b></i><em id="pc-cpu">–</em></div>
+            <div class="pc-m"><span>RAM</span><i><b id="pc-ram-b"></b></i><em id="pc-ram">–</em></div>
+            <div class="pc-m"><span>GPU</span><i><b id="pc-gpu-b"></b></i><em id="pc-gpu">–</em></div>
+            <div class="pc-m"><span>VRAM</span><i><b id="pc-vram-b"></b></i><em id="pc-vram">–</em></div>
+            <div class="pc-x" id="pc-x">–</div>
+          </div>
+          <div class="pc-v" id="pc-v">measuring…</div>
+        </div>
         <div class="composer">
           <div class="ac" id="ac"></div>
           <div class="atts" id="atts"></div><div class="atts" id="lsel"></div>
@@ -907,6 +929,31 @@ $('#b-settings').onclick=()=>{
   const st=$('#eng-start');if(st)st.onclick=()=>api('/api/engine/start',{method:'POST'}).then(()=>toast('Starting ComfyUI (~40 s)…'));
   openSheet();
 };
+/* live PC perf card — desktop app window only (opened with ?client=desktop on this PC) */
+(function(){
+  let desk=false;
+  try{if(new URLSearchParams(location.search).get('client')==='desktop')sessionStorage.setItem('mml_desktop','1');desk=sessionStorage.getItem('mml_desktop')==='1'}catch(e){}
+  const isLocal=['127.0.0.1','localhost','[::1]'].includes(location.hostname);
+  const card=$('#perfcard');if(!desk||!isLocal||!card)return;
+  card.hidden=false;
+  try{if(localStorage.getItem('mml_perf_min')==='1')card.classList.add('min')}catch(e){}
+  card.onclick=()=>{card.classList.toggle('min');try{localStorage.setItem('mml_perf_min',card.classList.contains('min')?'1':'0')}catch(e){}};
+  const gb=b=>(b/1073741824).toFixed(1);
+  const col=p=>p>=95?'var(--red)':p>=80?'var(--yellow)':'var(--grn)';
+  const bar=(id,p,txt)=>{const b=$('#pc-'+id+'-b');b.style.width=Math.min(100,p)+'%';b.style.background=col(p);$('#pc-'+id).textContent=txt};
+  async function tick(){
+    if(document.hidden)return;
+    let d;try{d=await api('/api/perf')}catch(e){card.hidden=true;return}
+    bar('cpu',d.cpu,Math.round(d.cpu)+'%');
+    bar('ram',d.ram.pct,gb(d.ram.used)+'/'+gb(d.ram.total)+'G');
+    const g=d.gpu;
+    if(g){bar('gpu',g.util,Math.round(g.util)+'%');bar('vram',g.vram_pct,gb(g.vram_used)+'/'+gb(g.vram_total)+'G');
+      $('#pc-x').textContent=Math.round(g.temp)+'°C · '+Math.round(g.power)+'W'}
+    else{$('#pc-gpu').textContent='n/a';$('#pc-vram').textContent='n/a';$('#pc-x').textContent='no NVIDIA GPU'}
+    card.dataset.l=d.level;$('#pc-v').textContent=(d.rendering?'Rendering — ':'')+d.verdict;
+  }
+  tick();setInterval(tick,2000);
+})();
 /* about · bug report · feedback — opens the user's own mail app; nothing is sent automatically */
 const CREATOR={name:'MirCorp',email:'mirmedialabs@gmail.com',github:'https://github.com/MirCorp85/MirMediaLabs',patreon:'https://www.patreon.com/MirCorp'};
 function mailTo(kind,diag){
