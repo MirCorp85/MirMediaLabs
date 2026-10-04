@@ -1,8 +1,8 @@
 <p align="center"><img src="MirMediaLabs-icon-1024.png" width="140" alt="MIR MEDIA LABS"></p>
 
 <h1 align="center">MIR MEDIA LABS</h1>
-<p align="center"><b>A free, open-source AI media studio that runs on your own GPU.</b><br>
-Video, music and images, made locally and privately, controlled from your PC, phone or Android TV.</p>
+<p align="center"><b>An independent, open-source AI agent front end for generative models.</b><br>
+One console that drives every model for you: video, music and images, run locally on your own GPU and controlled from your PC, phone or Android TV.</p>
 
 <p align="center">
 <a href="https://www.patreon.com/MirCorp"><img src="https://img.shields.io/badge/Support-Patreon-f96854?logo=patreon&logoColor=white" alt="Patreon"></a>
@@ -10,7 +10,17 @@ Video, music and images, made locally and privately, controlled from your PC, ph
 <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Android-informational" alt="platforms">
 </p>
 
-## What it does
+## What it is
+MIR MEDIA LABS is not tied to any one model or company. It's a **front-end AI agent** that sits on top of generation models. You describe what you want in plain language. The agent then:
+- picks the right model and mode
+- rewrites your prompt in each model's official prompt style, using a local LLM
+- sets the parameters
+- chains several renders into one pipeline
+- files the results in your library
+
+Models plug in behind it, so new ones can be added without changing how you work.
+
+## Supported models
 | Model | Makes |
 |---|---|
 | **MiniMax H3** | video with native audio: text-to-video, image-to-video, first and last frame, reference-to-video |

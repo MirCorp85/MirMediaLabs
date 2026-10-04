@@ -53,11 +53,16 @@ def stop():
 
 def open_window(port):
     url = "http://127.0.0.1:%d/" % port
+    # own browser profile → own process + window, never merged into the user's normal browser
+    profile = os.path.join(ROOT, "data", "window")
     for base in (os.environ.get(k, "") for k in ("ProgramFiles(x86)", "ProgramFiles", "LOCALAPPDATA")):
         for rel in (r"Microsoft\Edge\Application\msedge.exe", r"Google\Chrome\Application\chrome.exe"):
             exe = os.path.join(base, rel)
             if base and os.path.isfile(exe):
-                subprocess.Popen([exe, "--app=" + url, "--window-size=1500,950"], creationflags=DETACHED)
+                subprocess.Popen([exe, "--app=" + url, "--window-size=1500,950", "--user-data-dir=" + profile,
+                                  "--no-first-run", "--no-default-browser-check"], creationflags=DETACHED)
+                import taskbar      # taskbar/pin identity = MirMediaLabs.exe + its icon, not Edge
+                taskbar.brand_window(EXE)
                 return
     webbrowser.open(url)
 
@@ -68,6 +73,8 @@ def main():
         return run_server()
     if "--stop" in args:
         return stop()
+    import taskbar
+    taskbar.set_process_app_id()
     import core                     # port from mml_config.json
     start_server(core.PORT)
     if "--server-only" not in args:

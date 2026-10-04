@@ -51,7 +51,7 @@ $appOut = Join-Path $build 'appout'
 Remove-Item $appOut -Recurse -Force -ErrorAction SilentlyContinue
 $ico  = Join-Path $root 'MirMediaLabs.ico'
 # plain string arrays: PowerShell 5.1 splits "--opt=(expr)" into two arguments
-$common = @("-m", "nuitka", "--assume-yes-for-downloads", "--windows-console-mode=disable", "--python-flag=no_docstrings",
+$common = @("-m", "nuitka", "--assume-yes-for-downloads", "--windows-console-mode=disable", "--python-flag=no_docstrings", "--python-flag=no_asserts", "--lto=yes", "--deployment",
             "--windows-icon-from-ico=$ico", "--company-name=MirCorp", "--product-name=MIR MEDIA LABS",
             "--file-version=$ver.0", "--product-version=$ver.0", "--copyright=(c) 2026 MirCorp. GPL-3.0")
 $appArgs = $common + @("--standalone", "--nofollow-import-to=imageio_ffmpeg", "--nofollow-import-to=tkinter",
@@ -66,7 +66,19 @@ $stage = Join-Path $build 'payload'
 Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force (Join-Path $stage 'updates') | Out-Null
 Copy-Item $dist (Join-Path $stage 'app') -Recurse
-foreach ($f in 'version.json', 'MirMediaLabs.apk') { if (Test-Path "$root\updates\$f") { Copy-Item "$root\updates\$f" "$stage\updates" } }
+if ($Public) {
+    # public payload carries the MirCorp-signed release APK (never the private debug build)
+    $rel = Join-Path $root 'MirMediaLabs-release.apk'
+    if (-not (Test-Path $rel)) { throw 'run build_apk.ps1 -Release first' }
+    Copy-Item $rel "$stage\updates\MirMediaLabs.apk"
+    $g = Get-Content (Join-Path $root 'app\app\build.gradle') -Raw
+    $vj = [ordered]@{ versionCode = [int]([regex]::Match($g, 'versionCode (\d+)').Groups[1].Value);
+                      versionName = [regex]::Match($g, 'versionName "([^"]+)"').Groups[1].Value; notes = "";
+                      apk = "MirMediaLabs.apk"; sha256 = (Get-FileHash $rel -Algorithm SHA256).Hash.ToLower() } | ConvertTo-Json
+    [IO.File]::WriteAllText("$stage\updates\version.json", $vj)
+} else {
+    foreach ($f in 'version.json', 'MirMediaLabs.apk') { if (Test-Path "$root\updates\$f") { Copy-Item "$root\updates\$f" "$stage\updates" } }
+}
 Copy-Item (Join-Path $root 'MirMediaLabs.ico') $stage
 $zip = Join-Path $build 'payload.zip'
 Remove-Item $zip -ErrorAction SilentlyContinue
