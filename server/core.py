@@ -1,4 +1,4 @@
-﻿"""MIR MEDIA LABS — paths, storage, isolation guard, access key, prompt engine.
+"""MIR MEDIA LABS — paths, storage, isolation guard, access key, prompt engine.
 
 Isolation contract (checked by /api/isolation):
   * every file this app reads or writes lives under ROOT (the install folder)
