@@ -33,7 +33,7 @@ KEY_FILE = os.path.join(DATA, "access_key.txt")
 
 APP_NAME = "MIR MEDIA LABS"
 CREATOR = {"name": "MirCorp", "email": "mirmedialabs@gmail.com", "license": "GPL-3.0-or-later",
-           "copyright": "\u00a9 2026 MirCorp", "github": "https://github.com/MirCorp/MirMediaLabs",
+           "copyright": "\u00a9 2026 MirCorp", "github": "https://github.com/MirCorp85/MirMediaLabs",
            "patreon": "https://www.patreon.com/MirCorp"}
 APP_VERSION = "1.0"
 PORT = 5400
