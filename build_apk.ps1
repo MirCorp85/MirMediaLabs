@@ -88,7 +88,7 @@ if ($GitHub) {
     & $gh release download $Tag -R $repo -p "SHA256SUMS.txt" -D $stage --clobber 2>$null
     $apkSha = (Get-FileHash $apk -Algorithm SHA256).Hash.ToLower()
     $lines = @()
-    if (Test-Path $sums) { $lines = Get-Content $sums | Where-Object { $_ -notmatch 'MirMediaLabs\.apk\s*$' -and $_.Trim() } }
+    if (Test-Path $sums) { $lines = @(Get-Content $sums | Where-Object { $_ -notmatch 'MirMediaLabs\.apk\s*$' -and $_.Trim() }) }   # @(): a single line must stay a list
     $lines += "$apkSha  MirMediaLabs.apk"
     [IO.File]::WriteAllText($sums, (($lines -join "`n") + "`n"))
     & $gh release upload $Tag -R $repo --clobber (Join-Path $stage "MirMediaLabs.apk") (Join-Path $stage "android.json") (Join-Path $stage "android.json.sig") $sums
