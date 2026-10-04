@@ -72,12 +72,15 @@ def _minify_js(code):
 
 
 def stage(src, url):
+    public = url == "-"          # GitHub release build: auto-update off, no private channel token
+    if public:
+        url = ""
     shutil.rmtree(src, ignore_errors=True)
     os.makedirs(src)
     for f in glob.glob(os.path.join(ROOT, "server", "*.py")):
         shutil.copy2(f, src)
     open(os.path.join(src, "_buildinfo.py"), "w", encoding="utf-8").write(
-        "INFO = %r\n" % {"version": version(), "update_url": url, "update_token": open(TOKEN).read().strip(),
+        "INFO = %r\n" % {"version": version(), "update_url": url, "update_token": "" if public else open(TOKEN).read().strip(),
                          "update_pubkey": _pub_b64(), "built": time.strftime("%Y-%m-%d %H:%M")})
     static = os.path.join(ROOT, "server", "static")
     files, raw_total = {}, 0
