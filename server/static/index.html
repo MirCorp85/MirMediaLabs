@@ -750,12 +750,12 @@ function acUpdate(){
 function closeAC(){$('#ac').classList.remove('open')}
 function openBook(){
   head('book','#ffc21a','Command book');
-  const row=(k,a,d)=>`<tr class="x" data-ins="${esc(k)}"><td><code>${esc(k)} ${esc(a||'')}</code></td><td>${esc(d)}</td></tr>`;
+  const row=(k,a,d,ic)=>`<tr class="x" data-ins="${esc(k)}"><td><code>${esc(k)} ${esc(a||'')}</code></td><td>${ic?ic+' ':''}${esc(d)}</td></tr>`;
   $('#s-body').innerHTML=`<div class="book">
     <div class="tip">Type <code>/</code> in the chat for suggestions. Tap any row to drop it into the message box.</div>
     <h4>COMMANDS</h4><table>${SK.commands.map(c=>row(c.cmd,c.args,c.desc)).join('')}</table>
-    <h4>SKILLS — /skill &lt;name&gt; or /&lt;name&gt;</h4><table>${SK.skills.map(s=>row('/'+s.id,'<idea>',MI.html(s.icon,'sm')+' '+s.name+(s.needs?' (needs an attached '+s.needs+')':'')+' — '+s.desc)).join('')}</table>
-    <h4>PIPELINES — one request, several renders</h4><table>${SK.pipelines.map(p=>row('/'+p.id,'<idea>',MI.html('chain','sm')+' '+p.name+' — '+p.desc+'  ['+p.steps.map(x=>x.label).join(' → ')+']')).join('')}</table>
+    <h4>SKILLS — /skill &lt;name&gt; or /&lt;name&gt;</h4><table>${SK.skills.map(s=>row('/'+s.id,'<idea>',s.name+(s.needs?' (needs an attached '+s.needs+')':'')+' — '+s.desc,MI.html(s.icon,'sm'))).join('')}</table>
+    <h4>PIPELINES — one request, several renders</h4><table>${SK.pipelines.map(p=>row('/'+p.id,'<idea>',p.name+' — '+p.desc+'  ['+p.steps.map(x=>x.label).join(' → ')+']',MI.html('chain','sm'))).join('')}</table>
     <h4>TIPS</h4>${SK.tips.map(t=>`<div class="tip">• ${esc(t)}</div>`).join('')}</div>`;
   $('#s-ft').innerHTML='';openSheet();
   $$('#s-body [data-ins]').forEach(r=>r.onclick=()=>{closeSheet();runOrInsert(r.dataset.ins)})}
@@ -963,7 +963,7 @@ function mailTo(kind,diag){
 }
 $('#b-about').onclick=()=>{
   const v=(status&&status.version)||'';
-  head('heart','#fff1e2','ABOUT');
+  head('heart','#ffc21a','ABOUT');
   $('#s-body').innerHTML=`<div class="kv">
     <div><b>MIR MEDIA LABS</b> ${v?'v'+esc(v):''}</div>
     <div>Created by <b>${CREATOR.name}</b> · © 2026 ${CREATOR.name}</div>

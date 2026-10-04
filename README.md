@@ -13,6 +13,16 @@ Video, songs, music, images and writing, controlled from your PC, phone or Andro
 <img src="https://img.shields.io/badge/runs-100%25%20local-5ee08a" alt="100% local">
 </p>
 
+<p align="center"><img src="docs/screenshots/1-console.png" alt="Agent console with video, image, song and music renders, the library and the live PC performance card" width="100%"></p>
+
+## Screenshots
+| | |
+|---|---|
+| <img src="docs/screenshots/2-parameters.png" alt="Per-model parameters (Midnight Studio theme)"><br><sub><b>Per-model parameters</b> · Midnight Studio theme</sub> | <img src="docs/screenshots/3-commands.png" alt="Command book (Paper Light theme)"><br><sub><b>Command book</b> with 21 skills and 5 pipelines · Paper Light theme</sub> |
+| <img src="docs/screenshots/4-about.png" alt="About, bug report and Patreon (Obsidian Gold theme)"><br><sub><b>About · Report a bug · Support</b> · Obsidian Gold theme</sub> | <img src="docs/screenshots/5-phone.png" alt="Phone layout (Graphite theme)" width="45%"><br><sub><b>Phone layout</b> · Graphite theme</sub> |
+
+<sub>Every render shown was made locally by MML on an RTX 5070: the H3 video with audio, the Qwen images, the Music 3 song, the ACE-Step lo-fi track and the MUSE lyrics.</sub>
+
 ---
 
 ## Why MIR MEDIA LABS
