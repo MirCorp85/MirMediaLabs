@@ -191,6 +191,103 @@ class EngineLost(RuntimeError):
     """ComfyUI went away under a job (crash, OOM, or someone else restarted/killed it)."""
 
 
+# ── live progress: ComfyUI's /ws broadcasts "executing" (which node) + "progress" (step n of max) ──────────────────
+# Tiny stdlib websocket reader (no extra dependency; the compiled PC edition stays lean). job["progress"] =
+# {"what": "composing the song", "value": 1841, "max": 3001, "pct": 61, "eta": 590} — the status card shows it.
+_WHAT = [("MiniMaxMusic3TextEncode", "composing the song"), ("TextEncodeAceStep", "writing the music codes"),
+         ("KSampler", "diffusion"), ("SamplerCustom", "diffusion"), ("VAEDecode", "decoding"), ("VAEEncode", "reading the input"),
+         ("TextEncode", "reading the prompt"), ("CLIPTextEncode", "reading the prompt"), ("Loader", "loading the model"),
+         ("LoadAudio", "loading inputs"), ("LoadImage", "loading inputs"), ("Save", "saving"), ("Upscale", "upscaling")]
+
+
+def _what(cls):
+    return next((w for k, w in _WHAT if k.lower() in (cls or "").lower()), "working")
+
+
+class _Watch(threading.Thread):
+    def __init__(self, job, pid, graph):
+        super().__init__(daemon=True)
+        self.job, self.pid, self.graph, self.stop = job, pid, graph, False
+        self.t0 = None
+
+    def run(self):
+        import base64
+        import socket
+        import struct
+        try:
+            host, port = BASE.split("//", 1)[1].split("/", 1)[0].rsplit(":", 1)
+            s = socket.create_connection((host, int(port)), timeout=5)
+            key = base64.b64encode(os.urandom(16)).decode()
+            s.sendall(("GET /ws?clientId=mml-watch-%s HTTP/1.1\r\nHost: %s:%s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+                       "Sec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n" % (self.pid[:8], host, port, key)).encode())
+            buf = b""
+            while b"\r\n\r\n" not in buf:
+                c = s.recv(4096)
+                if not c:
+                    return
+                buf += c
+            if b" 101 " not in buf.split(b"\r\n", 1)[0]:
+                return
+            buf = buf.split(b"\r\n\r\n", 1)[1]
+            s.settimeout(1.0)
+
+            def need(n):
+                nonlocal buf
+                while len(buf) < n:
+                    if self.stop:
+                        raise EOFError
+                    try:
+                        c = s.recv(65536)
+                    except socket.timeout:
+                        continue
+                    if not c:
+                        raise EOFError
+                    buf += c
+                out, buf = buf[:n], buf[n:]
+                return out
+
+            while not self.stop:
+                b1, b2 = need(2)
+                op, ln = b1 & 0x0F, b2 & 0x7F
+                if ln == 126:
+                    ln = struct.unpack(">H", need(2))[0]
+                elif ln == 127:
+                    ln = struct.unpack(">Q", need(8))[0]
+                mask = need(4) if b2 & 0x80 else None
+                data = need(ln)
+                if mask:
+                    data = bytes(x ^ mask[i % 4] for i, x in enumerate(data))
+                if op == 8:
+                    return
+                if op != 1:
+                    continue                                   # binary previews, pings
+                try:
+                    m = json.loads(data.decode("utf-8", "replace"))
+                except ValueError:
+                    continue
+                d = m.get("data") or {}
+                if d.get("prompt_id") not in (None, self.pid):
+                    continue
+                if m.get("type") == "executing" and d.get("node"):
+                    cls = (self.graph.get(str(d["node"])) or {}).get("class_type", "")
+                    self.job["progress"] = {"what": _what(cls), "node": cls}
+                    self.t0 = None
+                elif m.get("type") == "progress" and d.get("max"):
+                    v, mx = int(d.get("value") or 0), int(d["max"])
+                    now = time.time()
+                    if self.t0 is None or v <= 1:
+                        self.t0 = (now, v)
+                    eta = None
+                    if v > self.t0[1] and now > self.t0[0]:
+                        eta = int((mx - v) * (now - self.t0[0]) / (v - self.t0[1]))
+                    cls = (self.graph.get(str(d.get("node"))) or {}).get("class_type", "") if d.get("node") else ""
+                    prev = self.job.get("progress") or {}
+                    self.job["progress"] = {"what": _what(cls) if cls else prev.get("what", "working"), "node": cls or prev.get("node", ""),
+                                            "value": v, "max": mx, "pct": int(v * 100 / mx), "eta": eta}
+        except Exception:
+            return
+
+
 def run(graph, want, job, timeout_s=120 * 60):
     """Submit a graph, wait for it, return the first output entry of kind want
     ('video' | 'audio' | 'image'). job['_cancel'] aborts; job['comfy_pid'] is recorded."""
@@ -206,6 +303,17 @@ def run(graph, want, job, timeout_s=120 * 60):
         raise RuntimeError("ComfyUI rejected the graph: %s" % json.dumps(d.get("node_errors") or d.get("error") or d)[:600])
     pid, t0 = d["prompt_id"], time.time()
     job["comfy_pid"] = pid
+    job["progress"] = None
+    watch = _Watch(job, pid, graph)
+    watch.start()
+    try:
+        return _wait(graph, want, job, timeout_s, pid, t0)
+    finally:
+        watch.stop = True
+        job["progress"] = None
+
+
+def _wait(graph, want, job, timeout_s, pid, t0):
     while True:
         time.sleep(3)
         if job.get("_cancel"):
@@ -221,7 +329,15 @@ def run(graph, want, job, timeout_s=120 * 60):
         except Exception:
             continue
         if pid not in hist:
-            job["stage"] = "queued in ComfyUI" if _pending(pid) else "rendering"
+            pg = job.get("progress") or {}
+            if _pending(pid):
+                job["stage"] = "queued in ComfyUI"
+            elif pg.get("what"):
+                eta = pg.get("eta")
+                job["stage"] = pg["what"] + (" · %d%%" % pg["pct"] if pg.get("max") else "") + \
+                    (" · ~%s left" % (("%d min" % round(eta / 60)) if eta >= 90 else "%d s" % eta) if eta else "")
+            else:
+                job["stage"] = "rendering"
             continue
         status_ = hist[pid].get("status") or {}
         if status_.get("status_str") != "success":

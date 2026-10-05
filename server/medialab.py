@@ -8,6 +8,7 @@ its own library (data/library), its own access key and its own update server (/u
 Completely separate from MirOS: no MirOS imports, no calls to the MirOS dashboard, no access
 to MirOS files — see core.py for the sandbox and /api/isolation for the live audit.
 """
+import json
 import mimetypes
 import os
 import queue
@@ -40,7 +41,7 @@ users.load()
 events.load()
 
 # -- access gate: every person has their own key (users.py). Loopback = the owner on this PC. --
-OPEN_PATHS = ("/api/ping",)
+OPEN_PATHS = ("/api/ping", "/privacy", "/sw.js", "/static/apple-touch-icon.png", "/static/icon-192.png", "/static/icon-512.png")
 LOOPBACK_ONLY = ("/api/admin/presence",)       # read by the owner's MirOS ACCESS panel on this PC
 
 
@@ -60,7 +61,10 @@ def gate():
         if request.path.startswith(("/api/", "/media/", "/thumb/", "/refs/", "/updates/")):
             return jsonify({"error": "the host has paused remote access to this Media Lab"}), 503
         return Response(PAUSED_HTML, mimetype="text/html", status=503)
-    supplied = request.cookies.get("mml_key") or request.headers.get("X-MML-Key") or request.args.get("key")
+    # an invite link's ?key= wins over a saved cookie: a phone that still holds an old/replaced key
+    # must be signed in by a fresh invite, not bounced to the key page
+    supplied = request.args.get("key") or request.headers.get("X-MML-Key") or request.cookies.get("mml_key")
+    supplied = (supplied or "").strip() or None     # pasted keys often carry a space or line break
     ip = request.remote_addr or "?"
     u = users.by_key(supplied) or (users.owner() if _loopback() else None)
     if u and not _loopback():
@@ -73,14 +77,54 @@ def gate():
     if not u:
         if request.path.startswith(("/api/", "/media/", "/thumb/", "/refs/", "/updates/")):
             return jsonify({"error": "unauthorized - Media Lab access key required"}), 401
-        return Response(LOGIN_HTML, mimetype="text/html", status=401)
+        msg = ("That key didn't work. Check it and try again &mdash; or ask the lab owner for a fresh invite."
+               if request.args.get("key") else "")
+        resp = Response(LOGIN_HTML.replace("{MSG}", msg), mimetype="text/html", status=401)
+        if request.cookies.get("mml_key"):
+            resp.delete_cookie("mml_key")           # drop a dead saved key so the next invite / typed key starts clean
+        return resp
     g.user = u
     users.touch(u, request.remote_addr, request.headers.get("User-Agent", ""), request.path)
     if request.args.get("key") and request.method == "GET" and request.path == "/":
-        resp = redirect(request.path)
-        resp.set_cookie("mml_key", request.args["key"], max_age=3600 * 24 * 365, httponly=True, samesite="Lax")
+        ua = request.headers.get("User-Agent", "")
+        if "Android" in ua and "MirMediaLabs" not in ua and not request.args.get("web"):
+            resp = Response(_android_handoff(supplied), mimetype="text/html")   # open the installed app
+        else:
+            ios = any(t in ua for t in ("iPhone", "iPad", "iPod"))
+            resp = redirect(request.path + ("?joined=1" if ios else ""))   # iPhone: lab shows "Add to Home Screen"
+        resp.set_cookie("mml_key", supplied, max_age=3600 * 24 * 365, httponly=True, samesite="Lax")
         return resp
     return None
+
+
+def _android_handoff(key):
+    """Invite opened on an Android phone: hand it to the MIR MEDIA LABS app (mirmedialabs://join, which the app
+    already parses); without the app, Chrome follows browser_fallback_url and the web lab opens signed in."""
+    from urllib.parse import quote
+    base = request.host_url.rstrip("/")
+    away = core.prefs().get("away_url") or ""
+    q = "url=" + quote(base, safe="") + "&key=" + quote(key, safe="") + ("&away=" + quote(away, safe="") if away else "")
+    web = base + "/?web=1&key=" + quote(key, safe="")
+    intent = "intent://join?" + q + "#Intent;scheme=mirmedialabs;package=com.mirmedialabs.app;S.browser_fallback_url=" + quote(web, safe="") + ";end"
+    app = "mirmedialabs://join?" + q
+    esc = lambda x: x.replace("&", "&amp;").replace('"', "&quot;")
+    return (HANDOFF_HTML.replace("{INTENT}", esc(intent)).replace("{APP}", esc(app)).replace("{WEB}", esc(web))
+            .replace("{GET}", esc(core.CREATOR.get("github", "") + "/releases/latest")))
+
+
+HANDOFF_HTML = """<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>MIR MEDIA LABS</title>
+<body style="background:#0d0806;color:#fff1e2;font:16px/1.5 system-ui,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;text-align:center;padding:24px;box-sizing:border-box">
+<div style="max-width:360px;width:100%">
+<img src="/static/icon-192.png" width="88" height="88" style="border-radius:22px" alt="">
+<div style="letter-spacing:.3em;font-weight:800;color:#ff5a1f;margin:14px 0 4px">MIR MEDIA LABS</div>
+<p style="color:#c4a58c;margin:0 0 22px">You're invited to a lab. Opening it in the app&hellip;</p>
+<a href="{INTENT}" style="display:block;padding:15px;border-radius:14px;background:#ff5a1f;color:#160a04;font-weight:700;text-decoration:none">Open in the app</a>
+<a href="{WEB}" style="display:block;padding:14px;border-radius:14px;border:1px solid rgba(255,140,70,.4);color:#fff1e2;text-decoration:none;margin-top:10px">Continue in the browser</a>
+<p style="color:#7d6352;font-size:14px;margin-top:22px">No app yet? <a href="{GET}" style="color:#ffc21a">Get MIR MEDIA LABS for Android</a>, then scan the invite again.</p>
+</div>
+<script>setTimeout(function(){location.href="{INTENT}".replace(/&amp;/g,"&")},300)</script>
+</body>"""
 
 
 # brute-force guard: 10 DIFFERENT wrong keys from one address in 15 min -> lockout. Counting distinct keys
@@ -137,9 +181,11 @@ def mine(owner_id):
 
 LOGIN_HTML = """<!doctype html><meta name=viewport content="width=device-width,initial-scale=1">
 <title>MIR MEDIA LABS</title><body style="background:#07070b;color:#e9e7f5;font:15px system-ui;display:grid;place-items:center;height:100vh;margin:0">
-<form onsubmit="location='/?key='+encodeURIComponent(k.value);return false" style="text-align:center">
+<form onsubmit="location='/?key='+encodeURIComponent(k.value.trim());return false" style="text-align:center">
 <div style="letter-spacing:.3em;font-weight:800;margin-bottom:14px">MIR MEDIA LABS</div>
 <input id=k placeholder="access key" style="padding:12px;border-radius:10px;border:1px solid #333;background:#111;color:#fff;width:260px">
+<button style="display:block;margin:10px auto 0;padding:10px 22px;border-radius:10px;border:0;background:#ff5a1f;color:#160a04;font-weight:700">Sign in</button>
+<p style="color:#ff6b6b;font-size:13px;max-width:280px;margin:12px auto 0">{MSG}</p>
 <p style="color:#888;font-size:12px">Ask the owner of this Media Lab for your personal access key.</p></form>"""
 
 
@@ -161,7 +207,7 @@ Q = queue.Queue()
 _JLOCK = threading.Lock()
 PUBLIC = ("id", "model", "prompt", "refs", "loras", "status", "stage", "log", "output", "files", "created", "started",
           "finished", "error", "params", "user", "input", "skill", "pipeline", "steps", "step", "route", "lora_sel",
-          "loras_skipped")
+          "loras_skipped", "plan", "pipeline_id", "knobs", "progress")
 
 
 def _persist():
@@ -232,35 +278,71 @@ def _run_once(job):
             comfy.start(wait=True)
 
 
+def _ref_seconds(name):
+    p = core.in_dir(core.REFS, name)
+    return renderers.media_seconds(p) if p else 0
+
+
 def _run_pipeline(job):
-    """Chain the steps inside this ONE job; each step's outputs become references for later steps."""
+    """Follow the manual inside this ONE job: each step gets its own ordered inputs (the person's attachments and/or
+    earlier outputs), MUSE's prompt for that step (else the template), the knobs, and what earlier steps carry forward."""
     base, outs, files, texts = list(job.get("refs") or []), [], [], []
     owner = job.get("user") or "owner"
+    man = skills.pipeline(job.get("pipeline_id") or "") or {"steps": job["steps"]}
+    knobs = job.get("knobs") or {}
+    plan = job.get("plan") or []
+    meta = {}                                    # carried forward: style · lyrics · bpm · key (latest step wins)
     n = len(job["steps"])
     for i, st in enumerate(job["steps"], 1):
         if job.get("_cancel"):
             raise comfy.Cancelled()
-        use = st.get("use")
-        extra = (outs[-1] if outs else []) if use == "prev" else [r for o in outs for r in o] if use == "all" else []
+        row = plan[i - 1] if i - 1 < len(plan) else {}
         mdl = skills.model_for(st["role"])        # role → today's engine for that role
-        job.update(model=mdl, step="%d/%d" % (i, n), refs=base + extra,
-                   prompt=skills.fill(st["tpl"], job.get("input"), i == 1 and any(core.kind_of(r) == "image" for r in base)),
-                   params=params.get(mdl, override=skills.overrides(st, mdl), uid=owner))
-        renderers.log(job, "▶ step %d/%d · %s" % (i, n, skills.ROLES[st["role"]]["label"]))
+        refs = skills.resolve_inputs(st, base, outs, core.kind_of, _ref_seconds)
+        has_img = i == 1 and any(core.kind_of(r) == "image" for r in refs)
+        prompt = (row.get("prompt") or "").strip() or skills.fill(st["tpl"], job.get("input"), has_img)
+        over, add = skills.knob_effects(man, knobs, i, mdl)
+        pre, post = skills.carry_text(st, meta, mdl)
+        prompt = core.clean_ws(" ".join(x for x in (pre + ("." if pre and prompt else ""), prompt, add, st.get("add", "")) if x)) + post
+        po = skills.overrides(st, mdl)
+        if st.get("mode"):
+            po["mode"] = st["mode"]
+        po.update(over)
+        if st.get("mode") == "voice" and sum(1 for r in refs if core.kind_of(r) == "audio") < 2:
+            raise RuntimeError(skills.missing(man, [core.kind_of(r) for r in base]) or
+                               "the voice swap needs the song AND a voice recording")
+        job.update(model=mdl, step="%d/%d" % (i, n), refs=refs, prompt=prompt,
+                   params=params.get(mdl, override=po, uid=owner))
+        if row:
+            row.update(status="running", inputs=list(refs), used=prompt[:1500])
+        renderers.log(job, "▶ step %d/%d · %s%s" % (i, n, skills.step_label(st),
+                                                   (" · inputs: " + ", ".join(refs)) if refs else ""))
+        _persist()
         if job.get("lora_sel"):
             _lora_apply(job, mdl, "a %s step" % skills.ROLES[st["role"]]["label"].lower())
-        res = _run_once(job)
+        try:
+            res = _run_once(job)
+        except Exception:
+            if row:
+                row["status"] = "error"
+            raise
         files += res["files"]
-        texts.append("── step %d · %s ──" % (i, skills.ROLES[st["role"]]["label"]) + chr(10) + (res.get("text") or ""))
-        refs = []
+        meta.update({k: v for k, v in (res.get("meta") or {}).items() if v})
+        if st["role"] == "text" and (res.get("text") or "").strip():      # a writing step hands its lyrics forward
+            meta["lyrics"] = llm.sanitize_lyrics(res["text"]) or res["text"].strip()
+        texts.append("── step %d · %s ──" % (i, skills.step_label(st)) + chr(10) + (res.get("text") or ""))
+        made = []
         for fn in res["files"]:
             src = core.in_dir(core.LIB, fn)
             if src:
                 stem, ext = os.path.splitext(fn)
                 ref = _store_ref(stem, ext.lower(), owner)
                 shutil.copy2(src, core.safe_path(os.path.join(core.REFS, ref)))
-                refs.append(ref)
-        outs.append(refs)
+                made.append(ref)
+        outs.append(made)
+        if row:
+            row.update(status="done", files=list(res["files"]))
+        _persist()
     job["refs"] = base
     return {"files": files, "text": chr(10).join(texts)}
 
@@ -371,18 +453,29 @@ def _route(job):
         return
     if d["action"] == "pipeline":
         pl = skills.pipeline(d["pipeline"])
-        job.update(model=skills.model_for(pl["steps"][0]["role"]), pipeline=pl["name"], steps=pl["steps"],
-                   step="0/%d" % len(pl["steps"]), input=prompt)
+        kv = dict(skills.knob_values(pl, d.get("knobs")), **(job.get("knobs") or {}))   # the person's dials beat MUSE's
+        job.update(model=skills.model_for(pl["steps"][0]["role"]), pipeline=pl["name"], pipeline_id=pl["id"],
+                   steps=pl["steps"], step="0/%d" % len(pl["steps"]), input=prompt,
+                   plan=skills.plan_for(pl, d.get("steps")), knobs=kv)
+        for row in job["plan"]:
+            renderers.log(job, "  %d. %s — %s" % (row["n"], row["label"], row["does"]))
         return
     has_img = any(core.kind_of(r) == "image" for r in refs)
     if d["action"] == "skill":
         sk = skills.skill(d["skill"])
         model = skills.model_for(sk["role"])
-        job.update(model=model, skill=sk["name"], prompt=skills.fill(sk["tpl"], prompt, has_img),
-                   params=params.get(model, override=skills.overrides(sk, model), uid=owner))
+        kv = skills.knob_values(sk, d.get("knobs"))
+        over, add = skills.knob_effects(sk, kv, None, model)
+        filled = skills.fill(sk["tpl"], prompt, has_img)
+        job.update(model=model, skill=sk["name"], prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
+                   params=params.get(model, override=dict(skills.overrides(sk, model), **over), uid=owner))
     else:
         model = skills.model_for(d["role"])
-        job.update(model=model, prompt=prompt, params=params.get(model, uid=owner))
+        p = params.get(model, uid=owner)
+        modes = next((f.get("opts") for f in params.MODELS.get(model, {}).get("fields", []) if f.get("k") == "mode"), [])
+        if "mode" in p and any(o[0] == "auto" for o in modes):
+            p["mode"] = "auto"      # Auto mode: the attachments decide (picture → edit, none → generate), not a saved manual mode
+        job.update(model=model, prompt=prompt, params=p)
     if job.get("lora_sel"):
         _lora_apply(job, model, _what(model))
 
@@ -407,6 +500,63 @@ def _static(fn):
 @app.route("/")
 def home():
     return _static("index.html")
+
+
+# ── iPhone / home-screen web app (PWA) ──────────────────────────────────────
+# iOS gives a home-screen app its OWN cookie jar, so the Safari login does not carry over.
+# The manifest is served per user with their key in start_url: the installed app's first
+# launch hits /?key=… and sets its own cookie.
+@app.route("/manifest.webmanifest")
+def pwa_manifest():
+    start = "/?key=" + g.user["key"] if g.user.get("key") else "/"
+    icons = [{"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"},
+             {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}]
+    resp = jsonify({"name": core.APP_NAME, "short_name": "Media Labs", "id": "/", "start_url": start, "scope": "/",
+                    "display": "standalone", "background_color": "#0d0806", "theme_color": "#0d0806", "icons": icons})
+    resp.mimetype = "application/manifest+json"
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+SW_JS = """const OFF='<!doctype html><meta name=viewport content="width=device-width,initial-scale=1"><body style="background:#0d0806;color:#fff1e2;font:15px system-ui;display:grid;place-items:center;height:100vh;margin:0;text-align:center"><div><b style="letter-spacing:.3em">MIR MEDIA LABS</b><p>The lab is unreachable right now.<br>Check your connection and try again.</p><button onclick="location.reload()">Retry</button></div>';
+self.addEventListener('install',e=>self.skipWaiting());
+self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+self.addEventListener('fetch',e=>{if(e.request.mode==='navigate')e.respondWith(fetch(e.request).catch(()=>new Response(OFF,{headers:{'Content-Type':'text/html'}})));});
+"""
+
+
+@app.route("/sw.js")
+def pwa_sw():
+    resp = Response(SW_JS, mimetype="application/javascript")
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
+PRIVACY_HTML = """<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>MIR MEDIA LABS - Privacy policy</title>
+<body style="background:#0d0806;color:#fff1e2;font:16px/1.65 system-ui,sans-serif;max-width:720px;margin:0 auto;padding:28px 18px">
+<h1 style="font-size:24px">MIR MEDIA LABS - Privacy policy</h1><p style="color:#c4a58c">Last updated: October 5, 2026 &middot; MirCorp</p>
+<h2 style="font-size:18px">The short version</h2>
+<p>MIR MEDIA LABS is a remote control for a media studio that runs on <b>your own computer</b> (your "lab"). The app talks only to the lab address you enter. MirCorp runs no servers for the app and receives none of your prompts, files or creations.</p>
+<h2 style="font-size:18px">What the app handles</h2>
+<ul><li><b>Lab address and access key</b> - stored on your phone so it can connect to your lab.</li>
+<li><b>Prompts, attachments and generated media</b> - sent to and stored on your lab only, to create and show your results.</li>
+<li><b>Content reports</b> - if you report a result, the report (file name, reason, time) is saved on your lab for its owner.</li>
+<li><b>Camera</b> - used only to scan an invite QR code; no pictures are stored or sent.</li>
+<li><b>Notifications</b> - delivered directly from your lab, without Google or third-party push services.</li></ul>
+<h2 style="font-size:18px">What the app does not do</h2>
+<ul><li>No accounts with MirCorp, no advertising, no analytics or tracking SDKs.</li>
+<li>No selling or sharing of data with third parties.</li></ul>
+<p>Bug reports and feedback are sent only if you choose to email them, and include the device details shown before you send.</p>
+<h2 style="font-size:18px">Your lab</h2>
+<p>Whoever runs a lab controls the data on it. If someone else invited you to their lab, they can see the jobs you submit and can remove your access. Ask them to delete your creations, or delete them yourself in the app.</p>
+<h2 style="font-size:18px">Children</h2><p>The app is not directed at children under 13.</p>
+<h2 style="font-size:18px">Contact</h2><p>MirCorp - mirmedialabs@gmail.com</p></body>"""
+
+
+@app.route("/privacy")
+def privacy():
+    return Response(PRIVACY_HTML, mimetype="text/html")
 
 
 @app.route("/static/<path:fn>")
@@ -448,6 +598,7 @@ def _refresh_status():
         eng = {"up": True, "model": core.engine_model(), "available": tags}
     except Exception:
         eng = {"up": False, "model": core.prefs().get("engine_model") or core.DEFAULT_ENGINE, "available": []}
+        core.ensure_ollama(wait=0)                  # self-heal: relaunch Ollama, status flips back on its own
     cs = comfy.status()
     cs.setdefault("models", {})["llama"] = llm.ready(eng.get("available")) if eng.get("up") else None
     _STATUS["v"] = {"comfy": cs, "engine": eng}
@@ -628,8 +779,10 @@ def generate():
     refs = [n for n in refs if core.in_dir(core.REFS, n) and _my_ref(n)]
     if not prompt and not refs:
         return jsonify({"error": "write a prompt or attach a reference"}), 400
-    if sk and sk.get("needs") and not any(core.kind_of(r) == sk["needs"] for r in refs):
-        return jsonify({"error": "%s needs an attached %s (📎)" % (sk["name"], sk["needs"])}), 400
+    if sk and skills.missing(sk, [core.kind_of(r) for r in refs]):
+        return jsonify({"error": skills.missing(sk, [core.kind_of(r) for r in refs])}), 400
+    if pl and skills.missing(pl, [core.kind_of(r) for r in refs]):
+        return jsonify({"error": skills.missing(pl, [core.kind_of(r) for r in refs])}), 400
     deny = users.over_limit(g.user) or (None if model == "auto" else users.can_use(g.user, model))
     if not deny and pl:
         deny = next((users.can_use(g.user, skills.model_for(st["role"])) for st in pl["steps"]
@@ -651,10 +804,15 @@ def generate():
            "params": {} if model == "auto" else params.get(model, uid=uid()),
            "user": uid(), "input": prompt, "loras": [], "lora_sel": sel}
     if sk:
-        job.update(skill=sk["name"], prompt=skills.fill(sk["tpl"], prompt, sk["role"] != "text" and any(core.kind_of(r) == "image" for r in refs)),
-                   params=params.get(model, override=skills.overrides(sk, model), uid=uid()))
+        kv = skills.knob_values(sk, body.get("knobs"))
+        over, add = skills.knob_effects(sk, kv, None, model)
+        po = dict(skills.overrides(sk, model), **over)
+        filled = skills.fill(sk["tpl"], prompt, sk["role"] != "text" and any(core.kind_of(r) == "image" for r in refs))
+        job.update(skill=sk["name"], prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
+                   params=params.get(model, override=po, uid=uid()))
     elif pl:
-        job.update(pipeline=pl["name"], steps=pl["steps"], step="0/%d" % len(pl["steps"]))
+        job.update(pipeline=pl["name"], pipeline_id=pl["id"], steps=pl["steps"], step="0/%d" % len(pl["steps"]),
+                   plan=skills.plan_for(pl), knobs=skills.knob_values(pl, body.get("knobs")))
     if sel and model != "auto" and not pl:          # direct request: LoRAs + trigger words go in now (Auto: after MUSE picks)
         _lora_apply(job, model, _what(model))
     if model == "auto":
@@ -749,6 +907,13 @@ def loras_token():
             core.save_pref("civitai_user", "")
     p = core.prefs()
     return jsonify({"set": bool(p.get("civitai_token")), "user": p.get("civitai_user") or ""})
+
+
+@app.route("/api/plan/preview")
+def plan_preview():
+    """Composer hint: what MUSE will most likely do with this message (quick rules only, no model call)."""
+    kinds = [k for k in (request.args.get("kinds") or "").split(",") if k][:16]
+    return jsonify(router.preview(str(request.args.get("prompt") or "")[:2000], kinds) or {})
 
 
 @app.route("/api/skills")
@@ -858,6 +1023,23 @@ def lib_delete(name):
     if not p or not _my_file(name):
         return jsonify({"error": "not found"}), 404
     shutil.move(p, core.safe_path(os.path.join(core.TRASH, os.path.basename(p))))   # recoverable from data/trash
+    return jsonify({"ok": True})
+
+
+@app.route("/api/report", methods=["POST"])
+def report_content():
+    """In-app content report (Google Play AI-content policy). Logged to data/reports.jsonl for the
+    lab owner; the reported file leaves the reporter's library (data/trash, recoverable)."""
+    b = request.get_json(silent=True) or {}
+    name = str(b.get("file") or "")[:200]
+    rec = {"t": time.time(), "user": g.user.get("id") or g.user.get("name"), "file": name,
+           "model": str(b.get("model") or "")[:40], "reason": str(b.get("reason") or "")[:80],
+           "edition": str(b.get("edition") or "")[:12]}
+    with open(os.path.join(core.DATA, "reports.jsonl"), "a", encoding="utf-8") as f:
+        f.write(json.dumps(rec) + "\n")
+    p = core.in_dir(core.LIB, name) if name else None
+    if p and _my_file(name):
+        shutil.move(p, core.safe_path(os.path.join(core.TRASH, os.path.basename(p))))
     return jsonify({"ok": True})
 
 
@@ -1070,6 +1252,11 @@ def main():
     threading.Thread(target=_status_loop, daemon=True, name="mml-status").start()
     threading.Thread(target=pcupdate.loop, daemon=True, name="mml-pc-update").start()
     pcupdate.cleanup()
+    try:
+        import tls
+        tls.start(app)                              # :80 helper + :443 HTTPS when a cert exists
+    except Exception as e:                          # HTTPS is optional; never block the lab
+        print("HTTPS not started: %s" % e)
     print("MIR MEDIA LABS v%s on http://127.0.0.1:%d  (LAN key in data/access_key.txt)" % (core.APP_VERSION, core.PORT))
     app.run(host="0.0.0.0", port=core.PORT, threaded=True, use_reloader=False)
 

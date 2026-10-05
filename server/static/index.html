@@ -6,6 +6,12 @@
 <meta name="theme-color" content="#0d0806">
 <title>MIR MEDIA LABS</title>
 <link rel="icon" href="/static/icon-512.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Media Labs">
 <style>
 :root{
   --bg:#0d0806;--panel:rgba(255,190,140,.04);--panel2:rgba(255,190,140,.075);
@@ -84,23 +90,16 @@ a{color:inherit;text-decoration:none}
 #perfcard .pc-v{margin-top:5px;color:var(--ink)}
 #perfcard[data-l=warn] .pc-v{color:var(--yellow)}#perfcard[data-l=ok] .pc-v{color:var(--grn)}
 #perfcard.min .pc-v{display:none}
-#mascot{position:relative;height:0;z-index:3;pointer-events:none}
-#mascot .in{position:absolute;left:10px;bottom:6px;display:flex;align-items:center;gap:6px;padding:3px 9px 3px 5px;border-radius:14px;background:rgba(13,8,6,.72);border:1px solid var(--line);backdrop-filter:blur(8px)}
-#mascot .lbl{font:10px var(--mono);letter-spacing:.08em;color:var(--dim);text-transform:uppercase;line-height:1.35;white-space:nowrap}
+#mascot{position:absolute;top:44px;right:12px;z-index:3;pointer-events:none}
+#mascot .in{display:flex;flex-direction:row-reverse;align-items:center;gap:8px;padding:4px 6px 4px 11px;border-radius:16px;background:rgba(13,8,6,.72);border:1px solid var(--line);backdrop-filter:blur(8px)}
+#mascot .lbl{font:10px var(--mono);letter-spacing:.08em;color:var(--dim);text-transform:uppercase;line-height:1.35;white-space:nowrap;text-align:right}
 #mascot .lbl b{display:block;color:var(--ink);font-weight:700}
-#mascot svg{overflow:visible;display:block;filter:drop-shadow(0 0 6px rgba(255,90,31,.45))}
-@keyframes mspin{to{transform:rotate(360deg)}}@keyframes mpulse{50%{opacity:.2}}@keyframes mjit{25%{transform:translate(-1.5px,0)}75%{transform:translate(1.5px,0)}}
-@keyframes mnod{50%{transform:translateY(-2px)}}@keyframes miris{0%,100%{r:4}50%{r:2.4}}@keyframes mscan{to{transform:translateY(5px)}}
-#mascot .rot{transform-box:fill-box;transform-origin:center}
-#mascot[data-s=render] .rot{animation:mspin 1.1s linear infinite}#mascot[data-s=queued] .rot{animation:mspin 4s linear infinite}
-#mascot .rec,#mascot .stby,#mascot .scanl{opacity:0}
-#mascot[data-s=render] .rec{opacity:1;animation:mpulse 1s infinite}#mascot[data-s=queued] .stby{opacity:1;animation:mpulse 1.6s infinite}
-#mascot[data-s=render] .scanl{opacity:.8;animation:mscan 1.2s linear infinite}
-#mascot[data-s=idle] .cam{animation:mnod 4s ease-in-out infinite}#mascot[data-s=done] .cam{animation:mnod .6s ease-in-out 4}#mascot[data-s=error] .cam{animation:mjit .3s 6}
-#mascot .lens{fill:var(--teal);transition:fill .3s}#mascot[data-s=queued] .lens{fill:var(--yellow)}#mascot[data-s=render] .lens{fill:var(--red);animation:miris 1.6s ease-in-out infinite}
-#mascot[data-s=done] .lens{fill:var(--grn)}#mascot[data-s=error] .lens{fill:var(--red)}
-#mascot[data-s=offline] .lens{fill:#444}#mascot[data-s=offline]{opacity:.6}
-@media(max-width:860px){#mascot svg{width:30px;height:21px}#mascot .in{left:6px;bottom:4px;padding:2px 7px 2px 4px;gap:5px;border-radius:10px}#mascot .lbl{font-size:9px;line-height:1.2}}
+#mascot svg{overflow:visible;display:block}
+#mascot[data-s=offline]{opacity:.65}
+@media(max-width:860px){#mascot{position:relative;top:auto;right:auto;height:0}#mascot .in{position:absolute;left:6px;bottom:4px;flex-direction:row;padding:2px 8px 2px 3px;gap:5px;border-radius:12px}#mascot .lbl{font-size:9px;line-height:1.2;text-align:left}#mascot svg{width:30px;height:30px}}
+@media(min-width:861px){body.lcol-hide .main{grid-template-columns:minmax(0,1fr) 330px}body.lcol-hide .col.left{display:none}}
+@media(min-width:861px) and (max-width:1180px){body.lcol-hide .main{grid-template-columns:minmax(0,1fr) 280px}}
+@media(max-width:860px){#b-panel{display:none}}
 .col.left{overflow-y:auto;scrollbar-width:thin}
 .skl{flex:none}
 .skl .seg{display:flex;gap:6px;padding:0 14px 8px}
@@ -181,6 +180,7 @@ a{color:inherit;text-decoration:none}
 .th img{width:100%;height:100%;object-fit:cover;display:block}
 .th .ov{position:absolute;inset:auto 0 0 0;padding:14px 7px 5px;background:linear-gradient(transparent,rgba(0,0,0,.85));font-size:10px;color:#eee;display:flex;gap:5px;align-items:center;white-space:nowrap;overflow:hidden}
 .th .ov .m{font-weight:800;letter-spacing:.08em;color:var(--mc)}
+.th .uref{position:absolute;top:6px;left:6px;z-index:2;display:none;align-items:center;gap:4px;padding:4px 9px;border-radius:8px;border:1px solid color-mix(in srgb,var(--acc) 60%,transparent);background:rgba(13,8,6,.82);color:var(--ink);font:700 10px var(--mono);letter-spacing:.06em;cursor:pointer}.th .uref:hover{background:var(--acc);color:#160a04}@media (min-width:861px){.th:hover .uref{display:inline-flex}}
 .th .play{position:absolute;top:6px;right:6px;font-size:10px;background:rgba(0,0,0,.6);padding:2px 6px;border-radius:6px}
 .th.aud{display:grid;place-items:center;background:linear-gradient(135deg,color-mix(in srgb,var(--mc) 35%,#160d09),#160d09)}
 .th.aud .note{font-size:26px;opacity:.9}
@@ -327,8 +327,14 @@ body.lcol-off .lrail{display:flex}
 .hx{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line2);color:var(--dim)}
 .hx.ok{color:var(--grn);border-color:color-mix(in srgb,var(--grn) 40%,transparent)}.hx.bad{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,transparent)}
 .hcard .sub{font-size:11.5px;color:var(--dim);margin:6px 0 0 24px}
-.hinv{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;margin-top:10px;padding:12px;border:1px dashed var(--yellow);border-radius:12px;background:rgba(255,194,26,.05)}
-.hinv img{width:150px;height:150px;background:#fff;border-radius:10px;padding:6px;box-sizing:border-box}
+.hinv{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin-top:10px;padding:12px;border:1px dashed var(--yellow);border-radius:12px;background:rgba(255,194,26,.05)}
+.hinv img{width:150px;height:150px;background:#fff;border-radius:10px;padding:6px;box-sizing:border-box;display:block}
+.hqrs{width:150px}.hqrs figure{margin:0;text-align:center;display:none}.hqrs figure.on{display:block;animation:hqin .25s ease}
+.hqrs figcaption{font-size:11px;color:var(--dim);margin-top:4px;letter-spacing:.04em;text-transform:uppercase}
+.hqtab{display:flex;margin-bottom:6px;border:1px solid var(--line2);border-radius:99px;overflow:hidden}
+.hqtab button{flex:1;border:0;background:none;color:var(--dim);font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:5px 4px;cursor:pointer}
+.hqtab button.on{background:var(--yellow);color:#1a1205}
+@keyframes hqin{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
 .hinv p{margin:4px 0 8px;font-size:12px;color:var(--dim)}
 .hcopy{display:flex;gap:8px;align-items:center;margin-top:6px}.hcopy code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
 .hform{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.hform .wide{grid-column:1/-1}
@@ -497,16 +503,304 @@ window.MML_THEMES=[
 })();
 </script>
 <style>
-/* phone composer: tools collapse into one [+] menu (more room for the message box) */
-#b-more,#moremenu{display:none}
+/* composer = the app's: [+] menu (attach · params · skills · LoRAs · command book) at the start of the pill on every
+   screen; phones fold attach + params into it too (more room for the message box) */
+#b-more{display:grid}#moremenu{display:none}#moremenu.open{display:block}
 @media (max-width:860px){
-  #b-more{display:grid}#moremenu.open{display:block}
   .inrow>.tw,#b-params{display:none}
   .go .gt{display:none}.go{padding:0 12px}
 }
 </style>
 <style>.uses{display:flex;flex-direction:column;align-items:flex-start;gap:5px;margin-top:9px}.uses .btn{text-align:left;max-width:100%;white-space:normal}
 .txt.wr{line-height:1.55}.caret{display:inline-block;width:7px;height:1em;margin-left:2px;vertical-align:-2px;background:var(--grn);animation:mpulse 1s infinite}</style>
+<style id="mml-pwa">
+@media (max-width:860px){header.top{padding-top:calc(7px + env(safe-area-inset-top))}body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}}
+#iosinst{position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:999;background:rgba(20,12,8,.97);border:1px solid var(--line2);border-radius:14px;padding:12px 38px 12px 14px;color:var(--ink);font:13px/1.45 var(--sans);box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#iosinst b{color:var(--acc)}#iosinst.big{bottom:auto;top:calc(70px + env(safe-area-inset-top));padding:16px 40px 14px 16px;font-size:14px;border-color:var(--acc)}#iosinst.big .t{display:block;color:var(--ink);font-size:15px;margin-bottom:6px}#iosinst.big ol{margin:0;padding-left:20px}#iosinst.big li{margin:3px 0}#iosinst .x{position:absolute;right:8px;top:6px;background:none;border:0;color:var(--dim);font-size:20px}
+@media (display-mode:standalone){#iosinst{display:none}}
+</style>
+<script>
+(function(){
+  if('serviceWorker' in navigator)addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})});
+  var ios=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  var inst=navigator.standalone||matchMedia('(display-mode:standalone)').matches, seen=0, joined=/[?&]joined=1/.test(location.search);
+  if(joined)try{history.replaceState(null,'',location.pathname)}catch(e){}
+  try{seen=localStorage.getItem('mml.iosinst')}catch(e){}
+  if(!ios||inst||(seen&&!joined))return;
+  addEventListener('load',function(){
+    var d=document.createElement('div');d.id='iosinst';
+    if(joined){d.className='big';
+      d.innerHTML='<b class="t">You’re in! Put the lab on your Home Screen</b><ol><li>Tap <b>Share</b> (the square with the arrow) at the bottom of Safari.</li><li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li><li>Open MIR MEDIA LABS from that icon from now on — it runs full screen and stays signed in.</li></ol><button class="x" aria-label="Dismiss">×</button>';
+    }else
+    d.innerHTML='Install <b>Media Labs</b> on your iPhone: tap <b>Share</b> → <b>Add to Home Screen</b>.<button class="x" aria-label="Dismiss">×</button>';
+    d.querySelector('.x').onclick=function(){d.remove();try{localStorage.setItem('mml.iosinst','1')}catch(e){}};
+    document.body.appendChild(d);
+  });
+})();
+</script>
+<style id="mml-pill">
+/* WhatsApp-style composer: one rounded pill with the tools inside + a round send / mic button */
+.composer .inrow{display:flex;gap:8px;align-items:flex-end}
+.composer .pill{flex:1;min-width:0;display:flex;align-items:flex-end;gap:2px;padding:4px 6px;border-radius:26px;border:1px solid var(--line2);background:rgba(0,0,0,.4);position:relative;transition:border-color .15s,box-shadow .15s}
+.composer .pill:focus-within{border-color:color-mix(in srgb,var(--acc) 70%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+.composer .pill .prompt{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0;padding:11px 6px;min-height:42px;font-size:14.5px}
+.composer .pill .tool{height:42px;width:42px;border:0;background:transparent;border-radius:50%;color:var(--dim);font-size:19px}
+.composer .pill .tool:hover{color:var(--ink);background:var(--panel2)}
+.composer .go{height:52px;width:52px;min-width:52px;padding:0!important;border-radius:50%!important;display:grid;place-items:center;font-size:20px;align-self:flex-end}
+.composer .go .gt{display:none}
+.composer .go.rec{background:var(--red)!important;box-shadow:0 0 0 6px color-mix(in srgb,var(--red) 22%,transparent)}
+.composer .recbar{display:none;flex:1;align-items:center;gap:10px;min-height:42px;padding:0 6px;color:var(--ink);font:13px var(--mono)}
+.composer .pill.recording>:not(.recbar){display:none}
+.composer .pill.recording .recbar{display:flex}
+.composer .recbar .dot{width:10px;height:10px;border-radius:50%;background:var(--red);animation:mrec 1s infinite}
+@keyframes mrec{50%{opacity:.25}}
+.composer .recbar .lvl{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+.composer .recbar .lvl b{display:block;height:100%;width:0;background:var(--red);transition:width .08s}
+.composer .recbar button{border:0;background:none;color:var(--dim);font-size:18px;height:36px;width:36px;border-radius:50%}
+.composer .recbar button:hover{color:var(--red);background:var(--panel2)}
+@media (max-width:860px){.col.left>.card[data-fold=loras]{max-height:38vh;overflow:auto}.composer .pill .tool{height:38px;width:38px;font-size:17px}.composer .pill .prompt{min-height:38px;padding:9px 4px}.composer .go{height:46px;width:46px;min-width:46px}}
+html[data-theme] .composer .pill{background:var(--surface)}
+</style>
+<style id="mml-mobile">
+/* phone layout pass: the chat gets the screen; LoRAs + skills live in the [+] menu */
+@media (max-width:860px){
+  header.top{gap:6px;padding-left:12px;padding-right:12px}
+  header.top .brand b{display:none}
+  header.top .brand img{width:30px;height:30px}
+  header.top #b-font{display:none}
+  header.top .iconbtn{width:36px;height:36px;flex:none}
+  header.top .pills{flex:1;min-width:0;overflow:hidden;justify-content:flex-end}
+  header.top .pills .pill{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .col.left>.card[data-fold=loras],.col.left>.card[data-fold=skills],.left .card.skl{display:none!important}
+  .models{scrollbar-width:none}.models::-webkit-scrollbar{display:none}
+  .col.left{flex:none}
+  #mascot{position:absolute!important;top:40px;right:10px;left:auto;height:auto!important;z-index:4}
+  #mascot .in{position:static!important;padding:2px!important;border-radius:50%!important;gap:0!important}
+  #mascot .lbl{display:none}
+  #mascot svg{width:30px!important;height:33px!important}
+  .composer .pill .prompt{scrollbar-width:none;overflow-y:auto}
+  .composer .pill .prompt::-webkit-scrollbar{display:none}
+  .composer .pill .prompt::placeholder{white-space:nowrap}
+  #perfcard{display:none!important}
+}
+</style>
+<style id="mml-recipe">
+/* recipe chip: the armed skill / manual lives inside the composer — what it does, which attachment feeds which step, its dials */
+.recipe:empty{display:none}
+.recipe{margin-bottom:7px}
+.rcp{border:1px solid color-mix(in srgb,var(--yellow) 45%,transparent);background:color-mix(in srgb,var(--yellow) 8%,transparent);border-radius:14px;padding:7px 9px;font-size:12px;color:var(--dim)}
+.rcp .rc-h{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.rcp .rc-h b{color:var(--yellow);letter-spacing:.04em}
+.rcp .rc-flow{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;color:var(--dim);font-size:11px}
+.rcp .rc-flow i.mi{opacity:.9}
+.rcp .rc-flow .ar{opacity:.5}
+.rcp .rc-x{margin-left:auto;border:0;background:none;color:var(--dim);cursor:pointer;padding:2px 4px;border-radius:6px}
+.rcp .rc-x:hover{color:var(--ink)}
+.rcp .rc-more{border:0;background:none;color:var(--faint);cursor:pointer;font-size:11px;padding:2px 4px}
+.rcp .rc-body{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.rcp.min .rc-body{display:none}
+.rcp .slot{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:99px;border:1px dashed var(--line2);font-size:11px}
+.rcp .slot.ok{border-style:solid;border-color:color-mix(in srgb,var(--grn) 55%,transparent);color:var(--ink)}
+.rcp .slot.miss{border-color:color-mix(in srgb,var(--red) 60%,transparent);color:var(--red);cursor:pointer}
+.rcp .slot em{font-style:normal;color:var(--faint)}
+.rcp .knob{display:inline-flex;align-items:center;gap:6px;font-size:11px}
+.rcp .knob select{background:var(--panel2);color:var(--ink);border:1px solid var(--line2);border-radius:7px;font-size:11px;padding:2px 4px}
+.rcp .knob input[type=range]{width:90px;accent-color:var(--yellow)}
+.rcp .knob b{color:var(--ink);font-weight:600;min-width:28px}
+.rcp .steps{width:100%;display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--faint)}
+.rcp.ghost{border-style:dashed;border-color:var(--line2);background:none;color:var(--faint)}
+.rcp.ghost .rc-h b{color:var(--dim)}
+.rcp.ghost button.lock{margin-left:auto;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);border-radius:99px;font-size:11px;padding:2px 9px;cursor:pointer}
+/* plan checklist in the thread */
+.plan{display:flex;flex-direction:column;gap:5px;margin:2px 0 9px;padding:8px 10px;border:1px solid var(--line2);border-radius:12px;background:var(--panel2)}
+.plan .ph{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--faint)}
+.plan .ps{display:grid;grid-template-columns:20px 1fr;gap:2px 8px;font-size:12px;align-items:start}
+.plan .ps .st{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--line2);font-size:10px;color:var(--faint)}
+.plan .ps.done .st{border-color:var(--grn);color:var(--grn)}
+.plan .ps.running .st{border-color:var(--yellow);color:var(--yellow);animation:plpulse 1.2s ease-in-out infinite}
+.plan .ps.error .st{border-color:var(--red);color:var(--red)}
+.plan .ps b{color:var(--ink);font-weight:600}
+.plan .ps .pd{color:var(--dim)}
+.plan .ps .pi{grid-column:2;font-size:11px;color:var(--faint);overflow-wrap:anywhere}
+.plan .ps details{grid-column:2;font-size:11px;color:var(--faint)}
+.plan .ps details pre{white-space:pre-wrap;margin:4px 0 0;font-size:11px;max-height:180px;overflow:auto}
+@keyframes plpulse{50%{opacity:.45}}
+@media(max-width:860px){.rcp .knob input[type=range]{width:70px}}
+</style>
+<style id="mml-mcard">
+/* mascot status card: what the lab is doing right now — model, steps, stage, everything the prompt is using */
+#mascot .in{pointer-events:auto;cursor:pointer}
+#mascot .mcard{display:none;margin-top:8px;margin-left:auto;width:330px;max-width:calc(100vw - 32px);padding:11px 12px 10px;border-radius:16px;background:rgba(13,8,6,.84);border:1px solid var(--line);backdrop-filter:blur(10px);box-shadow:0 14px 40px rgba(0,0,0,.45);pointer-events:none}
+#mascot.has-card .mcard{display:block}
+/* open / close styles (click the atom): unfold · slide · accordion · orbit */
+#mascot[data-anim=unfold] .mcard{transform-origin:top right;transition:transform .42s cubic-bezier(.2,.9,.3,1.2),opacity .3s}
+#mascot[data-anim=unfold].mc-hide .mcard{transform:scale(.08);opacity:0}
+#mascot[data-anim=slide] .mcard{transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .35s,filter .45s}
+#mascot[data-anim=slide].mc-hide .mcard{transform:translateY(-14px);opacity:0;filter:blur(6px)}
+#mascot[data-anim=accordion] .mcard{max-height:460px;overflow:hidden;transition:max-height .45s cubic-bezier(.3,.8,.3,1),padding .45s,opacity .3s}
+#mascot[data-anim=accordion].mc-hide .mcard{max-height:0;padding-top:0;padding-bottom:0;opacity:0}
+#mascot[data-anim=accordion] .mcard>*{transition:opacity .3s,transform .3s}
+#mascot[data-anim=accordion].mc-hide .mcard>*{opacity:0;transform:translateY(-6px)}
+#mascot[data-anim=accordion] .mcard>*:nth-child(2){transition-delay:.05s}#mascot[data-anim=accordion] .mcard>*:nth-child(3){transition-delay:.1s}
+#mascot[data-anim=accordion] .mcard>*:nth-child(4){transition-delay:.15s}#mascot[data-anim=accordion] .mcard>*:nth-child(5){transition-delay:.2s}
+#mascot[data-anim=orbit] .mcard{clip-path:circle(150% at 94% 0%);transition:clip-path .55s cubic-bezier(.4,0,.2,1)}
+#mascot[data-anim=orbit].mc-hide .mcard{clip-path:circle(0% at 94% 0%)}
+@media (prefers-reduced-motion:reduce){#mascot .mcard,#mascot .mcard>*{transition:none!important}}
+html[data-theme] #mascot .mcard{background:color-mix(in srgb,var(--surface) 93%,transparent)}
+.mc-h{display:flex;align-items:center;gap:10px}
+.mc-ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--mc);background:color-mix(in srgb,var(--mc) 16%,transparent);border:1px solid color-mix(in srgb,var(--mc) 55%,transparent)}
+.mc-ic .mi{width:22px;height:22px}
+#mascot[data-s=render] .mc-ic{animation:mcglow 1.6s ease-in-out infinite}
+@keyframes mcglow{50%{box-shadow:0 0 16px color-mix(in srgb,var(--mc) 55%,transparent)}}
+.mc-h .mc-t{min-width:0;flex:1}
+.mc-h b{display:block;font:700 11px var(--mono);letter-spacing:.08em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-h small{display:block;margin-top:2px;font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-h em{flex:none;font:600 11px var(--mono);font-style:normal;color:var(--mc)}
+.mc-route{display:flex;gap:5px;align-items:flex-start;margin-top:8px;font-size:11px;color:var(--dim);line-height:1.35}
+.mc-route .mi{flex:none;color:#b48cff;width:13px;height:13px;margin-top:1px}
+.mc-route b{color:var(--ink);font-weight:600}
+.mc-steps{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:9px}
+.mc-st{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 3px 6px;border-radius:99px;font-size:11px;border:1px solid var(--line2);color:var(--faint)}
+.mc-st .mi{width:13px;height:13px}
+.mc-st.done{color:var(--grn);border-color:color-mix(in srgb,var(--grn) 50%,transparent)}
+.mc-st.running{color:var(--ink);border-color:var(--sc,var(--mc));background:color-mix(in srgb,var(--sc,var(--mc)) 18%,transparent);animation:plpulse 1.4s ease-in-out infinite}
+.mc-st.error{color:var(--red);border-color:color-mix(in srgb,var(--red) 55%,transparent)}
+.mc-sep{color:var(--faint);font-size:10px}
+.mc-bar{position:relative;height:3px;margin-top:9px;border-radius:2px;background:var(--line2);overflow:hidden}
+.mc-bar i{position:absolute;top:0;bottom:0;left:0;width:34%;background:linear-gradient(90deg,transparent,var(--mc),transparent);animation:mcbar 1.5s linear infinite}
+.mc-bar.det{height:5px}.mc-bar.det i{animation:none;background:var(--mc);transition:width .8s ease;border-radius:3px}
+.mc-pg{display:flex;justify-content:space-between;margin-top:4px;font:10px var(--mono);color:var(--faint);letter-spacing:.04em}.mc-pg b{color:var(--dim);font-weight:600}
+#mascot[data-s=queued] .mc-bar i{animation-duration:3.5s;opacity:.5}
+#mascot[data-s=done] .mc-bar i{animation:none;width:100%;background:var(--grn)}
+#mascot[data-s=error] .mc-bar i{animation:none;width:100%;background:var(--red)}
+@keyframes mcbar{from{transform:translateX(-100%)}to{transform:translateX(300%)}}
+.mc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}
+.mc-tag{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:2px 7px;border-radius:7px;font-size:10.5px;color:var(--dim);background:var(--panel2);border:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-tag .mi{flex:none;width:11px;height:11px;color:var(--mc)}
+@keyframes plpulse{50%{opacity:.5}}
+@media(max-width:860px){
+  #mascot .mcard{position:absolute;top:44px;right:0;width:calc(100vw - 24px);padding:9px 10px}
+  .mc-ic{width:34px;height:34px}.mc-tags .mc-tag:nth-child(n+9){display:none}
+}
+</style>
+<style id="mml-mcard2">
+/* status card redesign: layered glass, model-coloured edge light, soft depth shadows */
+#mascot .mcard{position:relative;overflow:hidden;width:340px;padding:13px 14px 12px;border-radius:20px;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--mc) 14%,rgba(22,16,12,.92)) 0%,rgba(14,10,8,.94) 46%,rgba(10,8,7,.96) 100%);
+  border:1px solid color-mix(in srgb,var(--mc) 32%,rgba(255,255,255,.06));
+  box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 0 0 1px rgba(0,0,0,.35),0 10px 24px -6px rgba(0,0,0,.55),0 28px 60px -12px color-mix(in srgb,var(--mc) 30%,rgba(0,0,0,.6));
+  backdrop-filter:blur(14px) saturate(1.2)}
+#mascot .mcard::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--mc) 80%,#fff),transparent);opacity:.8}
+#mascot .mcard::after{content:"";position:absolute;width:180px;height:180px;right:-60px;top:-90px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,color-mix(in srgb,var(--mc) 32%,transparent),transparent 70%)}
+html[data-theme] #mascot .mcard{background:linear-gradient(160deg,color-mix(in srgb,var(--mc) 10%,var(--surface)) 0%,var(--surface) 55%)}
+#mascot .mcard>*{position:relative;z-index:1}
+.mc-ic{width:44px;height:44px;border-radius:14px;color:#fff;border:0;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--mc) 92%,#fff) 0%,var(--mc) 45%,color-mix(in srgb,var(--mc) 60%,#000) 100%);
+  box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 -2px 6px rgba(0,0,0,.25) inset,0 6px 16px -4px color-mix(in srgb,var(--mc) 70%,transparent)}
+.mc-ic .mi{width:22px;height:22px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+.mc-h b{font-size:11.5px;letter-spacing:.09em}
+.mc-h em{padding:3px 8px;border-radius:99px;background:color-mix(in srgb,var(--mc) 16%,transparent);border:1px solid color-mix(in srgb,var(--mc) 40%,transparent)}
+.mc-route{padding:7px 9px;border-radius:11px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.05)}
+.mc-steps{gap:5px}
+.mc-st{background:rgba(255,255,255,.03);box-shadow:0 2px 6px -2px rgba(0,0,0,.4)}
+.mc-st.done{background:color-mix(in srgb,var(--grn) 10%,transparent)}
+.mc-st.running{box-shadow:0 0 0 1px color-mix(in srgb,var(--sc,var(--mc)) 30%,transparent),0 4px 14px -4px color-mix(in srgb,var(--sc,var(--mc)) 70%,transparent)}
+.mc-bar{height:4px;margin-top:11px;background:rgba(255,255,255,.07);box-shadow:0 1px 2px rgba(0,0,0,.4) inset}
+.mc-bar.det{height:6px}
+.mc-bar.det i{background:linear-gradient(90deg,color-mix(in srgb,var(--mc) 70%,#000),var(--mc),color-mix(in srgb,var(--mc) 60%,#fff));box-shadow:0 0 10px color-mix(in srgb,var(--mc) 60%,transparent)}
+.mc-tags{gap:5px;margin-top:10px}
+.mc-tag{padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+html[data-theme] .mc-route,html[data-theme] .mc-tag,html[data-theme] .mc-st{background:var(--panel2);border-color:var(--line2)}
+@media(max-width:860px){#mascot .mcard{width:calc(100vw - 24px);border-radius:18px}}
+</style>
+<style id="mml-flask">
+/* liquid-flask mascot (the lab icon): level = render progress; render sloshes, splashes and spills; error shakes + smokes */
+#mascot{--fc:var(--acc,var(--orange))}
+#mascot[data-s=render],#mascot[data-s=queued]{--fc:var(--mc,var(--orange))}
+#mascot[data-s=done]{--fc:var(--grn)}#mascot[data-s=error]{--fc:var(--red)}#mascot[data-s=offline]{--fc:#6a5a50}
+#m-flask{overflow:visible;display:block}
+#m-flask .gl{stroke:var(--fc);fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;transition:stroke .4s}
+#m-flask .gf{fill:var(--fc);transition:fill .4s}
+#m-flask .glow{animation:mf-glow 2.6s ease-in-out infinite}
+#m-flask .bob{transform-origin:60px 112px;animation:mf-bob 3.4s ease-in-out infinite}
+#m-flask .lvl{transition:transform 1.2s cubic-bezier(.3,.8,.3,1)}
+#m-flask .sl{transform-origin:60px 80px;animation:mf-slosh 3s ease-in-out infinite}
+#m-flask .w1{animation:mf-wave 2s linear infinite}#m-flask .w2{animation:mf-wave 3.1s linear infinite reverse}
+#m-flask .bub{transform-box:fill-box;animation:mf-rise 2.6s ease-in infinite}
+#m-flask .mm{animation:mf-m 3s ease-in-out infinite}
+#m-flask .sp,#m-flask .spl,#m-flask .spr,#m-flask .drp,#m-flask .pud,#m-flask .smk{opacity:0}
+#m-flask .drp,#m-flask .pud{transform-box:fill-box}#m-flask .drp{transform-origin:top}#m-flask .pud{transform-origin:center}
+#mascot[data-s=render] #m-flask .glow{animation-duration:.7s}
+#mascot[data-s=render] #m-flask .bob{animation-duration:1s}
+#mascot[data-s=render] #m-flask .sl{animation:mf-slosh2 1s ease-in-out infinite}
+#mascot[data-s=render] #m-flask .w1{animation-duration:.7s}#mascot[data-s=render] #m-flask .w2{animation-duration:1s}
+#mascot[data-s=render] #m-flask .bub{animation-duration:.9s}
+#mascot[data-s=render] #m-flask .mm{animation-duration:.8s}
+#mascot[data-s=render] #m-flask .sp{animation:mf-splash 1s ease-out infinite}
+#mascot:is([data-s=render],[data-s=done]) #m-flask .spl{animation:mf-spillL 1.6s ease-in infinite}
+#mascot:is([data-s=render],[data-s=done]) #m-flask .spr{animation:mf-spillR 1.6s ease-in infinite}
+#mascot:is([data-s=render],[data-s=done]) #m-flask .drp{animation:mf-drip 1.8s ease-in infinite}
+#mascot:is([data-s=render],[data-s=done]) #m-flask .pud{animation:mf-puddle 2s ease-in-out infinite}
+#mascot[data-s=queued] #m-flask .sl{animation-duration:5s}
+#mascot[data-s=error] #m-flask .bob{animation:mf-shake .45s infinite}
+#mascot[data-s=error] #m-flask .bub{display:none}
+#mascot[data-s=error] #m-flask .smk{animation:mf-smoke 1.5s ease-out infinite}
+#mascot[data-s=offline] #m-flask *{animation:none!important}
+@keyframes mf-glow{0%,100%{filter:drop-shadow(0 0 2px var(--fc))}50%{filter:drop-shadow(0 0 9px var(--fc))}}
+@keyframes mf-wave{to{transform:translateX(-40px)}}
+@keyframes mf-slosh{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+@keyframes mf-slosh2{0%,100%{transform:rotate(-12deg) translateY(1px)}50%{transform:rotate(12deg) translateY(-2px)}}
+@keyframes mf-rise{0%{transform:translate(0,0) scale(.5);opacity:0}15%{opacity:.95}100%{transform:translate(var(--dx,0),-46px) scale(1.15);opacity:0}}
+@keyframes mf-splash{0%{transform:translate(0,0) scale(.4);opacity:0}10%{opacity:1}100%{transform:translate(var(--sx),var(--sy)) scale(1);opacity:0}}
+@keyframes mf-spillL{0%{transform:translate(0,0);opacity:0}10%{opacity:1}45%{transform:translate(-9px,6px)}100%{transform:translate(-13px,64px);opacity:0}}
+@keyframes mf-spillR{0%{transform:translate(0,0);opacity:0}10%{opacity:1}45%{transform:translate(9px,6px)}100%{transform:translate(13px,64px);opacity:0}}
+@keyframes mf-drip{0%{transform:scaleY(0);opacity:0}30%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1) translateY(18px);opacity:0}}
+@keyframes mf-puddle{0%,100%{transform:scaleX(.7);opacity:.35}50%{transform:scaleX(1.1);opacity:.6}}
+@keyframes mf-bob{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-2px) rotate(-1.5deg)}75%{transform:translateY(-1px) rotate(1.5deg)}}
+@keyframes mf-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-3px) rotate(-3deg)}40%{transform:translateX(3px) rotate(3deg)}60%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
+@keyframes mf-smoke{0%{transform:translate(0,0) scale(.5);opacity:.6}100%{transform:translate(var(--dx,0),-34px) scale(1.8);opacity:0}}
+@keyframes mf-m{0%,100%{opacity:.85}50%{opacity:1;filter:drop-shadow(0 0 6px var(--fc))}}
+@media (prefers-reduced-motion:reduce){#m-flask *{animation:none!important}}
+</style>
+<style id="mml-bubble2">
+/* mascot bubble redesign: status-tinted glass capsule, flask sits in a lit orb, live status dot + coloured title */
+#mascot .in{position:relative;gap:10px;padding:5px 5px 5px 14px;border-radius:999px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--fc) 20%,rgba(24,16,12,.9)) 0%,rgba(14,10,8,.9) 60%,color-mix(in srgb,var(--fc) 10%,rgba(10,8,7,.92)) 100%);
+  border:1px solid color-mix(in srgb,var(--fc) 45%,rgba(255,255,255,.08));
+  box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 8px 22px -8px rgba(0,0,0,.6),0 0 22px -6px color-mix(in srgb,var(--fc) 55%,transparent);
+  -webkit-backdrop-filter:blur(12px) saturate(1.3);backdrop-filter:blur(12px) saturate(1.3);
+  transition:transform .2s,box-shadow .3s,border-color .3s,background .3s}
+#mascot .in:hover{transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 10px 26px -8px rgba(0,0,0,.65),0 0 30px -4px color-mix(in srgb,var(--fc) 70%,transparent)}
+#mascot #m-flask{width:40px;height:40px;padding:3px 4px 2px;box-sizing:border-box;border-radius:50%;
+  background:radial-gradient(circle at 50% 38%,color-mix(in srgb,var(--fc) 30%,rgba(255,255,255,.06)),rgba(0,0,0,.35) 72%);
+  box-shadow:0 0 0 1.5px color-mix(in srgb,var(--fc) 70%,transparent),0 0 0 4px color-mix(in srgb,var(--fc) 14%,transparent),0 2px 8px rgba(0,0,0,.5) inset}
+#mascot[data-s=render] #m-flask{animation:mb-ring 1.8s ease-in-out infinite}
+@keyframes mb-ring{50%{box-shadow:0 0 0 1.5px var(--fc),0 0 0 6px color-mix(in srgb,var(--fc) 22%,transparent),0 2px 8px rgba(0,0,0,.5) inset}}
+#mascot .lbl{font:9.5px var(--mono);letter-spacing:.1em;line-height:1.4}
+#mascot .lbl b{display:flex;align-items:center;justify-content:flex-end;gap:6px;font-size:11px;letter-spacing:.08em;color:color-mix(in srgb,var(--fc) 55%,var(--ink))}
+#mascot .lbl b::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--fc);box-shadow:0 0 7px var(--fc)}
+#mascot[data-s=render] .lbl b::before,#mascot[data-s=queued] .lbl b::before{animation:plpulse 1.2s ease-in-out infinite}
+#mascot[data-s=idle] .lbl b{color:var(--ink)}
+html[data-theme] #mascot .in{background:linear-gradient(135deg,color-mix(in srgb,var(--fc) 14%,var(--surface)),var(--surface))}
+@media(max-width:860px){#mascot #m-flask{width:34px!important;height:34px!important;padding:2px 3px 1px}#mascot .in{background:rgba(13,8,6,.75)}}
+@media (prefers-reduced-motion:reduce){#mascot #m-flask,#mascot .lbl b::before{animation:none!important}}
+
+/* iPad landscape (both side columns showing, chat is narrow): keep the status card compact and on one steady line */
+@media(min-width:861px) and (max-width:1180px){
+  #mascot{top:42px;right:8px}
+  #mascot .mcard{width:296px;padding:11px 12px 10px}
+  #mascot[data-anim=slide] .mcard{transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .3s}
+  #mascot[data-anim=slide].mc-hide .mcard{filter:none}
+  .mc-ic{width:38px;height:38px}
+  .mc-steps{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+  .mc-steps::-webkit-scrollbar{display:none}
+  .mc-st{flex:none;padding:2px 8px 2px 5px;font-size:10.5px;box-shadow:none}
+  .mc-st.running{animation:none}
+  .mc-tags .mc-tag:nth-child(n+7){display:none}
+  #mascot .lbl span{display:inline-block;max-width:170px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+}
+</style>
 </head>
 <body data-tab="create">
 <div class="app">
@@ -520,8 +814,8 @@ window.MML_THEMES=[
       <div class="pill q" id="p-q"><span class="d"></span>QUEUE <b id="p-q-v">0</b></div>
     </div>
     <button class="iconbtn" id="b-users" title="Host control — who has access" style="display:none"><i class="mi" data-ic="shield"></i></button>
-    <a class="iconbtn" id="b-patreon" href="https://www.patreon.com/MirCorp" target="_blank" rel="noopener" title="Support MIR MEDIA LABS on Patreon" style="color:#f96854;display:inline-grid;place-items:center;text-decoration:none"><i class="mi" data-ic="heart"></i></a>
-    <button class="iconbtn" id="b-about" title="About · report a bug · feedback"><i class="mi" data-ic="note"></i></button>
+    <a class="iconbtn" id="b-patreon" href="https://www.patreon.com/cw/MirCorp" target="_blank" rel="noopener" title="Support MIR MEDIA LABS on Patreon" style="color:#f96854;display:inline-grid;place-items:center;text-decoration:none"><i class="mi" data-ic="heart"></i></a>
+    <button class="iconbtn" id="b-about" title="Help · about · report a bug"><i class="mi" data-ic="note"></i></button>
     <button class="iconbtn" id="b-settings" title="Settings"><i class="mi" data-ic="gear"></i></button>
   </header>
 
@@ -557,19 +851,9 @@ window.MML_THEMES=[
 
     <section class="col center">
       <div class="card chat">
-        <div class="h">Lab chat<span class="sp"></span><button class="btn sm" id="b-book" title="Command book — or type /help"><i class="mi" data-ic="book"></i> Commands</button><button class="btn sm" id="b-clear">Clear finished</button></div>
+        <div class="h">Lab chat<span class="sp"></span><button class="btn sm" id="b-panel" title="Hide the left panel for a wider chat"><i class="mi" data-ic="chevron-left"></i> Panel</button><button class="btn sm" id="b-book" title="Command book — or type /help"><i class="mi" data-ic="book"></i> Commands</button><button class="btn sm" id="b-clear">Clear finished</button></div>
         <div class="thread" id="thread"></div>
-<div id="mascot" data-s="idle"><div class="in"><svg viewBox="0 0 80 56" width="46" height="32"><g class="cam">
-<rect x="14" y="4" width="22" height="10" rx="2" fill="#1c120d" stroke="#5a3a2a"/><rect x="16" y="6" width="18" height="6" rx="1" fill="#0b0503"/>
-<rect class="scanl" x="16" y="6" width="18" height="1" fill="#1fc8dc"/>
-<path d="M8 16h44l6 6v20a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V20a4 4 0 0 1 4-4z" fill="#22160f" stroke="#6b4632"/>
-<rect x="10" y="22" width="22" height="3" rx="1.5" fill="#ff5a1f"/><rect x="10" y="28" width="14" height="2" rx="1" fill="#5a3a2a"/>
-<circle class="rec" cx="12" cy="38" r="2.5" fill="#ff3b5c"/><text x="17" y="40" font-size="5" font-family="monospace" class="rec" fill="#ff3b5c">REC</text>
-<text x="17" y="40" font-size="5" font-family="monospace" class="stby" fill="#ffc21a">STBY</text>
-<rect x="58" y="20" width="10" height="24" rx="2" fill="#1c120d" stroke="#6b4632"/><rect x="66" y="16" width="12" height="32" rx="3" fill="#2c1d14" stroke="#6b4632"/>
-<circle cx="72" cy="32" r="6" fill="#0b0503"/><circle class="lens" cx="72" cy="32" r="4"/>
-<g class="rot"><line x1="72" y1="25" x2="72" y2="28" stroke="#6b4632"/><line x1="72" y1="36" x2="72" y2="39" stroke="#6b4632"/></g>
-</g></svg><div class="lbl"><b id="m-t">Standby</b><span id="m-s">lab ready</span></div></div></div>
+<div id="mascot" data-s="idle" data-anim="slide"><div class="in"><svg id="m-flask" viewBox="0 0 120 130" width="40" height="44" aria-hidden="true"></svg><div class="lbl"><b id="m-t">Ready</b><span id="m-s">lab ready</span></div></div><div class="mcard" id="m-card"></div></div>
         <div id="perfcard" hidden title="Live PC performance (desktop app only) — click to collapse">
           <div class="pc-row">
             <div class="pc-m"><span>CPU</span><i><b id="pc-cpu-b"></b></i><em id="pc-cpu">–</em></div>
@@ -582,8 +866,11 @@ window.MML_THEMES=[
         </div>
         <div class="composer">
           <div class="ac" id="ac"></div>
+          <div class="recipe" id="recipe"></div>
           <div class="atts" id="atts"></div><div class="atts" id="lsel"></div>
           <div class="inrow">
+            <div class="pill" id="pill">
+            <div class="recbar"><i class="dot"></i><span id="rec-t">0:00</span><span class="lvl"><b id="rec-l"></b></span><button id="rec-x" title="Discard the recording"><i class="mi" data-ic="trash"></i></button></div>
             <div style="position:relative;flex:none" class="tm">
               <button class="tool" id="b-more" title="Attach · parameters · skills · LoRAs"><i class="mi" data-ic="plus"></i></button>
               <div class="menu" id="moremenu">
@@ -595,6 +882,7 @@ window.MML_THEMES=[
                 <button data-x="book"><i class="mi" data-ic="book"></i> Command book<small>every slash command</small></button>
               </div>
             </div>
+            <textarea class="prompt" id="prompt" rows="1" placeholder="Message the lab…"></textarea>
             <div style="position:relative;flex:none" class="tw">
               <button class="tool" id="b-attach" title="Attach references (audio, image, text, video)"><i class="mi" data-ic="attach"></i></button>
               <div class="menu" id="attmenu">
@@ -603,7 +891,7 @@ window.MML_THEMES=[
               </div>
             </div>
             <button class="tool" id="b-params" title="Parameters for this model"><i class="mi" data-ic="sliders"></i></button>
-            <textarea class="prompt" id="prompt" rows="1" placeholder="Message the lab…"></textarea>
+            </div>
             <button class="go" id="b-go"><span class="gt">SEND </span><i class="mi" data-ic="send"></i></button>
           </div>
           <div class="hint" id="hint"></div>
@@ -709,7 +997,7 @@ function renderHint(){
   if(cur==='qimg')b=`<b>${esc(v.mode)}</b> · ${esc(v.aspect)} · ${esc(v.size)} · ${esc(v.steps)} steps`;
   if(cur==='ace')b=`<b>${esc(v.mode)}</b> · ${esc(v.duration)}s · ${esc(v.steps)} steps · bpm ${esc(v.bpm||'auto')} · ${esc(v.key)}`;
   const acc=Object.entries(m.accepts).map(([k,t])=>`${ICON[k]} ${esc(t)}`).join(' &nbsp;·&nbsp; ');
-  $('#hint').innerHTML=(ARMED?`<span class="armed">${MI.html(ARMED.icon)} ${esc(ARMED.name)}${ARMED.type==='pipeline'?' · '+ARMED.steps.length+' steps':''}<button id="unarm" title="Cancel skill">${MI.html('close')}</button></span>`:'')+`<span>→ <b>${esc(m.label)}</b> · ${MI.html('sliders','sm')} ${b}</span><span>${MI.html('attach','sm')} ${acc}</span><span>Ctrl+Enter to send</span>`;
+  $('#hint').innerHTML=`<span>→ <b>${esc(m.label)}</b> · ${MI.html('sliders','sm')} ${b}</span><span>${MI.html('attach','sm')} ${acc}</span><span>Ctrl+Enter to send</span>`;
 }
 
 /* attachments */
@@ -763,29 +1051,100 @@ $('#prompt').addEventListener('keydown',e=>{
     if(e.key==='Escape'){closeAC();return}}
   if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();go()}});
 $('#prompt').addEventListener('input',acUpdate);
-$('#b-go').onclick=go;
+const go_send=go;$('#b-go').onclick=go;
 
-/* mascot: broadcast cam mirrors the lab live */
+/* mascot: the atom mirrors the lab live */
+/* mascot status card — model icon + colour, MUSE's pick, pipeline steps, live stage, and the tags the prompt is using */
+const MICON={auto:'sparkle',h3:'film',music3:'mic',qimg:'image',ace:'drum',llama:'type'};
+const ROLE_IC={image:'image',video:'film',song:'mic',music:'drum',text:'type'};
+function mcTags(j){const p=j.params||{},m=j.model,t=[],seen=new Set();
+  const add=(ic,v)=>{v=v==null?'':String(v).trim();if(!v||/^(auto|none|undefined|null|s|≤s)$/i.test(v)||seen.has(v.toLowerCase()))return;seen.add(v.toLowerCase());t.push([ic,v])};
+  if(j.pipeline)add('chain',j.pipeline);else if(j.skill)add('sparkle',j.skill);
+  if(m==='h3'){add('wand',p.mode);add('expand',p.aspect);add('clock',p.seconds?p.seconds+'s':'');add('bolt',p.quality);add('image',p.res)}
+  if(m==='music3'){add('clock',p.duration?'up to '+p.duration+'s':'');add('note',p.lyrics==='instrumental'?'instrumental':'lyrics '+(p.lyrics||''))}
+  if(m==='qimg'){add('wand',p.mode);add('expand',p.aspect);add('image',p.size)}
+  if(m==='ace'){add('wand',p.mode==='voice'?'voice swap':p.mode);if(p.mode==='text')add('clock',p.duration?p.duration+'s':'');add('drum',p.bpm?p.bpm+' BPM':'');add('music',p.key);
+    if(p.mode==='voice')add('mic','voice match '+(+p.voice).toFixed(2))}
+  if(m==='llama'){add('type',p.mode);add('note',p.length)}
+  const pr=j.prompt||'';
+  (pr.match(/--[\w-]+(?:\s+\d+(?:\.\d+)?)?/g)||[]).forEach(f=>add('command',f));
+  const b=pr.match(/\b(\d{2,3})\s*BPM\b/i);if(b)add('drum',b[1]+' BPM');
+  const k=pr.match(/\b([A-G][#b]?)\s+(major|minor)\b/);if(k)add('music',k[0]);
+  if(/\|\s*lyrics\s*:/i.test(pr))add('note','lyrics carried');
+  Object.entries(j.knobs||{}).forEach(([kk,v])=>add('sliders',kk+' '+v));
+  (j.loras||[]).forEach(l=>add('layers',l.name||l.file));
+  const kinds={};(j.refs||[]).forEach(r=>{const x=kindOf(r);if(x)kinds[x]=(kinds[x]||0)+1});
+  Object.entries(kinds).forEach(([x,n])=>add(x==='audio'?'music':x==='video'?'film':x==='text'?'note':'image',n+' '+({image:'picture',video:'clip',audio:'audio',text:'text'}[x]||x)+(n>1&&x!=='audio'?'s':'')+' in'));
+  return t.slice(0,14)}
+function mcCard(j,state,title){const m=MODELS[j.model]||{},col=m.color||'var(--orange)';
+  const plan=j.plan||[],run=plan.find(r=>r.status==='running');
+  const steps=plan.length?plan.map((r,i)=>{const st=state==='done'?'done':r.status,ic=st==='done'?'check':st==='error'?'close':ROLE_IC[r.role]||'dot';
+      return (i?'<span class="mc-sep">›</span>':'')+`<span class="mc-st ${st}" style="--sc:${col}">${MI.html(ic)} ${esc(r.label)}</span>`}).join(''):'';
+  const stage=state==='queued'?'waiting for the GPU':state==='done'?'saved to the library':state==='error'?(j.error||'render failed'):(j.stage||'rendering');
+  return `<div class="mc-h"><span class="mc-ic" title="${esc(m.label||j.model)}">${MI.html(MICON[j.model]||'sparkle')}</span>
+    <div class="mc-t"><b>${esc(m.label||j.model)}${plan.length?` · STEP ${esc(j.step||'')}`:''}</b><small>${esc(stage)}</small></div><em>${esc(title)}</em></div>
+    ${j.route?`<div class="mc-route">${MI.html('sparkle')}<span>MUSE chose <b>${esc(j.route.label)}</b>${j.route.why?' — '+esc(j.route.why):''}</span></div>`:''}
+    ${steps?`<div class="mc-steps">${steps}</div>`:''}
+    ${j.progress&&j.progress.max&&state==='render'?`<div class="mc-bar det"><i style="width:${j.progress.pct}%"></i></div><div class="mc-pg"><span>${esc(j.progress.what)}</span><b>${j.progress.value} / ${j.progress.max}</b></div>`:'<div class="mc-bar"><i></i></div>'}
+    <div class="mc-tags">${mcTags(j).map(([ic,v])=>`<span class="mc-tag">${MI.html(ic)}${esc(v)}</span>`).join('')}</div>`}
+
 (function(){
   const el=$('#mascot'),T=$('#m-t'),S=$('#m-s');let flash=null,lastSeen={},jobs=[];
+  let lastCard='';
+  function card(j,s,t){const c=$('#m-card');if(!j||!MODELS[j.model]){el.classList.remove('has-card');lastCard='';return}
+    el.classList.add('has-card');el.style.setProperty('--mc',MODELS[j.model].color||'var(--orange)');
+    /* only rebuild when content changes — the per-second timer just patches the clock so the bar/step animations don't restart (iPad flicker) */
+    const h=mcCard(j,s,'');if(h!==lastCard){c.innerHTML=h;lastCard=h}
+    const em=c.querySelector('.mc-h em');if(em&&em.textContent!==t)em.textContent=t}
   function render(){
-    if(flash&&Date.now()<flash.until){set(flash.s,flash.t,flash.sub);return}
+    if(flash&&Date.now()<flash.until){set(flash.s,flash.t,flash.sub);return card(flash.job,flash.s,flash.t)}
     const st=status||{};
-    if(st.comfy&&st.comfy.up===false&&!jobs.some(j=>j.status==='running'))return set('offline','Off air','gpu engine down');
+    if(st.comfy&&st.comfy.up===false&&!jobs.some(j=>j.status==='running')){card(null);return set('offline','Offline','gpu engine down')}
     const run=jobs.find(j=>j.status==='running'),q=jobs.find(j=>j.status==='queued');
-    if(run)return set('render','Rec · '+dur(run.started),((SHORT[run.model]||run.model)+' · '+(run.stage||'rendering')).slice(0,34));
-    if(q){const qs=st.queued||[];const pos=qs.indexOf(q.id)+1+(st.running?1:0);return set('queued','Standby'+(pos>0?' · #'+pos:''),'waiting for the gpu')}
+    if(run){set('render','Rendering · '+dur(run.started),((SHORT[run.model]||run.model)+' · '+(run.stage||'rendering')).slice(0,34));return card(run,'render',dur(run.started))}
+    if(q){const qs=st.queued||[];const pos=qs.indexOf(q.id)+1+(st.running?1:0);set('queued','Queued'+(pos>0?' · #'+pos:''),'waiting for the gpu');return card(q,'queued',pos>0?'#'+pos:'queued')}
+    card(null);
     if(st.running)return set('queued','Busy','gpu on another job');
-    set('idle','Standby','lab ready')}
+    set('idle','Ready','lab ready')}
+  try{if(localStorage.getItem('mml.mchide')==='1')el.classList.add('mc-hide')}catch(e){}
+  const pickAnim=()=>{el.dataset.anim=innerWidth<=860?'orbit':'slide'};pickAnim();addEventListener('resize',pickAnim);   // desktop: slide + focus · phone: orbit reveal
+  el.querySelector('.in').addEventListener('click',()=>{const h=el.classList.toggle('mc-hide');try{localStorage.setItem('mml.mchide',h?'1':'')}catch(e){}});
   function set(s,t,sub){el.dataset.s=s;T.textContent=t;S.textContent=sub}
   window.mascotJobs=js=>{jobs=js;
     js.forEach(j=>{const p=lastSeen[j.id];if(p&&p!==j.status&&(p==='running'||p==='queued')){
-      if(j.status==='done')flash={s:'done',t:'Cut — done',sub:(SHORT[j.model]||j.model)+' saved',until:Date.now()+6000};
-      else if(j.status==='error')flash={s:'error',t:'Tape error',sub:'render failed',until:Date.now()+8000}}
+      if(j.status==='done')flash={s:'done',t:'Done',sub:(SHORT[j.model]||j.model)+' saved',until:Date.now()+6000,job:j};
+      else if(j.status==='error')flash={s:'error',t:'Error',sub:'render failed',until:Date.now()+8000,job:j}}
       lastSeen[j.id]=j.status});
     render()};
   setInterval(render,1000);
+  /* liquid flask (the lab icon): level follows the render's real progress */
+  const FL='M51 10h18 M55 11v19 C38 36 18 54 18 80 C18 104 37 118 60 118 C83 118 102 104 102 80 C102 54 82 36 65 30 V11',
+        FC='M55 11v19 C38 36 18 54 18 80 C18 104 37 118 60 118 C83 118 102 104 102 80 C102 54 82 36 65 30 V11z';
+  $('#m-flask').innerHTML=`<defs><clipPath id="m-fclip"><path d="${FC}"/></clipPath></defs>
+<ellipse class="gf pud" cx="40" cy="124" rx="10" ry="2.2"/><ellipse class="gf pud" cx="80" cy="124" rx="10" ry="2.2" style="animation-delay:.6s"/>
+<g class="bob"><g clip-path="url(#m-fclip)"><g class="lvl" id="m-lvl"><g class="sl">
+<path class="gf w2" opacity=".28" d="M-20 64 q10-7 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 v90 h-160z"/>
+<path class="gf w1" opacity=".5" d="M-20 66 q10-6 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 v90 h-160z"/>
+<circle class="gf bub" cx="40" cy="104" r="2.6" style="--dx:3px"/><circle class="gf bub" cx="62" cy="108" r="2" style="animation-delay:.5s;--dx:-4px"/><circle class="gf bub" cx="80" cy="102" r="2.2" style="animation-delay:1s;--dx:2px"/><circle class="gf bub" cx="52" cy="110" r="1.5" style="animation-delay:1.5s"/><circle class="gf bub" cx="72" cy="112" r="1.3" style="animation-delay:2s;--dx:-2px"/>
+</g></g></g>
+<g class="glow"><path class="gl" d="${FL}"/></g>
+<path class="gl mm" d="M34 102V66l26 24 26-24v36" stroke-width="5.2"/>
+<g class="gf"><circle class="sp" cx="60" cy="10" r="2.4" style="--sx:-14px;--sy:-18px"/><circle class="sp" cx="60" cy="10" r="2" style="--sx:12px;--sy:-22px;animation-delay:.25s"/><circle class="sp" cx="60" cy="10" r="1.6" style="--sx:2px;--sy:-28px;animation-delay:.5s"/><circle class="sp" cx="60" cy="10" r="1.6" style="--sx:-6px;--sy:-24px;animation-delay:.75s"/>
+<circle class="spl" cx="54" cy="10" r="2.4"/><circle class="spl" cx="54" cy="10" r="1.8" style="animation-delay:.8s"/><circle class="spr" cx="66" cy="10" r="2.4" style="animation-delay:.4s"/><circle class="spr" cx="66" cy="10" r="1.8" style="animation-delay:1.2s"/>
+<path class="drp" d="M50 33 q-2 6 0 9 q2-3 0-9z" style="animation-delay:.3s"/><path class="drp" d="M70 33 q-2 6 0 9 q2-3 0-9z" style="animation-delay:1.1s"/></g>
+<circle class="gf smk" cx="60" cy="8" r="4" style="--dx:-6px"/><circle class="gf smk" cx="60" cy="8" r="3.4" style="animation-delay:.5s;--dx:6px"/><circle class="gf smk" cx="60" cy="8" r="3" style="animation-delay:1s"/>
+</g>`;
+  const LV=$('#m-lvl');
+  function level(){const s=el.dataset.s,run=jobs.find(j=>j.status==='running'),pg=run&&run.progress;
+    const pct=s==='done'?100:s==='error'?6:s==='offline'?10:s==='render'?(pg&&pg.max?pg.pct:35):s==='queued'?20:28;
+    LV.style.transform='translateY('+((1-pct/100)*58-8).toFixed(1)+'px)'}
+  setInterval(level,500);level();
 })();
+/* desktop: hide the whole left panel for a wider chat */
+(function(){const b=document.getElementById('b-panel');
+  function setH(h){document.body.classList.toggle('lcol-hide',h);b.innerHTML=MI.html(h?'chevron-right':'chevron-left')+' Panel';b.title=h?'Show the left panel':'Hide the left panel for a wider chat';try{localStorage.setItem('mml.lhide',h?'1':'')}catch(e){}}
+  let v='';try{v=localStorage.getItem('mml.lhide')}catch(e){}setH(v==='1');
+  b.onclick=()=>setH(!document.body.classList.contains('lcol-hide'));})();
 
 /* skills · pipelines · command book */
 var SK={skills:[],pipelines:[],commands:[],tips:[]},ARMED=null,skView='skills',acSel=0;
@@ -836,6 +1195,64 @@ function openBook(){
   $('#s-ft').innerHTML='';openSheet();
   $$('#s-body [data-ins]').forEach(r=>r.onclick=()=>{closeSheet();runOrInsert(r.dataset.ins)})}
 $('#b-book').onclick=openBook;$('#b-book2').onclick=openBook;
+/* recipes — the armed skill / manual inside the composer: its steps, which attachment feeds which step, its dials;
+   in Auto mode a quick-rules preview of what MUSE will most likely do (tap to lock it in) */
+var KNOBV={},PREVIEW=null,pvT=null,rcpMin=false;
+const SLOTN={audio:'Audio',image:'Picture',video:'Clip',text:'Text'};
+function rcpNeeds(o){return Object.entries(o.need||(o.needs&&typeof o.needs==='string'?{[o.needs]:1}:{})||{})}
+function rcpMissing(){if(!ARMED)return '';
+  for(const [k,n] of rcpNeeds(ARMED)){const have=atts.filter(a=>!a.uploading&&kindOf(a.name||'')===k).length;
+    if(have<n)return ARMED.id==='myvoice'?'Record or attach your voice (tap the mic) for '+ARMED.name:ARMED.name+' needs '+n+' attached '+({audio:'audio file',image:'picture',video:'clip',text:'text file'}[k]||k)+(n>1?'s':'')}
+  return ''}
+function rcpFlow(o){const st=o.type==='pipeline'?o.steps:[{icon:o.icon,label:ROLEN(o.role).toLowerCase().replace(/^./,c=>c.toUpperCase())}];
+  return st.map(s=>`${MI.html(s.icon,'sm')} ${esc(s.label)}`).join(' <span class="ar">→</span> ')}
+function rcpKnob(kb){const v=KNOBV[kb.k]??kb.def;
+  if(kb.type==='range')return `<label class="knob">${esc(kb.label)} <input type="range" data-kn="${kb.k}" min="${kb.min}" max="${kb.max}" step="${kb.step||0.05}" value="${v}"><b>${(+v).toFixed(2)}</b></label>`;
+  return `<label class="knob">${esc(kb.label)} <select data-kn="${kb.k}">${kb.opts.map(o=>{const [ov,ot]=Array.isArray(o)?o:[o,o];return `<option value="${esc(ov)}" ${String(v)===String(ov)?'selected':''}>${esc(ot)}</option>`}).join('')}</select></label>`}
+function renderRecipe(){const R=$('#recipe');if(!R)return;
+  if(ARMED){const o=ARMED,used={};
+    const slots=rcpNeeds(o).map(([k,n])=>{const have=atts.filter(a=>!a.uploading&&kindOf(a.name||'')===k),names=(o.slotnames||{})[k]||[];
+      return Array.from({length:n},(_,i)=>{const a=have[i],nm=names[i]||SLOTN[k]||k;
+        return a?`<span class="slot ok">${ICON[k]||''} ${esc(nm)} <em>${esc(a.label||a.name)}</em></span>`
+                :`<span class="slot miss" data-slot="${k}">${MI.html(k==='audio'?'mic':'attach','sm')} ${esc(nm)} — ${k==='audio'?'tap the mic or attach':'attach one'}</span>`}).join('')}).join('');
+    const knobs=(o.knobs||[]).map(rcpKnob).join('');
+    const steps=o.type==='pipeline'&&o.manual?`<div class="steps">${o.manual.map(s=>`<span>${esc(s)}</span>`).join('')}</div>`:'';
+    R.innerHTML=`<div class="rcp${rcpMin?' min':''}"><div class="rc-h">${MI.html(o.type==='pipeline'?'chain':o.icon,'sm')} <b>${esc(o.name)}</b><span class="rc-flow">${rcpFlow(o)}</span>
+      ${slots||knobs||steps?`<button class="rc-more" id="rc-min" title="Show / hide the details">${rcpMin?'details':'hide'}</button>`:''}<button class="rc-x" id="unarm" title="Cancel">${MI.html('close')}</button></div>
+      ${slots||knobs||steps?`<div class="rc-body">${steps}${slots}${knobs}</div>`:''}</div>`;
+    $$('#recipe [data-kn]').forEach(el=>el.oninput=()=>{const kb=(o.knobs||[]).find(x=>x.k===el.dataset.kn);KNOBV[kb.k]=kb.type==='range'?+el.value:el.value;
+      if(kb.type==='range')el.nextElementSibling.textContent=(+el.value).toFixed(2)});
+    $$('#recipe [data-slot]').forEach(el=>el.onclick=()=>{if(el.dataset.slot==='audio'&&$('#b-go').classList.contains('mic'))$('#b-go').click();else $('#file').click()});
+    const m=$('#rc-min');if(m)m.onclick=()=>{rcpMin=!rcpMin;renderRecipe()};$('#unarm').onclick=e=>{e.stopPropagation();disarm()};return}
+  if(cur==='auto'&&PREVIEW&&PREVIEW.action&&PREVIEW.action!=='chat'){
+    const lockable=PREVIEW.pipeline||PREVIEW.skill;
+    R.innerHTML=`<div class="rcp ghost"><div class="rc-h">${MI.html('sparkle','sm')} MUSE will likely: <b>${esc(PREVIEW.label)}</b>${PREVIEW.why?` <span>— ${esc(PREVIEW.why)}</span>`:''}
+      ${lockable?`<button class="lock" id="rc-lock" title="Use exactly this — and show its dials">Use this</button>`:''}</div></div>`;
+    const l=$('#rc-lock');if(l)l.onclick=()=>{const p=$('#prompt').value;arm(PREVIEW.pipeline?'pipeline':'skill',PREVIEW.pipeline||PREVIEW.skill);$('#prompt').value=p;autosize()};return}
+  R.innerHTML=''}
+function previewSoon(){clearTimeout(pvT);if(cur!=='auto'||ARMED){if(PREVIEW){PREVIEW=null;renderRecipe()}return}
+  pvT=setTimeout(async()=>{const p=$('#prompt').value.trim();
+    if(p.length<6||p.startsWith('/')){PREVIEW=null;return renderRecipe()}
+    const kinds=atts.filter(a=>!a.uploading).map(a=>kindOf(a.name||'')).filter(Boolean).join(',');
+    try{PREVIEW=await api('/api/plan/preview?prompt='+encodeURIComponent(p)+'&kinds='+kinds)}catch(e){PREVIEW=null}
+    renderRecipe()},380)}
+/* typing "/myvoice " (or any skill / manual id, or "/skill x " / "/pipe x ") turns it into the recipe chip */
+$('#prompt').addEventListener('input',()=>{const v=$('#prompt').value,m=v.match(/^\/(?:(skill|pipe|pipeline)\s+)?([a-z0-9]+)\s/i);
+  if(m){const id=m[2].toLowerCase(),want=m[1]?(m[1].toLowerCase()==='skill'?'skill':'pipeline'):null;
+    const sk=SK.skills.find(s=>s.id===id),pl=SK.pipelines.find(p=>p.id===id);
+    const type=want==='skill'?(sk&&'skill'):want==='pipeline'?(pl&&'pipeline'):(pl?'pipeline':sk?'skill':null);
+    if(type){const rest=v.slice(m[0].length);if(ARMED?.id!==id)arm(type,id);$('#prompt').value=rest;autosize();return}}
+  previewSoon()});
+(function(){const ra=renderAtts;renderAtts=function(){ra();renderRecipe();previewSoon()};
+  const a0=arm,d0=disarm;arm=function(t,id){KNOBV={};PREVIEW=null;a0(t,id);renderRecipe()};disarm=function(){KNOBV={};d0();renderRecipe();previewSoon()};
+  const s0=setModel;setModel=function(k){s0(k);renderRecipe();previewSoon()}})();
+function planHTML(j){if(!j.plan||!j.plan.length)return '';
+  const mark={done:MI.html('check','sm'),running:MI.html('hourglass','sm'),error:MI.html('close','sm')};
+  return `<div class="plan"><div class="ph">${MI.html('chain','sm')} THE MANUAL MUSE IS FOLLOWING</div>${j.plan.map(r=>{const st=j.status==='cancelled'&&r.status!=='done'?'waiting':r.status;
+    return `<div class="ps ${st}"><span class="st">${mark[st]||r.n}</span><span><b>${r.n}. ${esc(r.label)}</b> <span class="pd">— ${esc(r.does)}</span></span>
+      ${r.inputs&&r.inputs.length?`<span class="pi">${MI.html('attach','sm')} ${r.inputs.map(x=>esc(refLabel(x))).join(' · ')}</span>`:''}
+      ${r.used||r.prompt?`<details data-id="${j.id}_p${r.n}"><summary>${r.used?'prompt used':'MUSE wrote'}</summary><pre>${esc(r.used||r.prompt)}</pre></details>`:''}</div>`}).join('')}</div>`}
+
 let LAB_BUSY=false;
 async function go(){
   if(LAB_BUSY)return toast('One at a time — wait for the current request to finish');
@@ -846,10 +1263,10 @@ async function go(){
   if(lc==='/skills'){$('#prompt').value='';autosize();if(innerWidth<=860)setTab('create');return $('#sklist').scrollIntoView({behavior:'smooth'})}
   if(lc==='/clear'){$('#prompt').value='';autosize();return $('#b-clear').click()}
   if(!prompt&&!atts.length)return toast('Write a message or attach a reference');
-  if(ARMED?.needs&&!atts.some(a=>kindOf(a.name)===ARMED.needs))return toast(ARMED.name+' needs an attached '+ARMED.needs);
+  const miss=rcpMissing();if(miss){renderRecipe();return toast(miss)}
   $('#b-go').disabled=true;closeAC();
   const body={model:cur,prompt,refs:atts.map(a=>a.name),loras:(typeof loraSel!=='undefined'?loraSel.map(l=>({file:l.file,strength:l.strength})):[])};
-  if(ARMED)body[ARMED.type]=ARMED.id;
+  if(ARMED){body[ARMED.type]=ARMED.id;body.knobs=KNOBV}
   try{await api('/api/generate',{method:'POST',body:JSON.stringify(body)});
     $('#prompt').value='';autosize();atts=[];saveAtts();renderAtts();disarm();stick=true;pollJobs(true);pollStatus()}
   catch(e){toast(e.message);$('#b-go').disabled=false}
@@ -864,7 +1281,7 @@ async function pollJobs(force){
   jobs.forEach(j=>{if(j.status==='done'&&!seen.has(j.id)){seen.add(j.id);fresh=true;toast((SHORT[j.model]||j.model)+' finished')}});
   if(fresh){loadLib(true);pollStatus()}
   const active=jobs.some(j=>(j.status==='running'||j.status==='queued')&&j.mine!==false);
-  LAB_BUSY=active;$('#b-go').disabled=active;$('#b-go').innerHTML=active?'BUSY '+MI.html('hourglass'):'SEND '+MI.html('send');
+  LAB_BUSY=active;$('#b-go').disabled=active;$('#b-go').innerHTML=MI.html(active?'hourglass':'send');if(!active&&window.composerMode)composerMode();
   window.mascotJobs&&window.mascotJobs(jobs);
   const sig=JSON.stringify(jobs.map(j=>[j.id,j.status,j.stage,(j.files||[]).length,j.model==='llama'?(j.output||'').length:0]));
   if(sig!==jobsSig||force){jobsSig=sig;renderThread(jobs)}
@@ -939,7 +1356,7 @@ function renderThread(jobs){
     else body=`<div class="media">${(j.files||[]).map(mediaHTML).join('')}</div>
       <div class="acts">${(j.files||[]).map(fn=>`<button class="btn sm" data-open="${esc(fn)}">${MI.html('expand')} Open</button><button class="btn sm" data-use="${esc(fn)}">${MI.html('refresh')} Use as ref</button><a class="btn sm" href="/media/${encodeURIComponent(fn)}?dl=1" download="${esc(fn)}">${MI.html('download')} Download</a>`).join('')}<button class="btn sm" data-r="${j.id}">↺ Again</button></div>
       ${j.output?`<details data-id="${j.id}" ${open.has(j.id)?'open':''}><summary>details</summary><pre>${esc(j.output)}</pre></details>`:''}`;
-    const lab=`<div class="msg lab" data-job="${j.id}" data-model="${j.model}" style="--mc:${m.color||'#888'}"><div class="meta"><span class="chip">${esc(m.label||j.model)}</span>${j.pipeline&&j.step&&live?`<span class="pl-tag">step ${esc(j.step)}</span>`:''}<span class="st ${j.status}">${j.status.toUpperCase()}${t2?' · <span class="tm">'+t2+'</span>':''}</span>${j.finished?`<span>${stamp(j.finished)}</span>`:''}</div>${j.route?`<div class="route" title="${esc(j.route.by==='muse'?'decided by MUSE':'decided by the quick rules')}">${MI.html('sparkle','sm')} MUSE chose <b>${esc(j.route.label)}</b>${j.route.why?` <span>— ${esc(j.route.why)}</span>`:''}</div>`:''}${loraLine(j)}${body}</div>`;
+    const lab=`<div class="msg lab" data-job="${j.id}" data-model="${j.model}" style="--mc:${m.color||'#888'}"><div class="meta"><span class="chip">${esc(m.label||j.model)}</span>${j.pipeline&&j.step&&live?`<span class="pl-tag">step ${esc(j.step)}</span>`:''}<span class="st ${j.status}">${j.status.toUpperCase()}${t2?' · <span class="tm">'+t2+'</span>':''}</span>${j.finished?`<span>${stamp(j.finished)}</span>`:''}</div>${j.route?`<div class="route" title="${esc(j.route.by==='muse'?'decided by MUSE':'decided by the quick rules')}">${MI.html('sparkle','sm')} MUSE chose <b>${esc(j.route.label)}</b>${j.route.why?` <span>— ${esc(j.route.why)}</span>`:''}</div>`:''}${loraLine(j)}${planHTML(j)}${body}</div>`;
     return me+lab}).join('');
   if(stick)t.scrollTop=t.scrollHeight;
   $$('#thread [data-c]').forEach(b=>b.onclick=()=>api('/api/jobs/'+b.dataset.c+'/cancel',{method:'POST'}).then(()=>{toast('Cancelling…');pollJobs(true)}).catch(e=>toast(e.message)));
@@ -957,8 +1374,8 @@ $('#b-clear').onclick=()=>api('/api/jobs/clear',{method:'POST'}).then(()=>pollJo
 
 /* library + lightbox */
 function thumbHTML(it){const m=MODELS[it.model]||{};const c=m.color||'#888';const s=SHORT[it.model]||'';
-  if(it.kind==='audio')return `<div class="th aud" data-n="${esc(it.name)}" data-m="${esc(it.model||'')}" style="--mc:${c}" title="${esc(it.prompt||it.name)}"><span class="note">${MI.html('music','lg')}</span><div class="ov"><span class="m">${esc(s)}</span>${esc(it.name)}</div></div>`;
-  return `<div class="th" data-n="${esc(it.name)}" data-m="${esc(it.model||'')}" style="--mc:${c}" title="${esc(it.prompt||it.name)}"><img loading="lazy" src="/thumb/${encodeURIComponent(it.name)}" onerror="this.style.display='none'" alt="">${it.kind==='video'?'<span class="play">'+MI.html('play','sm')+' VIDEO</span>':''}<div class="ov"><span class="m">${esc(s)}</span></div></div>`}
+  if(it.kind==='audio')return `<div class="th aud" data-n="${esc(it.name)}" data-m="${esc(it.model||'')}" style="--mc:${c}" title="${esc(it.prompt||it.name)}"><span class="note">${MI.html('music','lg')}</span><button class="uref" data-ref="${esc(it.name)}" title="Add as a reference to your next message">${MI.html('plus','sm')} REF</button><div class="ov"><span class="m">${esc(s)}</span>${esc(it.name)}</div></div>`;
+  return `<div class="th" data-n="${esc(it.name)}" data-m="${esc(it.model||'')}" style="--mc:${c}" title="${esc(it.prompt||it.name)}"><img loading="lazy" src="/thumb/${encodeURIComponent(it.name)}" onerror="this.style.display='none'" alt="">${it.kind==='video'?'<span class="play">'+MI.html('play','sm')+' VIDEO</span>':''}<button class="uref" data-ref="${esc(it.name)}" title="Add as a reference to your next message">${MI.html('plus','sm')} REF</button><div class="ov"><span class="m">${esc(s)}</span></div></div>`}
 async function loadLib(reset){
   if(reset)libItems=[];
   let j;try{j=await api(`/api/library?kind=${libKind}&offset=${libItems.length}&limit=40`)}catch(e){return}
@@ -967,6 +1384,7 @@ async function loadLib(reset){
   $('#libcount').textContent=j.total+' item'+(j.total===1?'':'s');
   $('#more').style.display=libItems.length<j.total?'block':'none';
   $$('#grid .th').forEach(t=>t.onclick=()=>showFile(t.dataset.n,t.dataset.m));
+  $$('#grid .uref').forEach(b=>b.onclick=e=>{e.stopPropagation();useAsRef(b.dataset.ref)});
 }
 $('#more').onclick=()=>loadLib(false);
 $$('#filters button').forEach(b=>b.onclick=()=>{$$('#filters button').forEach(x=>x.classList.toggle('on',x===b));libKind=b.dataset.k;loadLib(true)});
@@ -1059,7 +1477,7 @@ $('#b-settings').onclick=()=>{
   let desk=false;
   try{if(new URLSearchParams(location.search).get('client')==='desktop')sessionStorage.setItem('mml_desktop','1');desk=sessionStorage.getItem('mml_desktop')==='1'}catch(e){}
   const isLocal=['127.0.0.1','localhost','[::1]'].includes(location.hostname);
-  const card=$('#perfcard');if(!desk||!isLocal||!card)return;
+  const card=$('#perfcard');if(!(desk||isLocal)||!card)return;   // this PC (any window) or the desktop app
   card.hidden=false;
   try{if(localStorage.getItem('mml_perf_min')==='1')card.classList.add('min')}catch(e){}
   card.onclick=()=>{card.classList.toggle('min');try{localStorage.setItem('mml_perf_min',card.classList.contains('min')?'1':'0')}catch(e){}};
@@ -1080,20 +1498,43 @@ $('#b-settings').onclick=()=>{
   tick();setInterval(tick,2000);
 })();
 /* about · bug report · feedback — opens the user's own mail app; nothing is sent automatically */
-const CREATOR={name:'MirCorp',email:'mirmedialabs@gmail.com',github:'https://github.com/MirCorp85/MirMediaLabs',patreon:'https://www.patreon.com/MirCorp'};
+const CREATOR={name:'MirCorp',email:'mirmedialabs@gmail.com',github:'https://github.com/MirCorp85/MirMediaLabs',patreon:'https://www.patreon.com/cw/MirCorp'};
 function mailTo(kind,diag){
   const v=(status&&status.version)||'?';
   const body=diag?`What happened:\n\n\nSteps to reproduce:\n1. \n\nExpected:\n\n\n---\nApp: v${v}\nBrowser: ${navigator.userAgent}\nScreen: ${screen.width}x${screen.height}\n`:'';
   location.href='mailto:'+CREATOR.email+'?subject='+encodeURIComponent('[MML '+kind+'] v'+v)+'&body='+encodeURIComponent(body);
 }
+/* help: same guides as the phone app's Help section */
+function helpHtml(){const port=location.port||'5400';
+  return `<div style="grid-column:1/-1;display:block;margin-top:14px"><div class="kv"><div><b>Help</b></div></div>
+  <details class="hguide"><summary>${MI.html('phone')} Connect the phone or TV app</summary><ol>
+    <li><b>Install the app</b> on Android (phone or TV) from the GitHub release.</li>
+    <li><b>Make an invite</b> on this PC: Host Control (shield button) → Invite / QR next to the person. Everyone gets their own key.</li>
+    <li><b>Scan the QR code</b> in the app, or paste the invite link. The app connects on home Wi-Fi and, if an away address is set, from anywhere.</li></ol></details>
+  <details class="hguide"><summary>${MI.html('phone')} Connecting an iPhone</summary><ol>
+    <li>There's no iPhone app to download: the lab installs on the iPhone as a home-screen app.</li>
+    <li><b>Get an invite</b> (Host Control → Invite / QR) and point the iPhone's Camera at the QR code, or open the invite link in Safari. The lab opens signed in.</li>
+    <li><b>Tap Share → Add to Home Screen → Add.</b> Always open the lab from that icon: it runs full screen and signs in by itself.</li>
+    <li>Away from home it needs the away-from-home address; a secure <code>https://</code> address works best on iPhone. Render notifications aren't available on iPhone yet.</li></ol></details>
+  <details class="hguide"><summary>${MI.html('router')} Use it away from home</summary><ol>
+    <li><b>Give this PC a fixed address</b> in your router (DHCP reservation).</li>
+    <li><b>Forward TCP port <code>${port}</code></b> on the router to this PC, and allow it in Windows Defender Firewall (Inbound Rules → Port → TCP ${port}).</li>
+    <li><b>Get a stable name</b> with free dynamic DNS (No-IP, DuckDNS or your router's DDNS).</li>
+    <li><b>Save it</b> in Host Control → Phones → Away-from-home address, so every new invite carries it.</li>
+    <li><b>Test with Wi-Fi off.</b> Testing from home Wi-Fi can fail on some routers even when everything is right.</li></ol></details>
+  <details class="hguide"><summary>${MI.html('warn')} Can't connect?</summary><ol>
+    <li><b>"Key isn't valid"</b>: the key was replaced or revoked (New key / Revoke in Host Control). Send a fresh invite.</li>
+    <li><b>Times out away from home</b>: the port forward or firewall rule is missing, or your provider uses CGNAT. Then use a VPN such as Tailscale or ZeroTier and its address instead.</li>
+    <li><b>"The host has paused remote access"</b>: turn Remote access back on in Host Control.</li>
+    <li><b>Too many wrong keys</b>: that address is locked out for 15 minutes.</li></ol></details></div>`}
 $('#b-about').onclick=()=>{
   const v=(status&&status.version)||'';
-  head('heart','#ffc21a','ABOUT');
+  head('heart','#ffc21a','HELP · ABOUT');
   $('#s-body').innerHTML=`<div class="kv">
     <div><b>MIR MEDIA LABS</b> ${v?'v'+esc(v):''}</div>
     <div>Created by <b>${CREATOR.name}</b> · © 2026 ${CREATOR.name}</div>
     <div>Free and open source under <code>GPL-3.0</code>. "MirCorp" and "MIR MEDIA LABS" are trademarks of MirCorp.</div>
-    <div>Contact: <code>${CREATOR.email}</code></div></div>`;
+    <div>Contact: <code>${CREATOR.email}</code></div></div>`+helpHtml();
   $('#s-ft').innerHTML=`<button class="btn" id="ab-bug">${MI.html('bug')} Report a bug</button>
     <button class="btn" id="ab-fb">${MI.html('note')} Send feedback</button>
     <a class="btn" href="${CREATOR.github}" target="_blank" rel="noopener">${MI.html('code')} Source</a>
@@ -1128,9 +1569,13 @@ function hostForm(u){const E=HOST.d.engines,al=u&&u.allow;const lim=u?u.daily:0;
     <div class="fld"><label>Daily limit</label><select id="hf-daily">${[[0,'Unlimited'],[5,'5 requests'],[10,'10 requests'],[25,'25 requests'],[50,'50 requests']].map(([v,t])=>`<option value="${v}" ${+lim===v?'selected':''}>${t}</option>`).join('')}${[0,5,10,25,50].includes(+lim)?'':`<option value="${lim}" selected>${lim} requests</option>`}</select></div>
     <div class="fld"><label>Access expires</label><select id="hf-exp">${[[0,'Never'],[1,'In 1 day'],[7,'In 7 days'],[30,'In 30 days'],[90,'In 90 days']].map(([v,t])=>`<option value="${v}" ${(ex===v||(!ex&&!v))?'selected':''}>${t}</option>`).join('')}${ex&&![1,7,30,90].includes(ex)?`<option value="${ex}" selected>In ${ex} days</option>`:''}</select></div></div>`}
 function hostFormVal(){return {name:$('#hf-name').value,allow:$$('.hchips input:checked').map(i=>i.value),daily:+$('#hf-daily').value,expires_days:+$('#hf-exp').value}}
+/* one QR at a time: two side by side made phone cameras grab the wrong one */
+function hqSwap(b){const w=b.closest('.hqrs');w.querySelectorAll('[data-qt]').forEach(x=>x.classList.toggle('on',x===b));
+  w.querySelectorAll('figure').forEach(f=>f.classList.toggle('on',f.dataset.q===b.dataset.qt))}
 function hostInviteCard(u){const link=hostInvite(u.key);
-  return `<div class="hinv"><img src="/api/host/qr?text=${encodeURIComponent(link)}" alt="QR invite" onerror="this.style.display='none'">
-    <div><b>Invite for ${esc(u.name)}</b><p>In the MIR MEDIA LABS app: tap <b>Scan QR</b> or <b>Paste invite link</b> and they're in. The phone camera also opens it in the browser.${HOST.d&&HOST.d.away?' Works at home and away.':' Home Wi-Fi only until you set an away address (Phones tab).'}</p>
+  const qr=(t,cap,on)=>`<figure class="${on?'on':''}" data-q="${on?0:1}"><img src="/api/host/qr?text=${encodeURIComponent(t)}" alt="${cap} QR" onerror="this.style.display='none'"><figcaption>${cap}</figcaption></figure>`;
+  return `<div class="hinv"><div class="hqrs"><div class="hqtab"><button class="on" data-qt="0" onclick="hqSwap(this)">Full invite</button><button data-qt="1" onclick="hqSwap(this)">Key only</button></div>${qr(link,'Full invite',1)}${qr(u.key,'Key only',0)}</div>
+    <div><b>Invite for ${esc(u.name)}</b><p>In the MIR MEDIA LABS app: tap <b>Scan QR</b> or <b>Paste invite link</b> and they're in. The phone camera also opens the full invite in the browser. Switch to <b>Key only</b> for a device that already has the lab's address (app sign-in screen or the web key box).${HOST.d&&HOST.d.away?' Works at home and away.':' Home Wi-Fi only until you set an away address (Phones tab).'}</p>
     <div class="hcopy"><code>${esc(link)}</code><button class="btn sm" data-cp="${esc(link)}">${MI.html('copy')} Copy link</button></div>
     <div class="hcopy"><code>${esc(u.key)}</code><button class="btn sm" data-cp="${esc(u.key)}">${MI.html('copy')} Copy key</button></div></div></div>`}
 function hostPeople(){const d=HOST.d,E=Object.fromEntries(d.engines.map(e=>[e.id,e.label]));
@@ -1351,6 +1796,47 @@ function lDetail(it){lFull=false;head('layers','var(--panel2)','LoRA');
   $('#l-browse').onclick=e=>{e.stopPropagation();lOpen()};
   $$('#l-roles button').forEach(b=>b.classList.toggle('on',b.dataset.r===lRole));
   lLoadInst();lLoad();})();
+
+/* composer: round button is a mic while empty (record a sound reference), send once there's something to send */
+(function(){
+  const go=$('#b-go'),pill=$('#pill'),P=$('#prompt');let rec=null;
+  function hasSomething(){return !!P.value.trim()||(typeof atts!=='undefined'&&atts.length>0)}
+  function mode(){if(rec)return;const mic=!hasSomething();go.classList.toggle('mic',mic);
+    go.innerHTML=MI.html(mic?'mic':'send');go.title=mic?'Record a sound to use as a reference':'Send'}
+  P.addEventListener('input',mode);new MutationObserver(mode).observe($('#atts'),{childList:true,subtree:true});
+  window.composerMode=mode;
+  function wav(buf){const ch=buf.getChannelData(0),sr=buf.sampleRate,n=ch.length,b=new ArrayBuffer(44+n*2),v=new DataView(b);
+    const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+    w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+    v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+    for(let i=0;i<n;i++){const s=Math.max(-1,Math.min(1,ch[i]));v.setInt16(44+i*2,s<0?s*0x8000:s*0x7FFF,true)}
+    return new Blob([b],{type:'audio/wav'})}
+  async function start(){
+    if(!navigator.mediaDevices||!window.MediaRecorder){
+      return toast(location.protocol==='https:'||/^(localhost|127\.)/.test(location.hostname)?'This browser can’t record audio':'Recording needs the lab’s secure https:// address — browsers only allow the microphone over https')}
+    let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})}catch(e){return toast('Microphone blocked — allow it in the browser to record')}
+    const mr=new MediaRecorder(stream),chunks=[],t0=Date.now(),ac=new AudioContext(),an=ac.createAnalyser(),src=ac.createMediaStreamSource(stream),data=new Uint8Array(256);
+    src.connect(an);an.fftSize=512;
+    rec={mr,stream,ac,cancel:false};mr.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+    mr.onstop=async()=>{const r=rec;rec=null;r.stream.getTracks().forEach(t=>t.stop());clearInterval(r.tick);pill.classList.remove('recording');go.classList.remove('rec');
+      if(!r.cancel&&chunks.length){try{const buf=await r.ac.decodeAudioData(await new Blob(chunks).arrayBuffer());
+        if(buf.duration<0.4)toast('Too short — hold on a little longer');
+        else uploadFile(new File([wav(buf)],'recording_'+new Date().toISOString().slice(0,19).replace(/[-:T]/g,'')+'.wav',{type:'audio/wav'}))}catch(e){toast('Couldn’t read the recording')}}
+      r.ac.close();mode()};
+    mr.start(250);pill.classList.add('recording');go.classList.add('rec');go.innerHTML=MI.html('check');go.title='Stop and attach the recording';
+    rec.tick=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);$('#rec-t').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+      an.getByteTimeDomainData(data);let m=0;for(const x of data)m=Math.max(m,Math.abs(x-128));$('#rec-l').style.width=Math.min(100,m*1.6)+'%';
+      if(s>=300)mr.stop()},80)}
+  $('#rec-x').onclick=()=>{if(rec){rec.cancel=true;rec.mr.stop()}};
+  go.onclick=()=>{if(rec)return rec.mr.stop();if(go.classList.contains('mic'))return start();go_send();setTimeout(mode,400)};
+  mode();
+})();
+
+/* phones: keep the message-box placeholder to one short line */
+(function(){const P=$('#prompt'),mq=matchMedia('(max-width:860px)');let busy=false;
+  function fit(){if(busy||!mq.matches)return;const v=P.placeholder||'';if(v.length<=30)return;
+    busy=true;P.placeholder=(v.split(' — ')[0].split(' (')[0]).slice(0,30).replace(/[.…]*$/,'')+'…';busy=false}
+  new MutationObserver(fit).observe(P,{attributes:true,attributeFilter:['placeholder']});fit();})();
 </script>
 <script src="/static/fonts/miros/mirfont.js" data-vars="--sans"></script>
 </body>

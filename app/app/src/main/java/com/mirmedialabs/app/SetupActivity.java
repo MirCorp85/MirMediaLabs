@@ -137,6 +137,8 @@ public class SetupActivity extends Activity {
         box.addView(Ui.label(this, "Help"), Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 2, 22, 0, 8));
         box.addView(helpRow("router", "Use it away from home", "port forwarding on your router, step by step", v -> guide()));
         box.addView(helpRow("warn", "Can't connect?", "what each error means and how to fix it", v -> troubleshoot()), Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 6, 0, 0));
+        box.addView(helpRow("phone", "Connecting an iPhone?", "no app needed: add the lab to the Home Screen from Safari", v -> iphone()),
+                Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 6, 0, 0));
         box.addView(helpRow("lab", "Don't have a lab yet?", "free for Windows PCs with an NVIDIA graphics card", v -> open(Creator.GITHUB)),
                 Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 6, 0, 0));
 
@@ -144,6 +146,7 @@ public class SetupActivity extends Activity {
         foot.setGravity(Gravity.CENTER);
         box.addView(foot, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 26, 0, 0));
         setContentView(sv);
+        Ui.insets(sv);
     }
 
     private LinearLayout tile(String icon, String title, String sub, View.OnClickListener l) {
@@ -464,6 +467,28 @@ public class SetupActivity extends Activity {
                 + "and enter the PC's VPN address (e.g. 100.x.y.z:5400) as the away address.\n\n"
                 + "Safety: only people with a key get in, 10 wrong keys lock an address out for 15 minutes, and the host can pause remote "
                 + "access with one switch in Host Control.");
+        sh.show();
+    }
+
+    private void iphone() {
+        Sheet sh = new Sheet(this, "Connecting an iPhone", "phone", Ui.pal());
+        sh.note("There's no iPhone app to download. The lab itself installs on the iPhone as a home-screen app that looks and works "
+                + "like this one: chat, library, queue and renders.");
+        sh.section("1 · Get an invite");
+        sh.note("On the PC: MIR MEDIA LABS → Host Control → Invite / QR next to that person (each person has their own key).");
+        sh.section("2 · Open it in Safari");
+        sh.note("Point the iPhone's Camera app at the QR code and tap the link, or open the invite link in Safari. "
+                + "The lab opens already signed in.");
+        sh.section("3 · Add it to the Home Screen");
+        sh.note("Tap Share (the square with the arrow) → Add to Home Screen → Add. A MIR MEDIA LABS icon appears. "
+                + "Always open the lab from that icon: it runs full screen and signs in by itself on first launch.");
+        sh.section("At home and away");
+        sh.note("At home it works over the same Wi-Fi as the PC. Away from home it needs the lab's away-from-home address "
+                + "(see \"Use it away from home\"); invites made after it's set carry it automatically. A secure https:// "
+                + "away address is best on iPhone.");
+        sh.section("If it asks for an access key");
+        sh.note("Paste the person's key (mml-…) on the sign-in page, or scan the invite again in Safari and re-add it to the Home Screen. "
+                + "Render notifications aren't available on iPhone yet; the in-app status and atom mascot still show progress.");
         sh.show();
     }
 

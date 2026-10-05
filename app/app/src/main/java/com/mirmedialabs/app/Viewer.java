@@ -18,6 +18,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+
 /** Full-screen viewer: image / video / audio player + Save · Use as ref · Delete. */
 final class Viewer extends Dialog {
     private final MainActivity m;
@@ -103,8 +105,29 @@ final class Viewer extends Dialog {
         bar.addView(save, Ui.lpw(1));
         bar.addView(use, Ui.margins(Ui.lpw(1.3f), 8, 0, 8, 0));
         bar.addView(del, Ui.lp(Ui.dp(56), ViewGroup.LayoutParams.WRAP_CONTENT));
+        if (BuildConfig.PLAY) {                              // Play AI-content policy: flag offensive results in-app
+            TextView rep = Ui.button(c, "[[warn]]", col, false);
+            rep.setOnClickListener(v -> report(c, name, model));
+            bar.addView(rep, Ui.margins(Ui.lp(Ui.dp(56), ViewGroup.LayoutParams.WRAP_CONTENT), 8, 0, 0, 0));
+        }
         root.addView(bar);
         setContentView(root);
+        Ui.insets(root);
+    }
+
+    private void report(Context c, String file, String mdl) {
+        final String[] why = {"Sexual content", "Violence or gore", "Hate or harassment", "Real person / deepfake", "Something else"};
+        new AlertDialog.Builder(c, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle("Report this result")
+                .setItems(why, (d, w) -> {
+                    JSONObject b = new JSONObject();
+                    try { b.put("file", file).put("model", mdl).put("reason", why[w]).put("edition", "play"); } catch (Exception ignored) { }
+                    m.api.post("/api/report", b, r -> {
+                        m.toast(r.ok() ? "Reported. Thanks - it's hidden from your library." : r.err());
+                        if (r.ok()) { Thumbs.forget(file); m.libraryChanged(); dismiss(); }
+                    });
+                })
+                .setNegativeButton("Cancel", null).show();
     }
 
     private static String fmt(int ms) { int s = ms / 1000; return (s / 60) + ":" + String.format("%02d", s % 60); }

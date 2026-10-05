@@ -41,3 +41,6 @@ installer/icon-64.png
 dist/
 installer/build-linux/
 *.tar.gz
+
+# marketing kits (contain personal renders)
+marketing/
