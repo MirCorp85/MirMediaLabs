@@ -189,6 +189,7 @@ public class MainActivity extends Activity {
         qBadge = tabs[0];
         root.addView(bar);
         setContentView(root);
+        Ui.insets(root);
         Tv.install(this);
         if (Tv.is(this)) {
             for (TextView t : tabs) t.setFocusable(true);
@@ -211,7 +212,7 @@ public class MainActivity extends Activity {
 
     private void openMenu(View anchor) {
         Sheet sh = new Sheet(this, "Media Lab", "lab", Ui.pal());
-        sh.row("heart", "Support on Patreon", "keep MIR MEDIA LABS free · patreon.com/MirCorp", () -> open(Creator.PATREON));
+        if (!BuildConfig.PLAY) sh.row("heart", "Support on Patreon", "keep MIR MEDIA LABS free · patreon.com/cw/MirCorp", () -> open(Creator.PATREON));
         sh.section("Create");
         sh.row("layers", "LoRA samples", "browse + apply community LoRAs", () -> loras.browse(Loras.roleOf(cur), ""));
         sh.row("sparkle", "Skills", "one tuned render", () -> { withSkills(() -> pickSkill(false)); });
@@ -223,7 +224,7 @@ public class MainActivity extends Activity {
         sh.section("App");
         sh.row("server", "Server & access key", Api.host(Prefs.activeUrl(this)) + (Prefs.onLan(this) ? " · home Wi-Fi" : " · away"), () -> startActivity(new Intent(this, SetupActivity.class)));
         sh.row("bell", "Notifications", Push.allowed(this) ? (Push.instant(this) ? "on · instant delivery" : "on") : "off on this phone", () -> Push.settings(this));
-        sh.row("download", "Check for updates", "installed v" + Updater.installedName(this) + " · GitHub + your lab", () -> Updater.check(this, true));
+        if (!BuildConfig.PLAY) sh.row("download", "Check for updates", "installed v" + Updater.installedName(this) + " · GitHub + your lab", () -> Updater.check(this, true));
         sh.row("shield", "Isolation audit", "proof it never touches MirOS data", () -> api.get("/api/isolation", r -> {
             JSONObject j = r.obj();
             info("Isolation audit", r.ok() ? ("Separate from MirOS: " + (j.optBoolean("separate_from_miros") ? "YES" : "NO")
@@ -233,7 +234,7 @@ public class MainActivity extends Activity {
         sh.row("lab", "MIR MEDIA LABS v" + Updater.installedName(this), "by MirCorp · © 2026 MirCorp · GPL-3.0", this::about);
         sh.row("bug", "Report a bug", "email the developer with device details", () -> mail("Bug report", true));
         sh.row("note", "Send feedback", "ideas, requests, praise", () -> mail("Feedback", false));
-        sh.row("heart", "Support development", "Patreon", () -> open(Creator.PATREON));
+        if (!BuildConfig.PLAY) sh.row("heart", "Support development", "Patreon", () -> open(Creator.PATREON));   // Play: no outside payment links
         sh.row("code", "Source code", "GitHub", () -> open(Creator.GITHUB));
         sh.show();
     }
@@ -241,7 +242,7 @@ public class MainActivity extends Activity {
     void about() {
         info("About", "MIR MEDIA LABS v" + Updater.installedName(this) + "\n\nCreated by " + Creator.NAME
                 + "\n© 2026 " + Creator.NAME + ". Licensed under GPL-3.0.\n\"MirCorp\" and \"MIR MEDIA LABS\" are trademarks of MirCorp."
-                + "\n\nContact: " + Creator.EMAIL + "\nSource: " + Creator.GITHUB + "\nSupport: " + Creator.PATREON);
+                + "\n\nContact: " + Creator.EMAIL + "\nSource: " + Creator.GITHUB + (BuildConfig.PLAY ? "" : "\nSupport: " + Creator.PATREON));
     }
 
     void open(String url) {
@@ -352,7 +353,9 @@ public class MainActivity extends Activity {
         if (prompt.isEmpty() && atts.isEmpty()) { toast("Write a prompt or attach a reference"); return; }
         JSONArray refs = new JSONArray();
         for (JSONObject a : atts) refs.put(a.optString("name"));
-        api.post("/api/generate", Api.obj("model", cur, "prompt", prompt, "refs", refs, "loras", loras.forRender(cur)), r -> {
+        JSONObject body = Api.obj("model", cur, "prompt", prompt, "refs", refs, "loras", loras.forRender(cur));
+        if (recipeOf(prompt) != null) try { body.put("knobs", knobs); } catch (Exception ignored) { }
+        api.post("/api/generate", body, r -> {
             if (!r.ok()) { toast(r.err()); return; }
             atts.clear();
             saveAtts();
@@ -383,10 +386,83 @@ public class MainActivity extends Activity {
     // ── skills · pipelines · command book (same /api/skills catalog as the web studio) ──
     private JSONObject skillCat;
 
-    private void withSkills(Runnable then) {
+    void withSkills(Runnable then) {
         if (skillCat != null) { then.run(); return; }
         api.get("/api/skills", r -> { if (!r.ok()) { toast(r.err()); return; } skillCat = r.obj(); then.run(); });
     }
+
+    // ── recipes: a skill / manual typed as "/id …" shows its steps, slots and dials above the composer ──
+    JSONObject knobs = new JSONObject();
+    private String knobFor = "";
+
+    /** The skill or manual the message starts with ("/myvoice …"), tagged with "type"; null if none / catalog not loaded. */
+    JSONObject recipeOf(String prompt) {
+        if (skillCat == null || prompt == null) return null;
+        java.util.regex.Matcher mm = java.util.regex.Pattern.compile("^/(?:(?:skill|pipe|pipeline)\\s+)?([A-Za-z0-9]+)(\\s|$)").matcher(prompt);
+        if (!mm.find()) return null;
+        String id = mm.group(1).toLowerCase();
+        for (String t : new String[]{"pipelines", "skills"}) {
+            JSONArray a = skillCat.optJSONArray(t);
+            for (int i = 0; a != null && i < a.length(); i++) {
+                JSONObject o = a.optJSONObject(i);
+                if (!id.equals(o.optString("id"))) continue;
+                if (!id.equals(knobFor)) { knobFor = id; knobs = new JSONObject(); }
+                try { return new JSONObject(o.toString()).put("type", t.equals("pipelines") ? "pipeline" : "skill"); } catch (Exception e) { return null; }
+            }
+        }
+        return null;
+    }
+
+    /** {"audio": 1} → "an audio file" (also reads the old single-kind "needs" string). */
+    static String needText(JSONObject o) {
+        JSONObject n = o.optJSONObject("need");
+        if (n == null) n = o.optJSONObject("needs");
+        if (n == null && !o.optString("needs").isEmpty()) n = Api.obj(o.optString("needs"), 1);
+        if (n == null || n.length() == 0) return "";
+        StringBuilder s = new StringBuilder();
+        for (java.util.Iterator<String> it = n.keys(); it.hasNext(); ) {
+            String k = it.next();
+            int c = n.optInt(k, 1);
+            String w = "audio".equals(k) ? "audio file" : "image".equals(k) ? "picture" : "video".equals(k) ? "clip" : "text".equals(k) ? "text file" : k;
+            s.append(s.length() > 0 ? " + " : "").append(c > 1 ? c + " " + w + "s" : an(w));
+        }
+        return s.toString();
+    }
+
+    /** Dials sheet: each knob's choices as rows (D-pad friendly); a range gets a few sensible stops. */
+    void knobSheet(JSONObject rc) {
+        JSONArray ks = rc.optJSONArray("knobs");
+        if (ks == null) return;
+        Sheet sh = new Sheet(this, rc.optString("name") + " · dials", "sliders", Ui.pal());
+        for (int i = 0; i < ks.length(); i++) {
+            final JSONObject kb = ks.optJSONObject(i);
+            final String k = kb.optString("k");
+            final boolean range = "range".equals(kb.optString("type"));
+            String curV = knobs.has(k) ? knobs.optString(k) : String.valueOf(kb.opt("def"));
+            sh.section(kb.optString("label"));
+            java.util.List<String[]> opts = new java.util.ArrayList<>();
+            if (range) {
+                double lo = kb.optDouble("min"), hi = kb.optDouble("max");
+                for (int s = 0; s < 5; s++) { String v = String.format(java.util.Locale.US, "%.2f", lo + (hi - lo) * s / 4); opts.add(new String[]{v, v}); }
+            } else {
+                JSONArray o = kb.optJSONArray("opts");
+                for (int s = 0; o != null && s < o.length(); s++) {
+                    JSONArray pr = o.optJSONArray(s);
+                    opts.add(pr != null ? new String[]{pr.optString(0), pr.optString(1)} : new String[]{o.optString(s), o.optString(s)});
+                }
+            }
+            for (String[] op : opts) {
+                boolean on = op[0].equals(curV) || (range && isNum(curV) && Math.abs(Double.parseDouble(op[0]) - Double.parseDouble(curV)) < 0.06);
+                sh.row(on ? "check-circle" : "dot", op[1], null, () -> {
+                    try { if (op[0].isEmpty()) knobs.remove(k); else knobs.put(k, range ? (Object) Double.parseDouble(op[0]) : op[0]); } catch (Exception ignored) { }
+                    create.renderRecipe();
+                });
+            }
+        }
+        sh.show();
+    }
+
+    private static boolean isNum(String s) { try { Double.parseDouble(s); return true; } catch (Exception e) { return false; } }
 
     void skillsMenu() {
         withSkills(() -> {
@@ -411,11 +487,12 @@ public class MainActivity extends Activity {
             String flow = "";
             JSONArray st = o.optJSONArray("steps");
             for (int k = 0; st != null && k < st.length(); k++) flow += (k > 0 ? " → " : "") + st.optJSONObject(k).optString("label");   // role, never the engine name
-            String sub = o.optString("desc") + (o.has("needs") ? "  ·  attach " + an(o.optString("needs")) : "") + (flow.isEmpty() ? "" : "\n" + flow);
+            final String need = needText(o);
+            String sub = o.optString("desc") + (need.isEmpty() ? "" : "  ·  attach " + need) + (flow.isEmpty() ? "" : "\n" + flow);
             String ic = pipes ? "chain" : o.optString("icon", "sparkle");
             sh.row(ic, o.optString("name"), sub, () -> {
                 create.setPrompt("/" + o.optString("id") + " ");
-                toast(o.optString("name") + (o.has("needs") ? " — attach " + an(o.optString("needs")) + " first" : " — describe it and send"));
+                toast(o.optString("name") + (need.isEmpty() ? " — describe it and send" : " — attach " + need + " first"));
             });
         }
         sh.show();
@@ -437,14 +514,14 @@ public class MainActivity extends Activity {
             for (int i = 0; s != null && i < s.length(); i++) {
                 JSONObject o = s.optJSONObject(i);
                 final String id = o.optString("id");
-                sh.cmd(o.optString("icon", "sparkle"), "/" + id, o.optString("name") + (o.has("needs") ? " · needs an attached " + o.optString("needs") : ""), null, () -> create.setPrompt("/" + id + " "));
+                sh.cmd(o.optString("icon", "sparkle"), "/" + id, o.optString("name") + (needText(o).isEmpty() ? "" : " · needs " + needText(o)), null, () -> create.setPrompt("/" + id + " "));
             }
             sh.section("Pipelines  ·  /name <idea>");
             JSONArray p = skillCat.optJSONArray("pipelines");
             for (int i = 0; p != null && i < p.length(); i++) {
                 JSONObject o = p.optJSONObject(i);
                 final String id = o.optString("id");
-                sh.cmd("chain", "/" + id, o.optString("name") + " — " + o.optString("desc"), null, () -> create.setPrompt("/" + id + " "));
+                sh.cmd("chain", "/" + id, o.optString("name") + " — " + o.optString("desc") + (needText(o).isEmpty() ? "" : " · needs " + needText(o)), null, () -> create.setPrompt("/" + id + " "));
             }
             JSONArray t = skillCat.optJSONArray("tips");
             if (t != null && t.length() > 0) {

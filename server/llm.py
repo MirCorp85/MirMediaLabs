@@ -156,10 +156,16 @@ def knowledge():
     for s in skills.SKILLS:
         out.append("- /%s - %s (%s)%s: %s" % (s["id"], s["name"], skills.ROLES[s["role"]]["label"],
                                              " needs an attached " + s["needs"] if s.get("needs") else "", s["desc"]))
-    out.append("Pipelines (one request, several renders in a row; type /<name> <idea>):")
+    out.append("Pipelines = step-by-step manuals (one request, several tools in a fixed order; type /<name> <idea>, or just"
+               " describe it in Auto mode and the Director follows the manual). Each step gets its own inputs and"
+               " carries the song's lyrics / tempo / key forward:")
     for p in skills.PIPELINES:
-        flow = " -> ".join(skills.ROLES[x["role"]]["label"] for x in p["steps"])
-        out.append("- /%s - %s [%s]: %s" % (p["id"], p["name"], flow, p["desc"]))
+        need = ", ".join("%d attached %s" % (n, k) for k, n in skills.needs_of(p).items())
+        out.append("- /%s - %s: %s. Use when: %s.%s" % (p["id"], p["name"], p["desc"], p.get("when", ""),
+                                                      (" Needs " + need + " (the mic in the message box records one).") if need else ""))
+        out += ["    " + s for s in skills.manual_text(p)]
+        if p.get("knobs"):
+            out.append("    Dials in the message box: " + ", ".join(k["label"] for k in p["knobs"]))
     out.append("Commands: " + "; ".join("%s %s = %s" % (c["cmd"], c["args"], c["desc"]) for c in skills.COMMANDS))
     out.append(AROUND)
     return "\n".join(out)
@@ -240,6 +246,10 @@ def run_llama(job):
     renderers.log(job, "freeing VRAM for MUSE …")
     if comfy.up():
         comfy.free()                             # ComfyUI keeps ~10 GB loaded between renders
+    if not core.ollama_up():
+        renderers.log(job, "starting Ollama …")
+        if not core.ensure_ollama():
+            raise RuntimeError("Ollama isn't running and could not be started")
     renderers.log(job, "MUSE is writing …")
     opts = {"temperature": float(c.get("temperature") or 0.7), "num_ctx": NUM_CTX,
             "num_predict": LENGTH.get(c.get("length"), 1200)}

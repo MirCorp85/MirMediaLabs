@@ -7,7 +7,7 @@ Video, songs, music, images and writing, controlled from your PC, phone or Andro
 
 <p align="center">
 <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/MirCorp85/MirMediaLabs?label=download&color=ff5a1f" alt="Download"></a>
-<a href="https://www.patreon.com/MirCorp"><img src="https://img.shields.io/badge/Support-Patreon-f96854?logo=patreon&logoColor=white" alt="Patreon"></a>
+<a href="https://www.patreon.com/cw/MirCorp"><img src="https://img.shields.io/badge/Support-Patreon-f96854?logo=patreon&logoColor=white" alt="Patreon"></a>
 <img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="GPL-3.0">
 <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Android%20%7C%20Android%20TV-informational" alt="platforms">
 <img src="https://img.shields.io/badge/runs-100%25%20local-5ee08a" alt="100% local">
@@ -216,7 +216,7 @@ Rendering needs a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) wit
 Android: open `app/` in Android Studio, or run `powershell -File build_apk.ps1`.
 
 ## Support development
-MIR MEDIA LABS is free and always will be. If it's useful to you, please support it on **[Patreon](https://www.patreon.com/MirCorp)**: **$3 Supporter** backs free development, **$5 Early Access** gets you beta builds to test new features first. Your support funds new models, features and testing hardware. You can also use the **Support** button inside the app.
+MIR MEDIA LABS is free and always will be. If it's useful to you, please support it on **[Patreon](https://www.patreon.com/cw/MirCorp)**: **$3 Supporter** backs free development, **$5 Early Access** gets you beta builds to test new features first. Your support funds new models, features and testing hardware. You can also use the **Support** button inside the app.
 
 ## Feedback and bugs
 - In the app: **About > Report a bug** or **Send feedback**

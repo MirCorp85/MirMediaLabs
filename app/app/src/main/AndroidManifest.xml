@@ -15,6 +15,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- invite QR scanner (optional: phones without a camera / TVs paste the link) -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- record a sound in the composer to use as a reference -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 

@@ -34,7 +34,7 @@ KEY_FILE = os.path.join(DATA, "access_key.txt")
 APP_NAME = "MIR MEDIA LABS"
 CREATOR = {"name": "MirCorp", "email": "mirmedialabs@gmail.com", "license": "GPL-3.0-or-later",
            "copyright": "\u00a9 2026 MirCorp", "github": "https://github.com/MirCorp85/MirMediaLabs",
-           "patreon": "https://www.patreon.com/MirCorp"}
+           "patreon": "https://www.patreon.com/cw/MirCorp"}
 APP_VERSION = "1.0"
 PORT = 5400
 
@@ -233,6 +233,58 @@ OLLAMA = "http://127.0.0.1:11434"
 DEFAULT_ENGINE = "llama3.1:8b"  # MUSE: chat, prompt building + Auto-mode model picker (never renders); falls back to any installed llama3.1 / first model
 
 
+_OLLAMA_LOCK = threading.Lock()
+_OLLAMA_TRY = {"t": 0}
+
+
+def ollama_up(timeout=2):
+    try:
+        return requests.get(OLLAMA + "/api/version", timeout=timeout).ok
+    except Exception:
+        return False
+
+
+def _ollama_cmd():
+    """Ollama's desktop app when installed (it keeps the user's own settings), else `ollama serve`."""
+    import shutil
+    la = os.environ.get("LOCALAPPDATA", "")
+    app = os.path.join(la, "Programs", "Ollama", "ollama app.exe")
+    if os.name == "nt" and os.path.isfile(app):
+        return [app]
+    for c in (CONFIG.get("ollama"), LOCAL.get("ollama"), shutil.which("ollama"),
+              os.path.join(la, "Programs", "Ollama", "ollama.exe"), "/usr/local/bin/ollama", "/opt/homebrew/bin/ollama"):
+        if c and os.path.isfile(c):
+            return [c, "serve"]
+    return None
+
+
+def ensure_ollama(wait=60):
+    """Start Ollama when it isn't running. wait=0 → launch and return (status loop); otherwise block
+    until it answers or `wait` seconds pass. Launch attempts are spaced 30 s apart."""
+    if ollama_up():
+        return True
+    with _OLLAMA_LOCK:
+        if ollama_up():
+            return True
+        cmd = _ollama_cmd()
+        if cmd and time.time() - _OLLAMA_TRY["t"] > 30:
+            _OLLAMA_TRY["t"] = time.time()
+            import subprocess
+            import platform_util as pu
+            try:
+                subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL, **pu.detached_kwargs())
+                print("Ollama was not running - started it: %s" % cmd[0])
+            except OSError as e:
+                print("could not start Ollama: %s" % e)
+    end = time.time() + wait
+    while time.time() < end:
+        if ollama_up():
+            return True
+        time.sleep(1)
+    return False
+
+
 def engine_model():
     want = prefs().get("engine_model") or DEFAULT_ENGINE
     try:
@@ -262,6 +314,7 @@ def engine_sees(model=None):
 
 
 def ask(prompt, system, timeout=120, images=None):
+    ensure_ollama()
     model = engine_model()
     body = {"model": model, "prompt": prompt, "system": system, "stream": False, "think": False}
     if images and engine_sees(model):

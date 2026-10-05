@@ -1,8 +1,10 @@
 """MIR MEDIA LABS skills, pipelines and the chat command book.
 
 Media Labs only — nothing here touches MirOS. A SKILL is one render with a tuned prompt template and
-parameter overrides. A PIPELINE chains renders in ONE job (it still holds the single GPU slot, so the
-one-request-at-a-time rule covers the whole chain): each step's output is fed into the next as a reference.
+parameter overrides. A PIPELINE is a MANUAL: ordered steps in ONE job (it still holds the single GPU slot, so the
+one-request-at-a-time rule covers the whole chain); each step names its inputs (the person's attachments and/or
+earlier steps' outputs, in order) and what it carries forward (lyrics, tempo, key, style). MUSE reads the manuals,
+picks one and writes a prompt per step.
 "{input}" in a template is replaced by what the user typed.
 
 GENERIC FRONT, SPECIFIC BACK: skills / pipelines / commands only name a ROLE (image · video · song · music).
@@ -110,32 +112,198 @@ SKILLS = [
      "desc": "Chill lo-fi hip-hop background loop",
      "tpl": "Instrumental lo-fi hip-hop loop, dusty vinyl, mellow keys, soft boom-bap drums. Mood: {input}",
      "params": {"ace": {"mode": "text", "duration": 90}}},
+    {"id": "remix", "name": "Remix Track", "icon": "refresh", "role": "music", "needs": "audio",
+     "desc": "Rework the attached track into a new style",
+     "tpl": "{input}", "params": {"ace": {"mode": "remix"}}},
+    {"id": "restyle_song", "name": "Restyle Song", "icon": "palette", "role": "music", "needs": "audio",
+     "desc": "Same song and singer, new genre / arrangement",
+     "tpl": "{input}", "params": {"ace": {"mode": "cover"}}},
+    {"id": "morph", "name": "Morph A → B", "icon": "wand", "role": "video", "needs": {"image": 2},
+     "desc": "A clip that travels from picture 1 to picture 2",
+     "tpl": "Smooth continuous transformation from the first picture into the last picture: {input}",
+     "params": {"h3": {"mode": "flf2v"}}},
 ]
 
-# use: which earlier outputs ride into the step as references — "prev" (last step) or "all" (every earlier step)
+# ── PIPELINES = MANUALS ────────────────────────────────────────────────────────────────────────────────────────────
+# A pipeline is an instruction manual MUSE follows: ordered steps, each saying which ROLE renders, what the step DOES
+# (plain words MUSE and the person read), which INPUTS it gets and what it CARRIES forward from earlier steps.
+#   when     — when MUSE should pick this manual (read by the Director)
+#   needs    — attachments the manual requires, e.g. {"audio": 1}; checked before anything renders
+#   triggers — regex on the person's words that makes the quick rules pick this manual even if the model misses it
+#   knobs    — dials shown in the composer (see below)
+# step fields:
+#   inputs   — ordered reference list: "user:<kind>" (the person's attachments of that kind; "user:audio>len" = longest
+#              first), "prev[:kind]", "stepN[:kind]", "all". Absent → old behaviour: the person's attachments + "use".
+#   use      — legacy: "prev" | "all" earlier outputs appended after the person's attachments
+#   carry    — data handed forward from earlier steps: style (the song's own description) · lyrics · bpm · key
+#   mode     — forces the engine's mode for this step (e.g. the music role's voice swap)
+#   add      — text / flags always appended to this step's prompt (e.g. "--15s" so a song fits a 15 s clip)
+#   also     — (manual) extra regex the person's words must match for the quick rules to pick it (e.g. video words)
+# KNOBS: {"k", "label", "type": range|select, "def", min/max/step | opts, "to": {"step": n, "param": p} or {"step": n, "add": "..{v}.."}}
+#   "param" sets that step's engine parameter by its generic name (mapped per engine in PARAM_MAP, clamped by params);
+#   "add" appends text / flags to the step prompt. An empty value ("") = leave it to MUSE / the engine.
+#   Skills take the same knobs without "step".
+_LEN = {"k": "len", "label": "Length", "type": "select", "def": "", "opts": [["", "auto"], ["30", "30 s"], ["60", "1 min"],
+        ["90", "1.5 min"], ["120", "2 min"], ["180", "3 min"]], "to": {"step": 1, "add": "--{v}s"}}
+_BPM = {"k": "bpm", "label": "Tempo", "type": "select", "def": "", "opts": [["", "auto"], ["70", "70 slow"], ["85", "85"],
+        ["100", "100"], ["120", "120"], ["140", "140 fast"], ["170", "170"]], "to": {"step": 1, "add": "{v} BPM"}}
+_MATCH = {"k": "match", "label": "Voice match", "type": "range", "def": 0.65, "min": 0.3, "max": 0.95, "step": 0.05,
+          "to": {"step": 2, "param": "voice_strength"}}
+_SECS = {"k": "secs", "label": "Clip length", "type": "select", "def": "", "opts": [["", "auto"], ["5", "5 s"], ["8", "8 s"],
+         ["10", "10 s"], ["15", "15 s"]], "to": {"step": 2, "add": "--{v}s"}}
+
+# generic knob param → engine param (front-ends never see engine names; swapping an engine = add its row here)
+PARAM_MAP = {"voice_strength": {"ace": "voice"}, "remix_strength": {"ace": "remix"}, "cover_strength": {"ace": "cover"},
+             "aspect": {"qimg": "aspect", "h3": "aspect"}}
+_VIDEO_WORDS = r"\b(video|clip|visuali[sz]er|music video|animate|footage|reel)\b"
+
 PIPELINES = [
+    {"id": "myvoice", "name": "Sing It In My Voice", "icon": "mic",
+     "desc": "Compose a full song on your topic and rhythm, then re-sing it with your recorded voice",
+     "when": "a voice / audio recording is attached AND the person wants a NEW song sung with that voice",
+     "needs": {"audio": 1}, "slotnames": {"audio": ["Your voice"]},
+     "triggers": r"\b(my|this|that|the|attached|recorded)\s+(own\s+)?(voice|vocals?|recording|singing)\b|\bsing(s|ing)? (it )?(like|as) me\b|\bwith me singing\b",
+     "knobs": [_LEN, _BPM, _MATCH],
+     "steps": [{"role": "song", "does": "Compose and sing the complete song: topic, genre, rhythm / BPM, mood and lyrics.",
+                "tpl": "{input}", "inputs": ["user:text", "user:image", "user:video"],
+                "params": {"music3": {"lyrics": "auto"}}},
+               {"role": "music", "mode": "voice", "does": "Re-sing the step 1 song with the attached voice, keeping its words, tempo and key.",
+                "tpl": "", "inputs": ["step1:audio", "user:audio"], "carry": ["style", "bpm", "key", "lyrics"],
+                "params": {"ace": {"mode": "voice"}}}]},
+    {"id": "coverme", "name": "Cover In My Voice", "icon": "mic",
+     "desc": "Re-sing an attached song with an attached voice recording",
+     "when": "TWO audio files are attached (a song and a voice) and the person wants that song sung in that voice",
+     "needs": {"audio": 2}, "slotnames": {"audio": ["Song (longer)", "Voice (shorter)"]},
+     "triggers": r"\b(cover|re-?sing|swap the voice|replace the (voice|vocals?|singer)|in my voice|with my voice)\b",
+     "knobs": [dict(_MATCH, to={"step": 1, "param": "voice_strength"})],
+     "steps": [{"role": "music", "mode": "voice", "does": "Re-sing the longer attached track (the song) with the shorter one (the voice).",
+                "tpl": "{input}", "inputs": ["user:audio>len", "user:text"], "params": {"ace": {"mode": "voice"}}}]},
+    {"id": "myvoicevideo", "name": "My Voice Music Video", "icon": "film",
+     "desc": "Song on your topic, re-sung in your voice, then a music video scored with it",
+     "when": "a voice recording is attached AND the person wants a song in that voice WITH a video / music video",
+     "needs": {"audio": 1}, "slotnames": {"audio": ["Your voice"]}, "also": _VIDEO_WORDS,
+     "triggers": r"\b(my|this|that|the|attached|recorded)\s+(own\s+)?(voice|vocals?|recording|singing)\b|\bin my voice\b",
+     "knobs": [_BPM, _MATCH],
+     "steps": [{"role": "song", "does": "Compose and sing the song: topic, genre, rhythm / BPM, mood and lyrics.",
+                "tpl": "{input}", "add": "--30s", "inputs": ["user:text", "user:image"], "params": {"music3": {"lyrics": "auto"}}},
+               {"role": "music", "mode": "voice", "does": "Re-sing the step 1 song with the attached voice.",
+                "tpl": "", "inputs": ["step1:audio", "user:audio"], "carry": ["style", "bpm", "key", "lyrics"],
+                "params": {"ace": {"mode": "voice"}}},
+               {"role": "image", "does": "Paint cover art that matches the song.", "inputs": ["user:image"], "carry": ["style"],
+                "tpl": "Album cover art for a song about {input}. Bold, cinematic, no text.", "params": {"qimg": {"aspect": "16:9", "mode": "auto"}}},
+               {"role": "video", "does": "Animate the cover art, scored with the step 2 song in your voice.", "inputs": ["step3:image", "step2:audio"],
+                "tpl": "Music video scene for {input}. Rhythmic camera motion, atmospheric light.",
+                "params": {"h3": {"mode": "i2v", "soundtrack": "replace", "seconds": 15}}}]},
+    {"id": "visualizer", "name": "Track Visualizer", "icon": "film",
+     "desc": "Cover art for your attached track, animated and scored with it",
+     "when": "an audio track is attached and the person wants a video / visualiser / music video FOR that track",
+     "needs": {"audio": 1}, "slotnames": {"audio": ["Your track"]}, "also": _VIDEO_WORDS,
+     "triggers": r"\bvisuali[sz]er\b|\b(video|clip|visuals?)\s+(for|to|with)\s+(my|this|the|that|attached)\s+(song|track|beat|music|audio)\b|\bmusic video\b",
+     "knobs": [_SECS],
+     "steps": [{"role": "image", "does": "Paint cover art for the track.", "inputs": ["user:image", "user:text"],
+                "tpl": "Album cover art for {input}. Bold, cinematic, no text.", "params": {"qimg": {"aspect": "16:9", "mode": "auto"}}},
+               {"role": "video", "does": "Animate the cover art, scored with your attached track.", "inputs": ["step1:image", "user:audio"],
+                "tpl": "Music video scene for {input}. Rhythmic camera motion, atmospheric light.",
+                "params": {"h3": {"mode": "i2v", "soundtrack": "replace", "seconds": 15}}}]},
+    {"id": "lyricsong", "name": "Write → Sing", "icon": "note",
+     "desc": "MUSE writes the lyrics first, then the song sings them word for word",
+     "when": "the person wants a song AND cares about the words (\"write lyrics and sing them\", a story told in a song)",
+     "triggers": r"\b(write|pen)\b.{0,40}\blyrics\b.{0,60}\b(sing|sung|song|perform|record)\b|\bstory\b.{0,30}\b(as|in|into) a song\b",
+     "knobs": [dict(_LEN, to={"step": 2, "add": "--{v}s"}), dict(_BPM, to={"step": 2, "add": "{v} BPM"})],
+     "steps": [{"role": "text", "does": "Write the lyrics: verses, a strong chorus hook, a bridge.", "inputs": [],
+                "tpl": "Write original song lyrics about {input}. Use section tags alone on their own line - [Intro] [Verse] [Pre-Chorus] [Chorus] [Verse] [Chorus] [Bridge] [Chorus] [Outro] - with a blank line between sections, 6-10 syllables per line, backing vocals in (parentheses), only singable words and a memorable hook in the chorus. Output only the lyrics, no title.",
+                "params": {"llama": {"mode": "creative", "length": "medium", "temperature": 0.85}}},
+               {"role": "song", "does": "Compose and sing those exact lyrics.", "inputs": ["user:image"], "carry": ["lyrics"],
+                "tpl": "{input}", "params": {"music3": {"lyrics": "auto"}}}]},
+    {"id": "adspot", "name": "Ad Spot + Jingle", "icon": "bell",
+     "desc": "Vertical packshot → jingle → 9:16 ad clip scored with the jingle",
+     "when": "a complete ad / commercial / promo for a product WITH music or a jingle",
+     "triggers": r"\b(ad|advert|commercial|promo)\b", "also": r"\b(jingle|music|song|soundtrack)\b",
+     "steps": [{"role": "image", "does": "Shoot a vertical studio packshot.", "inputs": ["user:image", "user:text"],
+                "tpl": "Professional studio product photograph of {input}, clean backdrop, premium lighting.", "params": {"qimg": {"aspect": "9:16", "mode": "auto"}}},
+               {"role": "music", "does": "Write a catchy 15-second jingle.", "inputs": [],
+                "tpl": "Short catchy upbeat advertising jingle, memorable hook, for {input}", "add": "--15s", "params": {"ace": {"mode": "text", "duration": 15}}},
+               {"role": "video", "does": "Animate the packshot into an ad clip scored with the jingle.", "inputs": ["step1:image", "step2:audio"],
+                "tpl": "Premium product ad: {input}. Slow orbiting camera, light sweeps across the product.",
+                "params": {"h3": {"mode": "i2v", "aspect": "9:16", "soundtrack": "replace", "seconds": 15}}}]},
+    {"id": "productstudio", "name": "Product Studio", "icon": "box",
+     "desc": "Your product photo → cut out → placed in a styled scene → turntable clip",
+     "when": "a product photo is attached and the person wants it in a new scene / setting AND moving",
+     "needs": {"image": 1}, "slotnames": {"image": ["Your product"]},
+     "triggers": r"\b(scene|setting|backdrop|background|studio|place (it|this)|put (it|this))\b",
+     "also": r"\b(spin|orbit|turntable|video|clip|animate|moving|360)\b",
+     "knobs": [dict(_SECS, to={"step": 3, "add": "--{v}s"})],
+     "steps": [{"role": "image", "does": "Cut the product out of its background.", "inputs": ["user:image"],
+                "tpl": "Cut out the main product", "params": {"qimg": {"mode": "cutout"}}},
+               {"role": "image", "does": "Place the product into the scene you describe.", "inputs": ["step1:image"],
+                "tpl": "Place this exact product in a new scene: {input}. Keep the product's shape, colours, logo and text exactly.",
+                "params": {"qimg": {"mode": "edit"}}},
+               {"role": "video", "does": "Slow orbit around the product in its new scene.", "inputs": ["step2:image"],
+                "tpl": "Slow orbiting camera around the product: {input}. Premium commercial look, light sweeps.",
+                "params": {"h3": {"mode": "i2v"}}}]},
+    {"id": "singer", "name": "Singing Character", "icon": "user",
+     "desc": "Design a character, write them a song, then a clip of them performing to it",
+     "when": "a character / avatar / mascot who sings or performs a song",
+     "triggers": r"\b(character|avatar|mascot|cartoon|robot|creature)\b.{0,40}\b(sing|sings|singing|performs?|performing)\b|\bsinging (character|avatar|mascot)\b",
+     "steps": [{"role": "image", "does": "Design the character portrait.", "inputs": ["user:image", "user:text"],
+                "tpl": "Character portrait of {input}, singing on stage, expressive, cinematic lighting.", "params": {"qimg": {"aspect": "9:16", "mode": "auto"}}},
+               {"role": "song", "does": "Write and sing a short song for the character.", "inputs": [],
+                "tpl": "{input}", "add": "--15s", "params": {"music3": {"lyrics": "auto"}}},
+               {"role": "video", "does": "The character performs, scored with the step 2 song.", "inputs": ["step1:image", "step2:audio"],
+                "tpl": "The character sings and performs with emotion: {input}. Expressive face, subtle body movement, stage light.",
+                "params": {"h3": {"mode": "i2v", "soundtrack": "replace", "seconds": 15}}}]},
     {"id": "poster2motion", "name": "Poster → Motion", "icon": "layers",
      "desc": "Design a key image, then animate it into a video",
-     "steps": [{"role": "image", "tpl": "Striking cinematic key art of {input}. Rich lighting, strong composition.", "params": {"qimg": {"aspect": "16:9", "mode": "auto"}}},
-               {"role": "video", "tpl": "Bring this image to life: {input}. Smooth camera push-in, natural motion.", "params": {"h3": {"mode": "i2v"}}, "use": "prev"}]},
+     "when": "the person wants a still key visual AND that same visual moving",
+     "knobs": [_SECS],
+     "steps": [{"role": "image", "does": "Design the key art.", "inputs": ["user:image", "user:text"],
+                "tpl": "Striking cinematic key art of {input}. Rich lighting, strong composition.", "params": {"qimg": {"aspect": "16:9", "mode": "auto"}}},
+               {"role": "video", "does": "Animate the step 1 key art.", "inputs": ["step1:image"],
+                "tpl": "Bring this image to life: {input}. Smooth camera push-in, natural motion.", "params": {"h3": {"mode": "i2v"}}}]},
     {"id": "productad", "name": "Product Ad", "icon": "layers",
      "desc": "Studio packshot → vertical 9:16 ad clip",
-     "steps": [{"role": "image", "tpl": "Professional studio product photograph of {input}, clean backdrop, premium lighting.", "params": {"qimg": {"aspect": "9:16", "mode": "auto"}}},
-               {"role": "video", "tpl": "Premium product ad: {input}. Slow orbiting camera, light sweeps across the product.", "params": {"h3": {"mode": "i2v", "aspect": "9:16"}}, "use": "prev"}]},
+     "when": "an ad / promo clip for a product",
+     "knobs": [_SECS],
+     "steps": [{"role": "image", "does": "Shoot a vertical studio packshot of the product.", "inputs": ["user:image", "user:text"],
+                "tpl": "Professional studio product photograph of {input}, clean backdrop, premium lighting.", "params": {"qimg": {"aspect": "9:16", "mode": "auto"}}},
+               {"role": "video", "does": "Turn the packshot into an orbiting ad clip.", "inputs": ["step1:image"],
+                "tpl": "Premium product ad: {input}. Slow orbiting camera, light sweeps across the product.", "params": {"h3": {"mode": "i2v", "aspect": "9:16"}}}]},
     {"id": "character", "name": "Character Clip", "icon": "layers",
      "desc": "Create a character portrait, then make them move and speak",
-     "steps": [{"role": "image", "tpl": "Character portrait: {input}. Detailed, expressive, cinematic lighting.", "params": {"qimg": {"aspect": "9:16", "mode": "auto"}}},
-               {"role": "video", "tpl": "The character comes alive: {input}. Natural expressions and subtle movement.", "params": {"h3": {"mode": "i2v"}}, "use": "prev"}]},
+     "when": "invent a character and see them come alive",
+     "knobs": [_SECS],
+     "steps": [{"role": "image", "does": "Design the character portrait.", "inputs": ["user:image", "user:text"],
+                "tpl": "Character portrait: {input}. Detailed, expressive, cinematic lighting.", "params": {"qimg": {"aspect": "9:16", "mode": "auto"}}},
+               {"role": "video", "does": "Bring the character to life with expressions and movement.", "inputs": ["step1:image"],
+                "tpl": "The character comes alive: {input}. Natural expressions and subtle movement.", "params": {"h3": {"mode": "i2v"}}}]},
     {"id": "musicvideo", "name": "Music Video", "icon": "layers",
-     "desc": "Song → cover art → video scored with that song",
-     "steps": [{"role": "music", "tpl": "{input}", "params": {"ace": {"mode": "text", "duration": 30}}},
-               {"role": "image", "tpl": "Album cover art for a song about {input}. Bold artistic, no text.", "params": {"qimg": {"aspect": "16:9", "mode": "auto"}}},
-               {"role": "video", "tpl": "Music video scene for {input}. Rhythmic camera motion, atmospheric light.", "params": {"h3": {"mode": "i2v", "soundtrack": "replace", "seconds": 10}}, "use": "all"}]},
+     "desc": "Track → cover art → video scored with that track",
+     "when": "a music video / visualiser: a track AND moving pictures that go with it",
+     "knobs": [_BPM],
+     "steps": [{"role": "music", "does": "Make the track.", "inputs": ["user:text", "user:image"],
+                "tpl": "{input}", "params": {"ace": {"mode": "text", "duration": 30}}},
+               {"role": "image", "does": "Paint the cover art for the track.", "inputs": ["user:image"], "carry": ["style"],
+                "tpl": "Album cover art for a song about {input}. Bold artistic, no text.", "params": {"qimg": {"aspect": "16:9", "mode": "auto"}}},
+               {"role": "video", "does": "Animate the cover art, scored with the step 1 track.", "inputs": ["step2:image", "step1:audio"],
+                "tpl": "Music video scene for {input}. Rhythmic camera motion, atmospheric light.", "params": {"h3": {"mode": "i2v", "soundtrack": "replace", "seconds": 10}}}]},
     {"id": "albumpack", "name": "Album Pack", "icon": "disc",
      "desc": "A full song plus matching square cover art",
-     "steps": [{"role": "song", "tpl": "{input}", "params": {}},
-               {"role": "image", "tpl": "Square album cover art for: {input}. Artistic, striking, no text.", "params": {"qimg": {"aspect": "1:1", "mode": "auto"}}}]},
+     "when": "a finished song AND its cover / artwork",
+     "knobs": [_LEN, _BPM],
+     "steps": [{"role": "song", "does": "Compose and sing the full song.", "inputs": ["user:text", "user:image"], "tpl": "{input}", "params": {}},
+               {"role": "image", "does": "Paint square cover art that matches the song.", "inputs": ["user:image"], "carry": ["style"],
+                "tpl": "Square album cover art for: {input}. Artistic, striking, no text.", "params": {"qimg": {"aspect": "1:1", "mode": "auto"}}}]},
 ]
+
+def _nostep(k):
+    return dict(k, to={x: y for x, y in k["to"].items() if x != "step"})
+
+
+_SKILL_KNOBS = {"song": [_LEN, _BPM], "beat": [_LEN, _BPM], "lofi": [_LEN, _BPM], "jingle": [_BPM],
+                "cinematic": [_SECS], "animate": [_SECS], "reel": [_SECS], "spin": [_SECS]}
+for _s in SKILLS:
+    if _s["id"] in _SKILL_KNOBS:
+        _s["knobs"] = [_nostep(k) for k in _SKILL_KNOBS[_s["id"]]]
 
 # ── chat command book ──
 ROLE_CMDS = {"image": "image", "img": "image", "picture": "image", "video": "video", "vid": "video", "clip": "video",
@@ -152,6 +320,7 @@ COMMANDS = [
     {"cmd": "/music", "args": "<idea>", "desc": "Make a music track / beat  (alias /track)"},
     {"cmd": "/skill", "args": "<name> <idea>", "desc": "Run a skill, e.g.  /skill product red sneaker"},
     {"cmd": "/pipe", "args": "<name> <idea>", "desc": "Run a pipeline, e.g.  /pipe musicvideo neon city synthwave"},
+    {"cmd": "/myvoice", "args": "<song idea>", "desc": "Song on your topic + rhythm, re-sung in your attached voice recording"},
     {"cmd": "/skills", "args": "", "desc": "Open the Skills panel"},
     {"cmd": "/clear", "args": "", "desc": "Remove your finished messages from the chat"},
 ]
@@ -204,6 +373,132 @@ def parse(prompt):
     return {"error": "unknown command /%s — type /help" % head}
 
 
+# ── manuals: reading, checking and wiring ──────────────────────────────────────────────────────────────────────────
+def manual_text(p):
+    """A manual as numbered plain-English steps (Director, MUSE and the UI all read this)."""
+    lines = []
+    for i, st in enumerate(p["steps"], 1):
+        lines.append("%d. %s: %s" % (i, step_label(st), st.get("does") or p.get("desc", "")))
+    return lines
+
+
+def step_label(st):
+    return "Voice swap" if st.get("mode") == "voice" else ROLES[st["role"]]["label"]
+
+
+def needs_of(entry):
+    """{"audio": 1} for manuals; skills' single "needs" kind → {kind: 1}."""
+    n = entry.get("needs")
+    if isinstance(n, dict):
+        return dict(n)
+    return {n: 1} if n else {}
+
+
+def missing(entry, kinds):
+    """Plain sentence for what's missing ('attach a voice recording'), or '' when the attachments satisfy the manual."""
+    for k, n in needs_of(entry).items():
+        have = sum(1 for x in kinds if x == k)
+        if have < n:
+            what = {"audio": "audio file", "image": "picture", "video": "clip", "text": "text file"}.get(k, k)
+            if entry.get("id") == "myvoice":
+                return "attach your voice recording (tap the mic) for %s" % entry["name"]
+            return "%s needs %d attached %s%s" % (entry["name"], n, what, "s" if n > 1 else "")
+    return ""
+
+
+def resolve_inputs(st, user_refs, outs, kind_of, seconds_of=None):
+    """Step's ordered reference list from its "inputs" tokens. outs = [[refs of step 1], [refs of step 2], …]."""
+    toks = st.get("inputs")
+    if toks is None:                                           # legacy pipelines: attachments + "use"
+        use = st.get("use")
+        extra = (outs[-1] if outs else []) if use == "prev" else [r for o in outs for r in o] if use == "all" else []
+        return list(user_refs) + extra
+    got = []
+    for t in toks:
+        src, _, kind = t.partition(":")
+        order = None
+        if ">" in kind:
+            kind, _, order = kind.partition(">")
+        if src == "user":
+            pool = list(user_refs)
+        elif src == "prev":
+            pool = list(outs[-1]) if outs else []
+        elif src.startswith("step") and src[4:].isdigit():
+            i = int(src[4:]) - 1
+            pool = list(outs[i]) if 0 <= i < len(outs) else []
+        elif src == "all":
+            pool = list(user_refs) + [r for o in outs for r in o]
+        else:
+            pool = []
+        if kind:
+            pool = [r for r in pool if kind_of(r) == kind]
+        if order == "len" and seconds_of:
+            pool.sort(key=lambda r: -(seconds_of(r) or 0))
+        got += [r for r in pool if r not in got]
+    return got
+
+
+def knob_values(entry, raw):
+    """Validate the composer's knob values against the entry's knob list → {k: value} (blank = untouched)."""
+    out = {}
+    for kb in entry.get("knobs") or []:
+        v = (raw or {}).get(kb["k"])
+        if v in (None, ""):
+            continue
+        if kb["type"] == "range":
+            try:
+                out[kb["k"]] = max(kb["min"], min(kb["max"], float(v)))
+            except (TypeError, ValueError):
+                pass
+        else:
+            allowed = [str(o[0] if isinstance(o, list) else o) for o in kb.get("opts") or []]
+            if str(v) in allowed:
+                out[kb["k"]] = str(v)
+    return out
+
+
+def knob_effects(entry, values, step_no, model):
+    """→ (param overrides for this engine, text to add to the prompt) for one step (step_no None = a skill)."""
+    over, add = {}, []
+    for kb in entry.get("knobs") or []:
+        if kb["k"] not in values:
+            continue
+        to = kb.get("to") or {}
+        if step_no is not None and to.get("step", 1) != step_no:
+            continue
+        v = values[kb["k"]]
+        if to.get("param"):
+            p = (PARAM_MAP.get(to["param"]) or {}).get(model, to["param"])
+            over[p] = v
+        if to.get("add"):
+            add.append(to["add"].replace("{v}", ("%g" % v) if isinstance(v, float) else str(v)))
+    return over, " ".join(add)
+
+
+def carry_text(st, meta, model):
+    """Prompt pieces handed forward from earlier steps: (prefix, suffix). Lyrics go LAST (engines read '| lyrics:' to the end)."""
+    want = st.get("carry") or []
+    pre, mid, lyr = "", [], ""
+    if "style" in want and meta.get("style"):
+        pre = meta["style"]
+    if "bpm" in want and meta.get("bpm"):
+        mid.append("--bpm %d" % meta["bpm"] if model == "ace" else "%d BPM" % meta["bpm"])
+    if "key" in want and meta.get("key"):
+        mid.append("in %s" % meta["key"])
+    if "lyrics" in want and meta.get("lyrics"):
+        lyr = "\n| lyrics:\n" + meta["lyrics"]
+    return pre, (" " + " ".join(mid) if mid else "") + lyr
+
+
+def plan_for(p, prompts=None):
+    """The live checklist a pipeline job carries (clients render it; the runner updates status per step)."""
+    prompts = prompts or []
+    return [{"n": i, "role": st["role"], "label": step_label(st), "icon": ROLES[st["role"]]["icon"],
+             "does": st.get("does", ""), "prompt": (prompts[i - 1] if i - 1 < len(prompts) else "") or "",
+             "status": "waiting", "inputs": [], "files": []}
+            for i, st in enumerate(p["steps"], 1)]
+
+
 def _pub_role(role):
     r = ROLES[role]
     return {"role": role, "label": r["label"], "icon": r["icon"], "model": r["model"]}   # model = internal id, never shown
@@ -212,5 +507,10 @@ def _pub_role(role):
 def catalog():
     """Front-end view: roles only (the engine id rides along so the client can select it, but is never displayed)."""
     sk = [dict(_pub_role(s["role"]), **{k: v for k, v in s.items() if k not in ("tpl", "params")}) for s in SKILLS]
-    pl = [dict({k: v for k, v in p.items() if k != "steps"}, steps=[_pub_role(x["role"]) for x in p["steps"]]) for p in PIPELINES]
+    pl = [dict({k: v for k, v in p.items() if k not in ("steps", "triggers", "also")}, need=needs_of(p), manual=manual_text(p),
+               steps=[dict(_pub_role(x["role"]), label=step_label(x), does=x.get("does", ""),
+                           slots=[t.split(":")[1].split(">")[0] for t in x.get("inputs") or [] if t.startswith("user:")])
+                      for x in p["steps"]]) for p in PIPELINES]
+    for x in sk:
+        x["need"] = needs_of(x)
     return {"roles": {k: _pub_role(k) for k in ROLES}, "skills": sk, "pipelines": pl, "commands": COMMANDS, "tips": TIPS}

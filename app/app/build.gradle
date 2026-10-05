@@ -9,14 +9,32 @@ if (ksFile.exists()) { ks.load(new FileInputStream(ksFile)) }
 
 android {
     namespace 'com.mirmedialabs.app'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.mirmedialabs.app"
         minSdk 24
         targetSdk 34
-        versionCode 28
-        versionName "2.1"
+        versionCode 35
+        versionName "2.8"
+    }
+
+    buildFeatures { buildConfig true }
+
+    // Two editions from ONE codebase - every feature ships in both unless gated on BuildConfig.PLAY.
+    //   direct : GitHub / own lab update server, self-updater (the original app)
+    //   play   : Google Play - no self-updater / install permissions, in-app content reporting
+    flavorDimensions "store"
+    productFlavors {
+        direct {
+            dimension "store"
+            buildConfigField "boolean", "PLAY", "false"
+        }
+        play {
+            dimension "store"
+            buildConfigField "boolean", "PLAY", "true"
+            targetSdk 36                                     // Play's current target-API requirement
+        }
     }
 
     signingConfigs {

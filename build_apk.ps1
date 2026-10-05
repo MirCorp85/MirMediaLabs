@@ -6,8 +6,10 @@
 #   -GitHub [-Tag vX.Y.Z]  (implies -Release) upload MirMediaLabs.apk + signed android.json to a GitHub release
 #                          (default: the current latest release) - the official update channel of every app
 #   -Install               adb install + launch on a connected phone / emulator
+#   -Play                  Google Play edition: signed release App Bundle -> MirMediaLabs-play.aab for Play Console
+#                          (never sent to GitHub / the lab). Same code + version as the direct app.
 # Manifests are signed with installer\signing\update_ed25519.key (same key as the PC edition - never commit it).
-param([switch]$Install, [switch]$Publish, [switch]$Bump, [switch]$Release, [switch]$GitHub, [string]$Tag = "", [string]$Notes = "")
+param([switch]$Play, [switch]$Install, [switch]$Publish, [switch]$Bump, [switch]$Release, [switch]$GitHub, [string]$Tag = "", [string]$Notes = "")
 $env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.10"
 $env:ANDROID_HOME = "C:\AiMir-Tools\android-sdk"
 if ($GitHub) { $Release = $true }
@@ -30,8 +32,17 @@ if ($Bump) {
     "bumped to v$newName ($code)"
 }
 
-$task = if ($Release) { "assembleRelease" } else { "assembleDebug" }
-$apk = if ($Release) { Join-Path $proj "app\build\outputs\apk\release\app-release.apk" } else { Join-Path $proj "app\build\outputs\apk\debug\app-debug.apk" }
+if ($Play) {
+    $aab = Join-Path $proj "app\build\outputs\bundle\playRelease\app-play-release.aab"
+    Remove-Item $aab -ErrorAction SilentlyContinue
+    & cmd /c "cd /d `"$proj`" && `"$proj\gradlew.bat`" bundlePlayRelease --console=plain 2>&1" | Select-String -Pattern "error|warning: |BUILD|\.java:\d+" | ForEach-Object { $_.Line }
+    if (-not (Test-Path $aab)) { "BUILD FAILED - no AAB"; exit 1 }
+    Copy-Item $aab (Join-Path $PSScriptRoot "MirMediaLabs-play.aab") -Force
+    "Play bundle ready: $(Join-Path $PSScriptRoot 'MirMediaLabs-play.aab')"
+    exit 0
+}
+$task = if ($Release) { "assembleDirectRelease" } else { "assembleDirectDebug" }
+$apk = if ($Release) { Join-Path $proj "app\build\outputs\apk\direct\release\app-direct-release.apk" } else { Join-Path $proj "app\build\outputs\apk\direct\debug\app-direct-debug.apk" }
 Remove-Item $apk -ErrorAction SilentlyContinue   # a failed build must never publish the previous APK
 & cmd /c "cd /d `"$proj`" && `"$proj\gradlew.bat`" $task --console=plain 2>&1" | Select-String -Pattern "error|warning: |BUILD|\.java:\d+" | ForEach-Object { $_.Line }
 if (-not (Test-Path $apk)) { "BUILD FAILED - no APK"; exit 1 }

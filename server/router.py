@@ -37,11 +37,14 @@ def _catalog_text():
     out += ["- %s: %s" % (r, ROLE_WHAT[r]) for r in RENDER_ROLES]
     out.append("SKILLS (action=skill; tuned presets — prefer one when it clearly fits):")
     for s in skills.SKILLS:
-        out.append("- %s [%s]%s: %s" % (s["id"], s["role"], " (needs an attached %s)" % s["needs"] if s.get("needs") else "",
-                                        s["desc"]))
-    out.append("PIPELINES (action=pipeline; several renders chained — only when the person asks for the whole package):")
+        need = ", ".join("%d attached %s" % (n, k) for k, n in skills.needs_of(s).items())
+        out.append("- %s [%s]%s: %s" % (s["id"], s["role"], " (needs %s)" % need if need else "", s["desc"]))
+    out.append("PIPELINES = instruction manuals (action=pipeline; several renders in a fixed order). Pick one when its"
+               " WHEN matches, then write one prompt per step in \"steps\":")
     for p in skills.PIPELINES:
-        out.append("- %s [%s]: %s" % (p["id"], " -> ".join(x["role"] for x in p["steps"]), p["desc"]))
+        need = ", ".join("%d attached %s" % (n, k) for k, n in skills.needs_of(p).items())
+        out.append("- %s: %s. WHEN: %s.%s" % (p["id"], p["name"], p.get("when") or p["desc"], (" NEEDS: " + need + ".") if need else ""))
+        out += ["    " + s for s in skills.manual_text(p)]
     return "\n".join(out)
 
 
@@ -56,8 +59,11 @@ ACTIONS
 - "render": the person wants an image, a video, a song or music MADE now. Pick the role.
 - "skill": like render, but one of the SKILLS above clearly matches (e.g. "product photo of ..." -> product,
   "make this photo move" with a picture attached -> animate, "lofi beat" -> lofi, "logo for ..." -> logo).
-- "pipeline": only when the person asks for a multi-part package that a PIPELINE describes (e.g. "a music video for a
-  synthwave song" -> musicvideo).
+- "pipeline": when the person's request needs several tools in a row and a PIPELINE's WHEN matches (e.g. "a music
+  video for a synthwave song" -> musicvideo; a voice recording attached + "make a song about X with my voice" ->
+  myvoice). Follow the manual: "steps" holds one prompt per step, in order, each written for THAT step's tool.
+  For myvoice: step 1 = the full song brief (topic, genre, rhythm/BPM, mood, any lyrics the person gave);
+  step 2 = only the singing style (e.g. "warm intimate lead vocal"), never the topic again.
 
 RULES
 - If in doubt between chat and making something: the person must clearly ask for a picture/video/song/beat to be MADE.
@@ -79,10 +85,14 @@ EXAMPLES
 "remove the background" (picture attached) -> skill cutout
 "lofi beat for studying" -> skill lofi
 "how do I write a good hook?" -> chat
+"make a slow reggae song about my hometown using my voice" (audio attached) -> pipeline myvoice,
+  steps ["Roots reggae song about growing up in my hometown, slow 75 BPM one-drop groove, warm nostalgic mood",
+         "warm, relaxed lead vocal"]
 
-Output ONLY this JSON:
+Output ONLY this JSON ("steps" only for a pipeline, else []; "knobs" only numbers the person actually said, e.g.
+{{"bpm": "85", "len": "60"}}, else {{}}):
 {{"action": "chat|render|skill|pipeline", "role": "image|video|song|music|", "skill": "", "pipeline": "",
-  "prompt": "...", "use_previous": false, "why": "..."}}"""
+  "prompt": "...", "steps": [], "knobs": {{}}, "use_previous": false, "why": "..."}}"""
 
 
 def _context(history, refs):
@@ -106,12 +116,13 @@ def _valid(d, refs):
         return None
     act = str(d.get("action") or "").lower().strip()
     out = {"action": act, "prompt": str(d.get("prompt") or "").strip(), "why": str(d.get("why") or "").strip()[:80],
-           "use_previous": bool(d.get("use_previous"))}
+           "use_previous": bool(d.get("use_previous")),
+           "knobs": {str(k): str(v) for k, v in (d.get("knobs") or {}).items()} if isinstance(d.get("knobs"), dict) else {}}
     if act == "skill":
         s = skills.skill(str(d.get("skill") or "").lower().strip())
         if not s:
             return None
-        if s.get("needs") and not any(core.kind_of(r) == s["needs"] for r in refs or []) and not out["use_previous"]:
+        if skills.missing(s, [core.kind_of(r) for r in refs or []]) and not out["use_previous"]:
             # the preset needs an attachment the person didn't give: fall back to a plain render of that role
             if s["role"] == "text":
                 return dict(out, action="chat")
@@ -119,7 +130,14 @@ def _valid(d, refs):
         return dict(out, skill=s["id"], role=s["role"])
     if act == "pipeline":
         p = skills.pipeline(str(d.get("pipeline") or "").lower().strip())
-        return dict(out, pipeline=p["id"]) if p else None
+        if not p:
+            return None
+        if skills.missing(p, [core.kind_of(r) for r in refs or []]) and not out["use_previous"]:
+            # the manual needs an attachment the person didn't give: do its first step alone and say why
+            return dict(out, action="render", role=p["steps"][0]["role"],
+                        why=skills.missing(p, [core.kind_of(r) for r in refs or []])[:80])
+        steps = [str(x).strip()[:2000] for x in (d.get("steps") or []) if isinstance(x, (str, int, float))]
+        return dict(out, pipeline=p["id"], steps=steps[:len(p["steps"])])
     if act == "render":
         role = str(d.get("role") or "").lower().strip()
         return dict(out, role=role) if role in RENDER_ROLES else None
@@ -180,11 +198,50 @@ _SKILL_KW = [
     ("spin", "video", r"turntable|\b360\b|spinning product|product spin", None),
     ("lofi", "music", r"\blo-?fi\b", None),
     ("jingle", "music", r"\bjingle\b", None),
+    ("remix", "music", r"\bremix\b|\brework\b", "audio"),
+    ("morph", "video", r"\bmorph\b|\btransform(s|ing)? (from )?.{0,40}\binto\b|\btransition from\b", "image"),
 ]
 _VIDEO_WORDS = r"video|clip|animat|movie|film|footage|motion|moving|\b\d+\s*(s|sec|secs|seconds)\b|--\d+s|reel|tiktok|timelapse"
 
 
+_SONGY = r"\b(song|sing|sings|singing|sung|track|tune|ballad|anthem|chorus|verse|lyrics|rap|cover)\b"
+_VOICE_PHRASE = (r"\b(sung\s+|sing\s+it\s+)?(using|with|in|from|use)\s+(the\s+)?(voice|vocals?|singing)?\s*(of|in|on|from)?\s*(the\s+)?"
+                 r"(my|this|that|the|attached|recorded)\s+(own\s+)?(voice|vocals?|recording|singing|clip|audio)"
+                 r"(\s+(in|from|on)\s+(my|the|this)\s+(recording|clip|audio|file))?\b|\b(sung|sing it)\s+(like|as)\s+me\b")
+
+
+def _manual_rule(d, prompt, refs):
+    """Manuals the person's own words + attachments point at unmistakably (the 8B model can miss these)."""
+    p = (prompt or "").lower()
+    kinds = [core.kind_of(r) for r in refs or []]
+    if d["action"] == "chat" and not re.search(_MAKE, p) and not re.search(r"\b(sing|sung|perform)\b", p):
+        return d
+    if d["action"] == "pipeline" and d.get("pipeline") in _RULE_ORDER:
+        return d
+    for pid in _RULE_ORDER:                      # most specific first
+        man = skills.pipeline(pid)
+        if not man or skills.missing(man, kinds) or not re.search(man["triggers"], p, re.I):
+            continue
+        if man.get("also") and not re.search(man["also"], p, re.I):
+            continue
+        if pid in ("myvoice", "myvoicevideo") and not re.search(_SONGY, p):
+            continue
+        voice = pid in ("myvoice", "myvoicevideo")
+        brief = core.clean_ws(re.sub(_VOICE_PHRASE, "", prompt or "", flags=re.I)).strip(" ,.") if voice else ""
+        return {"action": "pipeline", "pipeline": pid, "prompt": prompt, "steps": [brief] if brief else [],
+                "knobs": d.get("knobs") or {}, "use_previous": False, "why": _RULE_WHY.get(pid, man["desc"][:60])}
+    return d
+
+
+_RULE_ORDER = ("coverme", "myvoicevideo", "myvoice", "visualizer", "productstudio", "singer", "lyricsong", "adspot")
+_RULE_WHY = {"coverme": "re-sing that song in your voice", "myvoice": "a song, re-sung in your recorded voice",
+             "myvoicevideo": "your-voice song plus a music video", "visualizer": "a video scored with your track",
+             "productstudio": "your product in a new scene, then moving", "singer": "a character performing their song",
+             "lyricsong": "lyrics written first, then sung", "adspot": "packshot, jingle and the ad clip"}
+
+
 def _refine(d, prompt, refs):
+    d = _manual_rule(d, prompt, refs)
     p = (prompt or "").lower()
     kinds = {core.kind_of(r) for r in refs or []}
     if d["action"] == "render" and d.get("role") == "video" and not re.search(_VIDEO_WORDS, p) \
@@ -198,9 +255,11 @@ def _refine(d, prompt, refs):
                 continue
             if d["action"] == "skill" and d.get("skill") == sid:
                 break
-            if d["action"] == "render" and d.get("role") not in (role, None) and not (sid == "animate" and d.get("role") == "image"):
+            if d["action"] == "render" and d.get("role") not in (role, None) and not (sid in ("animate", "morph") and d.get("role") == "image"):
                 continue                                   # the words point at a preset of another role: keep the model's call
             s = skills.skill(sid)
+            if s and skills.missing(s, [core.kind_of(r) for r in refs or []]) and not d.get("use_previous"):
+                continue                                   # e.g. morph wants TWO pictures
             if s:
                 d = dict(d, action="skill", skill=sid, role=s["role"])
             break
@@ -215,9 +274,10 @@ def decide(prompt, refs=None, history=None, model=None):
         role = "video" if "image" in kinds else "music" if "audio" in kinds else "image"
         return {"action": "render", "role": role, "prompt": "", "why": "attachment only", "use_previous": False, "by": "rules"}
     t0 = time.time()
+    core.ensure_ollama()
     try:
         body = {"model": model, "stream": False, "format": "json", "keep_alive": KEEP_ALIVE,
-                "options": {"temperature": 0.1, "num_ctx": ROUTER_CTX, "num_predict": 600},
+                "options": {"temperature": 0.1, "num_ctx": ROUTER_CTX, "num_predict": 900},
                 "messages": [{"role": "system", "content": SYSTEM.format(catalog=_catalog_text())},
                              {"role": "user", "content": _context(history, refs) + "\n\nMessage:\n" + prompt}]}
         r = core.requests.post(core.OLLAMA + "/api/chat", json=body, timeout=TIMEOUT)
@@ -231,6 +291,9 @@ def decide(prompt, refs=None, history=None, model=None):
                 missing = [f for f in re.findall(r"--[\w-]+(?:\s+\d+)?", prompt) if f not in d["prompt"]]
                 d["prompt"] = (d["prompt"] + " " + " ".join(missing)).strip()
             d = _refine(d, prompt, refs)
+            if d["action"] == "pipeline" and d.get("steps") and re.findall(r"--\w+", prompt):
+                missing = [f for f in re.findall(r"--[\w-]+(?:\s+\d+)?", prompt) if f not in d["steps"][0]]
+                d["steps"][0] = (d["steps"][0] + " " + " ".join(missing)).strip()   # flags steer the first step
             d["by"], d["ms"] = "muse", int((time.time() - t0) * 1000)
             return d
     except Exception:
@@ -246,9 +309,28 @@ def label(d):
         return "Chat"
     if d["action"] == "pipeline":
         p = skills.pipeline(d["pipeline"])
-        return "Pipeline · " + (p["name"] if p else d["pipeline"])
+        if not p:
+            return "Pipeline · " + d["pipeline"]
+        return "Pipeline · %s (%s)" % (p["name"], " → ".join(skills.step_label(s) for s in p["steps"]))
     role = skills.ROLES.get(d.get("role"), {}).get("label", d.get("role", ""))
     if d["action"] == "skill":
         s = skills.skill(d["skill"])
         return "%s · %s" % (role, s["name"] if s else d["skill"])
     return role
+
+
+_FAKE = {"audio": "x.wav", "image": "x.png", "video": "x.mp4", "text": "x.txt"}
+
+
+def preview(prompt, kinds):
+    """Quick-rules guess (no model, a few ms) for the composer's 'MUSE will likely…' line."""
+    refs = [_FAKE[k] for k in kinds if k in _FAKE]
+    if not (prompt or "").strip() or (prompt or "").lstrip().startswith("/"):
+        return None
+    d = _refine(fallback(prompt, refs), prompt, refs)
+    out = {"action": d["action"], "label": label(d), "why": d.get("why", "")}
+    if d["action"] == "pipeline":
+        out["pipeline"] = d["pipeline"]
+    elif d["action"] == "skill":
+        out["skill"] = d["skill"]
+    return out
