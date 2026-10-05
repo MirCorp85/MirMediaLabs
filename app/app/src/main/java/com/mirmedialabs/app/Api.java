@@ -176,6 +176,8 @@ final class Api {
                         if (si >= 0 && !q.isNull(si)) size = q.getLong(si);
                     }
                 } catch (Exception ignored) {}
+                if ("file".equals(uri.getScheme()) && uri.getLastPathSegment() != null) name = uri.getLastPathSegment();   // in-app recordings
+                if (mime == null && name.endsWith(".m4a")) mime = "audio/mp4";
                 if (!name.contains(".")) name += extFor(mime);
                 if (mime == null) mime = "application/octet-stream";
                 byte[] head = ("--" + bnd + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + name.replace("\"", "")
