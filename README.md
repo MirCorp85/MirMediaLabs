@@ -13,13 +13,27 @@ Video, songs, music, images and writing, controlled from your PC, phone or Andro
 <img src="https://img.shields.io/badge/runs-100%25%20local-5ee08a" alt="100% local">
 </p>
 
-<p align="center"><img src="docs/screenshots/1-console.png" alt="Agent console with video, image, song and music renders, the library and the live PC performance card" width="100%"></p>
+<p align="center"><a href="docs/promo/mml-promo.mp4"><img src="docs/promo/1-hero.jpg" alt="MIR MEDIA LABS: chat it, render it" width="100%"></a></p>
+
+<p align="center"><b><a href="docs/promo/mml-promo.mp4">▶ Watch the 42-second promo video</a></b> · every clip (MiniMax H3) and the soundtrack (ACE-Step) was rendered by MML itself on one RTX 5070</p>
 
 ## Screenshots
+<p align="center"><img src="docs/promo/2-feature-wall.jpg" alt="Lab chat, command book, per-model controls, library and player" width="100%"></p>
+
 | | |
 |---|---|
-| <img src="docs/screenshots/2-parameters.png" alt="Per-model parameters (Midnight Studio theme)"><br><sub><b>Per-model parameters</b> · Midnight Studio theme</sub> | <img src="docs/screenshots/3-commands.png" alt="Command book (Paper Light theme)"><br><sub><b>Command book</b> with 21 skills and 5 pipelines · Paper Light theme</sub> |
-| <img src="docs/screenshots/4-about.png" alt="About, bug report and Patreon (Obsidian Gold theme)"><br><sub><b>About · Report a bug · Support</b> · Obsidian Gold theme</sub> | <img src="docs/screenshots/5-phone.png" alt="Phone layout (Graphite theme)" width="45%"><br><sub><b>Phone browser layout</b> · Graphite theme</sub> |
+| <img src="docs/screenshots/web-studio.jpg" alt="Lab chat with H3 video renders and the library"><br><sub><b>Lab chat</b>: MUSE picks the model, H3 renders the clip · Claude Dark theme</sub> | <img src="docs/screenshots/web-commands.jpg" alt="Command book"><br><sub><b>Command book</b>: commands, skills and pipelines</sub> |
+| <img src="docs/screenshots/web-params.jpg" alt="Per-model parameters"><br><sub><b>Per-model parameters</b> (MiniMax H3)</sub> | <img src="docs/screenshots/web-themes.jpg" alt="Theme picker"><br><sub><b>5 themes</b>: Claude Dark, Graphite, Obsidian Gold, Midnight Studio, Paper Light</sub> |
+| <img src="docs/screenshots/web-midnight.jpg" alt="Midnight Studio theme"><br><sub>Midnight Studio theme</sub> | <img src="docs/screenshots/web-paper.jpg" alt="Paper Light theme"><br><sub>Paper Light theme</sub> |
+
+<p align="center">
+<img src="docs/promo/3-themes.jpg" alt="Five themes" width="49%">
+<img src="docs/promo/4-everywhere.jpg" alt="PC, phone, tablet and TV" width="49%">
+</p>
+<p align="center">
+<img src="docs/screenshots/web-phone-chat.jpg" alt="Phone browser: chat" width="22%">
+<img src="docs/screenshots/web-phone-library.jpg" alt="Phone browser: library" width="22%">
+</p>
 
 <sub>Every render shown was made locally by MML on an RTX 5070: the H3 video with audio, the Qwen images, the Music 3 song, the ACE-Step lo-fi track and the MUSE lyrics.</sub>
 
@@ -202,7 +216,7 @@ Rendering needs a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) wit
 Android: open `app/` in Android Studio, or run `powershell -File build_apk.ps1`.
 
 ## Support development
-MIR MEDIA LABS is free and always will be. If it's useful to you, please support it on **[Patreon](https://www.patreon.com/MirCorp)**. Your support funds new models, features and testing hardware. You can also use the **Support** button inside the app.
+MIR MEDIA LABS is free and always will be. If it's useful to you, please support it on **[Patreon](https://www.patreon.com/MirCorp)**: **$3 Supporter** backs free development, **$5 Early Access** gets you beta builds to test new features first. Your support funds new models, features and testing hardware. You can also use the **Support** button inside the app.
 
 ## Feedback and bugs
 - In the app: **About > Report a bug** or **Send feedback**
