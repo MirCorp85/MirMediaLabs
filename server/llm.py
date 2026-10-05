@@ -155,7 +155,7 @@ def knowledge():
     out.append("Skills (one-tap presets; type /<name> <idea>):")
     for s in skills.SKILLS:
         out.append("- /%s - %s (%s)%s: %s" % (s["id"], s["name"], skills.ROLES[s["role"]]["label"],
-                                             " needs an attached " + s["needs"] if s.get("needs") else "", s["desc"]))
+                                             (" needs " + ", ".join("%d attached %s" % (n, k) for k, n in skills.needs_of(s).items())) if s.get("needs") else "", s["desc"]))
     out.append("Pipelines = step-by-step manuals (one request, several tools in a fixed order; type /<name> <idea>, or just"
                " describe it in Auto mode and the Director follows the manual). Each step gets its own inputs and"
                " carries the song's lyrics / tempo / key forward:")
