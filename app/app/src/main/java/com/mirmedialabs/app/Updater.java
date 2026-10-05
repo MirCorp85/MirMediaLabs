@@ -207,6 +207,7 @@ final class Updater {
     // ── UI ───────────────────────────────────────────────────────────────
     /** Launch check (at most every 12 h) or manual check from the menu / an update notification. */
     static void check(Activity a, boolean manual) {
+        if (BuildConfig.PLAY) return;                       // Play edition: Google Play delivers updates
         if (!manual && (!Prefs.bool(a, "upd_auto", true) || System.currentTimeMillis() - Prefs.lng(a, "upd_last", 0) < EVERY)) return;
         Sheet wait = null;
         if (manual) {
@@ -398,6 +399,7 @@ final class Updater {
 
     /** Background (PushJob): notify once per new build, twice a day at most. */
     static void backgroundCheck(Context c) {
+        if (BuildConfig.PLAY) return;
         if (!Prefs.bool(c, "upd_auto", true) || System.currentTimeMillis() - Prefs.lng(c, "upd_last", 0) < EVERY) return;
         Check ck = run(c);
         if (ck.best != null && Prefs.lng(c, "upd_notified", 0) != ck.best.optLong("versionCode")) {

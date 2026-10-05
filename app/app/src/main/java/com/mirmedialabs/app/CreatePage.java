@@ -21,6 +21,7 @@ final class CreatePage extends LinearLayout {
     private final LinearLayout modelRow, attRow, thread;
     private final ScrollView scroll;
     final Mascot mascot;
+    final StatusCard statusCard;
     private final TextView goBtn;
     private final EditText prompt;
     private String sig = "";
@@ -49,64 +50,230 @@ final class CreatePage extends LinearLayout {
         FrameLayout.LayoutParams ml = new FrameLayout.LayoutParams(Ui.WRAP, Ui.WRAP, Gravity.BOTTOM | Gravity.START);
         ml.setMargins(Ui.dp(6), 0, 0, Ui.dp(4));
         stage.addView(mascot, ml);
+        statusCard = new StatusCard(a);   // what the lab is doing right now: model, steps, stage, tags
+        boolean wide = getResources().getConfiguration().screenWidthDp >= 600;
+        FrameLayout.LayoutParams sl = new FrameLayout.LayoutParams(wide ? Ui.dp(340) : Ui.MATCH, Ui.WRAP, Gravity.TOP | Gravity.END);
+        sl.setMargins(Ui.dp(8), Ui.dp(6), Ui.dp(8), 0);
+        stage.addView(statusCard, sl);
+        mascot.setClickable(true);        // tap the atom: unfold / fold the status card
+        mascot.setOnClickListener(v -> statusCard.toggle());
         addView(stage, new LayoutParams(Ui.MATCH, 0, 1));
 
         LinearLayout comp = Ui.vbox(a);
         comp.setPadding(Ui.dp(10), Ui.dp(5), Ui.dp(10), Ui.dp(6));
         comp.setBackground(Ui.box(0, 0x33000000, 0));
+        recipeBar = Ui.vbox(a);            // the skill / manual typed as "/id …": its steps, which attachment feeds it, its dials
+        recipeBar.setPadding(Ui.dp(10), Ui.dp(7), Ui.dp(10), Ui.dp(7));
+        recipeBar.setBackground(Ui.box(14, 0x14FFC21A, 0x73FFC21A));
+        recipeBar.setVisibility(GONE);
+        comp.addView(recipeBar, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 0, 0, 6));
         HorizontalScrollView as = new HorizontalScrollView(a);
         as.setHorizontalScrollBarEnabled(false);
         attRow = Ui.hbox(a);
         as.addView(attRow);
         comp.addView(as);
         LinearLayout row = Ui.hbox(a);
-        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setGravity(Gravity.BOTTOM);
+        // WhatsApp-style composer: one rounded pill holding the tools + a round send / mic button beside it
+        pill = Ui.hbox(a);
+        pill.setGravity(Gravity.CENTER_VERTICAL);
+        pill.setPadding(Ui.dp(4), Ui.dp(2), Ui.dp(4), Ui.dp(2));
+        pill.setBackground(Ui.box(24, 0x66000000, Ui.LINE2));
         boolean compact = !Tv.is(a);      // phones: tools collapse into one [+] menu → more room to type
-        TextView more = Ui.button(a, "[[plus]]", Ui.VIO, false);
-        more.setTextSize(15);
-        more.setPadding(0, 0, 0, 0);
-        more.setOnClickListener(v -> m.toolsMenu());
-        if (compact) row.addView(more, Ui.margins(Ui.lp(Ui.dp(36), Ui.dp(36)), 0, 0, 6, 0));
-        TextView clip = Ui.button(a, "[[attach]]", Ui.VIO, false);
-        clip.setTextSize(14);
-        clip.setPadding(0, 0, 0, 0);
-        clip.setOnClickListener(v -> m.attachMenu());
-        row.addView(clip, Ui.lp(Ui.dp(36), Ui.dp(36)));
-        TextView gear = Ui.button(a, "[[gear]]", Ui.VIO, false);
-        gear.setTextSize(14);
-        gear.setPadding(0, 0, 0, 0);
-        gear.setOnClickListener(v -> m.openParams(m.cur));
-        row.addView(gear, Ui.margins(Ui.lp(Ui.dp(36), Ui.dp(36)), 6, 0, 0, 0));
-        TextView sk = Ui.button(a, "[[sparkle]]", Ui.VIO, false);   // skills · pipelines · command book
-        sk.setTextSize(14);
-        sk.setPadding(0, 0, 0, 0);
-        sk.setOnClickListener(v -> m.skillsMenu());
-        sk.setOnLongClickListener(v -> { m.commandBook(); return true; });
-        row.addView(sk, Ui.margins(Ui.lp(Ui.dp(36), Ui.dp(36)), 6, 0, 0, 0));
-        TextView lo = Ui.button(a, "[[layers]]", Ui.VIO, false);   // LoRA samples panel (same as the web LoRA card)
-        lo.setTextSize(14);
-        lo.setPadding(0, 0, 0, 0);
-        lo.setOnClickListener(v -> m.loras.browse(Loras.roleOf(m.cur), ""));
-        row.addView(lo, Ui.margins(Ui.lp(Ui.dp(36), Ui.dp(36)), 6, 0, 6, 0));
-        if (compact) for (View t : new View[]{clip, gear, sk, lo}) t.setVisibility(GONE);
+        if (compact) pill.addView(tool(a, "[[plus]]", v -> m.toolsMenu()), Ui.lp(Ui.dp(38), Ui.dp(38)));
         prompt = new EditText(a);
-        prompt.setMinHeight(Ui.dp(36));
+        prompt.setMinHeight(Ui.dp(38));
         prompt.setMaxLines(6);
         prompt.setTextColor(Ui.INK);
         prompt.setHintTextColor(Ui.FAINT);
-        prompt.setTextSize(13.5f);
+        prompt.setTextSize(14f);
         prompt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        prompt.setPadding(Ui.dp(10), Ui.dp(6), Ui.dp(10), Ui.dp(6));
-        prompt.setBackground(Ui.box(16, 0x66000000, Ui.LINE2));
+        prompt.setPadding(Ui.dp(6), Ui.dp(8), Ui.dp(6), Ui.dp(8));
+        prompt.setBackground(null);
         prompt.setText(Prefs.str(a, "draft", ""));
-        row.addView(prompt, new LayoutParams(0, Ui.WRAP, 1));
+        pill.addView(prompt, new LayoutParams(0, Ui.WRAP, 1));
+        pill.addView(tool(a, "[[attach]]", v -> m.attachMenu()), Ui.lp(Ui.dp(38), Ui.dp(38)));
+        if (!compact) {                    // TV: every tool stays one D-pad step away
+            pill.addView(tool(a, "[[gear]]", v -> m.openParams(m.cur)), Ui.lp(Ui.dp(38), Ui.dp(38)));
+            TextView sk = tool(a, "[[sparkle]]", v -> m.skillsMenu());   // skills · pipelines · command book
+            sk.setOnLongClickListener(v -> { m.commandBook(); return true; });
+            pill.addView(sk, Ui.lp(Ui.dp(38), Ui.dp(38)));
+            pill.addView(tool(a, "[[layers]]", v -> m.loras.browse(Loras.roleOf(m.cur), "")), Ui.lp(Ui.dp(38), Ui.dp(38)));
+        }
+        recBar = Ui.hbox(a);               // shown instead of the tools while recording
+        TextView dot = Ui.text(a, "●", 14, Ui.RED);
+        recTime = Ui.mono(a, "0:00", 13, Ui.INK);
+        recBar.addView(dot, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 8, 0, 8, 0));
+        recBar.addView(recTime, new LayoutParams(0, Ui.WRAP, 1));
+        recBar.addView(tool(a, "[[trash]]", v -> stopRec(false)), Ui.lp(Ui.dp(38), Ui.dp(38)));
+        recBar.setVisibility(GONE);
+        pill.addView(recBar, new LayoutParams(0, Ui.dp(38), 1));
+        row.addView(pill, new LayoutParams(0, Ui.WRAP, 1));
         goBtn = Ui.button(a, "[[send]]", Ui.VIO, true);
-        goBtn.setTextSize(15);
+        goBtn.setTextSize(17);
         goBtn.setPadding(0, 0, 0, 0);
-        goBtn.setOnClickListener(v -> m.generate(prompt.getText().toString().trim()));
-        row.addView(goBtn, Ui.margins(Ui.lp(Ui.dp(46), Ui.dp(36)), 6, 0, 0, 0));
+        goBtn.setOnClickListener(v -> {
+            if (rec != null) stopRec(true);
+            else if (micMode()) startRec();
+            else m.generate(prompt.getText().toString().trim());
+        });
+        row.addView(goBtn, Ui.margins(Ui.lp(Ui.dp(46), Ui.dp(46)), 6, 0, 0, 0));
         comp.addView(row, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 4, 0, 0));
+        prompt.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int a1, int b1, int c1) { }
+            public void onTextChanged(CharSequence s, int a1, int b1, int c1) { }
+            public void afterTextChanged(android.text.Editable e) { mode(); }
+        });
         addView(comp);
+    }
+
+    // ── composer: round button = mic while empty (record a sound reference), send once there's something ──
+    private LinearLayout pill, recBar;
+    private TextView recTime;
+    private android.media.MediaRecorder rec;
+    private java.io.File recFile;
+    private long recT0;
+    private final android.os.Handler rh = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable recTick = new Runnable() { public void run() {
+        if (rec == null) return;
+        long s = (System.currentTimeMillis() - recT0) / 1000;
+        recTime.setText((s / 60) + ":" + String.format("%02d", s % 60) + "   recording…");
+        if (s >= 300) stopRec(true); else rh.postDelayed(this, 250);
+    } };
+
+    private TextView tool(android.content.Context a, String icon, View.OnClickListener l) {
+        TextView t = Ui.text(a, icon, 18, Ui.DIM);
+        t.setGravity(Gravity.CENTER);
+        t.setClickable(true);
+        t.setFocusable(true);
+        t.setBackground(Ui.box(19, 0, 0));
+        t.setOnClickListener(l);
+        return t;
+    }
+
+    private boolean micMode() { return prompt.getText().toString().trim().isEmpty() && m.atts.isEmpty(); }
+
+    void mode() {
+        renderRecipe();
+        if (rec != null || goBtn == null) return;
+        Icons.set(goBtn, micMode() ? "[[mic]]" : "[[send]]");
+        goBtn.setBackground(Ui.box(23, m.accent(), 0));
+    }
+
+    // ── recipe bar ──
+    private LinearLayout recipeBar;
+    private boolean recipeLoading;
+    private String recipeSig = "";
+
+    void renderRecipe() {
+        if (recipeBar == null || prompt == null) return;
+        String p = prompt.getText().toString();
+        JSONObject rc = m.recipeOf(p);
+        if (rc == null && p.startsWith("/") && !recipeLoading) {        // catalog not loaded yet: fetch once, then redraw
+            recipeLoading = true;
+            m.withSkills(() -> { recipeLoading = false; recipeSig = ""; renderRecipe(); });
+        }
+        String sig = rc == null ? "" : rc.optString("id") + m.atts.size() + m.knobs.toString();
+        for (JSONObject a : m.atts) sig += a.optBoolean("uploading");
+        if (sig.equals(recipeSig)) return;
+        recipeSig = sig;
+        recipeBar.removeAllViews();
+        if (rc == null) { recipeBar.setVisibility(GONE); return; }
+        recipeBar.setVisibility(VISIBLE);
+        boolean pipe = "pipeline".equals(rc.optString("type"));
+        StringBuilder flow = new StringBuilder();
+        JSONArray st = rc.optJSONArray("steps");
+        for (int k = 0; st != null && k < st.length(); k++) flow.append(k > 0 ? "  →  " : "").append(st.optJSONObject(k).optString("label"));
+        LinearLayout head = Ui.hbox(m);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(Ui.text(m, "[[" + (pipe ? "chain" : rc.optString("icon", "sparkle")) + "]] " + rc.optString("name"), 13, 0xFFFFC21A), new LayoutParams(0, Ui.WRAP, 1));
+        if (rc.optJSONArray("knobs") != null && rc.optJSONArray("knobs").length() > 0) {
+            TextView dials = Ui.text(m, "[[sliders]] Dials", 12, Ui.INK);
+            dials.setPadding(Ui.dp(8), Ui.dp(4), Ui.dp(8), Ui.dp(4));
+            dials.setBackground(Ui.box(12, Ui.CARD2, Ui.LINE2));
+            dials.setFocusable(true);
+            dials.setOnClickListener(v -> m.knobSheet(rc));
+            head.addView(dials, Ui.lp(Ui.WRAP, Ui.WRAP));
+        }
+        recipeBar.addView(head);
+        if (flow.length() > 0) recipeBar.addView(Ui.text(m, flow.toString(), 11.5f, Ui.DIM), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 3, 0, 0));
+        JSONArray man = rc.optJSONArray("manual");
+        for (int k = 0; man != null && k < man.length(); k++)
+            recipeBar.addView(Ui.text(m, man.optString(k), 11, Ui.FAINT), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 2, 0, 0));
+        // slots: which attachment feeds the manual; a missing voice → tap to record
+        JSONObject need = rc.optJSONObject("need");
+        JSONObject names = rc.optJSONObject("slotnames");
+        for (java.util.Iterator<String> it = need == null ? null : need.keys(); it != null && it.hasNext(); ) {
+            final String kind = it.next();
+            java.util.List<JSONObject> have = new java.util.ArrayList<>();
+            for (JSONObject a : m.atts) if (!a.optBoolean("uploading") && kind.equals(a.optString("kind"))) have.add(a);
+            for (int s = 0; s < need.optInt(kind, 1); s++) {
+                JSONArray nm = names == null ? null : names.optJSONArray(kind);
+                String label = nm != null && s < nm.length() ? nm.optString(s) : kind;
+                boolean ok = s < have.size();
+                TextView slot = Ui.text(m, ok ? "[[check]] " + label + ":  " + have.get(s).optString("label")
+                        : "[[" + ("audio".equals(kind) ? "mic" : "attach") + "]] " + label + " — " + ("audio".equals(kind) ? "tap here to record, or attach" : "attach one"),
+                        11.5f, ok ? Ui.GRN : Ui.RED);
+                if (!ok) {
+                    slot.setFocusable(true);
+                    slot.setOnClickListener(v -> { if ("audio".equals(kind)) startRec(); else m.attachMenu(); });
+                }
+                recipeBar.addView(slot, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 5, 0, 0));
+            }
+        }
+        JSONArray ks = rc.optJSONArray("knobs");
+        if (ks != null && m.knobs.length() > 0) {
+            StringBuilder kv = new StringBuilder();
+            for (int k = 0; k < ks.length(); k++) {
+                JSONObject kb = ks.optJSONObject(k);
+                if (m.knobs.has(kb.optString("k"))) kv.append(kv.length() > 0 ? "  ·  " : "").append(kb.optString("label")).append(" ").append(m.knobs.optString(kb.optString("k")));
+            }
+            recipeBar.addView(Ui.text(m, "[[sliders]] " + kv, 11, Ui.DIM), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 5, 0, 0));
+        }
+    }
+
+    private void startRec() {
+        if (m.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            m.requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO}, 73);
+            m.toast("Allow the microphone, then tap the mic again");
+            return;
+        }
+        try {
+            recFile = new java.io.File(m.getCacheDir(), "recording_" + new java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(new java.util.Date()) + ".m4a");
+            rec = android.os.Build.VERSION.SDK_INT >= 31 ? new android.media.MediaRecorder(m) : new android.media.MediaRecorder();
+            rec.setAudioSource(android.media.MediaRecorder.AudioSource.MIC);
+            rec.setOutputFormat(android.media.MediaRecorder.OutputFormat.MPEG_4);
+            rec.setAudioEncoder(android.media.MediaRecorder.AudioEncoder.AAC);
+            rec.setAudioSamplingRate(44100);
+            rec.setAudioEncodingBitRate(128000);
+            rec.setOutputFile(recFile.getAbsolutePath());
+            rec.prepare();
+            rec.start();
+        } catch (Exception e) {
+            if (rec != null) rec.release();
+            rec = null;
+            m.toast("Couldn't start recording: " + e.getMessage());
+            return;
+        }
+        recT0 = System.currentTimeMillis();
+        for (int i = 0; i < pill.getChildCount(); i++) pill.getChildAt(i).setVisibility(pill.getChildAt(i) == recBar ? VISIBLE : GONE);
+        Icons.set(goBtn, "[[check]]");
+        goBtn.setBackground(Ui.box(23, Ui.RED, 0));
+        rh.post(recTick);
+    }
+
+    private void stopRec(boolean keep) {
+        if (rec == null) return;
+        boolean ok = true;
+        try { rec.stop(); } catch (Exception e) { ok = false; }     // stop() throws when nothing was captured
+        rec.release();
+        rec = null;
+        rh.removeCallbacks(recTick);
+        for (int i = 0; i < pill.getChildCount(); i++) pill.getChildAt(i).setVisibility(pill.getChildAt(i) == recBar ? GONE : VISIBLE);
+        boolean longEnough = System.currentTimeMillis() - recT0 > 600;
+        if (keep && ok && longEnough && recFile.length() > 0) m.upload(android.net.Uri.fromFile(recFile));
+        else if (keep) m.toast("Too short — hold on a little longer");
+        mode();
     }
 
     void setPrompt(String s) { prompt.setText(s); prompt.setSelection(s.length()); prompt.requestFocus(); }
@@ -115,7 +282,7 @@ final class CreatePage extends LinearLayout {
     void render() {
         renderModels();
         renderAtts();
-        goBtn.setBackground(Ui.accent(m.accent(), 14));
+        mode();
         prompt.setHint(placeholder(m.cur));
     }
 
@@ -168,6 +335,7 @@ final class CreatePage extends LinearLayout {
 
     void renderAtts() {
         attRow.removeAllViews();
+        mode();
         JSONObject acc = m.model(m.cur).optJSONObject("accepts");
         for (int i = 0; i < m.atts.size(); i++) {
             JSONObject a = m.atts.get(i);
@@ -253,6 +421,7 @@ final class CreatePage extends LinearLayout {
     /** Rebuild the chat thread from the job list (oldest at the top, newest at the bottom). */
     void renderThread(JSONArray jobs, boolean force) {
         mascot.update(jobs, null);
+        statusCard.update(jobs);
         StringBuilder s = new StringBuilder();
         boolean live = false;
         for (int i = 0; i < jobs.length(); i++) {
@@ -382,6 +551,23 @@ final class CreatePage extends LinearLayout {
         }
         android.view.View loraV = loraLine(j);
         if (loraV != null) b.addView(loraV, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
+        JSONArray plan = j.optJSONArray("plan");                // the manual being followed: one line per step, live
+        if (plan != null && plan.length() > 0) {
+            LinearLayout pv = Ui.vbox(m);
+            pv.setPadding(Ui.dp(9), Ui.dp(6), Ui.dp(9), Ui.dp(7));
+            pv.setBackground(Ui.box(10, Ui.CARD2, Ui.LINE2));
+            pv.addView(Ui.mono(m, "THE MANUAL MUSE IS FOLLOWING", 9.5f, Ui.FAINT));
+            for (int k = 0; k < plan.length(); k++) {
+                JSONObject r = plan.optJSONObject(k);
+                String s = r.optString("status");
+                if ("cancelled".equals(st) && !"done".equals(s)) s = "waiting";
+                String ic = "done".equals(s) ? "check-circle" : "running".equals(s) ? "hourglass" : "error".equals(s) ? "x-circle" : "dot";
+                int pc = "done".equals(s) ? Ui.GRN : "running".equals(s) ? Ui.AMB : "error".equals(s) ? Ui.RED : Ui.DIM;
+                pv.addView(Ui.text(m, "[[" + ic + "]] " + r.optInt("n") + ". " + r.optString("label") + " — " + r.optString("does"), 12, pc),
+                        Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 4, 0, 0));
+            }
+            b.addView(pv, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 7, 0, 0));
+        }
         final boolean routed = route != null;
         LinearLayout acts = Ui.hbox(m);
         final boolean text = "llama".equals(model);      // writer model: the reply IS the result

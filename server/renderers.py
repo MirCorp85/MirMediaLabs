@@ -137,6 +137,19 @@ def music_len(raw):
 
 
 # ══ MINIMAX H3 — video + native audio ══════════════════════════════════════
+def song_meta(caption, lyrics):
+    """Tempo / key / style out of a song description, so the next pipeline step can keep them."""
+    m = re.search(r"\b(\d{2,3})\s*BPM\b", caption or "", re.I)
+    k = re.search(r"\b([A-G])(?:[- ]?(flat|sharp)|([#b]))?\s+(major|minor)\b", caption or "")
+    key = None
+    if k:
+        acc = {"flat": "b", "sharp": "#"}.get((k.group(2) or "").lower(), k.group(3) or "")
+        key = "%s%s %s" % (k.group(1), acc, k.group(4).lower())
+    style = re.sub(r"(?m)^(Global Metadata|Vocal Details|Arrangement):\s*", "", (caption or "").strip())
+    style = " ".join(style.split("\n")[:2])[:500]
+    return {"lyrics": lyrics, "style": style, "bpm": int(m.group(1)) if m else None, "key": key}
+
+
 H3 = {"unet": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
       "clip": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
       "vae": "minimax_h3_video_vae_int8_convrot.safetensors",
@@ -472,7 +485,7 @@ def run_music3(job):
     log(job, "composing + singing (up to %ds) …" % secs)
     entry, dt = comfy.run(g, "audio", job, 60 * 60)
     name = save(entry, "music3", ".mp3", job, {"seed": seed, "lyrics": lyrics[:4000], "caption": caption[:2000]})
-    return {"files": [name], "text": "MiniMax Music 3 (%s) · up to %ds · seed %d · %.1f min\n\nCAPTION:\n%s\n\nLYRICS:\n%s" % (
+    return {"files": [name], "meta": song_meta(caption, lyrics), "text": "MiniMax Music 3 (%s) · up to %ds · seed %d · %.1f min\n\nCAPTION:\n%s\n\nLYRICS:\n%s" % (
         "fp16" if "fp16" in dit else "int8", secs, seed, dt / 60, caption, lyrics)}
 
 
@@ -708,13 +721,20 @@ def run_ace(job):
     if ACE["dit"] not in comfy.models("diffusion_models"):
         raise RuntimeError("ACE-Step 1.5 XL weights missing in ComfyUI models/diffusion_models")
     timbre = {"cover": "self", "voice": auds[1] if len(auds) > 1 else None}.get(mode)
+    if mode == "voice":
+        vs = media_seconds(auds[1]) or 0
+        if 0 < vs < 6:
+            log(job, "note: the voice sample is only %.0f s — 10–30 s of clean singing matches the voice much better" % vs)
+        elif vs > 45:
+            log(job, "note: the voice sample is %.0f s — a clean 10–30 s vocal works best" % vs)
     log(job, "rendering %s · %.0fs · %d BPM · %s …" % (mode, secs, bpm, key))
     entry, dt = comfy.run(ace_graph(c, tags, lyrics, seed, bpm, secs, key, codes, st, source, timbre), "audio", job, 60 * 60)
     name = save(entry, "ace_" + mode, ".mp3", job, {"mode": mode, "seed": seed, "lyrics": lyrics[:4000], "tags": tags[:1000]})
     label = {"text": "text → music", "remix": "REMIX of the attached track", "cover": "COVER (source timbre kept)",
              "voice": "VOICE SWAP (song re-sung with audio 2's voice)"}[mode]
     tip = "\nToo much of the original singer left? raise strength · structure drifting? lower it." if mode == "voice" else ""
-    return {"files": [name], "text": "ACE-Step 1.5 XL Turbo · %s · %.0fs · %d BPM · %s · strength %.2f · seed %d · %.1f min%s\n\nTAGS:\n%s\n\nLYRICS:\n%s" % (
+    return {"files": [name], "meta": {"lyrics": "" if lyrics == "[instrumental]" else lyrics, "style": tags[:500], "bpm": bpm, "key": key},
+            "text": "ACE-Step 1.5 XL Turbo · %s · %.0fs · %d BPM · %s · strength %.2f · seed %d · %.1f min%s\n\nTAGS:\n%s\n\nLYRICS:\n%s" % (
         label, secs, bpm, key, st, seed, dt / 60, tip, tags, lyrics)}
 
 

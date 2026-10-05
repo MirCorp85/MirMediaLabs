@@ -80,6 +80,7 @@ public final class Sheet {
         sv.addView(body);
         root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
         d.setContentView(root);
+        Ui.insets(root);
         Window w = d.getWindow();
         if (w != null) {
             w.setBackgroundDrawable(new ColorDrawable(0));

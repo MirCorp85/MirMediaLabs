@@ -34,6 +34,20 @@ final class Ui {
     static void init(Context c) { density = c.getResources().getDisplayMetrics().density; }
     static int dp(float v) { return Math.round(v * density); }
 
+    /** Android 15+ draws every app edge-to-edge (status bar, nav bar and keyboard overlap the window).
+     *  Pad a screen's root by those insets on top of its own padding; older Android lays out as before. */
+    static void insets(View v) {
+        if (android.os.Build.VERSION.SDK_INT < 35) return;
+        final int l = v.getPaddingLeft(), t = v.getPaddingTop(), r = v.getPaddingRight(), b = v.getPaddingBottom();
+        v.setOnApplyWindowInsetsListener((view, wi) -> {
+            android.graphics.Insets bars = wi.getInsets(android.view.WindowInsets.Type.systemBars() | android.view.WindowInsets.Type.displayCutout());
+            android.graphics.Insets ime = wi.getInsets(android.view.WindowInsets.Type.ime());
+            view.setPadding(l + bars.left, t + bars.top, r + bars.right, b + Math.max(bars.bottom, ime.bottom));
+            return wi;
+        });
+        v.requestApplyInsets();
+    }
+
     static final Typeface MONO = Typeface.MONOSPACE;
     static Typeface BOLD = Typeface.create("sans-serif", Typeface.BOLD);
     /** Picked MIR typeface (assets/fonts/<id>.ttf), null = system sans. Set by Fonts.apply() before any view is built. */

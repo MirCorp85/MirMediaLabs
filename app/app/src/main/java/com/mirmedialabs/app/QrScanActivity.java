@@ -122,6 +122,7 @@ public class QrScanActivity extends Activity {
         bottom.addView(photo, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 16, 0, 0));
         root.addView(bottom, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
         setContentView(root);
+        Ui.insets(root);
     }
 
     @Override protected void onResume() {
