@@ -46,7 +46,7 @@ if [ ! -x "$PY" ]; then
   fi
   export UV_PYTHON_INSTALL_DIR="$TOOLS/python" UV_CACHE_DIR="$TOOLS/uvcache"
   "$UV" venv "$BUILD/nvenv" --python 3.12 --managed-python
-  "$UV" pip install --python "$PY" nuitka ordered-set zstandard flask requests cryptography qrcode pillow
+  "$UV" pip install --python "$PY" nuitka ordered-set zstandard flask requests cryptography qrcode pillow anthropic openai
 fi
 [ -f "$HERE/pc_version.json" ] || echo '{"version": "1.0.0"}' > "$HERE/pc_version.json"
 [ "$BUMP" = 1 ] && "$PY" "$HERE/build_tool.py" bump
@@ -63,6 +63,7 @@ APPOUT="$BUILD/appout"
 rm -rf "$APPOUT"
 "$PY" -m nuitka --assume-yes-for-downloads --standalone --deployment --lto=yes \
   --python-flag=no_docstrings --python-flag=no_asserts \
+  --include-package=openai --include-package=anthropic \
   --nofollow-import-to=imageio_ffmpeg --nofollow-import-to=tkinter --nofollow-import-to=PIL \
   --output-filename=MirMediaLabs --output-dir="$APPOUT" "$SRC/app_main.py"
 

@@ -20,8 +20,16 @@ final class CreatePage extends LinearLayout {
     private final MainActivity m;
     private final LinearLayout modelRow, attRow, thread;
     private final ScrollView scroll;
-    final Mascot mascot;
-    final StatusCard statusCard;
+    private final java.util.Map<String, MuseBubble> bubbles = new java.util.HashMap<>();
+    private final java.util.Map<String, TextView> listenBtns = new java.util.HashMap<>();
+
+    /** Listen buttons: "Stop" on the reply MUSE is reading, "Listen" on the rest. */
+    void paintListen() {
+        for (java.util.Map.Entry<String, TextView> e : listenBtns.entrySet()) {
+            String t = m.voice.speaking(e.getKey()) ? "[[stop]] Stop" : "[[volume]] Listen";
+            e.getValue().setText(Icons.apply(t, e.getValue().getTextSize(), Ui.AMB));
+        }
+    }
     private final TextView goBtn;
     private final EditText prompt;
     private String sig = "";
@@ -32,31 +40,24 @@ final class CreatePage extends LinearLayout {
         m = a;
         setOrientation(VERTICAL);
 
-        HorizontalScrollView hs = new HorizontalScrollView(a);
-        hs.setHorizontalScrollBarEnabled(false);
-        modelRow = Ui.hbox(a);
-        modelRow.setPadding(Ui.dp(10), Ui.dp(2), Ui.dp(10), Ui.dp(5));
-        hs.addView(modelRow);
-        addView(hs);
+        if (a.wide) {                                   // tablet: the model list lives in the left column
+            modelRow = Ui.vbox(a);
+        } else {
+            HorizontalScrollView hs = new HorizontalScrollView(a);
+            hs.setHorizontalScrollBarEnabled(false);
+            modelRow = Ui.hbox(a);
+            modelRow.setPadding(Ui.dp(10), Ui.dp(2), Ui.dp(10), Ui.dp(5));
+            hs.addView(modelRow);
+            addView(hs);
+        }
 
         scroll = new ScrollView(a);
         scroll.setFillViewport(true);
         thread = Ui.vbox(a);
-        thread.setPadding(Ui.dp(12), Ui.dp(6), Ui.dp(12), Ui.dp(Tv.is(a) ? 60 : 44));
+        thread.setPadding(Ui.dp(12), Ui.dp(6), Ui.dp(12), Ui.dp(14));
         scroll.addView(thread);
         FrameLayout stage = new FrameLayout(a);
         stage.addView(scroll, new FrameLayout.LayoutParams(Ui.MATCH, Ui.MATCH));
-        mascot = new Mascot(a);   // broadcast cam, bottom-left of the chat — mirrors the lab live
-        FrameLayout.LayoutParams ml = new FrameLayout.LayoutParams(Ui.WRAP, Ui.WRAP, Gravity.BOTTOM | Gravity.START);
-        ml.setMargins(Ui.dp(6), 0, 0, Ui.dp(4));
-        stage.addView(mascot, ml);
-        statusCard = new StatusCard(a);   // what the lab is doing right now: model, steps, stage, tags
-        boolean wide = getResources().getConfiguration().screenWidthDp >= 600;
-        FrameLayout.LayoutParams sl = new FrameLayout.LayoutParams(wide ? Ui.dp(340) : Ui.MATCH, Ui.WRAP, Gravity.TOP | Gravity.END);
-        sl.setMargins(Ui.dp(8), Ui.dp(6), Ui.dp(8), 0);
-        stage.addView(statusCard, sl);
-        mascot.setClickable(true);        // tap the atom: unfold / fold the status card
-        mascot.setOnClickListener(v -> statusCard.toggle());
         addView(stage, new LayoutParams(Ui.MATCH, 0, 1));
 
         LinearLayout comp = Ui.vbox(a);
@@ -300,6 +301,9 @@ final class CreatePage extends LinearLayout {
 
     private String modelSig = "";
 
+    /** Tablet: the vertical model list for the left column. */
+    View modelPane() { return modelRow; }
+
     void renderModels() {
         JSONObject comfy = m.status.optJSONObject("comfy");
         JSONObject ready = comfy == null ? null : comfy.optJSONObject("models");
@@ -323,13 +327,20 @@ final class CreatePage extends LinearLayout {
             Object r = ready == null ? null : ready.opt(k);
             dot.setBackground(Ui.box(99, Ui.RED, 0));           // only a problem gets a marker (weights missing)
             if (Boolean.FALSE.equals(r)) card.addView(dot, Ui.margins(Ui.lp(Ui.dp(6), Ui.dp(6)), 0, 0, 6, 0));
-            TextView name = Ui.bold(m, md.optString("label"), 11, on ? Ui.INK : Ui.DIM);
+            if (m.wide) card.setPadding(Ui.dp(12), Ui.dp(10), Ui.dp(12), Ui.dp(10));
+            TextView name = Ui.bold(m, md.optString("label"), m.wide ? 12.5f : 11, on ? Ui.INK : Ui.DIM);
             name.setLetterSpacing(0.05f);
             card.addView(name, Ui.lp(Ui.WRAP, Ui.WRAP));
             card.setOnClickListener(v -> m.setModel(k));
             card.setOnLongClickListener(v -> { m.openParams(k); return true; });
             card.setFocusable(Tv.is(m));
-            modelRow.addView(card, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 0, 8, 0));
+            if (m.wide) {                                // full-width row with the model colour edge
+                View edge = new View(m);
+                edge.setBackground(Ui.box(2, c, 0));
+                card.addView(edge, 0, Ui.margins(Ui.lp(Ui.dp(3), Ui.dp(16)), 0, 0, 9, 0));
+                card.setGravity(Gravity.CENTER_VERTICAL);
+                modelRow.addView(card, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 0, 0, 6));
+            } else modelRow.addView(card, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 0, 8, 0));
         }
     }
 
@@ -420,21 +431,36 @@ final class CreatePage extends LinearLayout {
 
     /** Rebuild the chat thread from the job list (oldest at the top, newest at the bottom). */
     void renderThread(JSONArray jobs, boolean force) {
-        mascot.update(jobs, null);
-        statusCard.update(jobs);
+        m.voice.jobs(jobs);
         StringBuilder s = new StringBuilder();
-        boolean live = false;
+        StringBuilder liveIds = new StringBuilder();
         for (int i = 0; i < jobs.length(); i++) {
             JSONObject j = jobs.optJSONObject(i);
-            s.append(j.optString("id")).append(j.optString("status")).append(j.optString("stage"));
+            // structure only (step / plan / files): live numbers are patched into the MUSE bubbles, no rebuild = no flicker
+            s.append(j.optString("id")).append(j.optString("status")).append(str(j, "step"));
+            JSONArray pl = j.optJSONArray("plan");
+            for (int k = 0; pl != null && k < pl.length(); k++) s.append(pl.optJSONObject(k).optString("status").charAt(0));
+            JSONArray fl = j.optJSONArray("files");
+            s.append(fl == null ? 0 : fl.length()).append(';');
             if ("llama".equals(j.optString("model"))) s.append(j.optString("output").length());   // stream in
-            live |= "running".equals(j.optString("status"));
+            String st = j.optString("status");
+            if (("running".equals(st) || "queued".equals(st)) && i < 25) liveIds.append(liveIds.length() > 0 ? "," : "").append(j.optString("id"));
         }
-        if (!force && (!live || Tv.is(m)) && s.toString().equals(sig) && thread.getChildCount() > 0) return;
+        if (!force && s.toString().equals(sig) && thread.getChildCount() > 0) {
+            for (int i = 0; i < jobs.length(); i++) {
+                JSONObject j = jobs.optJSONObject(i);
+                MuseBubble b = bubbles.get(j.optString("id"));
+                if (b != null) b.update(j);
+            }
+            liveLines(liveIds.toString());
+            return;
+        }
         boolean atBottom = scroll.getChildAt(0).getBottom() - (scroll.getHeight() + scroll.getScrollY()) < Ui.dp(120);
         boolean grew = !s.toString().equals(sig);
         sig = s.toString();
         thread.removeAllViews();
+        bubbles.clear();
+        listenBtns.clear();
         if (jobs.length() == 0) { thread.addView(welcome()); return; }
         double now = System.currentTimeMillis() / 1000.0;
         int n = Math.min(jobs.length(), 25);
@@ -446,6 +472,23 @@ final class CreatePage extends LinearLayout {
             if ("done".equals(j.optString("status")) && f != null && f.length() > 0) { lastResult = f.optString(0); lastModel = j.optString("model"); }
         }
         if (atBottom || grew) scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+        liveLines(liveIds.toString());
+    }
+
+    /** The one live backend line in each running bubble (newest engine / MUSE / worker event for that job). */
+    private void liveLines(String ids) {
+        if (ids.isEmpty()) return;
+        m.api.get("/api/console?jobs=" + ids, r -> {
+            if (!r.ok()) return;
+            JSONObject lines = r.obj().optJSONObject("lines");
+            if (lines == null) return;
+            for (java.util.Iterator<String> it = lines.keys(); it.hasNext(); ) {
+                String id = it.next();
+                JSONObject ln = lines.optJSONObject(id);
+                MuseBubble b = bubbles.get(id);
+                if (b != null && ln != null) b.setLine(ln.optString("src"), ln.optString("text"), ln.optString("level"));
+            }
+        });
     }
 
     /** optString() turns JSON null into the text "null" (it showed up as a "null" skill chip and "STEP null") */
@@ -483,11 +526,10 @@ final class CreatePage extends LinearLayout {
         LinearLayout b = Ui.vbox(m);
         b.setPadding(Ui.dp(12), Ui.dp(9), Ui.dp(12), Ui.dp(10));
         boolean guest = j.has("mine") && !j.optBoolean("mine", true);   // owner viewing a guest's request
-        GradientDrawable bg = guest ? new GradientDrawable() : new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0x55FF5A1F, 0x33FF3B5C});
-        if (guest) bg.setColor(0x141FC8DC);
+        GradientDrawable bg = new GradientDrawable();   // matte bubble
+        bg.setColor(guest ? Ui.mix(Ui.BAR, 0xFF1FC8DC, 0.12f) : Ui.mix(Ui.BAR, 0xFFFF5A1F, 0.30f));
         bg.setCornerRadii(guest ? new float[]{Ui.dp(18), Ui.dp(18), Ui.dp(18), Ui.dp(18), Ui.dp(18), Ui.dp(18), Ui.dp(5), Ui.dp(5)}
                 : new float[]{Ui.dp(18), Ui.dp(18), Ui.dp(18), Ui.dp(18), Ui.dp(5), Ui.dp(5), Ui.dp(18), Ui.dp(18)});
-        bg.setStroke(Math.max(1, Ui.dp(1)), guest ? 0x4D1FC8DC : 0x59FF6E3C);
         b.setBackground(bg);
         LinearLayout top = Ui.hbox(m);
         top.setGravity(Gravity.CENTER_VERTICAL);
@@ -551,8 +593,14 @@ final class CreatePage extends LinearLayout {
         }
         android.view.View loraV = loraLine(j);
         if (loraV != null) b.addView(loraV, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
+        final boolean museB = !"llama".equals(model) && ("running".equals(st) || "queued".equals(st) || "error".equals(st) || "done".equals(st));
+        if (museB) {                                            // MUSE bubble: ring · live line · DNA timeline
+            MuseBubble mb = new MuseBubble(m, j);
+            bubbles.put(id, mb);
+            b.addView(mb, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 9, 0, 0));
+        }
         JSONArray plan = j.optJSONArray("plan");                // the manual being followed: one line per step, live
-        if (plan != null && plan.length() > 0) {
+        if (!museB && plan != null && plan.length() > 0) {
             LinearLayout pv = Ui.vbox(m);
             pv.setPadding(Ui.dp(9), Ui.dp(6), Ui.dp(9), Ui.dp(7));
             pv.setBackground(Ui.box(10, Ui.CARD2, Ui.LINE2));
@@ -586,6 +634,9 @@ final class CreatePage extends LinearLayout {
                 });
                 b.addView(u, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
             }
+            TextView lb = small(m.voice.speaking(id) ? "[[stop]] Stop" : "[[volume]] Listen", Ui.AMB, v -> m.voice.sayAll(id, reply));
+            listenBtns.put(id, lb);
+            acts.addView(lb);
             acts.addView(small("Copy", Ui.INK, v -> {
                 android.content.ClipboardManager cb = (android.content.ClipboardManager) m.getSystemService(android.content.Context.CLIPBOARD_SERVICE);
                 cb.setPrimaryClip(android.content.ClipData.newPlainText("Llama", reply));
@@ -598,11 +649,13 @@ final class CreatePage extends LinearLayout {
             }));
             acts.addView(small("Use as text ref", Ui.INK, v -> { m.attachText(reply, "llama_text"); m.toast("Attached — pick a model and send"); }));
             final String p0 = routed ? str(j, "input") : j.optString("prompt");
-            acts.addView(small("↺ Again", Ui.DIM, v -> m.reuse(routed ? "auto" : model, p0)));
+            acts.addView(small("↺ Again", Ui.DIM, v -> m.reuse(routed ? "auto" : model, p0, j.optJSONArray("refs"))));
         } else if ("running".equals(st) || "queued".equals(st)) {
-            String stage = str(j, "stage");
-            b.addView(Ui.mono(m, "⟳ " + (stage.isEmpty() || "queued".equals(stage) ? "waiting for the GPU…" : stage), 12, Ui.AMB),
-                    Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 8, 0, 0));
+            if (!museB) {
+                String stage = str(j, "stage");
+                b.addView(Ui.mono(m, "⟳ " + (stage.isEmpty() || "queued".equals(stage) ? "waiting for the GPU…" : stage), 12, Ui.AMB),
+                        Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 8, 0, 0));
+            }
             acts.addView(small("Cancel", Ui.RED, v -> m.cancel(id)));
         } else if ("done".equals(st)) {
             JSONArray files = j.optJSONArray("files");
@@ -634,15 +687,18 @@ final class CreatePage extends LinearLayout {
             final String out = j.optString("output");
             if (!out.isEmpty()) acts.addView(small("Details", Ui.DIM, v -> m.info(MainActivity.shortName(model) + " · details", out)));
             final String p = routed ? str(j, "input") : j.optString("prompt");
-            acts.addView(small("↺ Again", Ui.DIM, v -> m.reuse(routed ? "auto" : model, p)));
+            acts.addView(small("↺ Again", Ui.DIM, v -> m.reuse(routed ? "auto" : model, p, j.optJSONArray("refs"))));
         } else {
             String err = str(j, "error");
             if ("error".equals(st) && !err.isEmpty() && !"null".equals(err))
                 b.addView(Ui.text(m, err, 12.5f, Ui.RED), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 8, 0, 0));
             final String p = j.optString("prompt");
-            acts.addView(small("↺ Try again", Ui.DIM, v -> m.reuse(model, p)));
+            acts.addView(small("↺ Try again", Ui.DIM, v -> m.reuse(model, p, j.optJSONArray("refs"))));
         }
-        b.addView(acts, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 9, 0, 0));
+        HorizontalScrollView actsRow = new HorizontalScrollView(m);   // narrow phones: buttons scroll sideways, never squash
+        actsRow.setHorizontalScrollBarEnabled(false);
+        actsRow.addView(acts);
+        b.addView(actsRow, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 9, 0, 0));
         LayoutParams lp = Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 40, 10);
         lp.gravity = Gravity.START;
         b.setLayoutParams(lp);

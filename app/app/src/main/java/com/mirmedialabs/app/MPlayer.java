@@ -25,8 +25,8 @@ final class MPlayer {
 
     /** Card behind an audio result: a wash of the model colour into the theme's card colour. */
     static GradientDrawable cardBg(int col, float radiusDp) {
-        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                new int[]{Ui.mix(col, Ui.BG, 0.62f), Ui.mix(Ui.BAR, Ui.BG, 0.3f)});
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(Ui.mix(col, Ui.BAR, 0.80f));   // matte
         g.setCornerRadius(Ui.dp(radiusDp));
         g.setStroke(Math.max(1, Ui.dp(1)), Ui.LINE);
         return g;
@@ -43,7 +43,6 @@ final class MPlayer {
         g.setStroke(Ui.dp(4), Ui.alpha(col, 0.28f));
         t.setBackground(g);
         t.setPadding(Ui.dp(3), 0, 0, 0);                    // optical centre of the triangle
-        t.setElevation(Ui.dp(6));
         return t;
     }
 

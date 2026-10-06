@@ -103,16 +103,22 @@ def _b64(path, max_side=None):
     """Base64 for the vision engine. max_side downsizes first — 10 full-res phone photos
     would flood the 9B engine's context and make the rewrite slow."""
     if max_side:
+        # ffmpeg, not Pillow: the compiled PC edition ships no PIL (it used to send full-res, sideways phone photos)
+        import os
+        import time
+        import core
+        tmp = os.path.join(core.REFS, "_frame_b64_%d.jpg" % int(time.time() * 1000))
         try:
-            import io
-            from PIL import Image, ImageOps
-            im = ImageOps.exif_transpose(Image.open(path)).convert("RGB")
-            im.thumbnail((max_side, max_side))
-            buf = io.BytesIO()
-            im.save(buf, "JPEG", quality=85)
-            return base64.b64encode(buf.getvalue()).decode("ascii")
+            core.still(path, tmp, max_side)
+            with open(tmp, "rb") as f:
+                return base64.b64encode(f.read()).decode("ascii")
         except Exception:
             pass
+        finally:
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("ascii")
 

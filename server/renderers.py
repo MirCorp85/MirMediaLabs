@@ -13,6 +13,7 @@ import comfy
 import core
 import params
 import prompts
+import console
 
 # ── shared helpers ─────────────────────────────────────────────────────────
 
@@ -20,15 +21,35 @@ import prompts
 def log(job, msg):
     job["log"] = (job.get("log") or "") + msg + "\n"
     job["stage"] = msg
+    console.emit(_SRC.get(job.get("model"), "LAB"), msg, job)
+
+
+_SRC = {"h3": "VID", "music3": "SONG", "qimg": "IMG", "ace": "SONG", "llama": "MUSE"}
+
+
+def _purge_frames():
+    """Grabbed stills (_frame_*) are per-render scratch: drop ones older than 6 h."""
+    try:
+        for n in os.listdir(core.REFS):
+            p = os.path.join(core.REFS, n)
+            if n.startswith(("_frame_", "_prep_")) and time.time() - os.path.getmtime(p) > 6 * 3600:
+                os.remove(p)
+    except OSError:
+        pass
 
 
 def split_refs(job):
+    _purge_frames()
     out = {"image": [], "video": [], "audio": [], "text": []}
     for n in (job.get("refs") or [])[:16]:
         p = core.in_dir(core.REFS, n)
-        k = core.kind_of(n) if p else None
+        if not p or not os.path.isfile(p):      # never quietly render without what the person attached
+            raise RuntimeError("the attachment %s is no longer on the lab — attach it again" % n.split("_", 2)[-1])
+        k = core.kind_of(n)
         if k:
             out[k].append(p)
+    if any(out.values()):
+        log(job, "attachments: " + " · ".join("%d %s%s" % (len(v), k, "" if len(v) == 1 else "s") for k, v in out.items() if v))
     return out
 
 
@@ -49,9 +70,9 @@ def video_frame(path, at=1.0):
     """Grab one still from a clip (for image-only models)."""
     out = os.path.join(core.REFS, "_frame_%d.png" % int(time.time() * 1000))
     try:
-        ffmpeg(["-ss", "%.2f" % at, "-i", path, "-frames:v", "1", out], 60)
+        core.still(path, out, at=at)
     except RuntimeError:
-        ffmpeg(["-i", path, "-frames:v", "1", out], 60)
+        core.still(path, out)                  # clip shorter than `at`
     return out
 
 
@@ -235,13 +256,12 @@ def h3_frames(secs):
     return n + (5 - n % 17) % 17          # H3's 17k+5 frame grid @ 24 fps
 
 
-def aspect_of(img, default):
-    try:
-        from PIL import Image
-        iw, ih = Image.open(img).size
-        return min(H3_ASPECTS, key=lambda a: abs(H3_ASPECTS[a] - iw / ih))
-    except Exception:
+def aspect_of(media, default):
+    """Nearest H3 aspect of a picture OR clip, upright (phone EXIF / rotation applied). ffmpeg — no Pillow."""
+    wh = core.media_size(media)
+    if not wh or not wh[1]:
         return default
+    return min(H3_ASPECTS, key=lambda a: abs(H3_ASPECTS[a] - wh[0] / wh[1]))
 
 
 def h3_graph(cond_node, unet, lora, c, seed, sched, silent):
@@ -289,6 +309,20 @@ def run_h3(job):
     first = last = src = None
     img_names, vid_names, prepped = [], [], []
     aspect = "" if c["aspect"] == "auto" else c["aspect"]
+    if mode in ("i2v", "flf2v") and vids and len(imgs) < (1 if mode == "i2v" else 2):
+        # frame modes take pictures: an attached clip supplies its first / last frame instead of being ignored
+        # i2v: the clip's opening frame · flf2v + 1 picture: picture → the clip's opening frame (before → after)
+        # flf2v + no picture: the clip's first → last frame
+        grab = [video_frame(vids[0], 0.0)]
+        if mode == "flf2v" and not imgs:
+            grab.append(video_frame(vids[0], max(0.0, media_seconds(vids[0]) - 0.15)))
+        imgs = imgs + grab
+        log(job, "using %d frame%s from the attached clip" % (len(grab), "" if len(grab) == 1 else "s"))
+    elif mode == "t2v" and (imgs or vids):
+        log(job, "note: mode is text → video, so the %d attached picture/clip%s are ignored — set Mode to auto or r2v to use them"
+            % (len(imgs) + len(vids), "" if len(imgs) + len(vids) == 1 else "s"))
+    if mode in ("i2v", "flf2v") and vids:
+        log(job, "note: frame modes don't take motion from clips — use r2v for that")
     if mode == "i2v":
         if not imgs:
             raise RuntimeError("image → video needs a picture — attach one with 📎")
@@ -304,8 +338,8 @@ def run_h3(job):
             raise RuntimeError("reference mode needs attached pictures or clips — use 📎")
         if H3["r2v_unet"] not in comfy.models("diffusion_models"):
             raise RuntimeError("reference mode needs %s in ComfyUI" % H3["r2v_unet"])
-        if not aspect and imgs and not vids:
-            aspect = aspect_of(imgs[0], "16:9")
+        if not aspect:                     # a portrait phone clip stays portrait (it was cropped to 16:9 before)
+            aspect = aspect_of(vids[0] if vids else imgs[0], "16:9")
     aspect = aspect or "16:9"
     sched = c["scheduler"] if c["scheduler"] != "auto" else ("beta" if mode == "r2v" and c["quality"] == "full" else "simple")
     w, h = h3_dims(c["mp"], aspect)

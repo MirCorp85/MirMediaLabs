@@ -46,7 +46,7 @@ _CTX = None
 
 
 def cfg():
-    c = {"domain": "my-lab.example.com", "https_port": 443, "http_port": 80, "enabled": True}
+    c = {"domain": "", "https_port": 443, "http_port": 80, "enabled": True}   # domain set per install in data/tls/tls.json
     try:
         with open(CFG_FILE, encoding="utf-8") as f:
             c.update(json.load(f))
@@ -259,7 +259,7 @@ def _renew_loop():
 
 def start(app):
     c = cfg()
-    if not c.get("enabled"):
+    if not c.get("enabled") or not c.get("domain"):   # no domain configured → plain http only
         return
     threading.Thread(target=_serve80, args=(c["http_port"],), daemon=True, name="mml-http80").start()
     if have_cert():
