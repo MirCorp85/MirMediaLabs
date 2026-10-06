@@ -27,8 +27,10 @@ GPT_PRICES = [("6-astra", (10.0, 50.0)), ("6-luna", (0.1, 0.5)), ("5.6-sol", (4.
               ("5.4-nano", (0.2, 1.25)), ("5.4", (2.5, 15.0))]
 # Fireworks (OpenAI-compatible API) — open-weight models; GLM is text-only, so pictures stay out of its prompts
 FIREWORKS = [
-    {"id": "accounts/fireworks/models/glm-5p2", "label": "GLM 5.2", "price": (1.40, 4.40), "note": "Zhipu GLM via Fireworks · cheapest"},
-    {"id": "accounts/fireworks/routers/glm-5p2-fast", "label": "GLM 5.2 Fast", "price": (2.10, 6.60), "note": "faster replies"},
+    {"id": "accounts/fireworks/models/glm-5p3", "label": "GLM 5.3", "price": (1.40, 4.40), "note": "Zhipu GLM via Fireworks · price est. (5.2 rates)"},
+    {"id": "accounts/fireworks/routers/glm-5p3-fast", "label": "GLM 5.3 Fast", "price": (2.10, 6.60), "note": "faster replies · price est."},
+    {"id": "accounts/fireworks/models/glm-5p3-flash", "label": "GLM 5.3 Flash", "price": (1.40, 4.40), "note": "lighter · price est. (cap counts high)"},
+    {"id": "accounts/fireworks/routers/glm-5p2-fast", "label": "GLM 5.2 Fast", "price": (2.10, 6.60), "note": "older"},
 ]
 FIREWORKS_URL = "https://api.fireworks.ai/inference/v1"
 PROVIDERS = ("anthropic", "openai", "fireworks")
