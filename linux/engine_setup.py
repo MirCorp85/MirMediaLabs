@@ -280,6 +280,19 @@ class Setup:
                     "'video' groups, then log out/in" if self.gpu["vendor"] == "amd" else "update the NVIDIA driver")
             raise SystemExit("PyTorch can't see the GPU — %s, then re-run with --engine." % hint)
 
+    def voice(self):
+        """MUSE voice: Kokoro 82M (ONNX, CPU only) in its own small venv, so the engine's packages never change."""
+        tvenv = os.path.join(self.rt, "tts-venv")
+        tpy = os.path.join(tvenv, "bin", "python")
+        if not os.path.isfile(tpy):
+            run([self.uv, "venv", tvenv, "--python", PY_VER, "--managed-python"], env=self.env())
+        run([self.uv, "pip", "install", "--python", tpy, "kokoro-onnx", "soundfile"], env=self.env())
+        kd = os.path.join(self.engine, "models", "kokoro")
+        os.makedirs(kd, exist_ok=True)
+        base = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
+        for f, size in (("kokoro-v1.0.onnx", 325532387), ("voices-v1.0.bin", 28214398)):
+            download(base + f, os.path.join(kd, f), size=size, label="MUSE voice " + f)
+
     def ollama(self):
         tag = self.a.muse
         if self.a.no_ollama or tag == "none":
@@ -448,7 +461,7 @@ def main():
     if "video" in a.components and s.needs_portable() and ram < 40:
         log("WARNING: video on this GPU encodes prompts with a 27 GB model from system RAM; with %.0f GB RAM "
             "close other apps while rendering video (48 GB+ recommended)" % ram)
-    for step in (s.python, s.comfyui, s.packages, s.custom_nodes, s.gpu_check, s.write_config, s.ollama,
+    for step in (s.python, s.comfyui, s.packages, s.custom_nodes, s.gpu_check, s.write_config, s.ollama, s.voice,
                  s.models_dl):
         log("== " + step.__name__)
         step()

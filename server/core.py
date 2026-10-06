@@ -131,6 +131,83 @@ def _find_ffmpeg():
 FFMPEG = _find_ffmpeg()
 
 
+# ── media geometry without Pillow (the compiled PC edition ships no PIL — ffmpeg + a tiny EXIF reader) ──
+def exif_orientation(path):
+    """JPEG EXIF orientation (1-8; 1 = upright). Phones store portrait shots sideways + this tag."""
+    try:
+        with open(path, "rb") as f:
+            if f.read(2) != b"\xff\xd8":
+                return 1
+            while True:
+                m = f.read(4)
+                if len(m) < 4 or m[0] != 0xFF:
+                    return 1
+                size = int.from_bytes(m[2:4], "big")
+                if m[1] == 0xE1:
+                    d = f.read(size - 2)
+                    if d[:6] != b"Exif\x00\x00":
+                        return 1
+                    t = d[6:]
+                    bo = "little" if t[:2] == b"II" else "big"
+                    ifd = int.from_bytes(t[4:8], bo)
+                    for i in range(int.from_bytes(t[ifd:ifd + 2], bo)):
+                        e = t[ifd + 2 + 12 * i: ifd + 14 + 12 * i]
+                        if int.from_bytes(e[0:2], bo) == 0x0112:
+                            v = int.from_bytes(e[8:10], bo)
+                            return v if 1 <= v <= 8 else 1
+                    return 1
+                if m[1] in (0xDA, 0xD9):          # image data started: no EXIF block
+                    return 1
+                f.seek(size - 2, 1)
+    except Exception:
+        return 1
+
+
+# EXIF orientation → ffmpeg filter that makes the pixels upright
+_EXIF_VF = {2: "hflip", 3: "hflip,vflip", 4: "vflip", 5: "transpose=0", 6: "transpose=1", 7: "transpose=3", 8: "transpose=2"}
+
+
+def media_size(path):
+    """Upright (width, height) of a picture or clip — EXIF + video rotation applied. None if unreadable."""
+    import subprocess
+    try:
+        r = subprocess.run([FFMPEG, "-hide_banner", "-i", path], capture_output=True, text=True,
+                           timeout=30, creationflags=NO_WINDOW)
+        m = re.search(r"Stream #\S+.*?Video:.*?(\d{2,5})x(\d{2,5})", r.stderr)
+        if not m:
+            return None
+        w, h = int(m.group(1)), int(m.group(2))
+        rot = re.search(r"(?:rotate\s*:\s*|rotation of\s*)(-?\d+(?:\.\d+)?)", r.stderr)
+        turned = rot and abs(round(float(rot.group(1)))) % 180 == 90
+        if kind_of(path) == "image":
+            turned = exif_orientation(path) in (5, 6, 7, 8)
+        return (h, w) if turned else (w, h)
+    except Exception:
+        return None
+
+
+def still(src, dst, max_side=None, at=None):
+    """Upright JPEG/PNG still of a picture (EXIF applied) or a frame of a clip, optionally downsized."""
+    import subprocess
+    vf = []
+    pre = []
+    if kind_of(src) == "image":
+        pre = ["-noautorotate"]              # orientation is applied explicitly from EXIF, never twice
+        if _EXIF_VF.get(exif_orientation(src)):
+            vf.append(_EXIF_VF[exif_orientation(src)])
+    elif at is not None:
+        pre = ["-ss", "%.2f" % at]
+    if max_side:
+        vf.append("scale='min(%d,iw)':'min(%d,ih)':force_original_aspect_ratio=decrease" % (max_side, max_side))
+    args = [FFMPEG, "-y", "-v", "error"] + pre + ["-i", src, "-frames:v", "1"] + (["-vf", ",".join(vf)] if vf else [])
+    if dst.lower().endswith(".jpg"):
+        args += ["-q:v", "3"]
+    r = subprocess.run(args + [dst], capture_output=True, text=True, timeout=60, creationflags=NO_WINDOW)
+    if r.returncode != 0 or not os.path.isfile(dst):
+        raise RuntimeError("ffmpeg: %s" % (r.stderr or "")[-300:])
+    return dst
+
+
 def kind_of(name):
     n = name.lower()
     if n.endswith(IMG_EXT):
@@ -303,6 +380,9 @@ _CAPS = {}
 def engine_sees(model=None):
     """True when the prompt engine can look at pictures (Ollama 'vision' capability). MUSE (Llama 3.1) is
     text-only: pictures are then left out of engine requests instead of failing them."""
+    if model is None and _cloud_brain():
+        import cloud
+        return cloud.sees(_cloud_brain())            # Claude / GPT read pictures; GLM 5.2 is text-only
     m = model or engine_model()
     if m not in _CAPS:
         try:
@@ -313,7 +393,30 @@ def engine_sees(model=None):
     return _CAPS[m]
 
 
-def ask(prompt, system, timeout=120, images=None):
+def _note(msg):
+    try:                                             # never let a console encoding issue break a render
+        print(msg)
+    except Exception:
+        pass
+
+
+def _cloud_brain():
+    try:
+        import cloud
+        return cloud.active()
+    except Exception:
+        return None
+
+
+def ask(prompt, system, timeout=120, images=None, want_json=False, role="prompt"):
+    b = _cloud_brain()                               # the owner's cloud brain for this job (else local)
+    if b:
+        import cloud
+        try:
+            return cloud.ask(b, prompt, system, images=images, want_json=want_json, role=role,
+                             timeout=max(timeout, 180))
+        except cloud.CloudError as e:
+            _note("[cloud] %s — using the local engine for this step" % e)
     ensure_ollama()
     model = engine_model()
     body = {"model": model, "prompt": prompt, "system": system, "stream": False, "think": False}

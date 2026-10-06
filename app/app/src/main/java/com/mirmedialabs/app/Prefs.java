@@ -20,6 +20,15 @@ final class Prefs {
     static String lanUrl(Context c) { return normalize(sp(c).getString("lan_url", DEFAULT_LAN)); }
     static String remoteUrl(Context c) { return normalize(sp(c).getString("remote_url", DEFAULT_REMOTE)); }
     static String key(Context c) { return sp(c).getString("access_key", ""); }
+    /** This install's device id — a person's key works on ONE device (the lab locks it to the first one). */
+    static String deviceId(Context c) {
+        String d = sp(c).getString("device_id", "");
+        if (d.isEmpty()) {
+            d = "a" + java.util.UUID.randomUUID().toString().replace("-", "");
+            sp(c).edit().putString("device_id", d).apply();
+        }
+        return d;
+    }
     static boolean configured(Context c) { return !key(c).isEmpty() && !(lanUrl(c).isEmpty() && remoteUrl(c).isEmpty()); }
 
     static void save(Context c, String lan, String remote, String key) {

@@ -16,6 +16,7 @@ import re
 import os
 import time
 
+import cloud
 import comfy
 import core
 import params
@@ -184,7 +185,8 @@ def session(job):
     return "\n".join(["## This session",
                       "- You are talking with %s." % person,
                       "- Today is %s." % time.strftime("%A, %B %d, %Y"),
-                      "- The model under you: %s, running locally." % eng,
+                      ("- The model under you: %s, running in the cloud for the lab owner." % cloud.label_of(cloud.active())
+                       if cloud.active() else "- The model under you: %s, running locally." % eng),
                       "- Auto mode: people simply say what they want and YOU route it - pictures, short videos with "
                       "sound, full songs and beats go to the right engine automatically, everything else you answer. "
                       "So when asked what you or the lab can do, say exactly that: just tell me what you want made, or "
@@ -243,6 +245,9 @@ def run_llama(job):
     import renderers                            # late import: renderers imports this module
     c = job["params"]
     msgs = messages(job)
+    b = cloud.active()
+    if b:                                        # owner's cloud brain: no GPU / Ollama needed
+        return _run_cloud(job, b, msgs, c)
     renderers.log(job, "freeing VRAM for MUSE …")
     if comfy.up():
         comfy.free()                             # ComfyUI keeps ~10 GB loaded between renders
@@ -257,6 +262,8 @@ def run_llama(job):
         opts["seed"] = int(c["seed"])
     body = {"model": MODEL_TAG, "messages": msgs, "stream": True, "options": opts, "keep_alive": "5m"}
     job["output"] = ""
+    import console
+    t0, ntok, last = time.time(), 0, 0.0
     with core.requests.post(core.OLLAMA + "/api/chat", json=body, stream=True, timeout=(10, 600)) as r:
         if r.status_code == 404:
             raise RuntimeError("Llama 3.1 8B isn't installed in Ollama — run:  ollama pull " + MODEL_TAG)
@@ -268,9 +275,44 @@ def run_llama(job):
                 continue
             d = json.loads(line)
             job["output"] += (d.get("message") or {}).get("content", "")
+            ntok += 1
+            if time.time() - last > 1.0:
+                last = time.time()
+                console.emit("MUSE", "%s writing · %d tokens · %.0f tok/s" % (MODEL_TAG, ntok, ntok / max(.1, last - t0)), job)
             if d.get("done"):
                 break
     if job.get("skill") == "Song Lyrics":            # the lyrics skill's reply goes straight to the Song engine
+        job["output"] = sanitize_lyrics(job["output"])
+    job["stage"] = ""
+    return {"files": [], "text": job["output"].strip()}
+
+
+CLOUD_TOKENS = {"short": 4000, "medium": 12000, "long": 32000}     # includes the model's thinking
+
+
+def _run_cloud(job, b, msgs, c):
+    import console
+    import renderers
+    name = cloud.label_of(b)
+    renderers.log(job, "MUSE is writing on %s …" % name)
+    job["output"] = ""
+    st = {"t0": time.time(), "n": 0, "last": 0.0}
+
+    def on_text(t):
+        job["output"] += t
+        st["n"] += 1
+        if time.time() - st["last"] > 1.0:
+            st["last"] = time.time()
+            console.emit("MUSE", "%s writing · %d chunks" % (name, st["n"]), job)
+
+    try:
+        cloud.chat_stream(b, msgs, on_text, lambda: bool(job.get("_cancel")), long=c.get("length") == "long",
+                          max_tokens=CLOUD_TOKENS.get(c.get("length"), 12000))
+    except cloud.CloudError as e:
+        raise RuntimeError("%s — %s" % (name, e))
+    if job.get("_cancel"):
+        raise comfy.Cancelled()
+    if job.get("skill") == "Song Lyrics":
         job["output"] = sanitize_lyrics(job["output"])
     job["stage"] = ""
     return {"files": [], "text": job["output"].strip()}

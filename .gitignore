@@ -44,3 +44,4 @@ installer/build-linux/
 
 # marketing kits (contain personal renders)
 marketing/
+*.aab

@@ -51,6 +51,7 @@ APP_ID = "MirMediaLabs"
 VERSION = BUILD.get("version", "dev")
 COMFY_TAG = "0.38.2"                      # the ComfyUI release MML's graphs are verified on
 PY_VER = "3.13"
+KOKORO_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
 UV_URL = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
 COMFY_URL = "https://github.com/comfyanonymous/ComfyUI/archive/refs/tags/v%s.zip" % COMFY_TAG
 OLLAMA_URL = "https://ollama.com/download/OllamaSetup.exe"
@@ -489,6 +490,18 @@ class Installer:
         # engine only — the app itself is compiled and needs none of this (imageio-ffmpeg = its ffmpeg binary)
         self.sh(base + ["-r", os.path.join(self.comfy, "requirements.txt"), "imageio-ffmpeg"])
 
+    def step_voice(self):
+        """MUSE voice: Kokoro 82M (ONNX, CPU only) in its own small venv, so the render engine's packages never change."""
+        tvenv = os.path.join(self.rt, "tts-venv")
+        tpy = os.path.join(tvenv, "Scripts", "python.exe")
+        if not os.path.isfile(tpy):
+            self.sh([self.uv, "venv", tvenv, "--python", PY_VER, "--managed-python"])
+        self.sh([self.uv, "pip", "install", "--python", tpy, "kokoro-onnx", "soundfile"])
+        kd = os.path.join(self.engine, "models", "kokoro")
+        os.makedirs(kd, exist_ok=True)
+        for f, size in (("kokoro-v1.0.onnx", 325532387), ("voices-v1.0.bin", 28214398)):
+            self.download(KOKORO_URL + f, os.path.join(kd, f), size=size, label="MUSE voice · " + f)
+
     def step_ollama(self):
         tag = self.o["engine"]
         if not tag:
@@ -684,6 +697,7 @@ class Installer:
                  ("ComfyUI engine", self.step_comfy, 3), ("PyTorch + engine packages", self.step_packages, 18)]
         if self.o["engine"]:
             steps.append(("MUSE · Llama 3.1 8B (Ollama)", self.step_ollama, 8))
+            steps.append(("MUSE voice (Kokoro)", self.step_voice, 3))
         self._dl_thread, self._dl_error = None, None
         if self.o["components"]:
             steps.append(("Finishing model downloads", self.wait_models, 60))
