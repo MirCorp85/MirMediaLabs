@@ -98,6 +98,39 @@ def touch(u, ip, ua, path):
             _save()
 
 
+# ── one device per key ─────────────────────────────────────────────────────
+SETUP_S = 30 * 60               # first 30 min after locking: the same KIND of device may take the key over
+                                # (iPhone Safari → its Home-Screen app keeps separate cookies; a re-install)
+
+
+def bind_device(u, dev, kind):
+    """A person's key works on ONE device: the first one that uses it. None = allowed, else the reason.
+    The owner's master key is never locked. The host frees a key with 'Reset device' (or a new key)."""
+    if u.get("role") == "owner":
+        return None
+    now = time.time()
+    with _LOCK:
+        b = u.get("device")
+        if not b:
+            u["device"] = {"id": dev, "kind": kind, "since": now, "seen": now}
+            _save()
+            what = "key locked to this person's %s" % kind
+        elif b["id"] == dev:
+            if now - b.get("seen", 0) > 300:
+                b["seen"] = now
+                _save()
+            return None
+        elif kind == b.get("kind") and now - b.get("since", 0) < SETUP_S:
+            u["device"] = {"id": dev, "kind": kind, "since": b["since"], "seen": now}
+            _save()
+            what = "key moved to the same person's new %s (setup window)" % kind
+        else:
+            return ("this key is already in use on another device (%s). Each key works on one device — ask the host "
+                    "for your own key, or to reset this one" % b.get("kind", "device"))
+    log(what, u["name"])
+    return None
+
+
 # ── permissions ────────────────────────────────────────────────────────────
 def _day():
     return time.strftime("%Y-%m-%d")
@@ -177,8 +210,16 @@ def update(uid, action, data=None):
         elif action == "enable":
             u["enabled"] = True
             what = "restored access"
+        elif action == "unbind":
+            if u["role"] == "owner":
+                return None, "the master key isn't locked to a device"
+            u.pop("device", None)
+            for k in [k for k in _SESS if k[0] == uid]:
+                _SESS.pop(k, None)
+            what = "reset the device lock (the next device that signs in gets the key)"
         elif action == "newkey":
             u["key"] = _new_key()
+            u.pop("device", None)                         # a fresh key locks to the next device that uses it
             for k in [k for k in _SESS if k[0] == uid]:   # old devices drop off the live list
                 _SESS.pop(k, None)
             what = "issued a new key (the old one stopped working)"
@@ -219,7 +260,10 @@ def summary(include_keys=False, running_by_user=None):
                    "jobs": u.get("jobs") or 0, "running": (running_by_user or {}).get(u["id"], 0),
                    "live": any(d["live"] for d in devs), "devices": devs, "allow": u.get("allow"),
                    "daily": int(u.get("daily") or 0), "today": used_today(u), "expires": u.get("expires") or 0,
-                   "expired": expired(u)}
+                   "expired": expired(u),
+                   "locked": None if u["role"] == "owner" or not u.get("device") else
+                   {"kind": u["device"].get("kind", "device"), "since": u["device"].get("since", 0),
+                    "seen": u["device"].get("seen", 0)}}
             if include_keys:
                 row["key"] = u["key"]
             out.append(row)

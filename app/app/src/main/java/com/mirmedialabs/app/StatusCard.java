@@ -20,27 +20,30 @@ import java.util.regex.Pattern;
 final class StatusCard extends LinearLayout {
     private final MainActivity m;
     private String sig = "";
+    private TextView elapsedTv, progTv;   // live bits updated in place - no rebuild, no flicker
+    private android.view.View progFill, progRest;
     private boolean hidden;
 
     StatusCard(MainActivity a) {
         super(a);
         m = a;
         setOrientation(VERTICAL);
-        setPadding(Ui.dp(11), Ui.dp(9), Ui.dp(11), Ui.dp(9));
+        setPadding(Ui.dp(10), Ui.dp(8), Ui.dp(10), Ui.dp(8));
         setVisibility(GONE);
         hidden = "1".equals(Prefs.str(a, "mchide", ""));
         android.animation.LayoutTransition lt = new android.animation.LayoutTransition();
         lt.enableTransitionType(android.animation.LayoutTransition.CHANGING);     // rows grow / shrink smoothly
         lt.setDuration(260);
         setLayoutTransition(lt);
-        setOnClickListener(v -> toggle());
     }
 
     /** Tap the mascot (or the card): orbit reveal — a circle wipe opening from / closing into the top corner. */
+    boolean isHidden() { return hidden; }
+
     void toggle() {
         hidden = !hidden;
         Prefs.put(m, "mchide", hidden ? "1" : "");
-        if (hidden) reveal(false);
+        if (hidden) setVisibility(GONE);
         else {
             sig = "";
             update(last);                                  // a running job → appears through reveal(true)
@@ -69,16 +72,9 @@ final class StatusCard extends LinearLayout {
 
     /** Glass card: model-tinted gradient, coloured edge light, deep shadow. */
     private void skin(int col) {
-        int rgb = col & 0x00FFFFFF;
-        android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                new int[]{mix(col, 0xFF16100C, 0.16f), 0xF20E0A08, 0xF50A0807});
-        g.setCornerRadius(Ui.dp(20));
-        g.setStroke(Math.max(1, Ui.dp(1)), rgb | 0x55000000);
-        setBackground(g);
-        setElevation(Ui.dp(14));
-        if (android.os.Build.VERSION.SDK_INT >= 28) { setOutlineAmbientShadowColor(col); setOutlineSpotShadowColor(col); }
-        setClipToOutline(true);
+        android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+        g.setColor(0x00000000);
+        setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{g}));
     }
 
     static int mix(int a, int b, float t) {
@@ -122,11 +118,24 @@ final class StatusCard extends LinearLayout {
         }
         JSONObject j = run != null ? run : q;
         if (j == null) { setVisibility(GONE); sig = ""; return; }
-        if (hidden) { if (getVisibility() == VISIBLE && getAlpha() == 0f) setVisibility(INVISIBLE); else if (getVisibility() == GONE) setVisibility(INVISIBLE); return; }
+        if (hidden) { setVisibility(GONE); return; }
         double now = System.currentTimeMillis() / 1000.0;
         String elapsed = run != null ? Ui.dur(j.optDouble("started", now), now) : "queued";
-        String s = j.optString("id") + j.optString("stage") + j.optString("step") + elapsed + String.valueOf(j.opt("plan"));
-        if (s.equals(sig)) return;
+        JSONObject pg0 = j.optJSONObject("progress");
+        boolean hasPg = run != null && pg0 != null && pg0.optInt("max") > 0;
+        String s = j.optString("id") + j.optString("status") + j.optString("stage") + j.optString("step") + hasPg + String.valueOf(j.opt("plan"));
+        if (s.equals(sig) && getVisibility() == VISIBLE) {      // same layout: just tick the timer + bar
+            if (elapsedTv != null) elapsedTv.setText(elapsed);
+            if (hasPg && progFill != null) {
+                int pct = Math.max(1, Math.min(100, pg0.optInt("pct")));
+                ((LayoutParams) progFill.getLayoutParams()).weight = pct;
+                ((LayoutParams) progRest.getLayoutParams()).weight = 100 - pct;
+                progFill.requestLayout();
+                progTv.setText(pg0.optString("what") + "   " + pg0.optInt("value") + " / " + pg0.optInt("max"));
+            }
+            return;
+        }
+        elapsedTv = progTv = null; progFill = progRest = null;
         boolean appearing = getVisibility() != VISIBLE;
         sig = s;
         setVisibility(VISIBLE);
@@ -135,19 +144,17 @@ final class StatusCard extends LinearLayout {
         JSONObject md = m.model(model);
         int col = m.colorOf(model);
         skin(col);
-        if (appearing) post(() -> reveal(true));          // a job just started / card reopened: orbit in
         // header: model icon tile · name + step · stage · elapsed
         LinearLayout h = Ui.hbox(m);
         h.setGravity(Gravity.CENTER_VERTICAL);
         TextView ic = Ui.text(m, "[[" + icon(model) + "]]", 18, col);
         ic.setGravity(Gravity.CENTER);
         android.graphics.drawable.GradientDrawable ig = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TL_BR, new int[]{mix(0xFFFFFFFF, col, 0.25f) | 0xFF000000, col, mix(0xFF000000, col, 0.4f) | 0xFF000000});
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR, new int[]{col, col});
         ig.setCornerRadius(Ui.dp(13));
         ic.setBackground(ig);
         ic.setTextColor(0xFFFFFFFF);
-        ic.setElevation(Ui.dp(6));
-        if (android.os.Build.VERSION.SDK_INT >= 28) ic.setOutlineSpotShadowColor(col);
+        
         Icons.set(ic, "[[" + icon(model) + "]]");
         h.addView(ic, Ui.margins(Ui.lp(Ui.dp(42), Ui.dp(42)), 0, 0, 0, 4));
         LinearLayout tt = Ui.vbox(m);
@@ -160,7 +167,10 @@ final class StatusCard extends LinearLayout {
         sv.setEllipsize(android.text.TextUtils.TruncateAt.END);
         tt.addView(sv);
         h.addView(tt, Ui.margins(new LayoutParams(0, Ui.WRAP, 1), 9, 0, 6, 0));
-        h.addView(Ui.mono(m, elapsed, 11, col));
+        elapsedTv = Ui.mono(m, elapsed, 11, col);
+        // the header already shows the timer: keep the view (patched in place) but out of sight
+        elapsedTv.setVisibility(GONE);
+        h.addView(elapsedTv);
         addView(h);
         JSONObject pg = j.optJSONObject("progress");      // real engine progress: step n of max
         if (run != null && pg != null && pg.optInt("max") > 0) {
@@ -170,9 +180,11 @@ final class StatusCard extends LinearLayout {
             android.view.View fill = new android.view.View(m);
             fill.setBackground(Ui.box(3, col, 0));
             bar.addView(fill, new LayoutParams(0, Ui.dp(5), pct));
-            bar.addView(new android.view.View(m), new LayoutParams(0, Ui.dp(5), 100 - pct));
+            progFill = fill; progRest = new android.view.View(m);
+            bar.addView(progRest, new LayoutParams(0, Ui.dp(5), 100 - pct));
             addView(bar, Ui.margins(Ui.lp(Ui.MATCH, Ui.dp(5)), 0, 8, 0, 0));
-            addView(Ui.mono(m, pg.optString("what") + "   " + pg.optInt("value") + " / " + pg.optInt("max"), 9.5f, Ui.FAINT),
+            progTv = Ui.mono(m, pg.optString("what") + "   " + pg.optInt("value") + " / " + pg.optInt("max"), 9.5f, Ui.FAINT);
+            addView(progTv,
                     Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 3, 0, 0));
         }
         JSONObject route = j.optJSONObject("route");

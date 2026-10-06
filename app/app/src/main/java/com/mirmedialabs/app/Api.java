@@ -48,7 +48,7 @@ final class Api {
     String url(String path) { return base() + path; }
     /** Media URL usable by players / DownloadManager (key in the query string). */
     String mediaUrl(String path) {
-        try { return url(path) + (path.contains("?") ? "&" : "?") + "key=" + URLEncoder.encode(Prefs.key(ctx), "UTF-8"); }
+        try { return url(path) + (path.contains("?") ? "&" : "?") + "key=" + URLEncoder.encode(Prefs.key(ctx), "UTF-8") + "&dev=" + Prefs.deviceId(ctx); }
         catch (Exception e) { return url(path); }
     }
 
@@ -128,6 +128,7 @@ final class Api {
 
     private void headers(HttpURLConnection c) {
         c.setRequestProperty("X-MML-Key", Prefs.key(ctx));
+        c.setRequestProperty("X-MML-Device", Prefs.deviceId(ctx));
         c.setRequestProperty("Cache-Control", "no-store");
         c.setRequestProperty("User-Agent", "MirMediaLabs-Android/" + Updater.installedName(ctx));
     }
@@ -228,6 +229,17 @@ final class Api {
             case "audio/ogg": return ".ogg";
             case "audio/mp4": case "audio/x-m4a": return ".m4a";
             case "text/plain": return ".txt";
+            // phone formats — the lab converts these on arrival (HEIC → JPEG, 3GP → MP4, AMR → MP3 …)
+            case "image/heic": case "image/heif": return ".heic";
+            case "image/avif": return ".avif";
+            case "image/gif": return ".gif";
+            case "image/bmp": return ".bmp";
+            case "video/3gpp": return ".3gp";
+            case "video/3gpp2": return ".3g2";
+            case "video/x-msvideo": return ".avi";
+            case "audio/amr": case "audio/3gpp": return ".amr";
+            case "audio/opus": return ".opus";
+            case "audio/aac": return ".aac";
             default: return "";
         }
     }

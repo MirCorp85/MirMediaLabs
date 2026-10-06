@@ -16,6 +16,7 @@ import json
 import re
 import time
 
+import cloud
 import core
 import skills
 
@@ -274,16 +275,26 @@ def decide(prompt, refs=None, history=None, model=None):
         role = "video" if "image" in kinds else "music" if "audio" in kinds else "image"
         return {"action": "render", "role": role, "prompt": "", "why": "attachment only", "use_previous": False, "by": "rules"}
     t0 = time.time()
-    core.ensure_ollama()
+    system = SYSTEM.format(catalog=_catalog_text())
+    user = _context(history, refs) + "\n\nMessage:\n" + prompt
     try:
-        body = {"model": model, "stream": False, "format": "json", "keep_alive": KEEP_ALIVE,
-                "options": {"temperature": 0.1, "num_ctx": ROUTER_CTX, "num_predict": 900},
-                "messages": [{"role": "system", "content": SYSTEM.format(catalog=_catalog_text())},
-                             {"role": "user", "content": _context(history, refs) + "\n\nMessage:\n" + prompt}]}
-        r = core.requests.post(core.OLLAMA + "/api/chat", json=body, timeout=TIMEOUT)
-        r.raise_for_status()
-        raw = (r.json().get("message") or {}).get("content", "")
-        d = _valid(json.loads(raw), refs)
+        b = cloud.active()                               # the owner's cloud brain directs, when set
+        raw = None
+        if b:
+            try:
+                raw = cloud.json_of(cloud.ask(b, user, system, want_json=True, role="director", timeout=90, max_tokens=6000))
+            except Exception as e:
+                core._note("[cloud] director: %s — local Director instead" % e)
+        if raw is None:
+            core.ensure_ollama()
+            body = {"model": model, "stream": False, "format": "json", "keep_alive": KEEP_ALIVE,
+                    "options": {"temperature": 0.1, "num_ctx": ROUTER_CTX, "num_predict": 900},
+                    "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+            r = core.requests.post(core.OLLAMA + "/api/chat", json=body, timeout=TIMEOUT)
+            r.raise_for_status()
+            raw = json.loads((r.json().get("message") or {}).get("content", ""))
+            b = None
+        d = _valid(raw, refs)
         if d:
             if not d["prompt"] or d["action"] == "chat":
                 d["prompt"] = prompt                     # chat keeps the person's own words
@@ -294,7 +305,7 @@ def decide(prompt, refs=None, history=None, model=None):
             if d["action"] == "pipeline" and d.get("steps") and re.findall(r"--\w+", prompt):
                 missing = [f for f in re.findall(r"--[\w-]+(?:\s+\d+)?", prompt) if f not in d["steps"][0]]
                 d["steps"][0] = (d["steps"][0] + " " + " ".join(missing)).strip()   # flags steer the first step
-            d["by"], d["ms"] = "muse", int((time.time() - t0) * 1000)
+            d["by"], d["ms"] = ("muse · " + cloud.label_of(b)) if b else "muse", int((time.time() - t0) * 1000)
             return d
     except Exception:
         pass

@@ -71,7 +71,7 @@ final class Ui {
     }
     static GradientDrawable card() { return box(16, CARD, LINE); }
     static GradientDrawable accent(int c, float radius) {
-        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{c, mix(c, 0xFF000000, 0.45f)});
+        GradientDrawable g = new GradientDrawable(); g.setColor(c);   // matte: flat fill
         g.setCornerRadius(dp(radius));
         return g;
     }

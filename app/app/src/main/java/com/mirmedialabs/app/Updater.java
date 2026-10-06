@@ -99,7 +99,7 @@ final class Updater {
         h.setReadTimeout(20000);
         h.setInstanceFollowRedirects(true);
         h.setRequestProperty("User-Agent", "MirMediaLabs-Android/" + installedName(c));
-        if (lab) h.setRequestProperty("X-MML-Key", Prefs.key(c));
+        if (lab) { h.setRequestProperty("X-MML-Key", Prefs.key(c)); h.setRequestProperty("X-MML-Device", Prefs.deviceId(c)); }
         else h.setRequestProperty("Accept", "application/vnd.github+json, application/octet-stream, */*");
         return h;
     }

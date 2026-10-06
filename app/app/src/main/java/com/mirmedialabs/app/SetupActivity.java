@@ -350,6 +350,7 @@ public class SetupActivity extends Activity {
                     c.setConnectTimeout(6000);
                     c.setReadTimeout(8000);
                     c.setRequestProperty("X-MML-Key", k);
+                    c.setRequestProperty("X-MML-Device", Prefs.deviceId(this));
                     c.setRequestProperty("User-Agent", "MirMediaLabs-Android/" + Updater.installedName(this));
                     code = c.getResponseCode();
                     java.io.InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();

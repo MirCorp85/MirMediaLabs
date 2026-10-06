@@ -13,14 +13,17 @@ import mimetypes
 import os
 import queue
 import re
+import secrets
 import shutil
 import socket
 import sys
 import threading
 import time
+from urllib.parse import quote
 
 from flask import Flask, Response, abort, g, jsonify, redirect, request, send_file, send_from_directory
 
+import cloud
 import comfy
 import core
 import params
@@ -32,13 +35,17 @@ import loras
 import users
 import events
 import perf
+import console
+import tts
 import router
+import watermark
 
 app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = 600 * 1024 * 1024
 UPLOAD_MAX_MB = 500
 users.load()
 events.load()
+console.start()
 
 # -- access gate: every person has their own key (users.py). Loopback = the owner on this PC. --
 OPEN_PATHS = ("/api/ping", "/privacy", "/sw.js", "/static/apple-touch-icon.png", "/static/icon-192.png", "/static/icon-512.png")
@@ -66,7 +73,7 @@ def gate():
     supplied = request.args.get("key") or request.headers.get("X-MML-Key") or request.cookies.get("mml_key")
     supplied = (supplied or "").strip() or None     # pasted keys often carry a space or line break
     ip = request.remote_addr or "?"
-    u = users.by_key(supplied) or (users.owner() if _loopback() else None)
+    u = users.owner() if _loopback() else users.by_key(supplied)   # this PC is always the host, whatever key it holds
     if u and not _loopback():
         _clear_fails(ip)                            # a right key always gets in and lifts the lockout
     if not u and not _loopback():
@@ -84,10 +91,21 @@ def gate():
             resp.delete_cookie("mml_key")           # drop a dead saved key so the next invite / typed key starts clean
         return resp
     g.user = u
-    users.touch(u, request.remote_addr, request.headers.get("User-Agent", ""), request.path)
+    ua = request.headers.get("User-Agent", "")
+    handoff = (request.args.get("key") and request.method == "GET" and request.path == "/" and "Android" in ua
+               and "MirMediaLabs" not in ua and not request.args.get("web"))
+    if not _loopback() and u.get("role") != "owner" and not handoff \
+            and (request.path == "/" or request.path.startswith(("/api/", "/media/", "/thumb/", "/refs/"))):
+        dev = _device_id()                          # ONE device per person's key (the owner's master key: any number)
+        why = users.bind_device(u, dev, users.device_of(ua)) if dev else \
+            "update MIR MEDIA LABS (menu → Check for updates) — this version can't sign in any more"
+        if why:
+            if request.path.startswith(("/api/", "/media/", "/thumb/", "/refs/")):
+                return jsonify({"error": why, "device_locked": True}), 403
+            return Response(LOGIN_HTML.replace("{MSG}", why), mimetype="text/html", status=403)
+    users.touch(u, request.remote_addr, ua, request.path)
     if request.args.get("key") and request.method == "GET" and request.path == "/":
-        ua = request.headers.get("User-Agent", "")
-        if "Android" in ua and "MirMediaLabs" not in ua and not request.args.get("web"):
+        if handoff:
             resp = Response(_android_handoff(supplied), mimetype="text/html")   # open the installed app
         else:
             ios = any(t in ua for t in ("iPhone", "iPad", "iPod"))
@@ -95,6 +113,28 @@ def gate():
         resp.set_cookie("mml_key", supplied, max_age=3600 * 24 * 365, httponly=True, samesite="Lax")
         return resp
     return None
+
+
+_DEV_RE = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
+
+
+def _device_id():
+    """Which device is calling: the app sends X-MML-Device (and &dev= on media URLs); a browser gets a
+    random mml_dev cookie on its first visit. None = an app too old to say (it must update)."""
+    for v in (request.headers.get("X-MML-Device"), request.args.get("dev"), request.cookies.get("mml_dev")):
+        if v and _DEV_RE.match(v):
+            return v
+    if "MirMediaLabs-Android" in request.headers.get("User-Agent", ""):
+        return None
+    g.new_dev = "b" + secrets.token_urlsafe(18)
+    return g.new_dev
+
+
+@app.after_request
+def _set_device_cookie(resp):
+    if getattr(g, "new_dev", None):
+        resp.set_cookie("mml_dev", g.new_dev, max_age=3600 * 24 * 365 * 5, httponly=True, samesite="Lax")
+    return resp
 
 
 def _android_handoff(key):
@@ -175,8 +215,8 @@ def is_owner():
 
 
 def mine(owner_id):
-    """Owner sees everything; a user only what they created (legacy items belong to the owner)."""
-    return is_owner() or (owner_id or "owner") == uid()
+    """The host PC sees everything; everyone else only what they created (legacy items belong to the owner)."""
+    return _host() or (owner_id or "owner") == uid()
 
 
 LOGIN_HTML = """<!doctype html><meta name=viewport content="width=device-width,initial-scale=1">
@@ -207,7 +247,7 @@ Q = queue.Queue()
 _JLOCK = threading.Lock()
 PUBLIC = ("id", "model", "prompt", "refs", "loras", "status", "stage", "log", "output", "files", "created", "started",
           "finished", "error", "params", "user", "input", "skill", "pipeline", "steps", "step", "route", "lora_sel",
-          "loras_skipped", "plan", "pipeline_id", "knobs", "progress")
+          "loras_skipped", "plan", "pipeline_id", "knobs", "progress", "brain")
 
 
 def _persist():
@@ -228,7 +268,7 @@ def _load_jobs():
 
 def public(j):
     d = {k: j.get(k) for k in PUBLIC}
-    if is_owner():   # master key: label whose request this is
+    if _host():   # host PC: label whose request this is
         u = users.by_id(j.get("user") or "owner")
         d["user_name"] = u["name"] if u else (j.get("user") or "owner")
         d["mine"] = (j.get("user") or "owner") == uid()
@@ -284,9 +324,19 @@ def _ref_seconds(name):
 
 
 def _run_pipeline(job):
-    """Follow the manual inside this ONE job: each step gets its own ordered inputs (the person's attachments and/or
-    earlier outputs), MUSE's prompt for that step (else the template), the knobs, and what earlier steps carry forward."""
-    base, outs, files, texts = list(job.get("refs") or []), [], [], []
+    """Follow the manual inside this ONE job — the job's refs always end as what the person attached
+    (also after an error / cancel), so "Again" re-attaches the right files."""
+    base = list(job.get("refs") or [])
+    try:
+        return _pipeline_steps(job, base)
+    finally:
+        job["refs"] = base
+
+
+def _pipeline_steps(job, base):
+    """Each step gets its own ordered inputs (the person's attachments and/or earlier outputs), MUSE's prompt
+    for that step (else the template), the knobs, and what earlier steps carry forward."""
+    outs, files, texts = [], [], []
     owner = job.get("user") or "owner"
     man = skills.pipeline(job.get("pipeline_id") or "") or {"steps": job["steps"]}
     knobs = job.get("knobs") or {}
@@ -343,7 +393,6 @@ def _run_pipeline(job):
         if row:
             row.update(status="done", files=list(res["files"]))
         _persist()
-    job["refs"] = base
     return {"files": files, "text": chr(10).join(texts)}
 
 
@@ -355,11 +404,24 @@ def worker():
             continue
         job["status"], job["started"] = "running", time.time()
         _persist()
+        console.set_current(job["id"])
+        console.emit("LAB", "worker picked up the job · GPU is yours", job)
+        brain = cloud.for_job(job)                   # owner only: Claude / GPT as MUSE, Director + prompt writer
+        cloud.activate(brain)
+        if brain:
+            job["brain"] = cloud.label_of(brain)
+            console.emit("MUSE", "cloud brain · %s" % job["brain"], job)
+        elif (job.get("user") or "owner") == "owner" and cloud.brain()["provider"] != "local" and cloud.spent() >= cloud.cap():
+            console.emit("MUSE", "cloud brain paused — this month's $%.0f cap is reached; using the local engine" % cloud.cap(), job, "warn")
         try:
             if job.get("model") == "auto":
                 _route(job)
                 _persist()
             res = _run_pipeline(job) if job.get("steps") else _run_once(job)
+            if watermark.enabled() and res["files"]:
+                job["stage"] = "watermarking"
+                if watermark.apply(res["files"], lambda m: console.emit("LAB", m, job, "warn")):
+                    console.emit("LAB", "watermarked · " + watermark.text(), job)
             job["files"], job["output"] = res["files"], res["text"]
             job["status"] = "done"
         except comfy.Cancelled:
@@ -367,7 +429,10 @@ def worker():
         except Exception as e:
             job["status"], job["error"] = "error", str(e)[:1500]
         finally:
+            cloud.activate(None)
             job["finished"] = time.time()
+            console.emit("LAB", {"done": "finished · saved to the library", "cancelled": "cancelled"}.get(job["status"], "stopped · " + str(job.get("error", ""))[:90]), job)
+            console.set_current(None)
             job["stage"] = ""
             job.pop("_cancel", None)
             _persist()
@@ -415,6 +480,8 @@ def _route(job):
     renderers.log(job, "MUSE is reading your message …")
     recent = _recent(owner)
     d = router.decide(job.get("input") or "", job.get("refs"), recent, model=llm.MODEL_TAG)
+    console.emit("MUSE", "picked %s%s%s" % (d.get("pipeline") or d.get("skill") or d.get("role") or d.get("action"),
+                 " · " + d["why"] if d.get("why") else "", " (%d ms)" % d["ms"] if d.get("ms") else " (rules)"), job)
     alt = _LORA_ALT.get(d.get("role")) if d["action"] == "render" else None
     sel = job.get("lora_sel")
     if alt and sel and not loras.pick(skills.model_for(d["role"]), sel) and loras.pick(skills.model_for(alt), sel):
@@ -711,6 +778,45 @@ def _my_ref(name):
     return mine(core.load_json(REFS_INDEX, {}).get(os.path.basename(str(name))))
 
 
+# HEIC/HEIF (iPhone + Samsung camera default), AVIF, GIF, BMP, TIFF pictures → JPEG/PNG · 3GP / AVI / WMV clips → MP4 ·
+# AMR / OPUS / WMA / AIFF audio → MP3. ffmpeg only (the compiled PC edition ships no Pillow).
+_CONVERT = {".heic": ".jpg", ".heif": ".jpg", ".avif": ".jpg", ".gif": ".jpg", ".bmp": ".png", ".tif": ".png", ".tiff": ".png",
+            ".3gp": ".mp4", ".3g2": ".mp4", ".avi": ".mp4", ".wmv": ".mp4", ".mpg": ".mp4", ".mpeg": ".mp4", ".ts": ".mp4",
+            ".amr": ".mp3", ".opus": ".mp3", ".wma": ".mp3", ".aif": ".mp3", ".aiff": ".mp3", ".weba": ".mp3"}
+
+
+def _upload_converted(f, stem, ext):
+    to = _CONVERT[ext]
+    tmp = core.safe_path(os.path.join(core.REFS, "_in_%d%s" % (int(time.time() * 1000), ext)))
+    f.save(tmp)
+    try:
+        if os.path.getsize(tmp) > UPLOAD_MAX_MB * 1024 * 1024:
+            return jsonify({"error": "file over %d MB" % UPLOAD_MAX_MB}), 400
+        name = _store_ref(stem, to)
+        out = core.safe_path(os.path.join(core.REFS, name))
+        if to in (".jpg", ".png"):
+            args = ["-i", tmp, "-frames:v", "1"] + (["-q:v", "2"] if to == ".jpg" else [])
+        elif to == ".mp4":
+            args = ["-i", tmp, "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+                    "-c:a", "aac", "-movflags", "+faststart"]
+        else:
+            args = ["-i", tmp, "-vn", "-c:a", "libmp3lame", "-q:a", "2"]
+        try:
+            renderers.ffmpeg(args + [out], 600)
+        except Exception:
+            ix = core.load_json(REFS_INDEX, {})
+            ix.pop(name, None)
+            core.save_json(REFS_INDEX, ix)
+            hint = " — on the phone set the camera to JPEG / 'Most Compatible'" if ext in (".heic", ".heif") else ""
+            return jsonify({"error": "couldn't read that %s file%s" % (ext, hint)}), 400
+        return jsonify(_ref_info(name))
+    finally:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+
+
 @app.route("/api/upload", methods=["POST"])
 def upload():
     f = request.files.get("file")
@@ -718,6 +824,8 @@ def upload():
         return jsonify({"error": "no file"}), 400
     stem, ext = os.path.splitext(f.filename)
     ext = ext.lower()
+    if ext in _CONVERT:                            # phone formats the engines can't load → converted on arrival
+        return _upload_converted(f, stem, ext)
     if not core.kind_of("x" + ext):
         return jsonify({"error": "unsupported type %s — images png/jpg/webp · video mp4/mov/webm · audio mp3/wav/flac/ogg/m4a · text txt/md/lrc/srt" % ext}), 400
     name = _store_ref(stem, ext)
@@ -775,8 +883,14 @@ def generate():
         model = skills.model_for(pl["steps"][0]["role"])
     if model not in renderers.RUNNERS and model != "auto":      # auto = MUSE Director decides in the worker
         return jsonify({"error": "unknown model"}), 400
-    refs = [os.path.basename(str(n)) for n in (body.get("refs") or [])][:16]
-    refs = [n for n in refs if core.in_dir(core.REFS, n) and _my_ref(n)]
+    asked = [os.path.basename(str(n)) for n in (body.get("refs") or [])]
+    if len(asked) > 16:
+        return jsonify({"error": "too many attachments (%d) — 16 at most per request" % len(asked)}), 400
+    refs = [n for n in asked if core.in_dir(core.REFS, n) and os.path.isfile(core.in_dir(core.REFS, n)) and _my_ref(n)]
+    if len(refs) < len(asked):                     # never quietly render without what the person attached
+        gone = [n.split("_", 2)[-1] for n in asked if n not in refs]
+        return jsonify({"error": "attachment%s no longer on the lab: %s — remove %s and attach again"
+                        % ("s" if len(gone) > 1 else "", ", ".join(gone[:4]), "them" if len(gone) > 1 else "it"), "missing": gone}), 400
     if not prompt and not refs:
         return jsonify({"error": "write a prompt or attach a reference"}), 400
     if sk and skills.missing(sk, [core.kind_of(r) for r in refs]):
@@ -841,11 +955,17 @@ def font_prefs():
         if body.get("key") == "font":
             fid = str((body.get("value") or {}).get("id") or "")[:20]
             core.save_pref(key, {"id": fid})
+        elif body.get("key") == "voice":                # MUSE voice: {id, speed, on} - one pick for PC, phone and TV
+            v = body.get("value") or {}
+            core.save_pref("voice_" + uid(), {"id": v.get("id") if v.get("id") in tts.VOICES else tts.DEFAULT_VOICE,
+                                              "speed": min(1.3, max(0.7, float(v.get("speed") or 1.0))), "on": v.get("on") is not False})
         elif body.get("key") == "mltheme":
             tid = str((body.get("value") or {}).get("id") or "")
             if tid in ("claude", "graphite", "obsidian", "midnight", "paper"):
                 core.save_pref(tkey, {"id": tid})
-    return jsonify({"font": core.prefs().get(key) or {"id": ""}, "mltheme": core.prefs().get(tkey) or {"id": ""}})
+    return jsonify({"font": core.prefs().get(key) or {"id": ""}, "mltheme": core.prefs().get(tkey) or {"id": ""},
+                    "voice": core.prefs().get("voice_" + uid()) or {"id": tts.DEFAULT_VOICE, "speed": 1.0, "on": True}})
+
 
 
 # ── LoRA SAMPLES (Civitai catalog → ComfyUI loras folder → applied per render) ──
@@ -886,6 +1006,85 @@ def loras_remove():
     return jsonify({"ok": True})
 
 
+# ── cloud brain (owner, host PC only): Claude / GPT as MUSE, Director + prompt writer ──
+@app.route("/api/cloud")
+def cloud_get():
+    if (r := _host_only()):
+        return r
+    return jsonify(cloud.summary())                 # never contains a key
+
+
+@app.route("/api/cloud/key", methods=["POST"])
+def cloud_key():
+    if (r := _host_only()):
+        return r
+    b = request.get_json(silent=True) or {}
+    prov = b.get("provider")
+    if prov not in cloud.PROVIDERS:
+        return jsonify({"error": "unknown provider"}), 400
+    key = str(b.get("key") or "").strip()[:300]
+    if key:
+        try:
+            gpts = cloud.check_key(prov, key)       # validate before saving
+        except cloud.CloudError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:                      # never a bare HTTP 500 in the Settings card
+            return jsonify({"error": "couldn't check the %s key: %s" % (cloud.NAMES[prov], e)}), 502
+        core.save_pref(prov + "_key", key)
+        if prov == "openai":
+            core.save_pref("openai_models", gpts)
+        elif prov == "fireworks":
+            core.save_pref("fireworks_models", gpts)     # only the GLM ids Fireworks actually served
+            b0 = cloud.brain()
+            if b0["provider"] == "fireworks" and b0["model"] not in gpts:
+                core.save_pref("brain", {"provider": "fireworks", "model": gpts[0]})
+        users.log("saved the %s API key" % cloud.NAMES[prov], "host")
+    else:
+        core.save_pref(prov + "_key", "")
+        if cloud.brain()["provider"] == prov:
+            core.save_pref("brain", {"provider": "local", "model": ""})
+        users.log("removed the %s API key" % cloud.NAMES[prov], "host")
+    return jsonify(cloud.summary())
+
+
+@app.route("/api/cloud/brain", methods=["POST"])
+def cloud_brain():
+    if (r := _host_only()):
+        return r
+    b = request.get_json(silent=True) or {}
+    prov, model = b.get("provider"), str(b.get("model") or "")
+    if "cap" in b:
+        try:
+            core.save_pref("cloud_cap", max(0.0, min(10000.0, float(b["cap"]))))
+        except (TypeError, ValueError):
+            return jsonify({"error": "the monthly cap must be a number"}), 400
+    if prov == "local":
+        core.save_pref("brain", {"provider": "local", "model": ""})
+    elif prov in cloud.PROVIDERS:
+        if not cloud.keys()[prov]:
+            return jsonify({"error": "save the %s API key first" % cloud.NAMES[prov]}), 400
+        if not any(m["id"] == model and m["provider"] == prov for m in cloud.models()):
+            return jsonify({"error": "unknown model"}), 400
+        core.save_pref("brain", {"provider": prov, "model": model})
+    return jsonify(cloud.summary())
+
+
+@app.route("/api/cloud/params", methods=["POST"])
+def cloud_params():
+    """Model picker: per-model max output / temperature / effort. {model, params|null}."""
+    if (r := _host_only()):
+        return r
+    b = request.get_json(silent=True) or {}
+    model = str(b.get("model") or "")
+    if not any(m["id"] == model for m in cloud.models()):
+        return jsonify({"error": "unknown model"}), 400
+    try:
+        cloud.set_params(model, b.get("params"))
+    except cloud.CloudError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify(cloud.summary())
+
+
 @app.route("/api/loras/token", methods=["GET", "POST"])
 def loras_token():
     """Civitai API key for LoRA downloads (owner only). GET never returns the key itself."""
@@ -919,6 +1118,37 @@ def plan_preview():
 @app.route("/api/skills")
 def skills_catalog():
     return jsonify(skills.catalog())
+
+
+@app.route("/api/tts")
+def api_tts():
+    """MUSE's voice: one sentence -> WAV (natural local Kokoro voice, CPU only, cached)."""
+    v = core.prefs().get("voice_" + uid()) or {}
+    try:
+        path = tts.say(request.args.get("text") or "", request.args.get("voice") or v.get("id") or tts.DEFAULT_VOICE,
+                       request.args.get("speed") or v.get("speed") or 1.0)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 503
+    resp = send_file(path, mimetype="audio/wav")
+    resp.headers["Cache-Control"] = "private, max-age=86400"
+    return resp
+
+
+@app.route("/api/tts/voices")
+def api_tts_voices():
+    return jsonify({"voices": [{"id": k, "label": l} for k, l in tts.VOICES.items()], "default": tts.DEFAULT_VOICE,
+                    "available": tts.available()})
+
+
+@app.route("/api/console")
+def api_console():
+    """Newest live backend line per job for the MUSE bubble. The host PC also sees engine-wide lines."""
+    ids = [i for i in (request.args.get("jobs") or "").split(",")[:20] if i in JOBS and mine(JOBS[i].get("user"))]
+    lines, seq = console.latest(ids, host=_host())
+    return jsonify({"lines": {k: {"src": v["src"], "text": v["text"], "level": v["level"], "t": v["t"]} for k, v in lines.items()},
+                    "seq": seq})
 
 
 @app.route("/api/jobs")
@@ -1005,13 +1235,8 @@ def thumb(name):
     t = os.path.join(core.THUMBS, name + ".jpg")
     if not os.path.isfile(t) or os.path.getmtime(t) < os.path.getmtime(src):
         try:
-            if core.kind_of(name) == "image":
-                from PIL import Image, ImageOps
-                im = ImageOps.exif_transpose(Image.open(src)).convert("RGB")
-                im.thumbnail((480, 480))
-                im.save(t, "JPEG", quality=82)
-            else:
-                renderers.ffmpeg(["-ss", "0.6", "-i", src, "-frames:v", "1", "-vf", "scale=480:-2", t], 60)
+            # ffmpeg for both (no Pillow in the compiled PC edition — image thumbnails used to 404 there)
+            core.still(src, t, 480, at=None if core.kind_of(name) == "image" else 0.6)
         except Exception:
             abort(404)
     return send_file(t, max_age=3600)
@@ -1068,6 +1293,73 @@ def _running_by_user():
 @app.route("/api/me")
 def me():
     return jsonify({"id": uid(), "name": g.user["name"], "role": g.user["role"], "host": _host()})
+
+
+@app.route("/api/online")
+def online():
+    """Who is live right now (app 'population' button) — any signed-in person. Names + device kind only:
+    never keys, IPs, limits or other people's jobs."""
+    s = users.summary(include_keys=False, running_by_user=_running_by_user())
+    people = [{"name": u["name"], "host": u["role"] == "owner", "you": u["id"] == uid(),
+               "creating": u["running"] > 0, "devices": sorted({d["device"] for d in u["devices"] if d["live"]})}
+              for u in s["users"] if u["live"]]
+    people.sort(key=lambda p: (not p["you"], not p["host"], p["name"].lower()))
+    return jsonify({"live": len(people), "people": people})
+
+
+def _my_invite():
+    """This person's own sign-in link: the address they reached the lab on (the LAN address on the GPU PC)
+    + their key + the away address, same shape as a host invite."""
+    if _loopback():
+        base = "http://%s:%s" % (_lan_ip() or "127.0.0.1", core.PORT)
+    else:
+        base = request.host_url.rstrip("/")
+    away = core.prefs().get("away_url") or ""
+    return base + "/?key=" + g.user["key"] + ("&away=" + quote(away, safe="") if away else "")
+
+
+def _master_guard():
+    """The owner's key is the MASTER key (sees every chat, runs Host Control): it is only ever shown
+    on the host PC itself, never to a remote device — even one signed in with it."""
+    if g.user.get("role") == "owner" and not _host():
+        return jsonify({"error": "the master key is only shown on the host PC"}), 403
+    return None
+
+
+@app.route("/api/my-key")
+def my_key():
+    """Your own key + invite link (the 'My key' QR sheet; 'Master key' on the host PC). Only ever the caller's own key."""
+    if (r := _master_guard()):
+        return r
+    return jsonify({"name": g.user["name"], "key": g.user["key"], "invite": _my_invite(),
+                    "master": g.user.get("role") == "owner", "away": bool(core.prefs().get("away_url"))})
+
+
+@app.route("/api/my-key/qr")
+def my_key_qr():
+    """QR of your own invite (kind=invite) or bare key (kind=key). fmt=svg for the web,
+    fmt=matrix ({size, rows:["0101…"]}) for the app to draw natively. Never encodes arbitrary text."""
+    if (r := _master_guard()):
+        return r
+    text = g.user["key"] if request.args.get("kind") == "key" else _my_invite()
+    try:
+        import io
+        import qrcode
+        if request.args.get("fmt") == "matrix":
+            q = qrcode.QRCode(border=0, error_correction=qrcode.constants.ERROR_CORRECT_M)
+            q.add_data(text)
+            q.make(fit=True)
+            m = q.get_matrix()
+            return jsonify({"size": len(m), "rows": ["".join("1" if c else "0" for c in r) for r in m]})
+        import qrcode.image.svg
+        img = qrcode.make(text, image_factory=qrcode.image.svg.SvgPathFillImage, border=2)
+        buf = io.BytesIO()
+        img.save(buf)
+        resp = Response(buf.getvalue(), mimetype="image/svg+xml")
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+    except Exception as e:
+        return jsonify({"error": "QR unavailable: %s" % e}), 500
 
 
 def _host_only():

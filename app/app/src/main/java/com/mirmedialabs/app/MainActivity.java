@@ -33,6 +33,8 @@ public class MainActivity extends Activity {
     static final int PICK = 41;
 
     Api api;
+    MuseVoice voice;
+    private TextView voiceBtn, popBtn;
     Loras loras;
     JSONObject models = new JSONObject(), status = new JSONObject();
     JSONArray jobs = new JSONArray();
@@ -46,6 +48,8 @@ public class MainActivity extends Activity {
     private LibraryPage library;
     private final TextView[] tabs = new TextView[2];
     private int tab = 0;
+    /** Tablet mode: models + tools | chat | library side by side (big screens, or forced in Settings - Look - Layout). */
+    boolean wide;
     private final Handler h = new Handler(Looper.getMainLooper());
     private int tick = 0;
     private boolean resumed = false;
@@ -65,12 +69,13 @@ public class MainActivity extends Activity {
             return;
         }
         api = new Api(this);
+        voice = new MuseVoice(this);
         loras = new Loras(this);
         cur = Prefs.str(this, "model2", "auto");     // Auto (MUSE Director) is the default
         loadAtts();
         build();
         api.probe(() -> {
-            refreshModels(); poll(); library.reload(); Fonts.sync(this, api); Theme.sync(this, api); loras.refresh(null);
+            refreshModels(); poll(); library.reload(); Fonts.sync(this, api); Theme.sync(this, api); voice.sync(); loras.refresh(null);
             if (!fromNotification(getIntent())) Updater.check(this, false);
         });
         handleShare(getIntent());
@@ -156,22 +161,43 @@ public class MainActivity extends Activity {
         pill.setPadding(Ui.dp(10), Ui.dp(5), Ui.dp(10), Ui.dp(5));
         pill.setBackground(Ui.box(99, Ui.CARD, Ui.LINE));
         top.addView(pill);
+        popBtn = Ui.text(this, "[[users]]", 17, Ui.DIM);             // population: who is online right now (app only)
+        popBtn.setPadding(Ui.dp(12), Ui.dp(2), Ui.dp(2), Ui.dp(2));
+        popBtn.setOnClickListener(v -> population());
+        top.addView(popBtn);
         TextView aa = Ui.text(this, "[[palette]]", 17, Ui.DIM);      // theme picker (font lives in the ⋮ menu), same as the web header
         aa.setPadding(Ui.dp(12), Ui.dp(2), Ui.dp(2), Ui.dp(2));
         aa.setOnClickListener(v -> Theme.pick(this));
         top.addView(aa);
+        voiceBtn = Ui.text(this, "[[volume]]", 17, Ui.DIM);           // MUSE voice on / off (same as the web header)
+        voiceBtn.setPadding(Ui.dp(10), Ui.dp(2), Ui.dp(2), Ui.dp(2));
+        voiceBtn.setOnClickListener(v -> voice.toggle());
+        top.addView(voiceBtn);
+        voiceIcon();
         menu = Ui.text(this, "⋮", 22, Ui.DIM);
         menu.setPadding(Ui.dp(12), Ui.dp(2), Ui.dp(8), Ui.dp(2));
         menu.setOnClickListener(this::openMenu);
         top.addView(menu);
         root.addView(top);
 
-        FrameLayout pages = new FrameLayout(this);
+        wide = isWide();
         create = new CreatePage(this);
         library = new LibraryPage(this);
-        pages.addView(create);
-        pages.addView(library);
-        root.addView(pages, new LinearLayout.LayoutParams(Ui.MATCH, 0, 1));
+        if (wide) {                                          // TABLET: three columns, like the web studio
+            LinearLayout cols = Ui.hbox(this);
+            cols.addView(leftColumn(), new LinearLayout.LayoutParams(Ui.dp(240), Ui.MATCH));
+            cols.addView(divider(), new LinearLayout.LayoutParams(Math.max(1, Ui.dp(1)), Ui.MATCH));
+            cols.addView(create, new LinearLayout.LayoutParams(0, Ui.MATCH, 1));
+            cols.addView(divider(), new LinearLayout.LayoutParams(Math.max(1, Ui.dp(1)), Ui.MATCH));
+            int sw = getResources().getConfiguration().screenWidthDp;
+            cols.addView(library, new LinearLayout.LayoutParams(Ui.dp(sw >= 1200 ? 420 : 340), Ui.MATCH));
+            root.addView(cols, new LinearLayout.LayoutParams(Ui.MATCH, 0, 1));
+        } else {
+            FrameLayout pages = new FrameLayout(this);
+            pages.addView(create);
+            pages.addView(library);
+            root.addView(pages, new LinearLayout.LayoutParams(Ui.MATCH, 0, 1));
+        }
 
         LinearLayout bar = Ui.hbox(this);
         bar.setBackgroundColor(Ui.BAR);
@@ -187,7 +213,7 @@ public class MainActivity extends Activity {
             bar.addView(t, Ui.lpw(1));
         }
         qBadge = tabs[0];
-        root.addView(bar);
+        if (!wide) root.addView(bar);                    // tablet: both pages are always on screen, no tabs
         setContentView(root);
         Ui.insets(root);
         Tv.install(this);
@@ -201,6 +227,7 @@ public class MainActivity extends Activity {
 
     void showTab(int i) {
         tab = i;
+        if (wide) { create.setVisibility(View.VISIBLE); library.setVisibility(View.VISIBLE); return; }
         create.setVisibility(i == 0 ? View.VISIBLE : View.GONE);
         library.setVisibility(i == 1 ? View.VISIBLE : View.GONE);
         for (int k = 0; k < 2; k++) {
@@ -221,7 +248,10 @@ public class MainActivity extends Activity {
         sh.section("Look");
         sh.row("palette", "Theme", "Claude Dark · Graphite · Obsidian · Midnight · Paper", () -> Theme.pick(this));
         sh.row("type", "Font", "MIR FONTS", () -> Fonts.pick(this, api));
+        sh.row("volume", "MUSE voice", "natural voice made on the lab PC · voice + speed", () -> voice.pick());
+        sh.row("expand", "Layout", layoutLabel(), this::pickLayout);
         sh.section("App");
+        sh.row("qr", "My key", "your key as a QR code · one device per key", () -> myKey(false));
         sh.row("server", "Server & access key", Api.host(Prefs.activeUrl(this)) + (Prefs.onLan(this) ? " · home Wi-Fi" : " · away"), () -> startActivity(new Intent(this, SetupActivity.class)));
         sh.row("bell", "Notifications", Push.allowed(this) ? (Push.instant(this) ? "on · instant delivery" : "on") : "off on this phone", () -> Push.settings(this));
         if (!BuildConfig.PLAY) sh.row("download", "Check for updates", "installed v" + Updater.installedName(this) + " · GitHub + your lab", () -> Updater.check(this, true));
@@ -237,6 +267,56 @@ public class MainActivity extends Activity {
         if (!BuildConfig.PLAY) sh.row("heart", "Support development", "Patreon", () -> open(Creator.PATREON));   // Play: no outside payment links
         sh.row("code", "Source code", "GitHub", () -> open(Creator.GITHUB));
         sh.show();
+    }
+
+    /** My key: this person's own invite (or bare key) as a QR, drawn natively from the lab's QR matrix.
+     *  The owner's MASTER key is never served to a phone — the lab answers 403 and only shows it on the host PC. */
+    void myKey(boolean keyOnly) {
+        api.get("/api/my-key", r -> {
+            if (!r.ok()) { toast(r.err()); return; }
+            JSONObject j = r.obj();
+            api.get("/api/my-key/qr?fmt=matrix&kind=" + (keyOnly ? "key" : "invite"), q -> {
+                if (!q.ok()) { toast(q.err()); return; }
+                Sheet sh = new Sheet(this, keyOnly ? "My key · key only" : "My key · full invite", "qr", Ui.pal());
+                android.widget.ImageView iv = new android.widget.ImageView(this);
+                iv.setImageBitmap(qrBitmap(q.obj()));
+                iv.setBackground(Ui.box(12, 0xFFFFFFFF, 0));
+                LinearLayout wrap = Ui.hbox(this);
+                wrap.setGravity(android.view.Gravity.CENTER);
+                wrap.addView(iv, Ui.lp(Ui.dp(240), Ui.dp(240)));
+                sh.add(wrap);
+                sh.note("Signed in as " + j.optString("name") + ". Your key works on ONE device — this one. Moving to a new phone? Ask the host to reset your device, then scan this on the new one."
+                        + (keyOnly ? " Key only is for a device that already has the lab's address." : "")
+                        + (j.optBoolean("away") ? " Works at home and away." : " Home Wi-Fi only until the host sets an away address."));
+                sh.rowStay(keyOnly ? "link" : "key", keyOnly ? "Show full invite" : "Show key only",
+                        keyOnly ? "lab address + key in one scan" : "for a device that already has the lab's address",
+                        () -> { sh.dismiss(); myKey(!keyOnly); });
+                sh.row("copy", "Copy key", j.optString("key"), () -> copyText("MIR MEDIA LABS key", j.optString("key")));
+                sh.row("copy", "Copy invite link", "send it to your other device", () -> copyText("MIR MEDIA LABS invite", j.optString("invite")));
+                sh.show();
+            });
+        });
+    }
+
+    /** QR matrix {size, rows:["0101…"]} → crisp bitmap with a 4-module quiet zone. */
+    static android.graphics.Bitmap qrBitmap(JSONObject o) {
+        JSONArray rows = o.optJSONArray("rows");
+        int n = o.optInt("size"), s = 8, q = 4, w = (n + 2 * q) * s;
+        int[] px = new int[w * w];
+        java.util.Arrays.fill(px, 0xFFFFFFFF);
+        for (int y = 0; rows != null && y < n; y++) {
+            String row = rows.optString(y);
+            for (int x = 0; x < n && x < row.length(); x++) {
+                if (row.charAt(x) != '1') continue;
+                for (int dy = 0; dy < s; dy++) java.util.Arrays.fill(px, ((y + q) * s + dy) * w + (x + q) * s, ((y + q) * s + dy) * w + (x + q + 1) * s, 0xFF000000);
+            }
+        }
+        return android.graphics.Bitmap.createBitmap(px, w, w, android.graphics.Bitmap.Config.ARGB_8888);
+    }
+
+    void copyText(String label, String text) {
+        android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (cm != null) { cm.setPrimaryClip(android.content.ClipData.newPlainText(label, text)); toast("Copied"); }
     }
 
     void about() {
@@ -305,11 +385,102 @@ public class MainActivity extends Activity {
         });
     }
 
+    // -- tablet mode -----------------------------------------------------------------------------------
+    boolean isWide() {
+        String mode = Prefs.str(this, "layout", "auto");
+        if ("tablet".equals(mode)) return true;
+        if ("phone".equals(mode)) return false;
+        return getResources().getConfiguration().screenWidthDp >= 840;
+    }
+
+    private String layoutLabel() {
+        String mode = Prefs.str(this, "layout", "auto");
+        return "tablet".equals(mode) ? "Tablet · three columns" : "phone".equals(mode) ? "Phone · tabs" : "Auto · three columns on big screens";
+    }
+
+    private void pickLayout() {
+        String[] ids = {"auto", "tablet", "phone"};
+        String[] lbl = {"Auto (three columns on big screens)", "Tablet (always three columns)", "Phone (chat / library tabs)"};
+        int sel = java.util.Arrays.asList(ids).indexOf(Prefs.str(this, "layout", "auto"));
+        new android.app.AlertDialog.Builder(this).setTitle("Layout").setSingleChoiceItems(lbl, Math.max(0, sel), (d, k) -> {
+            d.dismiss();
+            Prefs.put(this, "layout", ids[k]);
+            if (isWide() != wide) recreate();
+        }).show();
+    }
+
+    @Override public void onConfigurationChanged(android.content.res.Configuration c) {
+        super.onConfigurationChanged(c);
+        if (isWide() != wide) recreate();               // rotated / unfolded / window resized across the tablet line
+    }
+
+    private View divider() { View v = new View(this); v.setBackgroundColor(Ui.LINE); return v; }
+
+    /** Left column (tablet): the model list, then the create tools - the web studio left panel. */
+    private View leftColumn() {
+        android.widget.ScrollView sv = new android.widget.ScrollView(this);
+        sv.setFillViewport(true);
+        LinearLayout col = Ui.vbox(this);
+        col.setPadding(Ui.dp(12), Ui.dp(8), Ui.dp(10), Ui.dp(12));
+        col.addView(Ui.label(this, "Models"), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 2, 0, 8));
+        col.addView(create.modelPane(), Ui.lp(Ui.MATCH, Ui.WRAP));
+        col.addView(Ui.label(this, "Create"), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 16, 0, 8));
+        String[][] tools = {{"layers", "LoRA samples"}, {"sparkle", "Skills"}, {"chain", "Pipelines"}, {"book", "Command book"}, {"volume", "MUSE voice"}};
+        Runnable[] acts = {() -> loras.browse(Loras.roleOf(cur), ""), () -> withSkills(() -> pickSkill(false)),
+                () -> withSkills(() -> pickSkill(true)), this::commandBook, () -> voice.pick()};
+        for (int i = 0; i < tools.length; i++) {
+            TextView r = Ui.text(this, "[[" + tools[i][0] + "]]  " + tools[i][1], 13, Ui.DIM);
+            r.setPadding(Ui.dp(10), Ui.dp(9), Ui.dp(10), Ui.dp(9));
+            r.setBackground(Ui.box(10, 0, Ui.LINE));
+            r.setFocusable(Tv.is(this));
+            final Runnable go = acts[i];
+            r.setOnClickListener(v -> go.run());
+            col.addView(r, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 0, 0, 6));
+        }
+        sv.addView(col);
+        return sv;
+    }
+
+    private void popCount(int n) {
+        String t = "[[users]]" + (n > 0 ? " " + n : "");
+        popBtn.setTextColor(n > 1 ? Ui.GRN : Ui.DIM);
+        Icons.set(popBtn, t);
+    }
+
+    /** Population: everyone signed in to this lab and live in the last ~90 s — names + device kind only. */
+    void population() {
+        api.get("/api/online", r -> {
+            if (!r.ok()) { toast(r.err()); return; }
+            JSONObject o = r.obj();
+            JSONArray a = o.optJSONArray("people");
+            popCount(o.optInt("live"));
+            Sheet sh = new Sheet(this, "Online now · " + o.optInt("live"), "users", Ui.pal());
+            for (int i = 0; a != null && i < a.length(); i++) {
+                JSONObject p = a.optJSONObject(i);
+                JSONArray d = p.optJSONArray("devices");
+                String devs = "";
+                for (int k = 0; d != null && k < d.length(); k++) devs += (k > 0 ? " · " : "") + d.optString(k);
+                String name = p.optString("name") + (p.optBoolean("you") ? "  (you)" : "") + (p.optBoolean("host") ? "  · HOST" : "");
+                String sub = (p.optBoolean("creating") ? "creating now" : "online") + (devs.isEmpty() ? "" : "  ·  " + devs);
+                sh.row(p.optBoolean("host") ? "server" : "user", name, sub, p.optBoolean("creating") ? Ui.AMB : Ui.GRN, () -> { });
+            }
+            if (a == null || a.length() == 0) sh.note("Nobody else is online right now.");
+            sh.show();
+        });
+    }
+
+    void voiceIcon() {
+        if (voiceBtn == null) return;
+        String t = voice.on ? "[[volume]]" : "[[mute]]";
+        voiceBtn.setText(t);
+        Icons.set(voiceBtn, t);
+        voiceBtn.setAlpha(voice.on ? 1f : .55f);
+    }
+
     void poll() {
         if (tick++ % 2 == 0) api.get("/api/status", r -> {
             if (!r.ok()) { pill.setText("OFFLINE"); pill.setTextColor(Ui.RED); return; }
             status = r.obj();
-            if (create != null) create.mascot.update(null, status);
             JSONObject c = status.optJSONObject("comfy");
             boolean up = c != null && c.optBoolean("up");
             boolean running = status.optJSONObject("running") != null;
@@ -319,6 +490,7 @@ public class MainActivity extends Activity {
             qBadge.setText(q > 0 ? "CHAT · " + q + " ⟳" : "CHAT");
             create.renderModels();
         });
+        if (tick % 6 == 1) api.get("/api/online", r -> { if (r.ok()) popCount(r.obj().optInt("live")); });
         api.get("/api/jobs?limit=40", r -> {
             if (!r.ok()) return;
             jobs = r.arr();
@@ -357,6 +529,7 @@ public class MainActivity extends Activity {
         if (recipeOf(prompt) != null) try { body.put("knobs", knobs); } catch (Exception ignored) { }
         api.post("/api/generate", body, r -> {
             if (!r.ok()) { toast(r.err()); return; }
+            voice.mine(r.obj().optString("id"));
             atts.clear();
             saveAtts();
             create.clearPrompt();
@@ -548,6 +721,7 @@ public class MainActivity extends Activity {
                 c.setConnectTimeout(15000);
                 c.setReadTimeout(60000);
                 c.setRequestProperty("X-MML-Key", Prefs.key(this));
+                c.setRequestProperty("X-MML-Device", Prefs.deviceId(this));
                 if (c.getResponseCode() != 200) throw new Exception("server said " + c.getResponseCode());
                 String mime = c.getContentType();
                 java.io.OutputStream out;
@@ -693,7 +867,7 @@ public class MainActivity extends Activity {
         showTab(0);
     }
 
-    void openViewer(String name, String model) { new Viewer(this, name, model).show(); }
+    void openViewer(String name, String model) { voice.stop(); new Viewer(this, name, model).show(); }
     void openParams(String k) {
         if ("auto".equals(k)) {
             info("Auto · MUSE Director", "MUSE reads every message and decides what happens: it answers questions and writes "
@@ -708,5 +882,24 @@ public class MainActivity extends Activity {
 
     void libraryChanged() { library.reload(); }
 
-    void reuse(String model, String prompt) { setModel(model); create.setPrompt(prompt); showTab(0); }
+    void reuse(String model, String prompt) { reuse(model, prompt, null); }
+
+    /** "Again": prompt AND the job's references back in the composer — so a re-run after a cancel
+     *  stays image/video-to-video instead of quietly dropping to text-only. */
+    void reuse(String model, String prompt, JSONArray refs) {
+        setModel(model);
+        create.setPrompt(prompt);
+        int added = 0;
+        for (int i = 0; refs != null && i < refs.length(); i++) {
+            String n = refs.optString(i);
+            boolean have = false;
+            for (JSONObject a : atts) if (n.equals(a.optString("name"))) have = true;
+            if (n.isEmpty() || have) continue;
+            String[] parts = n.split("_", 3);
+            atts.add(Api.obj("name", n, "kind", Ui.kindOf(n), "url", "/refs/" + n, "label", n.startsWith("ref_") && parts.length == 3 ? parts[2] : n));
+            added++;
+        }
+        if (added > 0) { saveAtts(); create.renderAtts(); toast("Prompt + " + added + " reference" + (added > 1 ? "s" : "") + " loaded — press Send"); }
+        showTab(0);
+    }
 }

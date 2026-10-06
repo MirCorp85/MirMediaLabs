@@ -327,6 +327,15 @@ body.lcol-off .lrail{display:flex}
 .hx{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line2);color:var(--dim)}
 .hx.ok{color:var(--grn);border-color:color-mix(in srgb,var(--grn) 40%,transparent)}.hx.bad{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,transparent)}
 .hcard .sub{font-size:11.5px;color:var(--dim);margin:6px 0 0 24px}
+.cbx{margin-top:12px;padding:12px;border:1px solid var(--line2);border-radius:12px;background:rgba(180,140,255,.05)}
+.cbh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cbh span{color:var(--dim);font-size:12px}.cbt{margin:10px 0 8px}
+.cbk{display:flex;gap:8px;align-items:center}.cbk input{flex:1;min-width:0}.cbk .ok{color:var(--grn);flex:1;font-size:13px}
+.cbm{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin-top:10px}
+.cbm label{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid var(--line2);border-radius:10px;cursor:pointer;position:relative}
+.cbm label.on,.cbm label:has(input:checked){border-color:var(--acc);background:rgba(255,90,31,.06)}.cbm input{position:absolute;opacity:0}
+.cbm small{color:var(--dim);font-size:11px}.cbu{margin-top:10px;font-size:12px;color:var(--dim)}.cbu input{width:64px;padding:2px 4px}
+.cbbar{height:6px;border-radius:9px;background:var(--line2);overflow:hidden;margin-bottom:6px}.cbbar i{display:block;height:100%;background:linear-gradient(90deg,var(--yellow),var(--acc))}
+.cbf{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px}.mb-brain{margin-left:6px;font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(180,140,255,.18);color:#c9b2ff;letter-spacing:.03em}
 .hinv{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin-top:10px;padding:12px;border:1px dashed var(--yellow);border-radius:12px;background:rgba(255,194,26,.05)}
 .hinv img{width:150px;height:150px;background:#fff;border-radius:10px;padding:6px;box-sizing:border-box;display:block}
 .hqrs{width:150px}.hqrs figure{margin:0;text-align:center;display:none}.hqrs figure.on{display:block;animation:hqin .25s ease}
@@ -800,19 +809,126 @@ html[data-theme] #mascot .in{background:linear-gradient(135deg,color-mix(in srgb
   .mc-tags .mc-tag:nth-child(n+7){display:none}
   #mascot .lbl span{display:inline-block;max-width:170px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
 }
+
+/* MATTE (WhatsApp-style): flat solid surfaces - no gloss, glow, blur or gradient sheen on tiles */
+.top,.tabs,#mascot .in,#mascot .mcard,.lb,.scrim{backdrop-filter:none!important}
+.card,.model,.model.on,.sheet,.menu,.ac,.audiocard,.th.aud,#mascot .mcard,.mc-st,.mc-st.running,.mc-bar,#pcupd,#iosinst{box-shadow:none!important}
+.model.on{background:color-mix(in srgb,var(--mc) 12%,var(--panel))!important;border-color:color-mix(in srgb,var(--mc) 55%,transparent)!important}
+.msg.me{background:color-mix(in srgb,var(--acc,#ff5a1f) 24%,var(--panel))!important;border:0!important}
+.msg.me.guest{background:var(--panel2,var(--panel))!important}
+.msg{box-shadow:none!important}
+.btn.pri,.go{background:var(--acc)!important;box-shadow:none!important}
+.audiocard,.th.aud{background:color-mix(in srgb,var(--mc,var(--orange)) 18%,var(--panel))!important}
+#mascot .mcard{background:var(--panel)!important}
+#mascot .mcard::before{display:none}
+.brand img,.welcome img{box-shadow:none!important}
+.pill .d,.urow .dot.live,.hrow .dot.live{box-shadow:none!important}
+.mc-bar.det i{box-shadow:none!important;background:var(--mc)!important}
+</style>
+<style id="mml-musebub">
+/* MUSE bubble: ring dial + timeline inside each job's chat reply (replaces the floating mascot tile) */
+#mascot{display:none!important}
+.chat .thread{padding-top:revert!important}
+.mb-h{display:flex;gap:12px;align-items:center;cursor:pointer;user-select:none}
+.mb-h .tx{flex:1;min-width:0}
+.mb-who{display:flex;justify-content:space-between;align-items:center;gap:8px;font:700 12px var(--sans,system-ui);color:var(--mbc,var(--yellow))}
+.mb-who em{font:600 11px var(--mono);font-style:normal;color:var(--mbc2,var(--acc))}
+.mb-who .av{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--mbc,var(--yellow));margin-right:6px;vertical-align:-4px}
+.mb-who .av .mi{width:11px;height:11px;color:#0d0806}
+.mb-tx{margin-top:3px;line-height:1.35;color:var(--ink)}
+.mb-ring{flex:none;display:block}
+.mb-ring .pc{font:800 15px var(--mono);fill:var(--ink)}.mb-ring .lb{font:600 6.5px var(--mono);fill:var(--faint);letter-spacing:.12em}
+.mb-ring .q{transform-origin:32px 32px;animation:mbspin 3s linear infinite}
+.mb-ty{display:inline-flex;gap:3px;margin-left:5px;vertical-align:middle}.mb-ty i{width:5px;height:5px;border-radius:50%;background:var(--dim);animation:plpulse 1s infinite}.mb-ty i:nth-child(2){animation-delay:.2s}.mb-ty i:nth-child(3){animation-delay:.4s}
+.mb-steps{margin-top:10px}
+.mb-st{display:grid;grid-template-columns:20px 1fr;gap:0 10px;position:relative}
+.mb-st:not(:last-child)::after{content:"";position:absolute;left:9px;top:20px;bottom:0;width:2px;background:var(--line2)}
+.mb-st.done:not(:last-child)::after{background:var(--grn)}
+.mb-n{width:20px;height:20px;border-radius:50%;border:2px solid var(--line2);display:grid;place-items:center;font:700 9.5px var(--mono);color:var(--faint);background:var(--panel2,var(--panel))}
+.mb-n .mi{width:11px;height:11px}
+.mb-st.done .mb-n{background:var(--grn);border-color:var(--grn);color:#0d0806}
+.mb-st.running .mb-n{border-color:var(--acc);color:var(--acc);animation:plpulse 1.4s infinite}
+.mb-st.error .mb-n{background:var(--red);border-color:var(--red);color:#fff}
+.mb-bd{padding:1px 0 10px;color:var(--faint);min-width:0}
+.mb-st.done .mb-bd{color:var(--dim)}.mb-st.running .mb-bd{color:var(--ink);font-weight:600}.mb-st.error .mb-bd{color:var(--red);font-weight:600}
+.mb-bd small{display:block;color:var(--faint);font-size:11px;margin-top:1px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mb-pb{height:4px;border-radius:2px;background:var(--line2);margin-top:6px;overflow:hidden}.mb-pb i{display:block;height:100%;background:var(--acc);transition:width .8s ease}
+.mb-tags{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 4px}.mb-tags span{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--dim);background:var(--panel2,var(--panel));border-radius:6px;padding:2px 6px}
+.mb-tags .mi{width:11px;height:11px}
+.mb.fold .mb-steps,.mb.fold .mb-tags{display:none}
+.mb-live{display:flex;gap:7px;align-items:center;margin:8px 0 0;padding:5px 8px;border-radius:6px;background:color-mix(in srgb,#000 55%,var(--panel2,var(--panel)));font:11px var(--mono);color:var(--dim);white-space:nowrap;overflow:hidden}
+.mb-live .d{flex:none;width:6px;height:6px;border-radius:50%;background:var(--acc);animation:plpulse 1s infinite}
+.mb-live b{flex:none;font-weight:600;color:var(--acc)}.mb-live.warn b,.mb-live.warn .d{color:var(--yellow);background:var(--yellow)}.mb-live.error b{color:var(--red)}.mb-live.error .d{background:var(--red)}
+.mb-live span{overflow:hidden;text-overflow:ellipsis}
+.mb-live b{background:none!important}
+canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
+.msg.lab:has(.mb) .plan{display:none}
+.mb-hint{text-align:right;font-size:10.5px;color:var(--faint)}
+.mb:not(.fold) .mb-hint{display:none}
+.mb{margin-bottom:8px}
+@keyframes mbspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.mb *{animation:none!important}}
+</style>
+<style id="mml-voice">
+#b-voice.off{opacity:.55}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.vc{display:flex;gap:9px;align-items:center;padding:10px;border-radius:12px;border:1px solid var(--line2);background:var(--panel2,var(--panel));color:var(--ink);text-align:left;cursor:pointer;font:inherit}
+.vc.on{border-color:var(--acc);border-width:2px}.vc .mi{flex:none;color:var(--acc)}
+.vc b{display:block;font-size:13px}.vc small{color:var(--dim);font-size:11px}
+</style>
+
+<style id="mml-picker">
+#mpk{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(6px)}
+#mpk.on{display:flex;animation:mpf .18s ease-out}
+@keyframes mpf{from{opacity:0}}@keyframes mpp{from{opacity:0;transform:scale(.94) translateY(10px)}}@keyframes mpr{from{opacity:0;transform:translateY(8px)}}
+#mpk .mp{width:min(980px,96vw);max-height:90vh;display:flex;flex-direction:column;background:var(--surface,#1c1b1a);border:1px solid var(--line2);border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.55);animation:mpp .26s cubic-bezier(.34,1.56,.64,1)}
+#mpk .mph{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+#mpk .mph b{letter-spacing:2px;font-size:12px;color:var(--acc)}#mpk .mph .sp{flex:1}#mpk .mph .now{font-size:12px;color:var(--dim)}#mpk .mph .now b{color:var(--ink);letter-spacing:0}
+#mpk .mph a{cursor:pointer;color:var(--dim)}
+#mpk .mpb{display:grid;grid-template-columns:minmax(0,1fr) 340px;min-height:0;flex:1}
+#mpk .mpl{overflow:auto;padding:8px 12px 14px;border-right:1px solid var(--line)}
+#mpk .mpr{overflow:auto;padding:12px 16px 16px}
+#mpk h4{margin:12px 4px 6px;font-size:10.5px;letter-spacing:2px;color:var(--dim);display:flex;gap:8px;align-items:center;font-weight:600}
+#mpk .k{font-size:9.5px;letter-spacing:1px;padding:1px 6px;border-radius:5px;border:1px solid var(--line2)}#mpk .k.ok{color:var(--grn)}#mpk .k.no{color:var(--red)}
+#mpk .mpc{display:block;width:100%;text-align:left;cursor:pointer;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin:0 0 6px;color:var(--ink);font:inherit;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1),border-color .15s,background .15s;animation:mpr .3s ease-out both}
+#mpk .mpc:hover{border-color:var(--line2);transform:translateY(-2px)}#mpk .mpc:active{transform:scale(.97)}
+#mpk .mpc.sel{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent)}#mpk .mpc.off{opacity:.55}
+#mpk .mpc .t{display:flex;align-items:center;gap:8px;font-size:13.5px}#mpk .mpc .sp{flex:1}
+#mpk .mpc code{display:block;font-size:11px;color:var(--dim);opacity:.8;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mpk .bd{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}#mpk .bd i{font-style:normal;font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+#mpk .tag{font-size:9.5px;letter-spacing:1px;padding:1px 6px;border-radius:5px;background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc)}
+#mpk h3{margin:0 0 2px;font-size:15px}#mpk .sub{font-size:11.5px;color:var(--dim);margin-bottom:8px}
+#mpk label{display:block;font-size:10.5px;letter-spacing:1px;color:var(--dim);margin:10px 0 4px}#mpk label em{float:right;font-style:normal;color:var(--acc)}
+#mpk input[type=text],#mpk input[type=password],#mpk input[type=number]{width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:7px 9px;font:12px inherit;outline:0}
+#mpk input:focus{border-color:var(--acc)}#mpk input[type=range]{width:100%;accent-color:var(--acc)}
+#mpk .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}#mpk .seg button{background:none;border:0;color:var(--dim);font-size:11px;padding:6px 11px;cursor:pointer}
+#mpk .seg button.on{background:color-mix(in srgb,var(--acc) 20%,transparent);color:var(--acc)}
+#mpk .row{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}#mpk .row .btn{flex:1;transition:transform .15s}#mpk .row .btn:active{transform:scale(.95)}
+#mpk .mpn{font-size:11.5px;color:var(--dim);line-height:1.4;margin:6px 4px}
+#mpk .keys{border-top:1px solid var(--line);margin-top:14px;padding-top:4px}
+#mpk .kr{display:flex;gap:6px;align-items:center;margin-top:6px}#mpk .kr span{width:120px;font-size:11px;color:var(--dim)}#mpk .kr input{flex:1}
+#mpk .kr button{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--ink);border-radius:7px;font-size:11px;padding:6px 9px;cursor:pointer}
+#mpk .kr .ok{flex:1;color:var(--grn);font-size:11.5px;font-weight:500}
+#mpk .msg{font-size:11px;margin-top:8px;min-height:14px;color:var(--grn)}#mpk .msg.e{color:var(--red)}
+.mb-brain{cursor:pointer}
+@media (max-width:760px){#mpk .mpb{grid-template-columns:1fr}#mpk .mpl{border-right:0;max-height:42vh}}
+@media (prefers-reduced-motion:reduce){#mpk *,#mpk{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body data-tab="create">
 <div class="app">
   <header class="top">
     <div class="brand"><img src="/static/icon-512.png" alt=""><b>MIR MEDIA LABS</b></div>
-    <button class="iconbtn" id="b-theme" title="Theme" onclick="openThemes()"><i class="mi" data-ic="palette"></i></button>
+    <button class="iconbtn" id="b-theme" title="Theme" onclick="openThemes()"><i class="mi" data-ic="palette"></i></button><button class="iconbtn" id="b-voice" title="MUSE voice on / off"><i class="mi" data-ic="volume"></i></button>
     <button class="iconbtn" id="b-font" title="MIR FONTS — pick a typeface" onclick="window.MirFont&&MirFont.openPicker()"><i class="mi" data-ic="type"></i></button>
     <div class="pills">
       <div class="pill" id="p-comfy"><span class="d"></span><span class="lbl">GPU</span> <b id="p-comfy-v">…</b></div>
       <div class="pill e" id="p-eng"><span class="d"></span>PROMPT ENGINE <b id="p-eng-v">…</b></div>
       <div class="pill q" id="p-q"><span class="d"></span>QUEUE <b id="p-q-v">0</b></div>
     </div>
+    <button class="iconbtn" id="b-mykey" title="My key — your key as a QR code (one device per key)"><i class="mi" data-ic="qr"></i></button>
+    <button class="iconbtn" id="b-master" title="Master key — sees every chat (host PC only)" style="display:none;color:#ff5a1f"><i class="mi" data-ic="key"></i></button>
     <button class="iconbtn" id="b-users" title="Host control — who has access" style="display:none"><i class="mi" data-ic="shield"></i></button>
     <a class="iconbtn" id="b-patreon" href="https://www.patreon.com/cw/MirCorp" target="_blank" rel="noopener" title="Support MIR MEDIA LABS on Patreon" style="color:#f96854;display:inline-grid;place-items:center;text-decoration:none"><i class="mi" data-ic="heart"></i></a>
     <button class="iconbtn" id="b-about" title="Help · about · report a bug"><i class="mi" data-ic="note"></i></button>
@@ -1094,7 +1210,9 @@ function mcCard(j,state,title){const m=MODELS[j.model]||{},col=m.color||'var(--o
   function card(j,s,t){const c=$('#m-card');if(!j||!MODELS[j.model]){el.classList.remove('has-card');lastCard='';return}
     el.classList.add('has-card');el.style.setProperty('--mc',MODELS[j.model].color||'var(--orange)');
     /* only rebuild when content changes — the per-second timer just patches the clock so the bar/step animations don't restart (iPad flicker) */
-    const h=mcCard(j,s,'');if(h!==lastCard){c.innerHTML=h;lastCard=h}
+    const pg=j.progress,k=mcCard(Object.assign({},j,{progress:pg&&pg.max?{max:1,pct:0,value:0,what:pg.what}:null}),s,'');
+    if(k!==lastCard){c.innerHTML=mcCard(j,s,'');lastCard=k}
+    else if(pg&&pg.max){const i=c.querySelector('.mc-bar.det i'),b=c.querySelector('.mc-pg b');if(i)i.style.width=pg.pct+'%';if(b)b.textContent=pg.value+' / '+pg.max}
     const em=c.querySelector('.mc-h em');if(em&&em.textContent!==t)em.textContent=t}
   function render(){
     if(flash&&Date.now()<flash.until){set(flash.s,flash.t,flash.sub);return card(flash.job,flash.s,flash.t)}
@@ -1110,7 +1228,7 @@ function mcCard(j,state,title){const m=MODELS[j.model]||{},col=m.color||'var(--o
   const pickAnim=()=>{el.dataset.anim=innerWidth<=860?'orbit':'slide'};pickAnim();addEventListener('resize',pickAnim);   // desktop: slide + focus · phone: orbit reveal
   el.querySelector('.in').addEventListener('click',()=>{const h=el.classList.toggle('mc-hide');try{localStorage.setItem('mml.mchide',h?'1':'')}catch(e){}});
   function set(s,t,sub){el.dataset.s=s;T.textContent=t;S.textContent=sub}
-  window.mascotJobs=js=>{jobs=js;
+  window.mascotJobs=js=>{jobs=js;window._monJobs=js;
     js.forEach(j=>{const p=lastSeen[j.id];if(p&&p!==j.status&&(p==='running'||p==='queued')){
       if(j.status==='done')flash={s:'done',t:'Done',sub:(SHORT[j.model]||j.model)+' saved',until:Date.now()+6000,job:j};
       else if(j.status==='error')flash={s:'error',t:'Error',sub:'render failed',until:Date.now()+8000,job:j}}
@@ -1267,7 +1385,7 @@ async function go(){
   $('#b-go').disabled=true;closeAC();
   const body={model:cur,prompt,refs:atts.map(a=>a.name),loras:(typeof loraSel!=='undefined'?loraSel.map(l=>({file:l.file,strength:l.strength})):[])};
   if(ARMED){body[ARMED.type]=ARMED.id;body.knobs=KNOBV}
-  try{await api('/api/generate',{method:'POST',body:JSON.stringify(body)});
+  try{const _r=await api('/api/generate',{method:'POST',body:JSON.stringify(body)});VOICE.mine(_r&&_r.id);
     $('#prompt').value='';autosize();atts=[];saveAtts();renderAtts();disarm();stick=true;pollJobs(true);pollStatus()}
   catch(e){toast(e.message);$('#b-go').disabled=false}
 }
@@ -1282,10 +1400,11 @@ async function pollJobs(force){
   if(fresh){loadLib(true);pollStatus()}
   const active=jobs.some(j=>(j.status==='running'||j.status==='queued')&&j.mine!==false);
   LAB_BUSY=active;$('#b-go').disabled=active;$('#b-go').innerHTML=MI.html(active?'hourglass':'send');if(!active&&window.composerMode)composerMode();
-  window.mascotJobs&&window.mascotJobs(jobs);
-  const sig=JSON.stringify(jobs.map(j=>[j.id,j.status,j.stage,(j.files||[]).length,j.model==='llama'?(j.output||'').length:0]));
+  window.mascotJobs&&window.mascotJobs(jobs);window._lastJobs=jobs;VOICE.jobs(jobs);
+  const sig=JSON.stringify(jobs.map(j=>[j.id,j.status,(j.stage||'').split(' · ')[0],j.step,(j.plan||[]).map(r=>r.status).join(),(j.files||[]).length,j.model==='llama'?(j.output||'').length:0]));
   if(sig!==jobsSig||force){jobsSig=sig;renderThread(jobs)}
   else if(active)tickTimers(jobs);
+  if(active)mbTick(jobs)        // DNA bar + ring + step line track live progress whether or not the chat rebuilt
 }
 function mediaHTML(fn){const k=kindOf(fn),u='/media/'+encodeURIComponent(fn);
   if(k==='image')return `<img src="/thumb/${encodeURIComponent(fn)}" data-open="${esc(fn)}" loading="lazy" alt="">`;
@@ -1336,6 +1455,141 @@ new MutationObserver(()=>document.querySelectorAll('.mp.aud:not([data-v])').forE
 document.addEventListener('keydown',e=>{if(e.code!=='Space'||/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
   const m=document.querySelector('#lb.on .mp video,#lb.on .mp audio')||[...document.querySelectorAll('.mp video,.mp audio')].find(x=>!x.paused);
   if(m){e.preventDefault();m.paused?m.play().catch(()=>{}):m.pause()}});
+
+/* ── MUSE bubble: ring dial (one segment per step) + step timeline, rendered inside the job's chat reply ── */
+const MB_LINE={},MB_P={};
+const MB_FOLD=new Set((()=>{try{return JSON.parse(localStorage.getItem('mml.mbfold')||'[]')}catch(e){return[]}})());
+function mbSteps(j){const pl=j.plan&&j.plan.length?j.plan:null,m=MODELS[j.model]||{};
+  const st=j.status==='done'?'done':j.status==='error'?'error':j.status==='running'?'running':'queued';
+  if(!pl)return[{label:m.label||SHORT[j.model]||j.model,role:j.model,status:st,model:j.model}];
+  return pl.map(r=>({label:r.label,role:r.role,model:r.model,status:j.status==='done'?'done':r.status==='queued'&&j.status==='queued'?'queued':(r.status||'queued')}))}
+function mbPct(j){const pg=j.progress&&j.progress.max?j.progress.pct:null;return pg==null?(j.status==='running'?35:0):pg}
+function mbRing(j){const S=mbSteps(j),n=S.length,R=26,C=2*Math.PI*R,g=n>1?4:0,L=C/n,pct=mbPct(j);
+  let o='<svg class="mb-ring" width="64" height="64" viewBox="0 0 64 64">';
+  if(j.status==='queued'){const pos=(status&&status.queued||[]).indexOf(j.id)+1+(status&&status.running?1:0);
+    return o+`<circle cx="32" cy="32" r="${R}" fill="none" stroke="var(--line2)" stroke-width="6"/><circle class="q" cx="32" cy="32" r="${R}" fill="none" stroke="var(--yellow)" stroke-width="6" stroke-linecap="round" stroke-dasharray="30 ${(C-30).toFixed(1)}"/><text class="pc" x="32" y="36" text-anchor="middle" style="fill:var(--yellow)">${pos>0?'#'+pos:'…'}</text><text class="lb" x="32" y="46" text-anchor="middle">IN LINE</text></svg>`}
+  let done=0;
+  S.forEach((x,i)=>{const len=L-g,off=-(i*L),fr=x.status==='done'||x.status==='error'?1:x.status==='running'?pct/100:0;
+    if(x.status==='done')done+=1;else if(x.status==='running')done+=pct/100;
+    const col=x.status==='done'?'var(--grn)':x.status==='error'?'var(--red)':'var(--acc)';
+    o+=`<circle cx="32" cy="32" r="${R}" fill="none" stroke="var(--line2)" stroke-width="6" stroke-dasharray="${len.toFixed(1)} ${(C-len).toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 32 32)"/>`;
+    if(fr>0)o+=`<circle class="mb-seg" data-i="${i}" cx="32" cy="32" r="${R}" fill="none" stroke="${col}" stroke-width="6" stroke-dasharray="${(len*fr).toFixed(1)} ${(C-len*fr).toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 32 32)"/>`});
+  const ri=S.findIndex(x=>x.status==='running'||x.status==='error'),step=(ri<0?S.length:ri+1)+'/'+n;
+  if(j.status==='done')return o+`<text class="pc" x="32" y="38" text-anchor="middle" style="fill:var(--grn)">✓</text></svg>`;
+  if(j.status==='error')return o+`<text class="pc" x="32" y="35" text-anchor="middle" style="fill:var(--red)">!</text><text class="lb" x="32" y="45" text-anchor="middle">STEP ${step}</text></svg>`;
+  return o+`<text class="pc mb-pct" x="32" y="35" text-anchor="middle">${Math.round(done/n*100)}%</text><text class="lb" x="32" y="45" text-anchor="middle">STEP ${step}</text></svg>`}
+function mbText(j){const S=mbSteps(j),r=S.find(x=>x.status==='running'),e=S.find(x=>x.status==='error');const ty='<span class="mb-ty"><i></i><i></i><i></i></span>';
+  if(j.status==='queued')return (status&&status.running?'Got it — you\'re next after another job':'Got it — starting now')+ty;
+  if(j.status==='running')return 'Making your '+esc((r?r.label:(MODELS[j.model]||{}).label||'media').toLowerCase())+' now'+ty;
+  if(j.status==='error')return 'Something went wrong'+(e?' on the '+esc(e.label.toLowerCase()):'');
+  return 'All done — saved to your library'}
+function mbStepSub(j,x){const pg=j.progress;
+  if(x.status==='done')return (SHORT[x.model]||x.model||'')+' · done';
+  if(x.status==='error')return esc(j.error||'failed');
+  if(x.status==='running')return (SHORT[x.model||j.model]||'')+' · '+esc(j.stage&&j.stage!=='queued'?j.stage:'rendering')+(pg&&pg.max?` <span class="mb-v">${pg.value} / ${pg.max}</span>`:'');
+  return (SHORT[x.model]||x.model||'')+(j.status==='queued'?' · waiting':' · up next')}
+function museBlock(j){const live=j.status==='running'||j.status==='queued',S=mbSteps(j);
+  const c=j.status==='done'?'var(--grn)':j.status==='error'?'var(--red)':j.status==='queued'?'var(--yellow)':'var(--yellow)';
+  const c2=j.status==='done'?'var(--grn)':j.status==='error'?'var(--red)':j.status==='queued'?'var(--yellow)':'var(--acc)';
+  const t2=j.status==='running'?dur(j.started):(j.finished&&j.started)?dur(j.started,j.finished):'';
+  const steps=(live||j.status==='error')?`<div class="mb-steps">${S.map((x,i)=>`<div class="mb-st ${x.status}"><div class="mb-n">${x.status==='done'?MI.html('check'):x.status==='error'?'!':i+1}</div><div class="mb-bd">${esc(x.label)}<small>${mbStepSub(j,x)}</small>${x.status==='running'?`<canvas class="mb-dna" data-j="${j.id}"></canvas>`:''}</div></div>`).join('')}</div>`:'';
+  const tags=live&&typeof mcTags==='function'?`<div class="mb-tags">${mcTags(j).slice(0,8).map(([ic,v])=>`<span>${MI.html(ic)}${esc(v)}</span>`).join('')}</div>`:'';
+  const ln=MB_LINE[j.id];
+  const liveLine=live?`<div class="mb-live ${ln?ln.level:''}"><i class="d"></i><b class="mb-src">${esc(ln?ln.src:'LAB')}</b><span class="mb-ln">${esc(ln?ln.text:(j.status==='queued'?'waiting for the GPU':(j.stage||'starting')))}</span></div>`:'';
+  return `<div class="mb${live&&MB_FOLD.has(j.id)?' fold':''}" data-mb="${j.id}" style="--mbc:${c};--mbc2:${c2}"><div class="mb-h">${mbRing(j)}<div class="tx"><div class="mb-who"><span><span class="av">${MI.html('lab')}</span>MUSE${j.brain?`<small class="mb-brain">${esc(j.brain)}</small>`:''}</span><em class="mb-t">${t2}</em></div><div class="mb-tx">${mbText(j)}</div></div></div>${liveLine}${steps}${tags}${live?'<div class="mb-hint">tap to expand</div>':''}</div>`}
+/* live patch (no rebuild): timer, ring %, bar, step counter */
+function mbTick(jobs){jobs.forEach(j=>{MB_P[j.id]=j.status==='running'?(j.progress&&j.progress.max?j.progress.pct:null):null;if(j.status!=='running')return;const b=document.querySelector(`.mb[data-mb="${j.id}"]`);if(!b)return;
+  const t=b.querySelector('.mb-t');if(t)t.textContent=dur(j.started);
+  const rs=mbSteps(j).find(x=>x.status==='running'),sm=b.querySelector('.mb-st.running .mb-bd small');
+  if(rs&&sm){const h=mbStepSub(j,rs);if(sm.innerHTML!==h)sm.innerHTML=h}
+  const pg=j.progress;if(!pg||!pg.max)return;
+  const S=mbSteps(j),n=S.length,R=26,C=2*Math.PI*R,L=C/n-(n>1?4:0);let done=0;
+  S.forEach((x,i)=>{if(x.status==='done')done+=1;else if(x.status==='running'){done+=pg.pct/100;const seg=b.querySelector(`.mb-seg[data-i="${i}"]`);if(seg)seg.setAttribute('stroke-dasharray',(L*pg.pct/100).toFixed(1)+' '+(C-L*pg.pct/100).toFixed(1))}});
+  const pc=b.querySelector('.mb-pct');if(pc)pc.textContent=Math.round(done/n*100)+'%';
+  const v=b.querySelector('.mb-st.running .mb-v');if(v)v.textContent=pg.value+' / '+pg.max})}
+document.addEventListener('click',e=>{const h=e.target.closest('.mb-h,.mb-hint');if(!h)return;const b=h.closest('.mb');if(!b.querySelector('.mb-steps'))return;
+  const id=b.dataset.mb,f=b.classList.toggle('fold');f?MB_FOLD.add(id):MB_FOLD.delete(id);try{localStorage.setItem('mml.mbfold',JSON.stringify([...MB_FOLD].slice(-50)))}catch(e){}});
+
+/* DNA helix progress bar: one shared animation loop for every running bubble on screen */
+(function(){const O='#ff5a1f',Y='#ffc21a',D='#c2410c';let raf=0,shown=0;
+  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function draw(c,t){const r=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;if(!w)return;
+    if(c.width!==Math.round(w*r)){c.width=Math.round(w*r);c.height=Math.round(h*r)}
+    const g=c.getContext('2d');g.setTransform(r,0,0,r,0,0);g.clearRect(0,0,w,h);
+    const pr=MB_P[c.dataset.j],p=pr==null?null:pr/100,A=h/2-6,cy=h/2,n=Math.max(16,Math.floor(w/9)),off=css('--line2')||'#3d2a1f';
+    for(let i=0;i<n;i++){const x=4+i*(w-8)/(n-1),ph=i*.45+t*2.2,s=Math.sin(ph),z=Math.cos(ph),y1=cy+s*A,y2=cy-s*A;
+      const on=p==null?((i/n+t*.25)%1<.18):i/n<p;
+      g.strokeStyle=on?(z>0?O:D):off;g.lineWidth=2;g.beginPath();g.moveTo(x,y1);g.lineTo(x,y2);g.stroke();
+      g.fillStyle=on?Y:'#5a4334';g.beginPath();g.arc(x,y1,z>0?3:2,0,7);g.fill();
+      g.fillStyle=on?O:'#4a372a';g.beginPath();g.arc(x,y2,z<0?3:2,0,7);g.fill()}}
+  function loop(now){raf=0;const cs=[...document.querySelectorAll('canvas.mb-dna')].filter(c=>c.offsetParent);
+    if(!cs.length||document.hidden)return;const t=now/1000;cs.forEach(c=>draw(c,t));
+    if(!matchMedia('(prefers-reduced-motion:reduce)').matches)raf=requestAnimationFrame(loop)}
+  window.mbDNA=()=>{if(!raf)raf=requestAnimationFrame(loop)};
+  document.addEventListener('visibilitychange',()=>window.mbDNA());
+  new MutationObserver(()=>window.mbDNA()).observe(document.getElementById('thread')||document.body,{childList:true,subtree:true});
+})();
+/* one live backend line per bubble: newest engine / MUSE / worker event for that job */
+setInterval(async()=>{if(document.hidden)return;const ids=[...document.querySelectorAll('.mb[data-mb]')].filter(b=>b.querySelector('.mb-live')).map(b=>b.dataset.mb);
+  if(!ids.length)return;let r;try{r=await api('/api/console?jobs='+ids.join(','))}catch(e){return}
+  Object.entries(r.lines||{}).forEach(([id,ln])=>{MB_LINE[id]=ln;const b=document.querySelector(`.mb[data-mb="${id}"] .mb-live`);if(!b)return;
+    b.className='mb-live '+(ln.level||'');b.querySelector('.mb-src').textContent=ln.src;const sp=b.querySelector('.mb-ln');if(sp.textContent!==ln.text)sp.textContent=ln.text})},1500);
+
+/* ── MUSE voice: natural local voice (Kokoro on the PC's CPU) reads her replies aloud, sentence by sentence ── */
+window.VOICE=(function(){
+  const st={on:true,id:'af_bella',speed:1},TRACK={},Q=[];
+  const MINE=new Set((()=>{try{return JSON.parse(sessionStorage.getItem('mml.voicemine')||'[]')}catch(e){return[]}})());
+  function mine(id){if(!id)return;MINE.add(id);try{sessionStorage.setItem('mml.voicemine',JSON.stringify([...MINE].slice(-40)))}catch(e){}}let cur=null,unlocked=false,seeded=false;
+  try{const v=JSON.parse(localStorage.getItem('mml.voice')||'null');if(v)Object.assign(st,v)}catch(e){}
+  const save=(push)=>{try{localStorage.setItem('mml.voice',JSON.stringify(st))}catch(e){}
+    if(push)fetch('/api/miros-prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'voice',value:st})}).catch(()=>{})};
+  fetch('/api/miros-prefs',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(d&&d.voice){Object.assign(st,d.voice);save();btn()}}).catch(()=>{});
+  function btn(){const b=document.getElementById('b-voice');if(b){b.innerHTML=MI.html(st.on?'volume':'mute');b.classList.toggle('off',!st.on);b.title=st.on?'MUSE voice on — tap to mute':'MUSE voice muted — tap to turn on'}}
+  function url(t){return '/api/tts?text='+encodeURIComponent(t)+'&voice='+st.id+'&speed='+st.speed}
+  let curId=null;
+  /* Listen buttons are on/off: "Stop" while that reply is being read (queued or playing), "Listen" otherwise */
+  function speaking(id){return !!id&&(curId===id||Q.some(x=>x.id===id))}
+  function paint(){document.querySelectorAll('[data-say]').forEach(b=>{const on=speaking(b.dataset.say),h=MI.html(on?'stop':'volume')+(on?' Stop':' Listen');
+    if(b.dataset.on!==String(on)){b.dataset.on=on;b.innerHTML=h}})}
+  function next(){if(cur||!Q.length){if(!cur){curId=null;paint()}return}const it=Q.shift();const a=new Audio(url(it.t));cur=a;curId=it.id||null;paint();
+    if(Q[0])fetch(url(Q[0].t)).catch(()=>{});                       // warm the next sentence while this one plays
+    const done=()=>{if(cur!==a)return;cur=null;next()};a.onended=a.onerror=done;a.play().catch(done)}
+  function say(t,force,id){if(!st.on&&!force)return;t=(t||'').trim();if(t.replace(/[^a-z0-9]/gi,'').length<2)return;
+    while(t.length>380){const k=t.lastIndexOf(' ',380);Q.push({t:t.slice(0,k),id});t=t.slice(k+1)}Q.push({t,id});next()}
+  function stop(){Q.length=0;if(cur){const a=cur;cur=null;a.onended=a.onerror=null;a.pause();a.src=''}curId=null;paint()}
+  new MutationObserver(paint).observe(document.getElementById('thread')||document.body,{childList:true,subtree:true});
+  /* sentences that finished streaming: up to . ! ? (then space/newline) or a blank line */
+  function take(txt,from,final){const rest=txt.slice(from);let out=[],last=0;const re=/[.!?]+["')\]]?(?=\s)|\n\s*\n/g;let m;
+    while((m=re.exec(rest))){const e=m.index+m[0].length,seg=rest.slice(last,e);
+      if(/\b(e\.g|i\.e|mr|mrs|ms|dr|vs|etc|st|no)\.$/i.test(seg.trim()))continue;     // abbreviations aren't sentence ends
+      if(seg.trim().length>1)out.push(seg);last=e}
+    if(final&&rest.slice(last).trim()){out.push(rest.slice(last));last=rest.length}
+    return [out,from+last]}
+  function jobs(js){
+    if(!seeded){js.forEach(j=>{if(j.model==='llama'&&j.status!=='running'&&j.status!=='queued')TRACK[j.id]={pos:1e9}});seeded=true}
+    js.forEach(j=>{if(j.model!=='llama'||j.mine===false||!MINE.has(j.id))return;let t=TRACK[j.id];
+      if(!t){t=TRACK[j.id]={pos:0}}
+      if(t.pos>=1e9)return;
+      const final=j.status==='done';const [ss,pos]=take(j.output||'',t.pos,final);t.pos=final?1e9:pos;
+      if(j.status==='error'||j.status==='cancelled'){t.pos=1e9;return}
+      ss.forEach(x=>say(x,false,j.id))})}
+  document.addEventListener('click',e=>{if(!unlocked){unlocked=true;try{const a=new Audio();a.muted=true;a.play().catch(()=>{})}catch(_){}}
+    const b=e.target.closest('#b-voice');if(b){st.on=!st.on;if(!st.on)stop();save(true);btn();toast(st.on?'MUSE will speak her replies':'MUSE voice muted')}
+    const r=e.target.closest('[data-say]');if(r){e.preventDefault();e.stopPropagation();const id=r.dataset.say,was=speaking(id);stop();
+      if(!was){const j=(window._lastJobs||[]).find(x=>x.id===id);if(j)take(j.output||'',0,true)[0].forEach(x=>say(x,true,id))}}},true);
+  setTimeout(btn,0);
+  return {st,say,stop,jobs,save,btn,url,mine}})();
+function openVoice(){head('volume','var(--panel2)','MUSE VOICE');
+  fetch('/api/tts/voices').then(r=>r.json()).then(d=>{const v=VOICE.st;
+    $('#s-body').innerHTML=(d.available?'':'<p style="color:var(--yellow)">The voice engine isn\'t installed on this PC yet — run MirMediaLabs-Setup.exe → Repair.</p>')+
+      '<p style="color:var(--dim);margin:0 0 10px">A natural voice made on this PC (no cloud). MUSE reads her replies aloud as they arrive.</p><div class="vgrid">'+
+      d.voices.map(x=>`<button class="vc ${x.id===v.id?'on':''}" data-v="${x.id}">${MI.html(x.id===v.id?'check':'play')}<span><b>${esc(x.label.split(' · ')[0])}</b><small>${esc(x.label.split(' · ')[1]||'')}</small></span></button>`).join('')+
+      `</div><label style="display:flex;gap:10px;align-items:center;margin-top:14px">Speed <input type="range" id="v-sp" min="0.8" max="1.2" step="0.05" value="${v.speed}" style="flex:1"><b id="v-spv">${(+v.speed).toFixed(2)}×</b></label>`;
+    $('#s-ft').innerHTML='';
+    $$('#s-body [data-v]').forEach(b=>b.onclick=()=>{v.id=b.dataset.v;v.on=true;VOICE.save(true);VOICE.btn();VOICE.stop();VOICE.say('Hi, I\'m MUSE. This is how I\'ll sound when I answer you.',true);openVoice()});
+    $('#v-sp').oninput=e=>{v.speed=+e.target.value;$('#v-spv').textContent=v.speed.toFixed(2)+'×'};
+    $('#v-sp').onchange=()=>{VOICE.save(true);VOICE.stop();VOICE.say('Is this a good speed?',true)};
+    openSheet()})}
 function renderThread(jobs){
   const t=$('#thread');
   if(!jobs.length){t.innerHTML=`<div class="welcome"><img src="/static/icon-512.png" alt=""><h3>MIR MEDIA LABS</h3>Just say what you want — <b>MUSE</b> picks the right model, skill or pipeline, or simply answers.<br>Prefer control? Pick a model yourself on the left. Attach pictures, clips, songs or text with ${MI.html('attach')}.</div>`;return}
@@ -1349,18 +1603,22 @@ function renderThread(jobs){
     const t2=j.status==='running'?dur(j.started):(j.finished&&j.started)?dur(j.started,j.finished):'';
     let body='';
     if(live&&j.model==='llama'&&j.output)body=`<div class="txt wr">${esc(j.output)}<span class="caret"></span></div><div class="acts"><button class="btn sm danger" data-c="${j.id}">Stop</button></div>`;
-    else if(live)body=`<div class="stage-line"><span class="spin"></span><span>${esc(j.stage&&j.stage!=='queued'?j.stage:'waiting for the GPU…')}</span></div><div class="acts"><button class="btn sm danger" data-c="${j.id}">Cancel</button></div>`;
-    else if(j.status==='error')body=`<div class="err">${esc(j.error)}</div><div class="acts"><button class="btn sm" data-r="${j.id}">↺ Try again</button></div>`;
-    else if(j.status==='cancelled')body=`<div style="color:var(--faint)">Cancelled.</div><div class="acts"><button class="btn sm" data-r="${j.id}">↺ Reuse prompt</button></div>`;
-    else if(j.model==='llama')body=`<div class="txt wr">${esc(j.output||'')}</div>${museLines(j.output).length?`<div class="uses">${museLines(j.output).map(l=>`<button class="btn sm" data-ul="${esc(l)}">${MI.html('arrow-right')} Use: ${esc(l.length>64?l.slice(0,63)+'…':l)}</button>`).join('')}</div>`:''}<div class="acts"><button class="btn sm" data-cp="${j.id}">${MI.html('copy')} Copy</button><button class="btn sm" data-tx="${j.id}">${MI.html('download')} Save .txt</button><button class="btn sm" data-tref="${j.id}">${MI.html('attach')} Use as text ref</button><button class="btn sm" data-r="${j.id}">↺ Again</button></div>`;
-    else body=`<div class="media">${(j.files||[]).map(mediaHTML).join('')}</div>
+    else if(live)body=museBlock(j)+`<div class="acts"><button class="btn sm danger" data-c="${j.id}">Cancel</button></div>`;
+    else if(j.status==='error')body=museBlock(j)+`<div class="err">${esc(j.error)}</div><div class="acts"><button class="btn sm" data-r="${j.id}">↺ Try again</button></div>`;
+    else if(j.status==='cancelled')body=`<div style="color:var(--faint)">Cancelled.</div><div class="acts"><button class="btn sm" data-r="${j.id}">↺ Run again</button></div>`;
+    else if(j.model==='llama')body=`<div class="txt wr">${esc(j.output||'')}</div>${museLines(j.output).length?`<div class="uses">${museLines(j.output).map(l=>`<button class="btn sm" data-ul="${esc(l)}">${MI.html('arrow-right')} Use: ${esc(l.length>64?l.slice(0,63)+'…':l)}</button>`).join('')}</div>`:''}<div class="acts"><button class="btn sm" data-say="${j.id}">${MI.html('volume')} Listen</button><button class="btn sm" data-cp="${j.id}">${MI.html('copy')} Copy</button><button class="btn sm" data-tx="${j.id}">${MI.html('download')} Save .txt</button><button class="btn sm" data-tref="${j.id}">${MI.html('attach')} Use as text ref</button><button class="btn sm" data-r="${j.id}">↺ Again</button></div>`;
+    else body=museBlock(j)+`<div class="media">${(j.files||[]).map(mediaHTML).join('')}</div>
       <div class="acts">${(j.files||[]).map(fn=>`<button class="btn sm" data-open="${esc(fn)}">${MI.html('expand')} Open</button><button class="btn sm" data-use="${esc(fn)}">${MI.html('refresh')} Use as ref</button><a class="btn sm" href="/media/${encodeURIComponent(fn)}?dl=1" download="${esc(fn)}">${MI.html('download')} Download</a>`).join('')}<button class="btn sm" data-r="${j.id}">↺ Again</button></div>
       ${j.output?`<details data-id="${j.id}" ${open.has(j.id)?'open':''}><summary>details</summary><pre>${esc(j.output)}</pre></details>`:''}`;
-    const lab=`<div class="msg lab" data-job="${j.id}" data-model="${j.model}" style="--mc:${m.color||'#888'}"><div class="meta"><span class="chip">${esc(m.label||j.model)}</span>${j.pipeline&&j.step&&live?`<span class="pl-tag">step ${esc(j.step)}</span>`:''}<span class="st ${j.status}">${j.status.toUpperCase()}${t2?' · <span class="tm">'+t2+'</span>':''}</span>${j.finished?`<span>${stamp(j.finished)}</span>`:''}</div>${j.route?`<div class="route" title="${esc(j.route.by==='muse'?'decided by MUSE':'decided by the quick rules')}">${MI.html('sparkle','sm')} MUSE chose <b>${esc(j.route.label)}</b>${j.route.why?` <span>— ${esc(j.route.why)}</span>`:''}</div>`:''}${loraLine(j)}${planHTML(j)}${body}</div>`;
+    const lab=`<div class="msg lab" data-job="${j.id}" data-model="${j.model}" style="--mc:${m.color||'#888'}"><div class="meta"><span class="chip">${esc(m.label||j.model)}</span>${j.pipeline&&j.step&&live?`<span class="pl-tag">step ${esc(j.step)}</span>`:''}<span class="st ${j.status}">${j.status.toUpperCase()}${t2?' · <span class="tm">'+t2+'</span>':''}</span>${j.finished?`<span>${stamp(j.finished)}</span>`:''}</div>${j.route?`<div class="route" title="${esc(String(j.route.by||'').startsWith('muse')?'decided by MUSE'+(j.route.by.includes(' · ')?' on '+j.route.by.split(' · ')[1]:''):'decided by the quick rules')}">${MI.html('sparkle','sm')} MUSE${(j.route.by||'').includes(' · ')?' · '+esc(j.route.by.split(' · ')[1]):''} chose <b>${esc(j.route.label)}</b>${j.route.why?` <span>— ${esc(j.route.why)}</span>`:''}</div>`:''}${loraLine(j)}${planHTML(j)}${body}</div>`;
     return me+lab}).join('');
   if(stick)t.scrollTop=t.scrollHeight;
   $$('#thread [data-c]').forEach(b=>b.onclick=()=>api('/api/jobs/'+b.dataset.c+'/cancel',{method:'POST'}).then(()=>{toast('Cancelling…');pollJobs(true)}).catch(e=>toast(e.message)));
-  $$('#thread [data-r]').forEach(b=>b.onclick=()=>{const j=jobs.find(x=>x.id===b.dataset.r);if(!j)return;setModel(j.route?'auto':j.model);$('#prompt').value=(j.route?(j.input||j.prompt):j.prompt)||'';autosize();$('#prompt').focus()});
+  $$('#thread [data-r]').forEach(b=>b.onclick=()=>{const j=jobs.find(x=>x.id===b.dataset.r);if(!j)return;setModel(j.route?'auto':j.model);$('#prompt').value=(j.route?(j.input||j.prompt):j.prompt)||'';
+    // re-attach the job's references too — "Again" after a cancel must not quietly drop to text-only
+    const have=new Set(atts.map(a=>a.name));(j.refs||[]).filter(n=>!have.has(n)).forEach(n=>atts.push({name:n,kind:kindOf(n),url:'/refs/'+n,label:n.startsWith('ref_')?n.split('_').slice(2).join('_'):n}));
+    if((j.refs||[]).length){saveAtts();renderAtts();toast('Prompt + '+j.refs.length+' reference'+(j.refs.length>1?'s':'')+' loaded — press Send')}
+    autosize();$('#prompt').focus()});
   $$('#thread [data-use]').forEach(b=>b.onclick=()=>useAsRef(b.dataset.use));
   const jtext=id=>(jobs.find(x=>x.id===id)||{}).output||'';
   $$('#thread [data-ul]').forEach(b=>b.onclick=()=>{if(ARMED)disarm();$('#prompt').value=b.dataset.ul;autosize();setTab('create');$('#prompt').focus();toast('Loaded into the message box — press Send when ready')});
@@ -1410,6 +1668,8 @@ function openThemes(){head('palette','var(--panel2)','THEME');
   $('#s-body').innerHTML='<div class="thgrid">'+MML_THEMES.map(t=>`<button class="thc ${t.id===window.MML_THEME?'on':''}" data-th="${t.id}" style="background:${t.sw[0]};color:${t.sw[3]}">
     <div class="pv"><i style="background:${t.sw[1]}"></i><div class="r"><i style="background:${t.sw[2]};height:22px"></i><i style="background:${t.sw[1]};flex:1"></i><i style="background:${t.sw[4]};height:10px;width:46%"></i></div></div>
     <div class="nm" style="border-top:1px solid rgba(128,128,128,.25)">${esc(t.name)}<small>${esc(t.d)}</small></div></button>`).join('')+'</div>';
+
+  $('#s-body').insertAdjacentHTML('beforeend','<button class="btn" style="margin-top:14px" onclick="openVoice()">'+MI.html('volume')+' MUSE voice…</button>');
   $('#s-ft').innerHTML='';
   $$('#s-body [data-th]').forEach(b=>b.onclick=()=>{mmlTheme.save(b.dataset.th);openThemes()});
   openSheet();}
@@ -1467,11 +1727,67 @@ $('#b-settings').onclick=()=>{
   $('#s-ft').innerHTML=ME.role==='owner'?`<span style="flex:1"></span><button class="btn pri" id="eng-save">Save</button>`:'';
   if(ME.role!=='owner'){$('#eng').disabled=true}
   if($('#eng-save'))$('#eng-save').onclick=async()=>{await api('/api/settings',{method:'POST',body:JSON.stringify({engine_model:$('#eng').value})});toast('Saved');closeSheet();pollStatus()};
+  if(ME.host){$('#s-body').insertAdjacentHTML('beforeend','<div id="cb-slot"></div>');cloudCard()}   // cloud brain: host PC only
   if(ME.role==='owner'){$('#s-body').insertAdjacentHTML('beforeend','<div id="civ-slot"></div>');
     const fill=async()=>{const s=await civKeyStatus();const slot=$('#civ-slot');if(!slot)return;slot.innerHTML=civKeyBox('civ-set',s);civKeyWire('civ-set',fill)};fill()}
   const st=$('#eng-start');if(st)st.onclick=()=>api('/api/engine/start',{method:'POST'}).then(()=>toast('Starting ComfyUI (~40 s)…'));
   openSheet();
 };
+/* CLOUD BRAIN (owner, host PC only) — Claude / GPT as MUSE, the Director and the prompt writer.
+   Keys are saved on this PC only and never shown again; invited people always stay on the local engine. */
+async function cloudCard(){const slot=$('#cb-slot');if(!slot)return;let d;try{d=await api('/api/cloud')}catch(e){slot.innerHTML='';return}
+  const cur=d.brain,u=d.usage||{},m=d.models.find(x=>x.id===cur.model);
+  slot.innerHTML=`<div class="cbx"><div class="cbh">${MI.html('sparkle')} <b>Model picker</b><span>MUSE, the Director and the prompt writer — local or cloud (Claude · GPT · GLM 5.2), billed to your key</span></div>
+    <div class="cbf"><span>Now: <b>${cur.provider==='local'?esc(d.local.label)+' (free)':esc(m?m.label:cur.model)}</b> · $${(u.usd||0).toFixed(2)} of $${d.cap} this month</span><span style="flex:1"></span><button class="btn sm pri" id="cb-open">Open model picker</button></div></div>`;
+  $('#cb-open').onclick=()=>mpOpen()}
+/* MODEL PICKER (host PC) — same layout as MirOS: provider groups, model cards with ctx/price/vision badges,
+   per-model params (max output, temperature, reasoning effort), API keys, monthly cap. */
+let MP={d:null,sel:null};
+function mpK(n){return n>=1e6?(n/1e6)+'M':Math.round(n/(n%1024?1000:1024))+'K'}
+async function mpOpen(id){if(!ME.host)return;let box=$('#mpk');if(!box){box=document.createElement('div');box.id='mpk';document.body.appendChild(box);
+    box.onclick=e=>{if(e.target===box)box.classList.remove('on')};document.addEventListener('keydown',e=>{if(e.key==='Escape')box.classList.remove('on')})}
+  try{MP.d=await api('/api/cloud')}catch(e){return toast(e.message)}
+  MP.sel=id||MP.sel||(MP.d.brain.provider==='local'?'local':MP.d.brain.model);box.classList.add('on');mpDraw()}
+function mpDraw(){const d=MP.d,box=$('#mpk'),cur=d.brain,nm={anthropic:'Anthropic · Claude',openai:'OpenAI · GPT',fireworks:'Fireworks · GLM'};
+  const isCur=id=>id==='local'?cur.provider==='local':cur.provider!=='local'&&cur.model===id;
+  const card=(id,label,model,badges,ready)=>`<button class="mpc${MP.sel===id?' sel':''}${ready?'':' off'}" data-id="${esc(id)}"><span class="t">${esc(label)}<span class="sp"></span>${isCur(id)?'<span class="tag">MUSE</span>':''}</span><code>${esc(model)}</code><span class="bd">${badges.map(x=>'<i>'+x+'</i>').join('')}</span></button>`;
+  let L=`<h4>LOCAL · OLLAMA</h4>`+card('local',d.local.label,d.local.model,['ctx '+mpK(d.local.ctx),'free · local','never makes media'],true);
+  ['anthropic','fireworks','openai'].forEach(p=>{const ms=d.models.filter(m=>m.provider===p);
+    L+=`<h4>${nm[p].toUpperCase()} <span class="k ${d.keys[p]?'ok':'no'}">${d.keys[p]?'KEY OK':'NO KEY'}</span></h4>`;
+    if(!d.keys[p])L+=`<div class="mpn">Add a ${nm[p]} key below to list its models.</div>`;
+    ms.forEach(m=>{L+=card(m.id,m.label,m.id,['ctx '+mpK(m.ctx),'$'+m.price[0]+' / $'+m.price[1]+' per 1M',m.vision?'vision':'text only'].concat(Object.keys(m.params||{}).length?['tuned']:[]),d.keys[p])})});
+  const m=d.models.find(x=>x.id===MP.sel),loc=MP.sel==='local'||!m,pr=(m&&m.params)||{};
+  let R=loc?`<h3>${esc(d.local.label)}</h3><div class="sub">Local Ollama · free · runs on this PC</div><div class="mpn">The local MUSE handles chat, prompt writing and the Auto-mode model pick. It never generates media. Context is fixed by its Modelfile.</div>
+      <div class="row"><button class="btn pri" id="mp-use">Use local MUSE</button></div>`
+    :`<h3>${esc(m.label)}</h3><div class="sub">${nm[m.provider]} · $${m.price[0]} / $${m.price[1]} per 1M tokens${m.note?' · '+esc(m.note):''}</div>
+      <label>MODEL ID</label><input type="text" value="${esc(m.id)}" disabled>
+      <label>CONTEXT WINDOW <em>${mpK(m.ctx)}</em></label><input type="range" min="0" max="1" value="1" disabled>
+      <label>MAX OUTPUT TOKENS <em>${pr.max_out||'auto'}</em></label><input type="number" id="mp-out" min="256" max="64000" step="256" placeholder="auto (per task)" value="${pr.max_out||''}">
+      <label>TEMPERATURE <em id="mp-tv">${pr.temperature!=null?pr.temperature:'auto'}</em></label><input type="range" id="mp-temp" min="0" max="2" step="0.05" value="${pr.temperature!=null?pr.temperature:0.7}"${m.provider==='anthropic'?' disabled title="Claude uses reasoning effort instead"':''}>
+      <label>REASONING EFFORT</label><div class="seg" id="mp-eff">${['auto','low','medium','high'].map(e=>`<button data-e="${e}" class="${(pr.effort||'auto')===e?'on':''}">${e.toUpperCase()}</button>`).join('')}</div>
+      <div class="row"><button class="btn pri" id="mp-use"${d.keys[m.provider]?'':' disabled'}>Use for MUSE</button><button class="btn" id="mp-save">Save params</button><button class="btn" id="mp-reset">Reset</button></div>
+      ${d.keys[m.provider]?'':'<div class="mpn">Save the '+nm[m.provider]+' key below first.</div>'}`;
+  const u=d.usage||{},pct=Math.min(100,(u.usd||0)/Math.max(.01,d.cap)*100);
+  R+=`<div class="keys"><h4>API KEYS</h4>${['anthropic','fireworks','openai'].map(p=>`<div class="kr"><span>${nm[p]}</span>${d.keys[p]?`<b class="ok">${MI.html('check')} saved</b><button data-del="${p}">Remove</button>`:`<input type="password" data-k="${p}" autocomplete="off" placeholder="${{anthropic:'sk-ant-…',openai:'sk-…',fireworks:'fw_…'}[p]}"><button data-save="${p}">Save</button>`}</div>`).join('')}
+    <div class="mpn">Keys stay on this PC and are never shown again. Invited people always use the local engine.</div>
+    <h4>MONTHLY CAP</h4><div class="cbbar"><i style="width:${pct.toFixed(1)}%"></i></div><div class="mpn">$${(u.usd||0).toFixed(2)} of $<input id="mp-cap" type="number" min="0" step="1" value="${d.cap}" style="width:70px"> · ${u.calls||0} calls${d.over_cap?' · <b style="color:var(--red)">cap reached, using local</b>':''}</div></div><div class="msg"></div>`;
+  box.innerHTML=`<div class="mp"><div class="mph">${MI.html('sparkle')}<b>MODEL PICKER</b><span class="sp"></span><span class="now">MUSE · <b>${cur.provider==='local'?esc(d.local.label):esc((d.models.find(x=>x.id===cur.model)||{}).label||cur.model)}</b></span><a id="mp-x">${MI.html('close')}</a></div><div class="mpb"><div class="mpl">${L}</div><div class="mpr">${R}</div></div></div>`;
+  const post=(url,body)=>api(url,{method:'POST',body:JSON.stringify(body)}),say=(t,e)=>{const x=box.querySelector('.msg');x.textContent=t;x.className='msg'+(e?' e':'')};
+  const done=r=>{MP.d=r;mpDraw();cloudCard()},fail=e=>say(e.message,1);
+  $('#mp-x').onclick=()=>box.classList.remove('on');
+  $$('#mpk .mpc').forEach(c=>c.onclick=()=>{MP.sel=c.dataset.id;mpDraw()});
+  const tp=$('#mp-temp');if(tp)tp.oninput=()=>{$('#mp-tv').textContent=tp.value;tp.dataset.set=1};
+  $$('#mp-eff button').forEach(b=>b.onclick=()=>{$$('#mp-eff button').forEach(x=>x.classList.toggle('on',x===b))});
+  const params=()=>({max_out:$('#mp-out').value,temperature:tp&&!tp.disabled&&(tp.dataset.set||(m.params||{}).temperature!=null)?tp.value:'',effort:($('#mp-eff button.on')||{}).dataset?.e||'auto'});
+  $('#mp-use').onclick=()=>{const go=()=>post('/api/cloud/brain',loc?{provider:'local'}:{provider:m.provider,model:m.id}).then(r=>{done(r);toast('MUSE now thinks with '+(loc?d.local.label:m.label))}).catch(fail);
+    if(loc)go();else post('/api/cloud/params',{model:m.id,params:params()}).then(go).catch(fail)};
+  const sv=$('#mp-save');if(sv)sv.onclick=()=>post('/api/cloud/params',{model:m.id,params:params()}).then(r=>{done(r);say('saved')}).catch(fail);
+  const rs=$('#mp-reset');if(rs)rs.onclick=()=>post('/api/cloud/params',{model:m.id,params:null}).then(r=>{done(r);say('reset')}).catch(fail);
+  $$('#mpk [data-save]').forEach(b=>b.onclick=()=>{const p=b.dataset.save,k=$('#mpk input[data-k="'+p+'"]').value.trim();if(!k)return say('paste the key first',1);
+    b.disabled=true;b.textContent='Checking…';post('/api/cloud/key',{provider:p,key:k}).then(r=>{done(r);toast('Key checked and saved')}).catch(e=>{b.disabled=false;b.textContent='Save';fail(e)})});
+  $$('#mpk [data-del]').forEach(b=>b.onclick=()=>{if(!confirm('Remove the saved '+nm[b.dataset.del]+' key from this PC?'))return;post('/api/cloud/key',{provider:b.dataset.del,key:''}).then(done).catch(fail)});
+  $('#mp-cap').onchange=e=>post('/api/cloud/brain',{cap:e.target.value}).then(r=>{done(r);toast('Monthly cap saved')}).catch(fail)}
+document.addEventListener('click',e=>{const c=e.target.closest('.mb-brain');if(c&&typeof ME!=='undefined'&&ME.host){e.stopPropagation();mpOpen()}},true);
 /* live PC perf card — desktop app window only (opened with ?client=desktop on this PC) */
 (function(){
   let desk=false;
@@ -1572,6 +1888,21 @@ function hostFormVal(){return {name:$('#hf-name').value,allow:$$('.hchips input:
 /* one QR at a time: two side by side made phone cameras grab the wrong one */
 function hqSwap(b){const w=b.closest('.hqrs');w.querySelectorAll('[data-qt]').forEach(x=>x.classList.toggle('on',x===b));
   w.querySelectorAll('figure').forEach(f=>f.classList.toggle('on',f.dataset.q===b.dataset.qt))}
+/* MY KEY — every person's own key as a QR (sign in another phone / TV / browser). On the host PC the
+   owner key is the MASTER key (sees every chat, runs Host Control): its own button, never shown remotely. */
+async function openMyKey(){let j;try{j=await api('/api/my-key')}catch(e){return toast(e.message)}
+  const m=j.master,t=Date.now();
+  head(m?'key':'qr',m?'#ff5a1f':'#ffc21a',m?'MASTER KEY · HOST PC ONLY':'MY KEY');
+  const qr=(kind,cap,on)=>`<figure class="${on?'on':''}" data-q="${on?0:1}"><img src="/api/my-key/qr?kind=${kind}&t=${t}" alt="${cap} QR" onerror="this.style.display='none'"><figcaption>${cap}</figcaption></figure>`;
+  $('#s-body').innerHTML=(m?`<div class="kv" style="border:1px solid #ff5a1f;border-radius:10px;padding:10px;margin-bottom:10px;color:#ff8a5a">
+      <div><b>This is the master key.</b> Whoever holds it signs in as the lab owner and can see <b>every person's chats and creations</b>. Only scan it into your own devices — never share it. To cut a device off, issue a new owner key in Host Control.</div></div>`:'')+
+    `<div class="hinv"><div class="hqrs"><div class="hqtab"><button class="on" data-qt="0" onclick="hqSwap(this)">Full invite</button><button data-qt="1" onclick="hqSwap(this)">Key only</button></div>${qr('invite','Full invite',1)}${qr('key','Key only',0)}</div>
+    <div><b>${m?'Master key':'Signed in as '+esc(j.name)}</b><p>${m?'Scan with the MIR MEDIA LABS app (<b>Scan QR</b>) or a phone camera to sign any of your devices in as the owner — the master key works on any number of devices.':'Your key works on <b>one device</b> — the one you use now. Moving to a new phone? Ask the host to <b>reset your device</b>, then scan this on the new one.'} <b>Key only</b> is for a device that already has the lab's address.${j.away?' Works at home and away.':' Home Wi-Fi only until the host sets an away address.'}</p>
+    <div class="kv"><div>Key: <code>${esc(j.key)}</code></div></div></div></div>`;
+  $('#s-ft').innerHTML=`<button class="btn" data-cp="${esc(j.key)}">${MI.html('copy')} Copy key</button><button class="btn pri" data-cp="${esc(j.invite)}">${MI.html('copy')} Copy invite link</button>`;
+  $$('#s-ft [data-cp]').forEach(b=>b.onclick=()=>(navigator.clipboard?navigator.clipboard.writeText(b.dataset.cp):Promise.reject()).then(()=>toast('Copied')).catch(()=>prompt('Copy',b.dataset.cp)));
+  openSheet()}
+$('#b-mykey').onclick=openMyKey;$('#b-master').onclick=openMyKey;
 function hostInviteCard(u){const link=hostInvite(u.key);
   const qr=(t,cap,on)=>`<figure class="${on?'on':''}" data-q="${on?0:1}"><img src="/api/host/qr?text=${encodeURIComponent(t)}" alt="${cap} QR" onerror="this.style.display='none'"><figcaption>${cap}</figcaption></figure>`;
   return `<div class="hinv"><div class="hqrs"><div class="hqtab"><button class="on" data-qt="0" onclick="hqSwap(this)">Full invite</button><button data-qt="1" onclick="hqSwap(this)">Key only</button></div>${qr(link,'Full invite',1)}${qr(u.key,'Key only',0)}</div>
@@ -1588,10 +1919,11 @@ function hostPeople(){const d=HOST.d,E=Object.fromEntries(d.engines.map(e=>[e.id
       <div class="bt"><button class="btn sm" data-hq="${u.id}">${MI.html('phone')} Invite / QR</button>
         ${own?'':`<button class="btn sm" data-he="${u.id}">${MI.html('sliders')} ${ed?'Close':'Edit'}</button>
         <button class="btn sm" data-ha="newkey" data-u="${u.id}">${MI.html('key')} New key</button>
+        ${u.locked?`<button class="btn sm" data-ha="unbind" data-u="${u.id}" title="Free this key so their next device can sign in">${MI.html('refresh')} Reset device</button>`:''}
         ${u.running?`<button class="btn sm danger" data-ha="stop" data-u="${u.id}">${MI.html('stop')} Stop ${u.running}</button>`:''}
         <button class="btn sm ${u.enabled?'danger':'pri'}" data-ha="${u.enabled?'disable':'enable'}" data-u="${u.id}">${MI.html(u.enabled?'lock':'check')} ${u.enabled?'Revoke':'Restore'}</button>
         <button class="btn sm danger" data-ha="delete" data-u="${u.id}" title="Remove this person">${MI.html('trash')}</button>`}</div></div>
-      <div class="hchips2">${chips}</div>
+      <div class="hchips2">${chips}${own?'<span class="hx ok">master key · any device</span>':u.locked?`<span class="hx">${MI.html('lock')} locked to ${esc(u.locked.kind)} · ${hostAgo(u.locked.since)}</span>`:'<span class="hx">not signed in yet · locks to the first device</span>'}</div>
       <div class="sub">${u.live?'<b style="color:var(--grn)">LIVE</b> on '+live.map(x=>esc(x.device)).join(', ')+' · ':''}last seen ${hostAgo(u.last_seen)}${u.last_ip?' from '+esc(u.last_ip):''} · ${u.jobs} request${u.jobs===1?'':'s'} total · ${devs.length} device${devs.length===1?'':'s'}</div>
       ${HOST.qr===u.id?hostInviteCard(u):''}
       ${ed?hostForm(u)+`<div class="hsave"><button class="btn pri" data-hs="${u.id}">Save changes</button></div>`:''}</div>`}).join('')}
@@ -1613,10 +1945,10 @@ function hostRender(){const d=HOST.d;if(!d)return;
   $$('#h-body [data-hq]').forEach(b=>b.onclick=()=>{HOST.qr=HOST.qr===b.dataset.hq?null:b.dataset.hq;hostRender()});
   $$('#h-body [data-hs]').forEach(b=>b.onclick=async()=>{try{await api('/api/host/users/'+b.dataset.hs,{method:'POST',body:JSON.stringify(Object.assign({action:'settings'},hostFormVal()))});HOST.edit=null;toast('Saved');hostLoad()}catch(e){toast(e.message)}});
   $$('#h-body [data-ha]').forEach(b=>b.onclick=async()=>{const a=b.dataset.ha,nm=(d.users.find(u=>u.id===b.dataset.u)||{}).name||'';
-    const ask={disable:`Revoke ${nm}'s access? Their key stops working right away (you can restore it).`,newkey:`Give ${nm} a new key? The old key stops working right away.`,
+    const ask={disable:`Revoke ${nm}'s access? Their key stops working right away (you can restore it).`,newkey:`Give ${nm} a new key? The old key stops working right away.`,unbind:`Reset ${nm}'s device lock? Their current device is signed out and the next device that uses the key gets it.`,
       delete:`Remove ${nm} completely? Their key stops working and they disappear from this list.`,stop:`Stop ${nm}'s running and waiting requests?`}[a];
     if(ask&&!confirm(ask))return;
-    try{await api('/api/host/users/'+b.dataset.u,{method:'POST',body:JSON.stringify({action:a})});toast({disable:'Access revoked',enable:'Access restored',newkey:'New key issued',delete:'Removed',stop:'Stopped'}[a]||'Done');
+    try{await api('/api/host/users/'+b.dataset.u,{method:'POST',body:JSON.stringify({action:a})});toast({disable:'Access revoked',enable:'Access restored',newkey:'New key issued',unbind:'Device lock reset',delete:'Removed',stop:'Stopped'}[a]||'Done');
       if(a==='newkey')HOST.qr=b.dataset.u;hostLoad()}catch(e){toast(e.message)}});
   $$('#h-body [data-cp]').forEach(b=>b.onclick=()=>(navigator.clipboard?navigator.clipboard.writeText(b.dataset.cp):Promise.reject()).then(()=>toast('Copied')).catch(()=>prompt('Copy',b.dataset.cp)));
   const mk=$('#h-make');if(mk)mk.onclick=async()=>{const v=hostFormVal();if(!v.allow.length)return toast('Pick at least one thing they can use');
@@ -1646,7 +1978,7 @@ async function hostLoad(){try{HOST.d=await api('/api/host/users')}catch(e){close
 async function openUsers(){HOST={tab:'people',edit:null,made:null,qr:null,d:null};
   head('shield','#5ee08a','HOST CONTROL');$('#s-ft').innerHTML='';$('#s-body').innerHTML='<div class="kv">Loading…</div>';
   $('#sheet').classList.add('wide');openSheet();await hostLoad();
-  clearInterval(window._hostTimer);window._hostTimer=setInterval(()=>{if($('#sheet').classList.contains('on')&&HOST.tab!=='invite'&&HOST.tab!=='phones'&&!HOST.edit)hostLoad()},6000)}
+  clearInterval(window._hostTimer);window._hostTimer=setInterval(()=>{if($('#sheet').classList.contains('on')&&HOST.tab!=='invite'&&HOST.tab!=='phones'&&!HOST.edit&&!HOST.qr)hostLoad()},6000)}
 $('#b-users').onclick=()=>openUsers();
 
 /* status */
@@ -1690,6 +2022,7 @@ $$('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
   loadSkills();
   const DESK=(()=>{try{return sessionStorage.getItem('mml_desktop')==='1'||new URLSearchParams(location.search).get('client')==='desktop'}catch(e){return false}})();
   if(ME.host&&DESK)$('#b-users').style.display='grid';      // Host control: only the desktop app on the GPU PC
+  if(ME.role==='owner'){$('#b-mykey').style.display='none';if(ME.host)$('#b-master').style.display='grid'}   // owner key = master: host PC only
   if(ME.role==='owner')pcUpdate()
   if(ME.role!=='owner'){const n=$('.side-note');if(n)n.innerHTML='Signed in as <b>'+esc(ME.name)+'</b>. Your creations are private to you. Renders run on the host PC\'s GPU, one at a time.'}
   setModel(cur);await pollStatus();await pollJobs(true);loadLib(true);

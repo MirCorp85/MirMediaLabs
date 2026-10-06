@@ -14,6 +14,8 @@ import requests
 
 import core
 import platform_util as pu
+import console
+import explain
 
 LOCAL = os.environ.get("LOCALAPPDATA", "")
 _CFG = core.CONFIG                   # set by the installer; empty on the build PC (Comfy Desktop paths)
@@ -272,6 +274,11 @@ class _Watch(threading.Thread):
                     cls = (self.graph.get(str(d["node"])) or {}).get("class_type", "")
                     self.job["progress"] = {"what": _what(cls), "node": cls}
                     self.t0 = None
+                    console.emit("COMFY", "%s · %s" % (cls, explain.node(cls)), self.job)
+                elif m.get("type") == "execution_cached" and d.get("nodes"):
+                    console.emit("COMFY", "reusing %d cached step(s) from the last render" % len(d["nodes"]), self.job)
+                elif m.get("type") == "execution_error":
+                    console.emit("COMFY", "error in %s · %s" % (d.get("node_type", "?"), d.get("exception_message", "")[:90]), self.job, "error")
                 elif m.get("type") == "progress" and d.get("max"):
                     v, mx = int(d.get("value") or 0), int(d["max"])
                     now = time.time()
@@ -284,6 +291,13 @@ class _Watch(threading.Thread):
                     prev = self.job.get("progress") or {}
                     self.job["progress"] = {"what": _what(cls) if cls else prev.get("what", "working"), "node": cls or prev.get("node", ""),
                                             "value": v, "max": mx, "pct": int(v * 100 / mx), "eta": eta}
+                    rate = ""
+                    if v > self.t0[1] and now > self.t0[0]:
+                        spi = (now - self.t0[0]) / (v - self.t0[1])
+                        rate = (" · %.1f s/it" % spi) if spi >= 1 else (" · %.1f it/s" % (1 / spi))
+                    node = cls or prev.get("node", "")
+                    console.emit("COMFY", "%s · step %d/%d%s%s" % (explain.node(node).split(" · ")[0] if node else "working", v, mx, rate,
+                                 (" · " + explain.eta(eta)) if eta else ""), self.job)
         except Exception:
             return
 
