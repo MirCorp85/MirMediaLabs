@@ -387,7 +387,7 @@ def check_key(provider, key):
             except openai.APIError as e:
                 last = e
         if not ok:
-            raise CloudError("the key works, but Fireworks serves no GLM 5.2 model to it (%s)"
+            raise CloudError("the key works, but Fireworks serves none of the GLM models to it (%s)"
                              % (getattr(last, "message", None) or last or "not deployed"))
         return ok
     try:
@@ -400,8 +400,29 @@ def check_key(provider, key):
     return chat[:20]
 
 
+def _refresh_fireworks():
+    """The GLM list changed since the key was checked (e.g. GLM 5.2 → 5.3): re-test it once, in the background."""
+    ids = [m["id"] for m in FIREWORKS]
+    p = core.prefs()
+    if not p.get("fireworks_key") or p.get("fireworks_checked") == ids:
+        return
+    core.save_pref("fireworks_checked", ids)
+
+    def run():
+        try:
+            ok = check_key("fireworks", p["fireworks_key"])
+            core.save_pref("fireworks_models", ok)
+            b0 = brain()
+            if b0["provider"] == "fireworks" and b0["model"] not in ok:
+                core.save_pref("brain", {"provider": "fireworks", "model": ok[0]})
+        except Exception:
+            pass
+    threading.Thread(target=run, daemon=True, name="mml-fw-recheck").start()
+
+
 def summary():
     """Settings view — never contains a key."""
+    _refresh_fireworks()
     k = keys()
     return {"keys": {p: bool(v) for p, v in k.items()}, "brain": brain(), "models": models(),
             "local": {"label": "MUSE · Llama 3.1 8B", "model": getattr(core, "DEFAULT_ENGINE", "llama3.1:8b"), "ctx": 65536},
