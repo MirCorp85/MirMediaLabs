@@ -1,7 +1,8 @@
 """MIR MEDIA LABS users — every person gets their OWN access key.
 
   * owner  = you. The original key in data/access_key.txt; sees everything.
-  * user   = an invited person. Generates media, sees only their own jobs, library and references.
+  * user   = an invited person. Generates media, sees only their own jobs, library and references, and may use ONLY
+             the engines in "allow" and the features in "caps" (explicit lists; nothing is implied by a missing value).
 
 Access is managed ONLY from the host PC (the machine with the GPU, in the MIR MEDIA LABS desktop app):
 grant a key, choose which engines a person may use, a daily request limit and an expiry date, revoke or
@@ -22,6 +23,14 @@ _USERS = []                     # [{id, name, key, role, enabled, created, last_
 _SESS = {}                      # (uid, ip, device) -> {first, last, hits, path}
 _DIRTY = {"t": 0}
 ENGINES = ("h3", "music3", "qimg", "ace", "llama")    # what "allow" can list (Auto routes into these)
+# Features beyond the engines. An invited person has ONLY what is listed in their "allow" + "caps" — nothing implied.
+CAPS = ("attach", "pipelines", "loras", "advanced", "extend", "workflows")
+CAP_NAMES = {"attach": "Attachments / uploads", "pipelines": "Multi-step pipelines", "loras": "LoRA styles",
+             "advanced": "Custom parameters (⚙)", "extend": "Long videos (extend / storyboard)",
+             "workflows": "Custom ComfyUI workflows"}
+DEFAULT_ALLOW = ("qimg", "llama")       # a new invite: pictures + MUSE chat; the host ticks more
+DEFAULT_CAPS = ("attach",)
+PERM_V = 2
 
 
 def _new_key():
@@ -35,6 +44,19 @@ def load():
         _USERS.insert(0, {"id": "owner", "name": "Owner (this PC)", "key": core.access_key(), "role": "owner",
                           "enabled": True, "created": time.time(), "last_seen": 0, "last_ip": "", "jobs": 0})
         _save()
+    # v2 permissions: before, allow=None meant EVERY engine and every feature (the "everything by default" bug).
+    # Invited people without explicit rights drop to the safe default; the host grants more in People.
+    moved = [u for u in _USERS if u.get("role") != "owner" and u.get("perm_v") != PERM_V]
+    for u in moved:
+        if not isinstance(u.get("allow"), list):
+            u["allow"] = list(DEFAULT_ALLOW)
+        if not isinstance(u.get("caps"), list):
+            u["caps"] = list(DEFAULT_CAPS)
+        u["perm_v"] = PERM_V
+    if moved:
+        _save()
+        log("permissions: %d invited %s moved to explicit rights (%s)" % (
+            len(moved), "person" if len(moved) == 1 else "people", ", ".join(u["name"] for u in moved)[:200]))
 
 
 def _save():
@@ -144,14 +166,41 @@ def used_today(u):
 ENGINE_NAMES = {"h3": "Video", "music3": "Song", "qimg": "Image", "ace": "Music", "llama": "Chat / writing"}
 
 
+def allowed(u):
+    """Engines this person may use (owner: all). Explicit list only — an empty list means none."""
+    if u.get("role") == "owner":
+        return list(ENGINES)
+    a = u.get("allow")
+    return [e for e in a if e in ENGINES] if isinstance(a, list) else list(DEFAULT_ALLOW)
+
+
+def caps(u):
+    if u.get("role") == "owner":
+        return list(CAPS)
+    c = u.get("caps")
+    return [x for x in c if x in CAPS] if isinstance(c, list) else list(DEFAULT_CAPS)
+
+
 def can_use(u, engine):
     """None if allowed, else the reason (shown to the person)."""
     if u.get("role") == "owner":
         return None
-    allow = u.get("allow")
-    if allow and engine in ENGINES and engine not in allow:
+    if engine not in allowed(u):
         return "your access doesn't include %s — ask the host to add it" % ENGINE_NAMES.get(engine, engine)
     return None
+
+
+def can(u, cap):
+    """None if this person has the feature, else the reason."""
+    if u.get("role") == "owner" or cap in caps(u):
+        return None
+    return "your access doesn't include %s — ask the host to add it" % CAP_NAMES.get(cap, cap).lower()
+
+
+def rights(u):
+    """What the person's apps should show (models, features)."""
+    return {"engines": allowed(u), "caps": caps(u), "daily": int(u.get("daily") or 0), "today": used_today(u),
+            "owner": u.get("role") == "owner"}
 
 
 def over_limit(u):
@@ -171,10 +220,16 @@ def count_job(u):
 
 
 def _clean_allow(allow):
-    if not allow:
-        return None                                   # None = every engine
-    a = [e for e in allow if e in ENGINES]
-    return a if a and len(a) < len(ENGINES) else None
+    """Always an explicit list. Empty = no engines (it used to mean ALL of them)."""
+    if allow is None:
+        return list(DEFAULT_ALLOW)
+    return [e for e in ENGINES if e in (allow or [])]
+
+
+def _clean_caps(c):
+    if c is None:
+        return list(DEFAULT_CAPS)
+    return [x for x in CAPS if x in (c or [])]
 
 
 def _expiry(days):
@@ -185,11 +240,12 @@ def _expiry(days):
     return time.time() + d * 86400 if d > 0 else 0
 
 
-def create(name, allow=None, daily=0, expires_days=0):
+def create(name, allow=None, daily=0, expires_days=0, caps=None):
     with _LOCK:
         u = {"id": "u" + secrets.token_hex(4), "name": (name or "guest").strip()[:40] or "guest", "key": _new_key(),
              "role": "user", "enabled": True, "created": time.time(), "last_seen": 0, "last_ip": "", "jobs": 0,
-             "allow": _clean_allow(allow), "daily": max(0, int(daily or 0)), "expires": _expiry(expires_days)}
+             "allow": _clean_allow(allow), "caps": _clean_caps(caps), "perm_v": PERM_V,
+             "daily": max(0, int(daily or 0)), "expires": _expiry(expires_days)}
         _USERS.append(u)
         _save()
     log("granted access", u["name"])
@@ -232,7 +288,10 @@ def update(uid, action, data=None):
             if "name" in data:
                 u["name"] = (str(data["name"]).strip()[:40]) or u["name"]
             if "allow" in data:
-                u["allow"] = _clean_allow(data["allow"])
+                u["allow"] = _clean_allow(data["allow"] or [])
+            if "caps" in data:
+                u["caps"] = _clean_caps(data["caps"] or [])
+            u["perm_v"] = PERM_V
             if "daily" in data:
                 u["daily"] = max(0, int(data.get("daily") or 0))
             if "expires_days" in data:
@@ -258,7 +317,7 @@ def summary(include_keys=False, running_by_user=None):
             row = {"id": u["id"], "name": u["name"], "role": u["role"], "enabled": u["enabled"],
                    "created": u["created"], "last_seen": u.get("last_seen") or 0, "last_ip": u.get("last_ip", ""),
                    "jobs": u.get("jobs") or 0, "running": (running_by_user or {}).get(u["id"], 0),
-                   "live": any(d["live"] for d in devs), "devices": devs, "allow": u.get("allow"),
+                   "live": any(d["live"] for d in devs), "devices": devs, "allow": allowed(u), "caps": caps(u),
                    "daily": int(u.get("daily") or 0), "today": used_today(u), "expires": u.get("expires") or 0,
                    "expired": expired(u),
                    "locked": None if u["role"] == "owner" or not u.get("device") else

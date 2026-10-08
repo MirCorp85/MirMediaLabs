@@ -116,7 +116,7 @@ Videos and songs play in MML's own themed player on desktop, web, phone and TV:
 | **Song** | MiniMax Music 3.0 | Full vocal songs **up to 5 minutes**, from your lyrics or auto-written ones, mood from an image or video reference |
 | **Image** | Qwen-Image 2.1 | Text-to-image, **multi-picture edit (up to 10 inputs)**, background removal and cutouts, HD/HQ modes |
 | **Music** | ACE-Step 1.5 XL | Fast tracks and beats, **remix, cover and voice swap**, plus BPM, key and strength control |
-| **Writing** | MUSE (local Llama 3.1) | MML's writer: chat, stories, lyrics, video scripts, poems, ad copy and prompts, written to feed straight into the other models |
+| **Writing** | MUSE (local Gemma 4 12B) | MML's writer: chat, stories, lyrics, video scripts, poems, ad copy and prompts, written to feed straight into the other models |
 
 ## Features
 
@@ -158,7 +158,7 @@ Videos and songs play in MML's own themed player on desktop, web, phone and TV:
   - finds AI models already on your PC and reuses them instead of downloading them again
   - **fast**: models download 3 at a time, *while* the PyTorch runtime installs
   - installs a private Python/PyTorch runtime, the ComfyUI render engine and only the models you pick
-  - optionally installs **MUSE (Llama 3.1 8B)** through Ollama. MUSE handles general conversation, builds the prompt for each render model, and picks the model for each request in Auto mode. It never renders: images, video and music always come from the render models.
+  - optionally installs **MUSE (Gemma 4 12B)** through Ollama. MUSE handles general conversation, builds the prompt for each render model, and picks the model for each request in Auto mode. It never renders: images, video and music always come from the render models.
   - shows a gallery of real MML renders while it works, then a **QR code for the mobile companion**
   - downloads resume, and re-running it offers Modify and Repair
 - **Signed auto-updates**: Ed25519-verified manifests, with SHA-256 checks and downgrade protection
@@ -212,7 +212,7 @@ cd server
 pip install flask requests
 python medialab.py        # http://127.0.0.1:5400
 ```
-Rendering needs a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with the models installed. MUSE (chat, prompt building and the Auto-mode model picker) needs [Ollama](https://ollama.com) with `llama3.1:8b`.
+Rendering needs a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with the models installed. MUSE (chat, prompt building and the Auto-mode model picker) needs [Ollama](https://ollama.com) with `gemma4:12b`.
 Android: open `app/` in Android Studio, or run `powershell -File build_apk.ps1`.
 
 ## Support development
@@ -228,4 +228,4 @@ Copyright (C) 2026 **MirCorp**. Licensed under the [GNU GPL v3.0](LICENSE): you 
 
 "MirCorp" and "MIR MEDIA LABS" are trademarks of MirCorp. See [TRADEMARK.md](TRADEMARK.md), [NOTICE](NOTICE) and [PRIVACY.md](PRIVACY.md).
 
-AI models (MiniMax, Qwen, ACE-Step, Llama, ComfyUI) are third-party works, downloaded separately and subject to their own licenses.
+AI models (MiniMax, Qwen, ACE-Step, Gemma, ComfyUI) are third-party works, downloaded separately and subject to their own licenses.

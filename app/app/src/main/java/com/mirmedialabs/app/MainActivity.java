@@ -37,6 +37,15 @@ public class MainActivity extends Activity {
     private TextView voiceBtn, popBtn;
     Loras loras;
     JSONObject models = new JSONObject(), status = new JSONObject();
+    JSONObject rights = null;           // /api/me → rights: the engines + features the host gave this person (null = not known yet)
+
+    /** True when this person may use a feature (attach, loras, pipelines, advanced, extend, workflows). */
+    boolean can(String cap) {
+        if (rights == null || rights.optBoolean("owner")) return true;
+        JSONArray c = rights.optJSONArray("caps");
+        for (int i = 0; c != null && i < c.length(); i++) if (cap.equals(c.optString(i))) return true;
+        return false;
+    }
     JSONArray jobs = new JSONArray();
     String cur = "h3";
     final List<JSONObject> atts = new ArrayList<>();
@@ -241,6 +250,8 @@ public class MainActivity extends Activity {
         Sheet sh = new Sheet(this, "Media Lab", "lab", Ui.pal());
         if (!BuildConfig.PLAY) sh.row("heart", "Support on Patreon", "keep MIR MEDIA LABS free · patreon.com/cw/MirCorp", () -> open(Creator.PATREON));
         sh.section("Create");
+        sh.row("globe", "Social · VIRAL-Ω", "@mirmedialabs · approve posts · analytics · growth skills", () -> SocialActivity.open(this, null));
+        sh.row("film", "Video editor", "timeline · cut, trim, titles, music · AI animate / extend / restyle", () -> EditorActivity.open(this, null));
         sh.row("layers", "LoRA samples", "browse + apply community LoRAs", () -> loras.browse(Loras.roleOf(cur), ""));
         sh.row("sparkle", "Skills", "one tuned render", () -> { withSkills(() -> pickSkill(false)); });
         sh.row("chain", "Pipelines", "chained renders, one request", () -> { withSkills(() -> pickSkill(true)); });
@@ -375,6 +386,7 @@ public class MainActivity extends Activity {
     }
 
     void refreshModels() {
+        api.get("/api/me", r -> { if (r.ok() && r.obj() != null) rights = r.obj().optJSONObject("rights"); });
         api.get("/api/models", r -> {
             if (!r.ok()) { pill.setText(r.err()); pill.setTextColor(Ui.RED); return; }
             models = r.obj();
@@ -765,6 +777,8 @@ public class MainActivity extends Activity {
     void toolsMenu() {
         Sheet sh = new Sheet(this, "Message", "plus", Ui.pal());
         sh.row("attach", "Attach", "picture · clip · song · text", this::attachMenu);
+        sh.row("globe", "Social · VIRAL-Ω", "approve posts · analytics · skills", () -> SocialActivity.open(this, null));
+        sh.row("film", "Video editor", "open the timeline editor", () -> EditorActivity.open(this, null));
         sh.row("sliders", "Parameters", "settings for the selected model", () -> openParams(cur));
         sh.row("layers", "LoRA samples", "browse + apply community LoRAs", () -> loras.browse(Loras.roleOf(cur), ""));
         sh.row("sparkle", "Skills", "one tuned render", () -> withSkills(() -> pickSkill(false)));
@@ -774,6 +788,7 @@ public class MainActivity extends Activity {
     }
 
     void attachMenu() {
+        if (!can("attach")) { toast("Attachments aren't included in your access — ask the host"); return; }
         Sheet sh = new Sheet(this, "Attach reference", "attach", Ui.pal());
         sh.grid(new String[][]{{"folder", "Files"}, {"note", "Paste text"}, {"refresh", "Last result"}, {"layers", "LoRA"}}, 2, w -> {
             if (w == 0) pickFiles();

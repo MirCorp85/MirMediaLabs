@@ -119,6 +119,10 @@ public final class Icons {
         D.put("router", new String[]{"p:M3 13H21V19H3Z", "p:M7 13V7", "p:M17 13V7", "p:M5 5.5C6 4.5 8 4.5 9 5.5", "p:M15 5.5C16 4.5 18 4.5 19 5.5", "f:7,16,1", "f:10.5,16,1", "p:M14 16H18"});
         D.put("camera", new String[]{"p:M4 8H7.5L9 5.5H15L16.5 8H20V19H4Z", "c:12,13,3.5"});
         D.put("clipboard", new String[]{"p:M8 4.5H6V21H18V4.5H16", "p:M9 3H15V6H9Z", "p:M9 11H15", "p:M9 15H13"});
+        D.put("tv", new String[]{"p:M3 7H21V18H3Z", "p:M8 3L12 7L16 3", "p:M8 21H16"});
+        D.put("cc", new String[]{"p:M3 6H21V18H3Z", "p:M10.5 10C9.8 9.4 8.9 9.2 8.2 9.6C7.2 10.1 7 11.4 7.2 12.3C7.5 13.6 9 14.4 10.5 13.8", "p:M17 10C16.3 9.4 15.4 9.2 14.7 9.6C13.7 10.1 13.5 11.4 13.7 12.3C14 13.6 15.5 14.4 17 13.8"});
+        D.put("pip", new String[]{"p:M3 5H21V19H3Z", "p:M12 12H19V17H12Z"});
+        D.put("compass", new String[]{"c:12,12,9", "p:M15.5 8.5L13.5 13.5L8.5 15.5L10.5 10.5Z"});
     }
     private static final Pattern TOKEN = Pattern.compile("\\[\\[([a-zA-Z0-9-]+)\\]\\]");
 

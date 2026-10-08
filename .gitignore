@@ -45,3 +45,6 @@ installer/build-linux/
 # marketing kits (contain personal renders)
 marketing/
 *.aab
+
+# -- generated settings previews (tools/make_param_previews.py) --
+server/static/fx/

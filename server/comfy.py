@@ -206,10 +206,30 @@ def _what(cls):
     return next((w for k, w in _WHAT if k.lower() in (cls or "").lower()), "working")
 
 
+PREVIEW_METHOD = {"sharp": "taesd", "fast": "latent2rgb", "off": "none"}   # taesd falls back to latent2rgb without a decoder
+
+
+def preview_method():
+    """Lab setting live_preview (sharp | fast | off) → ComfyUI's per-prompt preview_method."""
+    return PREVIEW_METHOD.get(str(core.prefs().get("live_preview") or "sharp"), "taesd")
+
+
+def _frame(job, img):
+    """Keep only the newest live preview (≤ ~4 fps): job['_pv'] = JPEG bytes, progress.pv = frame number."""
+    now = time.time()
+    if now - job.get("_pv_t", 0) < 0.25:
+        return
+    job["_pv"], job["_pv_t"] = img, now
+    job["_pv_n"] = job.get("_pv_n", 0) + 1
+    job["progress"] = dict(job.get("progress") or {"what": "diffusion"}, pv=job["_pv_n"])
+
+
 class _Watch(threading.Thread):
     def __init__(self, job, pid, graph):
         super().__init__(daemon=True)
         self.job, self.pid, self.graph, self.stop = job, pid, graph, False
+        self.cid = "mml-watch-%s" % os.urandom(4).hex()   # previews are sent only to the client that queued the prompt
+        self.ready = threading.Event()                     # set once the socket is open, so no early frame is missed
         self.t0 = None
 
     def run(self):
@@ -220,8 +240,8 @@ class _Watch(threading.Thread):
             host, port = BASE.split("//", 1)[1].split("/", 1)[0].rsplit(":", 1)
             s = socket.create_connection((host, int(port)), timeout=5)
             key = base64.b64encode(os.urandom(16)).decode()
-            s.sendall(("GET /ws?clientId=mml-watch-%s HTTP/1.1\r\nHost: %s:%s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
-                       "Sec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n" % (self.pid[:8], host, port, key)).encode())
+            s.sendall(("GET /ws?clientId=%s HTTP/1.1\r\nHost: %s:%s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+                       "Sec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n" % (self.cid, host, port, key)).encode())
             buf = b""
             while b"\r\n\r\n" not in buf:
                 c = s.recv(4096)
@@ -230,6 +250,7 @@ class _Watch(threading.Thread):
                 buf += c
             if b" 101 " not in buf.split(b"\r\n", 1)[0]:
                 return
+            self.ready.set()
             buf = buf.split(b"\r\n\r\n", 1)[1]
             s.settimeout(1.0)
 
@@ -261,8 +282,21 @@ class _Watch(threading.Thread):
                     data = bytes(x ^ mask[i % 4] for i, x in enumerate(data))
                 if op == 8:
                     return
+                if op == 2 and len(data) > 8:                  # binary: live sampler preview (JPEG)
+                    ev = struct.unpack(">I", data[:4])[0]
+                    if ev == 1:                                # PREVIEW_IMAGE: [image type][image]
+                        _frame(self.job, data[8:])
+                    elif ev == 4:                              # PREVIEW_IMAGE_WITH_METADATA: [len][json][image]
+                        n = struct.unpack(">I", data[4:8])[0]
+                        try:
+                            meta = json.loads(data[8:8 + n].decode("utf-8", "replace"))
+                        except ValueError:
+                            meta = {}
+                        if meta.get("prompt_id") in (None, self.pid):
+                            _frame(self.job, data[8 + n:])
+                    continue
                 if op != 1:
-                    continue                                   # binary previews, pings
+                    continue                                   # pings
                 try:
                     m = json.loads(data.decode("utf-8", "replace"))
                 except ValueError:
@@ -272,7 +306,7 @@ class _Watch(threading.Thread):
                     continue
                 if m.get("type") == "executing" and d.get("node"):
                     cls = (self.graph.get(str(d["node"])) or {}).get("class_type", "")
-                    self.job["progress"] = {"what": _what(cls), "node": cls}
+                    self.job["progress"] = {"what": _what(cls), "node": cls, "pv": self.job.get("_pv_n")}
                     self.t0 = None
                     console.emit("COMFY", "%s · %s" % (cls, explain.node(cls)), self.job)
                 elif m.get("type") == "execution_cached" and d.get("nodes"):
@@ -290,7 +324,8 @@ class _Watch(threading.Thread):
                     cls = (self.graph.get(str(d.get("node"))) or {}).get("class_type", "") if d.get("node") else ""
                     prev = self.job.get("progress") or {}
                     self.job["progress"] = {"what": _what(cls) if cls else prev.get("what", "working"), "node": cls or prev.get("node", ""),
-                                            "value": v, "max": mx, "pct": int(v * 100 / mx), "eta": eta}
+                                            "value": v, "max": mx, "pct": int(v * 100 / mx), "eta": eta,
+                                            "pv": self.job.get("_pv_n")}
                     rate = ""
                     if v > self.t0[1] and now > self.t0[0]:
                         spi = (now - self.t0[0]) / (v - self.t0[1])
@@ -311,20 +346,24 @@ def run(graph, want, job, timeout_s=120 * 60):
         except ImportError:
             import loras as _loras
         graph = _loras.apply(graph, job)
-    r = requests.post(BASE + "/prompt", json={"prompt": graph}, timeout=20)
-    d = r.json()
-    if r.status_code != 200 or "prompt_id" not in d:
-        raise RuntimeError("ComfyUI rejected the graph: %s" % json.dumps(d.get("node_errors") or d.get("error") or d)[:600])
-    pid, t0 = d["prompt_id"], time.time()
-    job["comfy_pid"] = pid
     job["progress"] = None
-    watch = _Watch(job, pid, graph)
+    watch = _Watch(job, "", graph)                 # socket first: live previews go to this client id
     watch.start()
+    watch.ready.wait(3)
     try:
+        r = requests.post(BASE + "/prompt", json={"prompt": graph, "client_id": watch.cid,
+                                                  "extra_data": {"preview_method": preview_method()}}, timeout=20)
+        d = r.json()
+        if r.status_code != 200 or "prompt_id" not in d:
+            raise RuntimeError("ComfyUI rejected the graph: %s" % json.dumps(d.get("node_errors") or d.get("error") or d)[:600])
+        pid, t0 = d["prompt_id"], time.time()
+        job["comfy_pid"] = watch.pid = pid
         return _wait(graph, want, job, timeout_s, pid, t0)
     finally:
         watch.stop = True
         job["progress"] = None
+        for k in ("_pv", "_pv_t", "_pv_n"):
+            job.pop(k, None)
 
 
 def _wait(graph, want, job, timeout_s, pid, t0):
@@ -363,8 +402,10 @@ def _wait(graph, want, job, timeout_s, pid, t0):
         if want == "audio":
             hits = [a for o in outs for a in o.get("audio", [])]
         elif want == "video":
+            # only what the graph SAVED: LoadVideo nodes also list their input clip (type "input") as a preview, and
+            # taking that one returned the reference / anchor clip instead of the render
             hits = [v for o in outs for v in o.get("images", []) + o.get("videos", [])
-                    if str(v.get("filename", "")).lower().endswith(".mp4")]
+                    if str(v.get("filename", "")).lower().endswith(".mp4") and v.get("type", "output") == "output"]
         else:
             hits = [i for o in outs for i in o.get("images", []) if i.get("type") == "output"]
         if not hits:

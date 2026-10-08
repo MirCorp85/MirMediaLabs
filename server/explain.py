@@ -5,7 +5,7 @@ MODEL = {
     "music3": "MiniMax Music 3",
     "qimg": "Qwen Image",
     "ace": "ACE-Step audio",
-    "llama": "MUSE · Llama 3.1",
+    "llama": "MUSE · Gemma 4",
 }
 
 # (substring of the node class, what it means) - first match wins, so specific names go first
