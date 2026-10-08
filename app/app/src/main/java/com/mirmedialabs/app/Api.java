@@ -249,7 +249,7 @@ final class Api {
         InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
         byte[] raw = in == null ? new byte[0] : readAll(in);
         if (code == 401) return new Resp(code, null, null, "your access key was not accepted — ask the lab host for a new invite");
-        if (wantBytes && code < 400) return new Resp(code, null, raw, null);
+        if (wantBytes && code < 400) return new Resp(code, c.getHeaderField("X-Frame-N"), raw, null);   // body = frame tag (live previews)
         String s = new String(raw, StandardCharsets.UTF_8);
         return new Resp(code, s, null, null);
     }

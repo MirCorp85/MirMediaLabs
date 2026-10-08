@@ -5,7 +5,7 @@ Installs a self-contained copy on any Windows PC with an NVIDIA GPU:
   <dir>\\updates                            Android app update folder
   <dir>\\runtime\\uv.exe, python, venv      private Python 3.13 + PyTorch CUDA — the render engine only
   <dir>\\engine\\ComfyUI                     headless ComfyUI engine (pinned tag) + models/
-  Ollama + MUSE (Llama 3.1 8B)              optional: chat, prompt building, Auto-mode model picker (never renders)
+  Ollama + MUSE (Gemma 4 12B)              optional: chat, prompt building, Auto-mode model picker (never renders)
 Everything except Ollama lives in <dir>; uninstall removes it.  Downloads resume.
 
   MirMediaLabs-Setup.exe                         wizard (install / modify / repair)
@@ -55,6 +55,7 @@ KOKORO_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/mode
 UV_URL = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
 COMFY_URL = "https://github.com/comfyanonymous/ComfyUI/archive/refs/tags/v%s.zip" % COMFY_TAG
 OLLAMA_URL = "https://ollama.com/download/OllamaSetup.exe"
+VCREDIST_URL = "https://aka.ms/vs/17/release/vc_redist.x64.exe"   # Microsoft C++ 2015-2022 runtime, needed by PyTorch
 UA = {"User-Agent": "MirMediaLabs-Setup/" + VERSION}
 NO_WINDOW = 0x08000000
 GB = 1024 ** 3
@@ -99,8 +100,8 @@ COMPONENTS = {
 # MUSE = the lab's general-purpose language model: conversation, prompt building for every render model, and the
 # Auto-mode model picker. It never renders anything — images, video and music always come from the render models.
 # The server pins the tag (llm.MODEL_TAG / core.DEFAULT_ENGINE) — change all three together.
-MUSE_TAG = "llama3.1:8b"
-ENGINES = {MUSE_TAG: ("MUSE · Llama 3.1 8B (recommended)", 4.9),
+MUSE_TAG = "gemma4:12b"
+ENGINES = {MUSE_TAG: ("MUSE · Gemma 4 12B (recommended · sees pictures)", 8.0),
            "": ("None — no MUSE: no chat or Auto mode, prompts used exactly as typed", 0)}
 RUNTIME_GB = 9.0      # python + torch CUDA + ComfyUI deps (+ download cache, removed afterwards)
 PARALLEL_DOWNLOADS = 3   # model files fetched at once (a single HTTPS stream rarely fills a fast line)
@@ -453,6 +454,30 @@ class Installer:
             if self_exe().lower() != me.lower():
                 shutil.copy2(self_exe(), me)
 
+    def step_vcredist(self):
+        """PyTorch's DLLs (c10.dll, torch_cpu.dll) link msvcp140.dll — torch doesn't ship it and a clean Windows
+        install often doesn't have it, so the engine would die at import ("PyTorch can't see the GPU"). Install the
+        official Microsoft runtime once (one UAC prompt); skipped when it's already there."""
+        def have():
+            try:
+                import winreg
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64",
+                                    0, winreg.KEY_READ | 0x0100) as k:
+                    return bool(winreg.QueryValueEx(k, "Installed")[0])
+            except OSError:
+                sysd = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32")
+                return all(os.path.isfile(os.path.join(sysd, f)) for f in ("msvcp140.dll", "vcruntime140_1.dll"))
+        if have():
+            self.log("Visual C++ runtime already installed")
+            return
+        exe = self.download(VCREDIST_URL, os.path.join(self.cache, "vc_redist.x64.exe"), label="Visual C++ runtime")
+        self.log("installing the Microsoft Visual C++ runtime (Windows asks for permission once) …")
+        run_quiet(["powershell", "-NoProfile", "-Command",
+                   "Start-Process -FilePath '%s' -ArgumentList '/install','/quiet','/norestart' -Verb RunAs -Wait" % exe], 600)
+        if not have():
+            raise RuntimeError("The Microsoft Visual C++ runtime didn't install (permission declined?). Install "
+                               "vc_redist.x64.exe from aka.ms/vs/17/release/vc_redist.x64.exe, then run Repair.")
+
     def step_python(self):
         if not os.path.isfile(self.uv):
             z = self.download(UV_URL, os.path.join(self.cache, "uv.zip"), label="uv (package manager)")
@@ -693,10 +718,11 @@ class Installer:
             raise self._dl_error
 
     def run(self):
-        steps = [("App files", self.step_files, 1), ("Python runtime", self.step_python, 3),
+        steps = [("App files", self.step_files, 1), ("Visual C++ runtime", self.step_vcredist, 2),
+                 ("Python runtime", self.step_python, 3),
                  ("ComfyUI engine", self.step_comfy, 3), ("PyTorch + engine packages", self.step_packages, 18)]
         if self.o["engine"]:
-            steps.append(("MUSE · Llama 3.1 8B (Ollama)", self.step_ollama, 8))
+            steps.append(("MUSE · Gemma 4 12B (Ollama)", self.step_ollama, 10))
             steps.append(("MUSE voice (Kokoro)", self.step_voice, 3))
         self._dl_thread, self._dl_error = None, None
         if self.o["components"]:
@@ -885,7 +911,7 @@ class Wizard(tk.Tk):
         self.v_comp = {k: tk.BooleanVar(value=(k in prev) if prev is not None else (k != "video_ref")) for k in COMPONENTS}
         self.v_preset = tk.StringVar(value="custom" if prev is not None else "recommended")
         old = cfg.get("engine", MUSE_TAG) if cfg else MUSE_TAG
-        self.v_engine = tk.StringVar(value=old if old in ENGINES else MUSE_TAG)   # older installs had Qwen 3.5 → MUSE
+        self.v_engine = tk.StringVar(value=old if old in ENGINES else MUSE_TAG)   # older installs had Qwen 3.5 / Llama 3.1 → Gemma 4
         self.v_desktop = tk.BooleanVar(value=os.path.exists(LNK_DESKTOP) if cfg else True)
         self.v_auto = tk.BooleanVar(value=os.path.exists(LNK_STARTUP))
         self.v_lan = tk.BooleanVar(value=not cfg)          # firewall rule already added on first install
@@ -970,7 +996,7 @@ class Wizard(tk.Tk):
         grid.pack(fill="x", pady=(6, 8))
         feats = (("Video + sound", "MiniMax H3 · 4–15 s clips"), ("Full songs", "Music 3 · vocals, up to 5 min"),
                  ("Images", "Qwen-Image · edits, cutouts"), ("Beats", "ACE-Step · remix, cover"),
-                 ("MUSE", "Llama 3.1 8B · chat + model picker"), ("Phone + TV", "free Android companion"))
+                 ("MUSE", "Gemma 4 12B · chat + model picker"), ("Phone + TV", "free Android companion"))
         for i, (t, d) in enumerate(feats):
             c = tk.Frame(grid, bg=PANEL, highlightthickness=1, highlightbackground=LINE)
             c.grid(row=i // 3, column=i % 3, sticky="nsew", padx=(0, 8), pady=(0, 8))
@@ -979,7 +1005,7 @@ class Wizard(tk.Tk):
         for col in range(3):
             grid.columnconfigure(col, weight=1)
         self.text("Setup installs, in one folder: the compiled app with signed updates · a private PyTorch runtime · "
-                  "the ComfyUI render engine · the AI models you choose · optionally MUSE (Llama 3.1 8B through Ollama). "
+                  "the ComfyUI render engine · the AI models you choose · optionally MUSE (Gemma 4 12B through Ollama). "
                   "Nothing else on your PC changes; uninstall from Windows Settings → Apps.", fg=DIM)
         if prev:
             self.text("An existing install was found at %s — continuing will modify / repair it. "
