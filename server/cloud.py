@@ -425,5 +425,5 @@ def summary():
     _refresh_fireworks()
     k = keys()
     return {"keys": {p: bool(v) for p, v in k.items()}, "brain": brain(), "models": models(),
-            "local": {"label": "MUSE · Llama 3.1 8B", "model": getattr(core, "DEFAULT_ENGINE", "llama3.1:8b"), "ctx": 65536},
+            "local": {"label": "MUSE · Gemma 4 12B", "model": getattr(core, "DEFAULT_ENGINE", "gemma4:12b"), "ctx": 16384},
             "usage": usage(), "cap": cap(), "over_cap": spent() >= cap()}

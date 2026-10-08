@@ -66,6 +66,7 @@ final class Loras {
     /** What /api/generate gets: [{file, strength}]. */
     JSONArray forRender(String model) {        // every pick: the server applies what this request's model can load
         JSONArray a = sel(), out = new JSONArray();
+        if (!m.can("loras")) return out;           // the host didn't give this person LoRA styles
         for (int i = 0; i < a.length(); i++) {
             JSONObject o = a.optJSONObject(i);
             out.put(Api.obj("file", o.optString("file"), "strength", o.optDouble("strength", 0.8)));

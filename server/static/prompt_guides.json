@@ -1,0 +1,150 @@
+{
+ "guides": {
+  "qwen_t2i": {
+   "family": "qwen-image",
+   "rules": [
+    "Negative prompt: supported",
+    "Prompt weights: (e.g. `(word:1.2)`): not honored",
+    "Qwen-Image excels at long, detailed natural-language prompts and accurate text rendering (including Chinese).",
+    "Don't assume it ignores negatives like Flux — Qwen-Image does honor a negative prompt."
+   ],
+   "settings": {
+    "steps": 20,
+    "cfg": 2.5,
+    "sampler": "euler",
+    "scheduler": "simple",
+    "resolution": "1328x1328"
+   },
+   "raw": "# qwen-image — prompting & settings guide\n\n- **Prompting style:** natural_language\n- **Negative prompt:** supported\n- **Prompt weights** (e.g. `(word:1.2)`): not honored\n- **Loader:** UNETLoader + CLIPLoader\n\n## Recommended settings\n\n| steps | cfg | sampler | scheduler | resolution |\n| --- | --- | --- | --- | --- |\n| 20 | 2.5 | euler | simple | 1328x1328 |\n\n## Tips\n\n- Qwen-Image excels at long, detailed natural-language prompts and accurate text rendering (including Chinese).\n- It supports a real negative prompt and true CFG — a low cfg (~2.5-4) keeps it stable.\n- Lightning/distilled Qwen variants run at 4-8 steps with cfg 1.0 — match settings to the variant.\n\n## Common mistakes\n\n- Don't assume it ignores negatives like Flux — Qwen-Image does honor a negative prompt.\n- Don't push cfg to 7+; Qwen-Image prefers a low CFG and oversaturates at high values.\n\n## Example prompt\n\n> A storefront sign that reads \"福满楼\" in elegant gold calligraphy above a bustling night market, lanterns glowing, crowd in soft focus, photorealistic.\n",
+   "source": "Comfy MCP get_prompting_guide",
+   "fetched": "2026-10-08"
+  },
+  "qwen_edit": {
+   "family": "qwen-image-edit",
+   "rules": [
+    "Negative prompt: supported",
+    "Prompt weights: (e.g. `(word:1.2)`): not honored",
+    "Qwen-Image excels at long, detailed natural-language prompts and accurate text rendering (including Chinese).",
+    "Don't assume it ignores negatives like Flux — Qwen-Image does honor a negative prompt."
+   ],
+   "settings": {
+    "steps": 20,
+    "cfg": 2.5,
+    "sampler": "euler",
+    "scheduler": "simple",
+    "resolution": "1328x1328"
+   },
+   "raw": "# qwen-image — prompting & settings guide\n\n- **Prompting style:** natural_language\n- **Negative prompt:** supported\n- **Prompt weights** (e.g. `(word:1.2)`): not honored\n- **Loader:** UNETLoader + CLIPLoader\n\n## Recommended settings\n\n| steps | cfg | sampler | scheduler | resolution |\n| --- | --- | --- | --- | --- |\n| 20 | 2.5 | euler | simple | 1328x1328 |\n\n## Tips\n\n- Qwen-Image excels at long, detailed natural-language prompts and accurate text rendering (including Chinese).\n- It supports a real negative prompt and true CFG — a low cfg (~2.5-4) keeps it stable.\n- Lightning/distilled Qwen variants run at 4-8 steps with cfg 1.0 — match settings to the variant.\n\n## Common mistakes\n\n- Don't assume it ignores negatives like Flux — Qwen-Image does honor a negative prompt.\n- Don't push cfg to 7+; Qwen-Image prefers a low CFG and oversaturates at high values.\n\n## Example prompt\n\n> A storefront sign that reads \"福满楼\" in elegant gold calligraphy above a bustling night market, lanterns glowing, crowd in soft focus, photorealistic.\n",
+   "source": "Comfy MCP get_prompting_guide",
+   "fetched": "2026-10-08"
+  },
+  "h3": {
+   "family": "minimax-h3",
+   "rules": [
+    "Negative prompt: ignored — do not pass one",
+    "Prompt weights: (e.g. `(word:1.2)`): not honored",
+    "MiniMax H3 is audio-native: voice, sound effects and music are generated with the picture in a single pass, so describe the sound in the same prompt as the shots and camera moves.",
+    "State the whole scene first (location, character, what is happening), then break it into timed shots — an explicit [0s-2s] / [2s-5s] timeline steers both the cuts and the audio.",
+    "Native canvas is a 768px short edge — 1344x768 at 16:9 — rounded to a multiple of 32; the shipped templates open at a smaller fast-preview size, so raise it for final output. Duration snaps to H3's 17-frames-per-block (17k+5) grid at 24fps.",
+    "Reference each R2V input by tag in connection order (<Picture 1>, <Video 1>, <Audio 1>) and say which reference drives identity, style, motion, camera or voice — explicit assignments work much better than leaving it implied.",
+    "Don't treat it as a silent video model: the workflow decodes a second, audio VAE and muxes stereo audio into the MP4, so a prompt with no sound direction throws away half the model."
+   ],
+   "settings": {
+    "steps": 20,
+    "cfg": 1.0,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "resolution": "1344x768"
+   },
+   "raw": "# minimax-h3 — prompting & settings guide\n\n- **Prompting style:** natural_language\n- **Negative prompt:** ignored — do not pass one\n- **Prompt weights** (e.g. `(word:1.2)`): not honored\n- **Loader:** UNETLoader + CLIPLoader (type minimax) + two VAELoaders (video VAE + audio VAE)\n\n## Recommended settings\n\n| steps | cfg | sampler | scheduler | resolution |\n| --- | --- | --- | --- | --- |\n| 20 | 1 | res_multistep | simple | 1344x768 |\n\n## Tips\n\n- MiniMax H3 is audio-native: voice, sound effects and music are generated with the picture in a single pass, so describe the sound in the same prompt as the shots and camera moves.\n- State the whole scene first (location, character, what is happening), then break it into timed shots — an explicit [0s-2s] / [2s-5s] timeline steers both the cuts and the audio.\n- Native canvas is a 768px short edge — 1344x768 at 16:9 — rounded to a multiple of 32; the shipped templates open at a smaller fast-preview size, so raise it for final output. Duration snaps to H3's 17-frames-per-block (17k+5) grid at 24fps.\n- 20 steps is the template default; ~25 buys better motion quality. The H3 nodes take a single prompt and emit one conditioning, and the templates sample through a guidance-free BasicGuider, so there is no cfg dial or negative-prompt input to reach for — steer with the prompt alone.\n- To go faster, first flip the shipped video_minimax_h3_* template's Boolean (Enable Lightning LoRA) switch (default off): it swaps in the 8-step turbo LoRA minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16 (R2V: minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16, which runs at 4) and drops steps to 6 (R2V: 4) with the built-in 12/3 shift, at the cost of slightly weaker audio and motion; the 8-step LoRA itself runs at 8 steps outside the template. Only if that is still too slow: (2) the FastVideo FastH3 8-step checkpoint via the video_fastvideo_fasth3_t2v / video_fastvideo_fasth3_i2v templates (a separate 8-step distilled checkpoint, fastvideo_fasth3_8step_v2_pruned_int8_convrot, with its shift pre-wired at 10/3; T2V and I2V only); (3) the 768p 4-step LoRA minimax_h3_fl2v_turbo_4step_v1.0_768p at 4 steps, which needs an explicit MiniMaxH3SigmaShift at 6/3; (4) fewer pixels or a shorter duration (generation time grows superlinearly with pixel count). The paid api_minimax_h3_max_turbo_t2v / _i2v templates (run_template) are the fastest route (768p in ~1-3 s) but cost partner fees, so offer them as a route change rather than picking them silently.\n- Sigma shift is a real dial, set with a MiniMaxH3SigmaShift node between the model loader and the guider. Its defaults (shift_video 12, shift_audio 3) are what the base model and the 8-step turbo LoRA expect; the 768p 4-step turbo variant (rung 3 above) was distilled at 6/3, so set them explicitly for that one. The video_minimax_h3_* templates omit the node and run the built-in 12/3; the FastH3 templates pre-wire it at 10/3.\n- Reference each R2V input by tag in connection order (<Picture 1>, <Video 1>, <Audio 1>) and say which reference drives identity, style, motion, camera or voice — explicit assignments work much better than leaving it implied.\n\n## Common mistakes\n\n- Don't run the base checkpoint at the turbo LoRA's 4-8 steps — without a Lightning LoRA loaded, H3 wants its full ~20-25 steps.\n- Don't run a turbo LoRA at the base 20-25 steps either — the 8-step and 4-step distillations are trained for those step counts and extra steps only burn GPU time.\n- Don't cross the turbo LoRAs over, and don't carry one variant's shift over to another: the fl2v turbo LoRA belongs on the fl2va (T2V/I2V) model and the ref2v turbo LoRA on the ref2va (R2V) model.\n- Don't budget prompt tokens for a negative prompt or hunt for a cfg dial — the H3 nodes expose a single prompt input and the templates guide with BasicGuider; put the steering in the prompt instead.\n- Don't answer 'make it faster' with the whole turbo menu — the template's Lightning switch is the default; the other rungs are for when it is not enough.\n- Don't treat it as a silent video model: the workflow decodes a second, audio VAE and muxes stereo audio into the MP4, so a prompt with no sound direction throws away half the model.\n\n## Example prompt\n\n> A rain-slicked Tokyo alley at dusk, neon signs humming, steam drifting off a ramen cart. [0s-3s] The camera pushes slowly past the cart as the chef slides a bowl across the counter — ceramic clinks, broth bubbles, rain patters on the awning. [3s-6s] A cyclist rings a bell and glides through frame, tyres hissing on wet asphalt, distant city hum under a soft synth pad.\n",
+   "source": "Comfy MCP get_prompting_guide",
+   "fetched": "2026-10-08"
+  },
+  "h3_refs": {
+   "family": "minimax-h3",
+   "rules": [
+    "Negative prompt: ignored — do not pass one",
+    "Prompt weights: (e.g. `(word:1.2)`): not honored",
+    "MiniMax H3 is audio-native: voice, sound effects and music are generated with the picture in a single pass, so describe the sound in the same prompt as the shots and camera moves.",
+    "State the whole scene first (location, character, what is happening), then break it into timed shots — an explicit [0s-2s] / [2s-5s] timeline steers both the cuts and the audio.",
+    "Native canvas is a 768px short edge — 1344x768 at 16:9 — rounded to a multiple of 32; the shipped templates open at a smaller fast-preview size, so raise it for final output. Duration snaps to H3's 17-frames-per-block (17k+5) grid at 24fps.",
+    "Reference each R2V input by tag in connection order (<Picture 1>, <Video 1>, <Audio 1>) and say which reference drives identity, style, motion, camera or voice — explicit assignments work much better than leaving it implied.",
+    "Don't treat it as a silent video model: the workflow decodes a second, audio VAE and muxes stereo audio into the MP4, so a prompt with no sound direction throws away half the model."
+   ],
+   "settings": {
+    "steps": 20,
+    "cfg": 1.0,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "resolution": "1344x768"
+   },
+   "raw": "# minimax-h3 — prompting & settings guide\n\n- **Prompting style:** natural_language\n- **Negative prompt:** ignored — do not pass one\n- **Prompt weights** (e.g. `(word:1.2)`): not honored\n- **Loader:** UNETLoader + CLIPLoader (type minimax) + two VAELoaders (video VAE + audio VAE)\n\n## Recommended settings\n\n| steps | cfg | sampler | scheduler | resolution |\n| --- | --- | --- | --- | --- |\n| 20 | 1 | res_multistep | simple | 1344x768 |\n\n## Tips\n\n- MiniMax H3 is audio-native: voice, sound effects and music are generated with the picture in a single pass, so describe the sound in the same prompt as the shots and camera moves.\n- State the whole scene first (location, character, what is happening), then break it into timed shots — an explicit [0s-2s] / [2s-5s] timeline steers both the cuts and the audio.\n- Native canvas is a 768px short edge — 1344x768 at 16:9 — rounded to a multiple of 32; the shipped templates open at a smaller fast-preview size, so raise it for final output. Duration snaps to H3's 17-frames-per-block (17k+5) grid at 24fps.\n- 20 steps is the template default; ~25 buys better motion quality. The H3 nodes take a single prompt and emit one conditioning, and the templates sample through a guidance-free BasicGuider, so there is no cfg dial or negative-prompt input to reach for — steer with the prompt alone.\n- To go faster, first flip the shipped video_minimax_h3_* template's Boolean (Enable Lightning LoRA) switch (default off): it swaps in the 8-step turbo LoRA minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16 (R2V: minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16, which runs at 4) and drops steps to 6 (R2V: 4) with the built-in 12/3 shift, at the cost of slightly weaker audio and motion; the 8-step LoRA itself runs at 8 steps outside the template. Only if that is still too slow: (2) the FastVideo FastH3 8-step checkpoint via the video_fastvideo_fasth3_t2v / video_fastvideo_fasth3_i2v templates (a separate 8-step distilled checkpoint, fastvideo_fasth3_8step_v2_pruned_int8_convrot, with its shift pre-wired at 10/3; T2V and I2V only); (3) the 768p 4-step LoRA minimax_h3_fl2v_turbo_4step_v1.0_768p at 4 steps, which needs an explicit MiniMaxH3SigmaShift at 6/3; (4) fewer pixels or a shorter duration (generation time grows superlinearly with pixel count). The paid api_minimax_h3_max_turbo_t2v / _i2v templates (run_template) are the fastest route (768p in ~1-3 s) but cost partner fees, so offer them as a route change rather than picking them silently.\n- Sigma shift is a real dial, set with a MiniMaxH3SigmaShift node between the model loader and the guider. Its defaults (shift_video 12, shift_audio 3) are what the base model and the 8-step turbo LoRA expect; the 768p 4-step turbo variant (rung 3 above) was distilled at 6/3, so set them explicitly for that one. The video_minimax_h3_* templates omit the node and run the built-in 12/3; the FastH3 templates pre-wire it at 10/3.\n- Reference each R2V input by tag in connection order (<Picture 1>, <Video 1>, <Audio 1>) and say which reference drives identity, style, motion, camera or voice — explicit assignments work much better than leaving it implied.\n\n## Common mistakes\n\n- Don't run the base checkpoint at the turbo LoRA's 4-8 steps — without a Lightning LoRA loaded, H3 wants its full ~20-25 steps.\n- Don't run a turbo LoRA at the base 20-25 steps either — the 8-step and 4-step distillations are trained for those step counts and extra steps only burn GPU time.\n- Don't cross the turbo LoRAs over, and don't carry one variant's shift over to another: the fl2v turbo LoRA belongs on the fl2va (T2V/I2V) model and the ref2v turbo LoRA on the ref2va (R2V) model.\n- Don't budget prompt tokens for a negative prompt or hunt for a cfg dial — the H3 nodes expose a single prompt input and the templates guide with BasicGuider; put the steering in the prompt instead.\n- Don't answer 'make it faster' with the whole turbo menu — the template's Lightning switch is the default; the other rungs are for when it is not enough.\n- Don't treat it as a silent video model: the workflow decodes a second, audio VAE and muxes stereo audio into the MP4, so a prompt with no sound direction throws away half the model.\n\n## Example prompt\n\n> A rain-slicked Tokyo alley at dusk, neon signs humming, steam drifting off a ramen cart. [0s-3s] The camera pushes slowly past the cart as the chef slides a bowl across the counter — ceramic clinks, broth bubbles, rain patters on the awning. [3s-6s] A cyclist rings a bell and glides through frame, tyres hissing on wet asphalt, distant city hum under a soft synth pad.\n",
+   "source": "Comfy MCP get_prompting_guide",
+   "fetched": "2026-10-08"
+  },
+  "sdxl": {
+   "family": "sdxl",
+   "rules": [
+    "Negative prompt: supported",
+    "Prompt weights: (e.g. `(word:1.2)`): supported",
+    "SDXL works well with both descriptive phrases and comma-separated tags — quality boosters like \"highly detailed, sharp focus\" still help.",
+    "Always pair a positive with a negative prompt; a short quality-negative (\"blurry, lowres, jpeg artifacts, watermark\") noticeably cleans output.",
+    "Generate at 1024x1024 (or an SDXL-native aspect like 832x1216); 512x512 produces poor anatomy on SDXL.",
+    "Prompt weights like (word:1.2) are honored — use them sparingly to emphasize.",
+    "Don't generate at 512x512 — SDXL is trained for ~1MP and falls apart at SD1.5 resolutions.",
+    "Anime/booru checkpoints (Pony, Illustrious, NoobAI) want booru tags + their score/quality tags, not prose."
+   ],
+   "settings": {
+    "steps": 30,
+    "cfg": 7.0,
+    "sampler": "dpmpp_2m",
+    "scheduler": "karras",
+    "resolution": "1024x1024"
+   },
+   "raw": "# sdxl — prompting & settings guide\n\n- **Prompting style:** hybrid\n- **Negative prompt:** supported\n- **Prompt weights** (e.g. `(word:1.2)`): supported\n- **Loader:** CheckpointLoaderSimple\n\n## Recommended settings\n\n| steps | cfg | sampler | scheduler | resolution |\n| --- | --- | --- | --- | --- |\n| 30 | 7 | dpmpp_2m | karras | 1024x1024 |\n\n## Tips\n\n- SDXL works well with both descriptive phrases and comma-separated tags — quality boosters like \"highly detailed, sharp focus\" still help.\n- Always pair a positive with a negative prompt; a short quality-negative (\"blurry, lowres, jpeg artifacts, watermark\") noticeably cleans output.\n- Generate at 1024x1024 (or an SDXL-native aspect like 832x1216); 512x512 produces poor anatomy on SDXL.\n- Prompt weights like (word:1.2) are honored — use them sparingly to emphasize.\n\n## Common mistakes\n\n- Don't generate at 512x512 — SDXL is trained for ~1MP and falls apart at SD1.5 resolutions.\n- Don't drop the negative prompt — SDXL relies on real CFG and benefits from one.\n- Anime/booru checkpoints (Pony, Illustrious, NoobAI) want booru tags + their score/quality tags, not prose.\n\n## Example prompt\n\n> A majestic snow leopard perched on a rocky ledge, intricate fur detail, mountain backdrop, golden hour light, highly detailed, sharp focus, 8k. Negative: blurry, lowres, jpeg artifacts, watermark.\n",
+   "source": "Comfy MCP get_prompting_guide",
+   "fetched": "2026-10-08"
+  },
+  "flux": {
+   "family": "flux",
+   "rules": [
+    "Negative prompt: ignored — do not pass one",
+    "Prompt weights: (e.g. `(word:1.2)`): not honored",
+    "Write rich, descriptive natural-language sentences; Flux follows long prose prompts well.",
+    "Don't use prompt weights like (word:1.3) — Flux's T5 text encoder does not honor them.",
+    "Don't load it through CheckpointLoaderSimple — Flux ships as a diffusion_model + separate CLIP (UNETLoader + DualCLIPLoader)."
+   ],
+   "settings": {
+    "steps": 20,
+    "cfg": 1.0,
+    "sampler": "euler",
+    "scheduler": "simple",
+    "resolution": "1024x1024"
+   },
+   "raw": "# flux-dev — prompting & settings guide\n\n- **Prompting style:** natural_language\n- **Negative prompt:** ignored — do not pass one\n- **Prompt weights** (e.g. `(word:1.2)`): not honored\n- **Loader:** UNETLoader + DualCLIPLoader\n\n## Recommended settings\n\n| steps | cfg | sampler | scheduler | resolution |\n| --- | --- | --- | --- | --- |\n| 20 | 1 | euler | simple | 1024x1024 |\n\n## Tips\n\n- Write rich, descriptive natural-language sentences; Flux follows long prose prompts well.\n- Keep the KSampler cfg at 1.0 and steer prompt adherence with a FluxGuidance node (≈3.5) instead.\n- 20 steps is a good default; 25-30 only for fine detail.\n\n## Common mistakes\n\n- Don't pass a negative prompt — Flux ignores CFG>1 / negatives; raising KSampler cfg above 1 degrades output.\n- Don't use prompt weights like (word:1.3) — Flux's T5 text encoder does not honor them.\n- Don't load it through CheckpointLoaderSimple — Flux ships as a diffusion_model + separate CLIP (UNETLoader + DualCLIPLoader).\n\n## Example prompt\n\n> A weathered lighthouse keeper standing on a cliff at golden hour, wind tugging at his oilskin coat, dramatic clouds behind him, cinematic lighting, highly detailed.\n",
+   "source": "Comfy MCP get_prompting_guide",
+   "fetched": "2026-10-08"
+  },
+  "wan": {
+   "family": "wan",
+   "rules": [
+    "Negative prompt: supported",
+    "Prompt weights: (e.g. `(word:1.2)`): not honored",
+    "Wan 2.x (text-to-video / image-to-video) takes natural-language descriptions of the scene AND its motion.",
+    "480p (832x480) is the fast default; 720p costs significantly more time and memory.",
+    "Don't omit motion description — Wan needs verbs and camera direction to animate.",
+    "Don't pass the reference image at its original resolution/aspect ratio into I2V without checking it against the target resolution first."
+   ],
+   "settings": {
+    "steps": 20,
+    "cfg": 6.0,
+    "sampler": "uni_pc",
+    "scheduler": "simple",
+    "resolution": "832x480"
+   },
+   "raw": "# wan — prompting & settings guide\n\n- **Prompting style:** natural_language\n- **Negative prompt:** supported\n- **Prompt weights** (e.g. `(word:1.2)`): not honored\n- **Loader:** UNETLoader + CLIPLoader\n\n## Recommended settings\n\n| steps | cfg | sampler | scheduler | resolution |\n| --- | --- | --- | --- | --- |\n| 20 | 6 | uni_pc | simple | 832x480 |\n\n## Tips\n\n- Wan 2.x (text-to-video / image-to-video) takes natural-language descriptions of the scene AND its motion.\n- It supports a negative prompt and real CFG (~5-7) — the bundled default negative trims artifacts and over-saturation.\n- 480p (832x480) is the fast default; 720p costs significantly more time and memory.\n- For image-to-video, resize/crop the reference image to the target resolution and aspect ratio (e.g. 832x480) before the I2V node — a mismatched reference gets stretched or cropped unexpectedly.\n\n## Common mistakes\n\n- Don't set cfg to 1.0 like a distilled model — full Wan checkpoints need cfg ~6; only the Lightning/distilled LoRAs run at low steps + cfg 1.\n- Don't omit motion description — Wan needs verbs and camera direction to animate.\n- Don't pass the reference image at its original resolution/aspect ratio into I2V without checking it against the target resolution first.\n\n## Example prompt\n\n> A paper boat drifting down a rain-soaked gutter, water rushing past, camera following low to the ground, reflections of city lights rippling on the surface.\n",
+   "source": "Comfy MCP get_prompting_guide",
+   "fetched": "2026-10-08"
+  }
+ }
+}

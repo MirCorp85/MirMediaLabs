@@ -14,6 +14,7 @@ import core
 import params
 import prompts
 import console
+import workflows
 
 # ── shared helpers ─────────────────────────────────────────────────────────
 
@@ -22,6 +23,15 @@ def log(job, msg):
     job["log"] = (job.get("log") or "") + msg + "\n"
     job["stage"] = msg
     console.emit(_SRC.get(job.get("model"), "LAB"), msg, job)
+
+
+def guide_note(job, key, c):
+    """Log where the panel differs from the official Comfy guide's recommended settings — advisory only,
+    the user's panel/saved-mode values always render."""
+    diff = ["%s %s (guide %s)" % (k, c.get(k), v) for k, v in prompts.settings_for(key).items()
+            if k in c and str(c.get(k)) != str(v)]
+    if diff:
+        job["log"] = (job.get("log") or "") + "official guide differs: " + ", ".join(diff) + "\n"
 
 
 _SRC = {"h3": "VID", "music3": "SONG", "qimg": "IMG", "ace": "SONG", "llama": "MUSE"}
@@ -190,9 +200,12 @@ H3_SHORT = {"vertical": ("aspect", "9:16"), "portrait": ("aspect", "9:16"), "squ
             "turbo4": ("quality", "turbo4"), "turbo8": ("quality", "turbo8"), "full": ("quality", "full"),
             "best": ("quality", "full"), "draft": ("res", "draft"), "hd": ("res", "high"), "max768": ("res", "max"),
             "t2v": ("mode", "t2v"), "i2v": ("mode", "i2v"), "flf2v": ("mode", "flf2v"), "r2v": ("mode", "r2v"),
-            "raw": ("enhance", "off"), "handheld": ("steady", "off")}
+            "raw": ("enhance", "off"), "handheld": ("steady", "off"), "story": ("mode", "story"),
+            "storyboard": ("mode", "story"), "slowmo": ("speed", "0.5"), "smooth": ("fps", "60"), "boomerang": ("loop", "boomerang"),
+            "bw": ("grade", "bw"), "grain": ("grain", "light"), "xfade": ("join", "xfade")}
 H3_VALUE = {"seconds", "aspect", "res", "quality", "steps", "sampler", "scheduler", "seed", "style", "trim", "mode",
-            "lora_strength", "ref_size"}
+            "lora_strength", "ref_size", "extend", "extend_anchor", "story_secs", "camera", "shot", "motion", "look", "scene_fx",
+            "lighting", "grade", "fps", "speed", "upscale", "fade", "shift_video", "shift_audio", "denoise", "ref_role"}
 DUR_WORD = r"(?<![-–\d.:])\b(\d{1,2})\s*(s|sec|secs|second|seconds)\b(?!\s*[-–)])"
 
 
@@ -264,7 +277,60 @@ def aspect_of(media, default):
     return min(H3_ASPECTS, key=lambda a: abs(H3_ASPECTS[a] - wh[0] / wh[1]))
 
 
-def h3_graph(cond_node, unet, lora, c, seed, sched, silent):
+H3_CAMERA = {"static": "a locked-off static shot", "dolly_in": "a slow dolly-in toward the subject",
+             "dolly_out": "a slow dolly-out that reveals the surroundings", "orbit": "a smooth orbit around the subject",
+             "crane_up": "a crane up reveal", "crane_down": "a crane down from above", "tracking": "a tracking shot that follows the subject",
+             "handheld": "a handheld follow shot with natural sway", "pan_left": "a slow pan to the left",
+             "pan_right": "a slow pan to the right", "tilt_up": "a tilt up from the ground to the sky", "zoom_in": "a slow zoom-in",
+             "fpv": "an FPV drone fly-through", "aerial": "an aerial establishing shot", "pov": "a first-person POV shot"}
+H3_SHOT = {"extreme_wide": "extreme wide shot", "wide": "wide shot", "medium": "medium shot", "close": "close-up",
+           "extreme_close": "extreme close-up", "low_angle": "low-angle shot", "high_angle": "high-angle shot",
+           "overhead": "top-down overhead shot"}
+H3_MOTION = {"subtle": "Movement is subtle and gentle.", "natural": "Movement is natural and realistic.",
+             "dynamic": "Movement is dynamic and energetic.", "extreme": "Fast, intense, high-action movement."}
+H3_LOOK = {"cinematic": "Cinematic film look, shallow depth of field, anamorphic feel.",
+           "photoreal": "Photorealistic smartphone video, natural colours.", "documentary": "Documentary look, natural light, observational.",
+           "commercial": "Glossy high-end commercial look, crisp and polished.", "music_video": "Stylised music-video look, bold colours.",
+           "anime": "Anime style, clean line art, cel shading.", "3d": "Stylised 3D animated film look, soft global illumination.",
+           "claymation": "Claymation stop-motion look, handmade clay textures.", "noir": "Black-and-white film noir, hard shadows.",
+           "vintage": "Vintage 16 mm film look, warm faded colours, soft grain.", "vhs": "1990s VHS camcorder look, soft and slightly smeared.",
+           "cyberpunk": "Cyberpunk look, neon magenta and cyan, wet reflective streets.",
+           "watercolor": "Animated watercolour painting, soft bleeding pigments on paper."}
+H3_FX = {"rain": "Rain falls steadily through the scene.", "snow": "Snow falls softly through the air.",
+         "fog": "Thin fog drifts through the scene.", "smoke": "Smoke drifts slowly through the light.",
+         "sparks": "Glowing fire sparks and embers float upward.", "dust": "Dust motes glitter in beams of light.",
+         "petals": "Flower petals drift down through the frame.", "confetti": "Colourful confetti rains down.",
+         "lightning": "Lightning flashes across a stormy sky.", "particles": "Glowing magic particles swirl around the subject.",
+         "bubbles": "Iridescent bubbles float through the air.", "underwater": "Underwater, with rippling light caustics.",
+         "explosion": "A burst of debris and fire erupts in the background.", "timelapse": "Clouds race across the sky in timelapse.",
+         "slowmo": "The action unfolds in dramatic slow motion."}
+H3_LIGHT = {"golden": "Warm golden-hour sunlight.", "blue_hour": "Cool blue-hour twilight.", "night": "Night, lit by city lights.",
+            "neon": "Neon lighting in saturated colours.", "studio": "Soft, even studio lighting.", "harsh": "Harsh midday sun, crisp shadows.",
+            "candle": "Warm flickering candlelight.", "backlit": "Strong backlight with a glowing rim around the subject.",
+            "moody": "Low-key moody lighting, deep shadows.", "overcast": "Soft overcast daylight."}
+H3_REF_ROLE = {
+    "identity": "Use {p} as the visual references for the exact identity and appearance of the subjects (match faces, hair "
+                "and features precisely; treat them as subject references, not as the background or pose).",
+    "style": "Use {p} as the reference for the visual style, colour palette and look only — not for the people or the layout.",
+    "scene": "Use {p} as the reference for the location and setting.",
+    "all": "Use {p} as the references for the subjects, their outfits and the setting — match all of them closely."}
+
+
+def h3_direction(c):
+    """The ⚙ camera / look / scene choices as positive sentences (H3 has no negative branch)."""
+    out = []
+    if c.get("shot", "auto") in H3_SHOT or c.get("camera", "auto") in H3_CAMERA:
+        out.append("Camera: %s%s." % (H3_SHOT.get(c.get("shot"), ""), ((", " if c.get("shot") in H3_SHOT else "")
+                                                                     + H3_CAMERA[c["camera"]]) if c.get("camera") in H3_CAMERA else ""))
+    for table, k in ((H3_MOTION, "motion"), (H3_LOOK, "look"), (H3_LIGHT, "lighting"), (H3_FX, "scene_fx")):
+        if c.get(k) in table:
+            out.append(table[c[k]])
+    if str(c.get("fx_text") or "").strip():
+        out.append(str(c["fx_text"]).strip().rstrip(".") + ".")
+    return " ".join(out)
+
+
+def h3_graph(cond_node, unet, lora, c, seed, sched, silent, guide=None):
     g = dict(cond_node)
     g["unet"] = {"class_type": "UNETLoader", "inputs": {"unet_name": unet, "weight_dtype": "default"}}
     model = ["unet", 0]
@@ -272,14 +338,23 @@ def h3_graph(cond_node, unet, lora, c, seed, sched, silent):
         g["lora"] = {"class_type": "LoraLoaderModelOnly", "inputs": {"model": ["unet", 0], "lora_name": lora,
                                                                      "strength_model": c["lora_strength"]}}
         model = ["lora", 0]
+    if c.get("shift_video") not in ("", None) or c.get("shift_audio") not in ("", None):
+        g["shift"] = {"class_type": "MiniMaxH3SigmaShift", "inputs": {"model": model,
+                      "shift_video": float(c["shift_video"]) if c.get("shift_video") not in ("", None) else 12.0,
+                      "shift_audio": float(c["shift_audio"]) if c.get("shift_audio") not in ("", None) else 3.0}}
+        model = ["shift", 0]
     g["clip"] = {"class_type": "CLIPLoader", "inputs": {"clip_name": H3["clip"], "type": "minimax", "device": "default"}}
     g["vvae"] = {"class_type": "VAELoader", "inputs": {"vae_name": H3["vae"]}}
     g["avae"] = {"class_type": "VAELoader", "inputs": {"vae_name": H3["audio_vae"]}}
-    g["guider"] = {"class_type": "BasicGuider", "inputs": {"model": model, "conditioning": ["cond", 0]}}
+    cond = ["cond", 0]
+    if guide:                      # anchor frames of the previous clip at frame 0 → this clip continues it
+        g.update(guide)
+        cond = ["guide", 0]
+    g["guider"] = {"class_type": "BasicGuider", "inputs": {"model": model, "conditioning": cond}}
     g["noise"] = {"class_type": "RandomNoise", "inputs": {"noise_seed": seed}}
     g["sampler"] = {"class_type": "KSamplerSelect", "inputs": {"sampler_name": c["sampler"]}}
     g["sched"] = {"class_type": "BasicScheduler", "inputs": {"model": model, "scheduler": sched,
-                                                             "steps": c["steps"], "denoise": 1.0}}
+                                                             "steps": c["steps"], "denoise": float(c.get("denoise") or 1.0)}}
     g["sample"] = {"class_type": "SamplerCustomAdvanced", "inputs": {"noise": ["noise", 0], "guider": ["guider", 0],
                    "sampler": ["sampler", 0], "sigmas": ["sched", 0], "latent_image": ["cond", 1]}}
     g["dec"] = {"class_type": "VAEDecode", "inputs": {"samples": ["sample", 0], "vae": ["vvae", 0]}}
@@ -293,52 +368,220 @@ def h3_graph(cond_node, unet, lora, c, seed, sched, silent):
     return g
 
 
+def has_audio(path):
+    try:
+        r = subprocess.run([core.FFMPEG, "-hide_banner", "-i", path], capture_output=True, text=True,
+                           timeout=30, creationflags=core.NO_WINDOW)
+        return "Audio:" in r.stderr
+    except Exception:
+        return False
+
+
+def _tmp(tag, ext=".mp4"):
+    return os.path.join(core.REFS, "_prep_%s_%d%s" % (tag, int(time.time() * 1000), ext))
+
+
+def _job_caps(job):
+    c = job.get("caps")
+    return None if c is None else set(c)          # None = the owner / an internal job: everything
+
+
+def _need_cap(job, cap, what):
+    caps = _job_caps(job)
+    if caps is not None and cap not in caps:
+        raise RuntimeError("%s isn't included in your access — ask the host to add it" % what)
+
+
+def _tail(path, frames, w, h):
+    """The last `frames` frames of a clip (sound included) as a small mp4 to anchor the next clip on."""
+    secs = media_seconds(path) or 5.0
+    out = _tmp("tail")
+    vf = "scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,fps=24" % (w, h, w, h)
+    ffmpeg(["-ss", "%.3f" % max(0.0, secs - frames / 24.0 - 0.02), "-i", path, "-frames:v", str(max(1, frames)), "-vf", vf,
+            "-c:v", "libx264", "-crf", "12", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", out], 180)
+    return out
+
+
+def _join(paths, drops, out, silent, xfade=False):
+    """Join clips; drops[i] = frames to drop at the start of clip i (the anchored overlap)."""
+    n = len(paths)
+    if n == 1:
+        os.replace(paths[0], out)
+        return
+    audio = not silent and all(has_audio(p) for p in paths)
+    args, fc = [], []
+    for i, p in enumerate(paths):
+        args += ["-i", p]
+        d = drops[i] / 24.0
+        fc.append("[%d:v]trim=start=%.4f,setpts=PTS-STARTPTS,fps=24,format=yuv420p,setsar=1[v%d]" % (i, d, i))
+        if audio:
+            fc.append("[%d:a]atrim=start=%.4f,asetpts=PTS-STARTPTS,aresample=48000[a%d]" % (i, d, i))
+    if xfade:
+        lens = [max(0.3, media_seconds(p) - drops[i] / 24.0) for i, p in enumerate(paths)]
+        cur, acc, t = "v0", lens[0], 0.25
+        for i in range(1, n):
+            nxt = "x%d" % i
+            fc.append("[%s][v%d]xfade=transition=fade:duration=%.2f:offset=%.3f[%s]" % (cur, i, t, acc - t, nxt))
+            cur, acc = nxt, acc + lens[i] - t
+        vmap = "[%s]" % cur
+        if audio:
+            ca = "a0"
+            for i in range(1, n):
+                fc.append("[%s][a%d]acrossfade=d=%.2f[ax%d]" % (ca, i, t, i))
+                ca = "ax%d" % i
+            amap = "[%s]" % ca
+    else:
+        fc.append("".join("[v%d]%s" % (i, "[a%d]" % i if audio else "") for i in range(n)) +
+                  "concat=n=%d:v=1:a=%d[vo]%s" % (n, 1 if audio else 0, "[ao]" if audio else ""))
+        vmap, amap = "[vo]", "[ao]"
+    args += ["-filter_complex", ";".join(fc), "-map", vmap] + (["-map", amap, "-c:a", "aac"] if audio else []) + \
+        ["-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", "-movflags", "+faststart", out]
+    ffmpeg(args, 900)
+
+
+_GRADE = {"warm": "colorbalance=rs=.08:gs=.02:bs=-.08:rm=.05:bm=-.05", "cool": "colorbalance=rs=-.06:bs=.08:rm=-.04:bm=.06",
+          "teal_orange": "colorbalance=rs=-.08:bs=.1:rh=.1:gh=.02:bh=-.1", "bw": "hue=s=0",
+          "vintage": "curves=preset=vintage", "vivid": "eq=saturation=1.35:contrast=1.06", "contrast": "eq=contrast=1.25"}
+
+
+def post_video(job, path, c):
+    """⚙ Post effects with ffmpeg, in place. Every choice at its default = untouched."""
+    speed = float(c.get("speed") or 1)
+    vf, af = [], []
+    if speed != 1:
+        vf.append("setpts=PTS/%.3f" % speed)
+        af.append("atempo=%.3f" % speed)
+    if c.get("grade") in _GRADE:
+        vf.append(_GRADE[c["grade"]])
+    if c.get("sharpen") in ("light", "strong"):
+        vf.append("unsharp=5:5:%s" % ("0.6" if c["sharpen"] == "light" else "1.2"))
+    if c.get("grain") in ("light", "heavy"):
+        vf.append("noise=alls=%d:allf=t" % (7 if c["grain"] == "light" else 16))
+    if c.get("vignette") == "on":
+        vf.append("vignette=PI/5")
+    if c.get("upscale") in ("1.5", "2"):
+        k = float(c["upscale"])
+        vf.append("scale=trunc(iw*%.2f/2)*2:trunc(ih*%.2f/2)*2:flags=lanczos" % (k, k))
+    fps = str(c.get("fps") or "24")
+    if fps == "30":
+        vf.append("fps=30")
+    elif fps in ("48", "60"):
+        vf.append("minterpolate=fps=%s:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1" % fps)
+    fade = c.get("fade", "none")
+    if fade != "none":
+        dur = (media_seconds(path) or 5.0) / speed
+        d = min(0.8, dur / 4)
+        if fade in ("in", "both"):
+            vf.append("fade=t=in:st=0:d=%.2f" % d)
+            af.append("afade=t=in:st=0:d=%.2f" % d)
+        if fade in ("out", "both"):
+            vf.append("fade=t=out:st=%.2f:d=%.2f" % (max(0.0, dur - d), d))
+            af.append("afade=t=out:st=%.2f:d=%.2f" % (max(0.0, dur - d), d))
+    loop = c.get("loop") == "boomerang"
+    if not vf and not loop:
+        return []
+    audio = has_audio(path)
+    done = []
+    if vf:
+        log(job, "post effects: %s …" % ", ".join(sorted(k for k in ("speed", "grade", "sharpen", "grain", "vignette", "upscale",
+                                                                       "fps", "fade") if str(c.get(k)) not in
+                                                         ("1", "none", "off", "24", "", "None"))))
+        tmp = path + ".fx.mp4"
+        ffmpeg(["-i", path, "-vf", ",".join(vf)] + (["-af", ",".join(af)] if audio and af else []) +
+               ["-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p"] + (["-c:a", "aac"] if audio else ["-an"]) +
+               ["-movflags", "+faststart", tmp], 1800)
+        os.replace(tmp, path)
+        done.append("effects")
+    if loop:
+        log(job, "boomerang loop …")
+        tmp = path + ".loop.mp4"
+        fc = "[0:v]split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1:a=0[v]"
+        if audio:
+            fc += ";[0:a]asplit[x][y];[y]areverse[ry];[x][ry]concat=n=2:v=0:a=1[au]"
+        ffmpeg(["-i", path, "-filter_complex", fc, "-map", "[v]"] + (["-map", "[au]", "-c:a", "aac"] if audio else []) +
+               ["-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", "-movflags", "+faststart", tmp], 900)
+        os.replace(tmp, path)
+        done.append("boomerang")
+    return done
+
+
+def custom_workflow(job, model, prompt, c, refs, w=0, h=0, length=0, steps=0):
+    """⚙ ComfyUI workflow ≠ built-in → the person's own node graph. → result dict or None."""
+    wid = c.get("workflow") or "builtin"
+    if wid == "builtin":
+        return None
+    _need_cap(job, "workflows", "Custom ComfyUI workflows")
+    seed = seed_of(c.get("seed"))
+    vals = {"prompt": prompt, "negative": c.get("negative", ""), "seed": seed, "width": w or 1024, "height": h or 1024,
+            "length": length or 121, "seconds": c.get("seconds") or c.get("duration") or 5, "steps": steps or c.get("steps") or 20,
+            "fps": 24}
+    prepare_gpu(job)
+    entry, dt = workflows.run(job, wid, vals, refs, log)
+    kind = workflows.KIND.get(model, "video")
+    ext = {"video": ".mp4", "image": ".png", "audio": os.path.splitext(entry.get("filename", "x.mp3"))[1] or ".mp3"}[kind]
+    name = save(entry, model + "_wf", ext, job, {"workflow": wid, "seed": seed})
+    return {"files": [name], "text": "Custom workflow %s · seed %d · %.1f min\n\nPROMPT:\n%s" % (wid.split("__", 1)[1], seed,
+                                                                                               dt / 60, prompt[:3000])}
+
+
 def run_h3(job):
     refs = split_refs(job)
     text, c = h3_settings(job.get("prompt") or "", job["params"])
+    guide_note(job, "h3", c)
     script = attached_text(refs["text"])
     if script:
         text = (text + "\n" + script).strip()
     text = text or "a slow cinematic flight through a glowing neon city at night"
     imgs, vids, auds = refs["image"], refs["video"], refs["audio"]
     mode = c["mode"]
+    # attachments are always used: a mode that can't take them switches to one that can (it used to ignore them)
     if mode == "auto":
         mode = "r2v" if (imgs or vids) else "t2v"
-    log(job, "MiniMax H3 · %s" % mode)
+    elif mode == "t2v" and (imgs or vids):
+        log(job, "your %d attachment%s switch text → video to reference → video" % (len(imgs) + len(vids),
+                                                                                    "" if len(imgs) + len(vids) == 1 else "s"))
+        mode = "r2v"
+    elif mode == "story" and len(imgs) < 2:
+        mode = "i2v" if imgs else ("extend" if vids else "t2v")
+        log(job, "storyboard needs 2+ pictures (keyframes) — using %s" % mode)
+    elif mode == "extend" and not vids:
+        if not imgs:
+            raise RuntimeError("extend needs the clip to continue — attach it (or a picture to start from)")
+        mode = "i2v"
+        log(job, "no clip attached to extend — starting from the picture instead")
+    extra = int(c.get("extend") or 0)
+    if mode in ("story", "extend") or extra:
+        _need_cap(job, "extend", "Long videos (extend / storyboard)")
+    wf = custom_workflow(job, "h3", text, c, refs, *h3_dims(c["mp"], c["aspect"] if c["aspect"] != "auto" else "16:9"),
+                         h3_frames(c["seconds"]), c["steps"])
+    if wf:
+        return wf
+    log(job, "MiniMax H3 · %s%s" % (mode, " + %d extension%s" % (extra, "" if extra == 1 else "s") if extra else ""))
     comfy.ensure()
-    first = last = src = None
+    src = None
     img_names, vid_names, prepped = [], [], []
     aspect = "" if c["aspect"] == "auto" else c["aspect"]
     if mode in ("i2v", "flf2v") and vids and len(imgs) < (1 if mode == "i2v" else 2):
         # frame modes take pictures: an attached clip supplies its first / last frame instead of being ignored
-        # i2v: the clip's opening frame · flf2v + 1 picture: picture → the clip's opening frame (before → after)
-        # flf2v + no picture: the clip's first → last frame
         grab = [video_frame(vids[0], 0.0)]
         if mode == "flf2v" and not imgs:
             grab.append(video_frame(vids[0], max(0.0, media_seconds(vids[0]) - 0.15)))
         imgs = imgs + grab
         log(job, "using %d frame%s from the attached clip" % (len(grab), "" if len(grab) == 1 else "s"))
-    elif mode == "t2v" and (imgs or vids):
-        log(job, "note: mode is text → video, so the %d attached picture/clip%s are ignored — set Mode to auto or r2v to use them"
-            % (len(imgs) + len(vids), "" if len(imgs) + len(vids) == 1 else "s"))
     if mode in ("i2v", "flf2v") and vids:
         log(job, "note: frame modes don't take motion from clips — use r2v for that")
-    if mode == "i2v":
-        if not imgs:
-            raise RuntimeError("image → video needs a picture — attach one with 📎")
+    if mode == "flf2v" and len(imgs) < 2:
+        mode = "i2v" if imgs else "t2v"
+        log(job, "first + last frame needs 2 pictures — using %s" % mode)
+    if mode in ("i2v", "flf2v", "story"):
         src = imgs[0]
         aspect = aspect or aspect_of(src, "16:9")
-    elif mode == "flf2v":
-        if len(imgs) < 2:
-            raise RuntimeError("first + last frame needs 2 attached pictures (picture 1 = first, picture 2 = last)")
-        src = imgs[0]
-        aspect = aspect or aspect_of(src, "16:9")
+    elif mode == "extend":
+        aspect = aspect or aspect_of(vids[0], "16:9")
     elif mode == "r2v":
-        if not (imgs or vids):
-            raise RuntimeError("reference mode needs attached pictures or clips — use 📎")
         if H3["r2v_unet"] not in comfy.models("diffusion_models"):
             raise RuntimeError("reference mode needs %s in ComfyUI" % H3["r2v_unet"])
-        if not aspect:                     # a portrait phone clip stays portrait (it was cropped to 16:9 before)
+        if not aspect:                     # a portrait phone clip stays portrait
             aspect = aspect_of(vids[0] if vids else imgs[0], "16:9")
     aspect = aspect or "16:9"
     sched = c["scheduler"] if c["scheduler"] != "auto" else ("beta" if mode == "r2v" and c["quality"] == "full" else "simple")
@@ -346,49 +589,82 @@ def run_h3(job):
     length = h3_frames(c["seconds"])
     soundtrack = auds[0] if (auds and c["soundtrack"] != "ignore") else None
     silent = c["audio"] == "off" or (soundtrack and c["soundtrack"] == "replace")
+    direction = h3_direction(c)
+    steady = c["steady"] == "on" and c.get("camera") not in ("handheld", "fpv")
+    segs_text = [t.strip() for t in str(c.get("extend_prompt") or "").split("||") if t.strip()]
 
-    built = None
-    if c["enhance"] == "on" and mode != "r2v":
+    def compose(idea, built, r2v=False, cont=False):
+        """The final H3 prompt from the director's text (or the person's words) + the ⚙ direction + audio."""
+        if built:
+            p = built + ("\nCAMERA NOTE: steady camera, level horizon, upright framing." if steady else "")
+        else:
+            p = "Cinematic, photorealistic, smooth natural motion, detailed lighting. "
+            if steady:
+                p += "Steady camera, level horizon, upright framing. "
+            if cont:
+                p += "The shot continues seamlessly from its opening frames, same subjects, place and light. "
+            if r2v and not re.search(r"<(Picture|Video)\s*\d+>", idea, re.I):
+                tags = []
+                if imgs:
+                    tags.append(H3_REF_ROLE.get(c.get("ref_role"), H3_REF_ROLE["identity"]).format(
+                        p=", ".join("<Picture %d>" % (i + 1) for i in range(min(9, len(imgs))))))
+                if vids:
+                    tags.append("Use %s as the reference for motion, camera movement, framing and scene."
+                                % ", ".join("<Video %d>" % (i + 1) for i in range(min(3, len(vids)))))
+                p += " ".join(tags) + " "
+            p += idea.rstrip(". ") + "."
+            if direction:
+                p += " " + direction
+            if r2v:
+                p += " Keep every face stable, sharp and undistorted in every frame."
+        if not silent:
+            if c["audio"] == "custom" and c["audio_text"].strip():
+                p += " AUDIO: " + c["audio_text"].strip() + "."
+            elif not built and not re.search(r"\b(audio|sound|music|voice|silent)\b", idea, re.I):
+                p += " AUDIO: fitting ambient sound effects and subtle music."
+        if c["style"] != "none":
+            p += " embedding:minimaxh3_" + c["style"]
+        return p
+
+    def direct(idea, first=None, secs=None):
+        if c["enhance"] != "on":
+            return None
         log(job, "engine directing the shot list …")
-        built = prompts.h3(core.ask, text, int(c["seconds"]), first_frame=src)
-    steady = c["steady"] == "on"
-    prompt = "Cinematic, photorealistic, smooth natural motion, detailed lighting. "
-    if steady:
-        prompt += "Steady camera, level horizon, upright framing. "
-    if mode == "r2v":
-        if not re.search(r"<(Picture|Video)\s*\d+>", text, re.I):
-            tags = []
-            if imgs:
-                tags.append("Use %s as the visual references for the exact identity and appearance of the subjects "
-                            "(match faces, hair and features precisely; treat them as subject references, not as the "
-                            "background or pose)." % ", ".join("<Picture %d>" % (i + 1) for i in range(min(9, len(imgs)))))
-            if vids:
-                tags.append("Use %s as the reference for motion, camera movement, framing and scene."
-                            % ", ".join("<Video %d>" % (i + 1) for i in range(min(3, len(vids)))))
-            prompt += " ".join(tags) + " "
-        prompt += text + ". Keep every face stable, sharp and undistorted in every frame."
-    elif built:
-        prompt = built + ("\nCAMERA NOTE: steady camera, level horizon, upright framing." if steady else "")
-    else:
-        prompt += text + "."
-    if not silent:
-        if c["audio"] == "custom" and c["audio_text"].strip():
-            prompt += " AUDIO: " + c["audio_text"].strip() + "."
-        elif not built and not re.search(r"\b(audio|sound|music|voice|silent)\b", text, re.I):
-            prompt += " AUDIO: fitting ambient sound effects and subtle music."
-    if c["style"] != "none":
-        prompt += " embedding:minimaxh3_" + c["style"]
+        brief = idea + (("\n(Use this direction: %s)" % direction) if direction else "")
+        return prompts.h3(core.ask, brief, int(secs or c["seconds"]), first_frame=first)
 
-    prepare_gpu(job)
+    flf = H3_FLF_LORA.get(c["quality"])
+    segments, drops, prompts_used = [], [], []
+    seed = seed_of(c["seed"])
+
+    def render(node, unet, lora, guide=None, tag="seg"):
+        entry, dt_ = comfy.run(h3_graph(node, unet, lora, c, seed + len(segments), sched, silent, guide), "video", job)
+        out = _tmp(tag)
+        comfy.fetch(entry, out)
+        prepped.append(out)
+        return out, dt_
+
+    t_all = 0.0
     try:
+        # ── the opening clip(s)
         if mode == "r2v":
+            linked = prompts.link_refs(text, len(imgs[:9]), len(vids[:3]))
+            built = None
+            if c["enhance"] == "on":
+                log(job, "engine studying your %d reference%s and directing …" % (len(imgs) + len(vids),
+                                                                                 "" if len(imgs) + len(vids) == 1 else "s"))
+                frames = [video_frame(v, 1.0) for v in vids[:2]]
+                built = prompts.h3_refs(core.ask, linked + (("\n(Use this direction: %s)" % direction) if direction else ""),
+                                        int(c["seconds"]), imgs[:9], frames, len(vids[:3]), c.get("ref_role", "identity"))
+            prompt = compose(linked, built, r2v=True)
+            prepare_gpu(job)
             log(job, "uploading references …")
             img_names = [comfy.upload(p) for p in imgs[:9]]
             for p in vids[:3]:
-                pp = os.path.join(core.REFS, "_prep_%d.mp4" % int(time.time() * 1000))
+                pp = _tmp("ref")
                 vf = "scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,fps=24" % (w, h, w, h)
-                ffmpeg(["-i", p, "-t", str(min(10, c["seconds"] + 1)), "-vf", vf, "-c:v", "libx264", "-crf", "16",
-                        "-pix_fmt", "yuv420p", "-c:a", "aac", pp], 180)
+                ffmpeg(["-i", p, "-t", str(min(int(c.get("ref_secs") or 10), c["seconds"] + 1)), "-vf", vf, "-c:v", "libx264",
+                        "-crf", "16", "-pix_fmt", "yuv420p", "-c:a", "aac", pp], 180)
                 prepped.append(pp)
                 vid_names.append(comfy.upload(pp))
             node = {"cond": {"class_type": "MiniMaxH3ReferenceToVideo", "inputs": {
@@ -401,8 +677,40 @@ def run_h3(job):
                 node["vid%d" % i] = {"class_type": "LoadVideo", "inputs": {"file": n}}
                 node["vparts%d" % i] = {"class_type": "GetVideoComponents", "inputs": {"video": ["vid%d" % i, 0]}}
                 node["cond"]["inputs"]["ref_videos.ref_video_%d" % i] = ["vparts%d" % i, 0]
-            unet, lora = H3["r2v_unet"], (H3["r2v_lora"] if c["quality"] != "full" else None)
+            log(job, "rendering %dx%d · %.1fs · %s %d steps …" % (w, h, length / 24, c["quality"], c["steps"]))
+            p_, dt = render(node, H3["r2v_unet"], H3["r2v_lora"] if c["quality"] != "full" else None)
+            segments.append(p_), drops.append(0), prompts_used.append(prompt)
+            t_all += dt
+        elif mode == "story":
+            keys = imgs[:9]
+            slen = h3_frames(int(c.get("story_secs") or c["seconds"]))
+            for k in range(len(keys) - 1):
+                idea = segs_text[k] if k < len(segs_text) else text
+                built = direct(idea, keys[k], c.get("story_secs"))
+                prompt = compose(idea, built)
+                prepare_gpu(job)
+                node = {"cond": {"class_type": "MiniMaxH3ImageToVideo", "inputs": {
+                    "clip": ["clip", 0], "vae": ["vvae", 0], "prompt": prompt, "width": w, "height": h, "length": slen}},
+                    "ff": {"class_type": "LoadImage", "inputs": {"image": comfy.upload(keys[k])}},
+                    "lf": {"class_type": "LoadImage", "inputs": {"image": comfy.upload(keys[k + 1])}}}
+                node["cond"]["inputs"]["first_frame"] = ["ff", 0]
+                node["cond"]["inputs"]["last_frame"] = ["lf", 0]
+                log(job, "storyboard %d/%d · keyframe %d → %d · %dx%d · %.1fs …" % (k + 1, len(keys) - 1, k + 1, k + 2, w, h,
+                                                                                  slen / 24))
+                p_, dt = render(node, H3["unet"], flf, tag="story")
+                segments.append(p_), drops.append(1 if k else 0), prompts_used.append(prompt)
+                t_all += dt
+        elif mode == "extend":
+            base = _tmp("base")
+            vf = "scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,fps=24" % (w, h, w, h)
+            ffmpeg(["-i", vids[0], "-vf", vf, "-c:v", "libx264", "-crf", "14", "-pix_fmt", "yuv420p", "-c:a", "aac", base], 600)
+            prepped.append(base)
+            segments.append(base), drops.append(0), prompts_used.append("(your clip)")
+            extra = max(1, extra)
         else:
+            built = direct(text, src)
+            prompt = compose(text, built)
+            prepare_gpu(job)
             node = {"cond": {"class_type": "MiniMaxH3ImageToVideo", "inputs": {
                 "clip": ["clip", 0], "vae": ["vvae", 0], "prompt": prompt, "width": w, "height": h, "length": length}}}
             if mode in ("i2v", "flf2v"):
@@ -411,42 +719,92 @@ def run_h3(job):
             if mode == "flf2v":
                 node["lf"] = {"class_type": "LoadImage", "inputs": {"image": comfy.upload(imgs[1])}}
                 node["cond"]["inputs"]["last_frame"] = ["lf", 0]
-            unet, lora = H3["unet"], H3_FLF_LORA.get(c["quality"])
-        seed = seed_of(c["seed"])
-        log(job, "rendering %dx%d · %.1fs · %s %d steps …" % (w, h, length / 24, c["quality"], c["steps"]))
-        entry, dt = comfy.run(h3_graph(node, unet, lora, c, seed, sched, silent), "video", job)
-        name = save(entry, "h3", ".mp4", job, {"mode": mode, "seed": seed, "size": "%dx%d" % (w, h)})
+            log(job, "rendering %dx%d · %.1fs · %s %d steps …" % (w, h, length / 24, c["quality"], c["steps"]))
+            p_, dt = render(node, H3["unet"], flf)
+            segments.append(p_), drops.append(0), prompts_used.append(prompt)
+            t_all += dt
+        if c["trim"] > 0 and segments and mode != "extend":
+            drops[0] = int(c["trim"])
+        # ── extensions: every new clip starts from the last frames of the one before (first frame → last frame chain)
+        anchor = int(c.get("extend_anchor") or 22)
+        base_n = len(segments)
+        for e in range(extra):
+            if job.get("_cancel"):
+                raise comfy.Cancelled()
+            prev = segments[-1]
+            idx = (base_n + e) if mode == "story" else e
+            idea = segs_text[idx] if 0 <= idx < len(segs_text) else text
+            prompt = compose(idea, None, cont=True)
+            prepare_gpu(job)
+            if anchor == 1:
+                last = video_frame(prev, max(0.0, media_seconds(prev) - 0.05))
+                prepped.append(last)
+                node = {"cond": {"class_type": "MiniMaxH3ImageToVideo", "inputs": {
+                    "clip": ["clip", 0], "vae": ["vvae", 0], "prompt": prompt, "width": w, "height": h, "length": length}},
+                    "ff": {"class_type": "LoadImage", "inputs": {"image": comfy.upload(last)}}}
+                node["cond"]["inputs"]["first_frame"] = ["ff", 0]
+                guide = None
+            else:
+                tail = _tail(prev, anchor, w, h)
+                prepped.append(tail)
+                node = {"cond": {"class_type": "MiniMaxH3ImageToVideo", "inputs": {
+                    "clip": ["clip", 0], "vae": ["vvae", 0], "prompt": prompt, "width": w, "height": h, "length": length}},
+                    "tailv": {"class_type": "LoadVideo", "inputs": {"file": comfy.upload(tail)}},
+                    "tailc": {"class_type": "GetVideoComponents", "inputs": {"video": ["tailv", 0]}}}
+                gin = {"positive": ["cond", 0], "latent": ["cond", 1], "frame_idx": 0, "vae": ["vvae", 0], "image": ["tailc", 0]}
+                if not silent and has_audio(tail):
+                    gin.update(audio_vae=["avae", 0], audio=["tailc", 1])
+                guide = {"guide": {"class_type": "MiniMaxH3AddGuide", "inputs": gin}}
+            log(job, "extension %d/%d · continuing from the last %s · %.1fs …" % (
+                e + 1, extra, "frame" if anchor == 1 else "%d frames" % anchor, length / 24))
+            p_, dt = render(node, H3["unet"], flf, guide, tag="ext")
+            segments.append(p_), drops.append(anchor), prompts_used.append(prompt)
+            t_all += dt
+        name = core.new_name("h3", ".mp4")
         path = os.path.join(core.LIB, name)
-        if c["trim"] > 0:
-            tmp = path + ".trim.mp4"
-            ffmpeg(["-ss", "%.3f" % (c["trim"] / 24.0), "-i", path, "-c:v", "libx264", "-crf", "16",
-                    "-pix_fmt", "yuv420p", "-c:a", "aac", tmp], 180)
-            os.replace(tmp, path)
+        if len(segments) > 1:
+            log(job, "joining %d clips (%s s) …" % (len(segments), " + ".join("%.1f" % media_seconds(p_) for p_ in segments)))
+        _join(segments, drops if len(segments) > 1 else [0], path + ".join.mp4", silent, c.get("join") == "xfade")
+        if len(segments) == 1 and drops[0]:
+            ffmpeg(["-ss", "%.3f" % (drops[0] / 24.0), "-i", path + ".join.mp4", "-c:v", "libx264", "-crf", "16",
+                    "-pix_fmt", "yuv420p", "-c:a", "aac", path], 300)
+            os.remove(path + ".join.mp4")
+        else:
+            os.replace(path + ".join.mp4", path)
         if soundtrack:
             log(job, "adding the attached soundtrack …")
             tmp = path + ".mux.mp4"
-            if c["soundtrack"] == "mix" and not silent:
+            vol = float(c.get("track_vol") or 1.0)
+            if c["soundtrack"] == "mix" and not silent and has_audio(path):
                 ffmpeg(["-i", path, "-i", soundtrack, "-filter_complex",
-                        "[0:a][1:a]amix=inputs=2:duration=first:weights=0.5 1[a]", "-map", "0:v", "-map", "[a]",
-                        "-c:v", "copy", "-c:a", "aac", "-shortest", tmp], 180)
+                        "[0:a][1:a]amix=inputs=2:duration=first:weights=0.5 %.2f[a]" % vol, "-map", "0:v", "-map", "[a]",
+                        "-c:v", "copy", "-c:a", "aac", "-shortest", tmp], 300)
             else:
-                ffmpeg(["-i", path, "-i", soundtrack, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac",
-                        "-shortest", tmp], 180)
+                ffmpeg(["-i", path, "-i", soundtrack, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac"] +
+                       (["-af", "volume=%.2f" % vol] if vol != 1.0 else []) + ["-shortest", tmp], 300)
             os.replace(tmp, path)
+        fx = post_video(job, path, c)
+        core.index_add(name, {"model": job["model"], "prompt": (job.get("prompt") or "")[:2000], "job": job["id"],
+                              "created": time.time(), "user": job.get("user") or "owner", "mode": mode, "seed": seed,
+                              "size": "%dx%d" % (w, h), "clips": len(segments)})
     finally:
         for p in prepped:
             try:
                 os.remove(p)
             except OSError:
                 pass
+    total = media_seconds(path)
     label = {"t2v": "text → video", "i2v": "image → video", "flf2v": "first + last frame → video",
+             "story": "storyboard (%d keyframes)" % len(imgs[:9]), "extend": "extended clip",
              "r2v": "reference → video (%d picture%s, %d clip%s)" % (len(img_names), "" if len(img_names) == 1 else "s",
                                                                       len(vid_names), "" if len(vid_names) == 1 else "s")}[mode]
-    return {"files": [name], "text": "MiniMax H3 %s · %.1fs · %dx%d (%s) · %s %d steps · %s/%s · seed %d%s%s · %.1f min\n\nPROMPT:\n%s" % (
-        label, max(0, length - c["trim"]) / 24, w, h, aspect, c["quality"], c["steps"], c["sampler"], sched, seed,
-        " · style " + c["style"] if c["style"] != "none" else "",
+    shown = prompts_used[0] if len(prompts_used) == 1 else "\n\n".join(
+        "CLIP %d:\n%s" % (i + 1, p[:1500]) for i, p in enumerate(prompts_used))
+    return {"files": [name], "text": "MiniMax H3 %s · %.1fs%s · %dx%d (%s) · %s %d steps · %s/%s · seed %d%s%s%s · %.1f min\n\nPROMPT:\n%s" % (
+        label, total, " · %d clips joined" % len(segments) if len(segments) > 1 else "", w, h, aspect, c["quality"], c["steps"],
+        c["sampler"], sched, seed, " · style " + c["style"] if c["style"] != "none" else "",
         " · soundtrack " + os.path.basename(soundtrack).split("_", 2)[-1] if soundtrack else "",
-        dt / 60, prompt[:3000])}
+        " · " + " + ".join(fx) if fx else "", t_all / 60, shown[:6000])}
 
 
 # ══ MINIMAX MUSIC 3.0 — full songs ═════════════════════════════════════════
@@ -458,7 +816,11 @@ core.apply_model_overrides(MUSIC)
 def run_music3(job):
     refs = split_refs(job)
     c = job["params"]
+    guide_note(job, "music3", c)
     raw = job.get("prompt") or ""
+    wf = custom_workflow(job, "music3", raw, c, refs)
+    if wf:
+        return wf
     secs, raw = flag(raw, r"--(\d{1,3})\s*s\b", float)
     if secs is None:
         secs, raw = music_len(raw)
@@ -572,6 +934,7 @@ def qimg_render(job, prompt, c, aspect, steps, seed, ref_imgs, tag):
 def run_qimg(job):
     refs = split_refs(job)
     c = job["params"]
+    guide_note(job, "qwen_t2i", c)
     raw = job.get("prompt") or ""
     aspect, aspect_set = (c["aspect"], True) if c["aspect"] != "auto" else ("1:1", False)
     m = re.search(r"\b(1:1|16:9|9:16|4:3|3:4|3:2|2:3|21:9|2:1|1:2|4:5|5:4)\b", raw)
@@ -604,8 +967,16 @@ def run_qimg(job):
     if mode == "auto":
         cut = re.search(r"\b(remove|cut out|delete|transparent)\b.*\bbackground\b|\bremove bg\b|\bcutout\b", text, re.I)
         mode = ("cutout" if cut else "edit") if pics else "generate"
+    if mode == "generate" and pics:
+        log(job, "your %d attached picture%s switch text → image to edit (they're used, not ignored)"
+            % (len(pics), "" if len(pics) == 1 else "s"))
+        mode = "edit"
     if mode in ("edit", "cutout") and not pics:
         raise RuntimeError("attach a picture with 📎 to %s" % ("edit" if mode == "edit" else "cut out"))
+    wf = custom_workflow(job, "qimg", text, c, {"image": pics, "video": refs["video"], "audio": refs["audio"]},
+                         *QIMG_ASPECT.get(aspect, (1024, 1024)), 0, steps)
+    if wf:
+        return wf
     comfy.ensure()
     if comfy.models("diffusion_models") and QIMG["dit"] not in comfy.models("diffusion_models"):
         raise RuntimeError("Qwen-Image 2.1 weights missing in ComfyUI models/diffusion_models")
@@ -634,6 +1005,13 @@ def run_qimg(job):
     entry, dt, wh = qimg_render(job, prompt, c, aspect, steps, seed, use, {"generate": "qimg", "edit": "qimg_edit", "cutout": "qimg_cutout"}[mode])
     name = save(entry, {"generate": "qimg", "edit": "qimg_edit", "cutout": "qimg_cutout"}[mode], ".png", job,
                 {"mode": mode, "seed": seed, "prompt_used": prompt[:3000]})
+    if c.get("upscale") in ("1.5", "2"):
+        log(job, "upscaling %s× …" % c["upscale"])
+        p_ = os.path.join(core.LIB, name)
+        k = float(c["upscale"])
+        ffmpeg(["-i", p_, "-vf", "scale=trunc(iw*%.2f/2)*2:trunc(ih*%.2f/2)*2:flags=lanczos" % (k, k), p_ + ".up.png"], 300)
+        os.replace(p_ + ".up.png", p_)
+        wh = (int(wh[0] * k) // 2 * 2, int(wh[1] * k) // 2 * 2)
     head = {"generate": "Qwen-Image 2.1 · %s %dx%d" % (aspect, wh[0], wh[1]),
             "edit": "Qwen-Image 2.1 EDIT · %d input picture%s" % (len(pics), "" if len(pics) == 1 else "s"),
             "cutout": "Qwen-Image 2.1 · background removed"}[mode]
@@ -688,7 +1066,11 @@ def ace_graph(c, tags, lyrics, seed, bpm, secs, key, codes, strength, source=Non
 def run_ace(job):
     refs = split_refs(job)
     c = job["params"]
+    guide_note(job, "ace", c)
     raw = job.get("prompt") or ""
+    wf = custom_workflow(job, "ace", raw, c, refs)
+    if wf:
+        return wf
     secs, raw = flag(raw, r"--(\d{1,3})\s*s\b", float)
     if secs is None:
         secs, raw = music_len(raw)

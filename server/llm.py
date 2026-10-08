@@ -1,6 +1,6 @@
 """MUSE — the writer-in-residence of MIR MEDIA LABS (standalone only; not in the MirOS copy).
 
-General chat + creative writing on a local Ollama model (today: Llama 3.1 8B). Runs as a normal lab job: it waits
+General chat + creative writing on a local Ollama model (today: Gemma 4 12B). Runs as a normal lab job: it waits
 its turn in the one-at-a-time GPU queue, frees ComfyUI's VRAM first, and streams its reply into job['output'].
 
 Its system prompt has three layers:
@@ -22,7 +22,7 @@ import core
 import params
 import skills
 
-MODEL_TAG = "llama3.1:8b"
+MODEL_TAG = core.DEFAULT_ENGINE          # Gemma 4 12B (vision + tools); pinned in core.DEFAULT_ENGINE
 PERSONA = "MUSE"
 SOUL_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "muse_soul.md")
 NUM_CTX = 16384
@@ -130,6 +130,9 @@ def _soul():
     try:
         return open(SOUL_FILE, encoding="utf-8").read().strip()
     except OSError:
+        b = getattr(core, "asset", lambda _n: None)("_md/muse_soul.md")      # compiled PC edition: embedded
+        if b:
+            return b.decode("utf-8").strip()
         return ("You are %s, the writer-in-residence of MIR MEDIA LABS, a private local creative studio. Help people write "
                 "lyrics, stories, scripts and prompts for the lab's Image, Video, Song and Music engines. Be honest, "
                 "original, warm and concise. Never use emoji." % PERSONA)
@@ -180,7 +183,7 @@ def session(job):
     else:
         person = "%s, a guest of the lab (their work is private to them)" % name
     eng = params.MODELS.get(skills.ROLES.get("text", {}).get("model", "llama"), {}).get("label", MODEL_TAG)
-    eng = eng.split(" · ", 1)[-1] if eng.startswith(PERSONA) else eng      # "MUSE · LLAMA 3.1 8B" → "LLAMA 3.1 8B"
+    eng = eng.split(" · ", 1)[-1] if eng.startswith(PERSONA) else eng      # "MUSE · GEMMA 4 12B" → "GEMMA 4 12B"
     mode = (job.get("params") or {}).get("mode")
     return "\n".join(["## This session",
                       "- You are talking with %s." % person,
@@ -260,13 +263,13 @@ def run_llama(job):
             "num_predict": LENGTH.get(c.get("length"), 1200)}
     if c.get("seed") not in ("", None):
         opts["seed"] = int(c["seed"])
-    body = {"model": MODEL_TAG, "messages": msgs, "stream": True, "options": opts, "keep_alive": "5m"}
+    body = {"model": MODEL_TAG, "messages": msgs, "stream": True, "think": False, "options": opts, "keep_alive": "5m"}
     job["output"] = ""
     import console
     t0, ntok, last = time.time(), 0, 0.0
     with core.requests.post(core.OLLAMA + "/api/chat", json=body, stream=True, timeout=(10, 600)) as r:
         if r.status_code == 404:
-            raise RuntimeError("Llama 3.1 8B isn't installed in Ollama — run:  ollama pull " + MODEL_TAG)
+            raise RuntimeError("Gemma 4 12B isn't installed in Ollama — run:  ollama pull " + MODEL_TAG)
         r.raise_for_status()
         for line in r.iter_lines():
             if job.get("_cancel"):

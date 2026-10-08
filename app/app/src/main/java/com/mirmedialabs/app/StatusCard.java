@@ -23,6 +23,11 @@ final class StatusCard extends LinearLayout {
     private TextView elapsedTv, progTv;   // live bits updated in place - no rebuild, no flicker
     private android.view.View progFill, progRest;
     private boolean hidden;
+    // live ComfyUI render viewer: newest sampler preview of the running job (h3 / qimg), polled while shown
+    private android.widget.ImageView livePv;
+    private String liveJob = "", liveN = "";
+    private android.graphics.Bitmap liveBmp;             // kept across card rebuilds (stage text changes) - no blank flash
+    private final Runnable livePoll = this::pollLive;
 
     StatusCard(MainActivity a) {
         super(a);
@@ -77,6 +82,21 @@ final class StatusCard extends LinearLayout {
         setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{g}));
     }
 
+    private void pollLive() {
+        if (livePv == null || !isAttachedToWindow() || getVisibility() != VISIBLE) return;
+        final android.widget.ImageView iv = livePv;
+        m.api.bytes("/api/jobs/" + liveJob + "/preview?n=" + liveN, r -> {
+            if (r.ok() && r.status == 200 && r.bytes != null && r.bytes.length > 0 && iv == livePv) {
+                android.graphics.Bitmap b = android.graphics.BitmapFactory.decodeByteArray(r.bytes, 0, r.bytes.length);
+                if (b != null) { liveBmp = b; iv.setImageBitmap(b); iv.setVisibility(VISIBLE); }
+                if (r.body != null) liveN = r.body;
+            }
+            if (iv == livePv) postDelayed(livePoll, 600);
+        });
+    }
+
+    @Override protected void onDetachedFromWindow() { removeCallbacks(livePoll); super.onDetachedFromWindow(); }
+
     static int mix(int a, int b, float t) {
         int r = (int) (((a >> 16) & 255) * t + ((b >> 16) & 255) * (1 - t)), gg = (int) (((a >> 8) & 255) * t + ((b >> 8) & 255) * (1 - t)),
             bl = (int) ((a & 255) * t + (b & 255) * (1 - t));
@@ -117,6 +137,7 @@ final class StatusCard extends LinearLayout {
             if (q == null && "queued".equals(o.optString("status"))) q = o;
         }
         JSONObject j = run != null ? run : q;
+        if (j == null || hidden) removeCallbacks(livePoll);
         if (j == null) { setVisibility(GONE); sig = ""; return; }
         if (hidden) { setVisibility(GONE); return; }
         double now = System.currentTimeMillis() / 1000.0;
@@ -172,6 +193,19 @@ final class StatusCard extends LinearLayout {
         elapsedTv.setVisibility(GONE);
         h.addView(elapsedTv);
         addView(h);
+        removeCallbacks(livePoll);
+        livePv = null;
+        if (run != null && ("h3".equals(model) || "qimg".equals(model))) {
+            livePv = new android.widget.ImageView(m);
+            livePv.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+            livePv.setBackground(Ui.box(10, 0xFF000000, Ui.LINE2));
+            livePv.setClipToOutline(true);
+            if (!j.optString("id").equals(liveJob)) { liveJob = j.optString("id"); liveN = ""; liveBmp = null; }
+            if (liveBmp != null) livePv.setImageBitmap(liveBmp);
+            livePv.setVisibility(liveBmp != null ? VISIBLE : GONE);   // until the first frame arrives
+            addView(livePv, Ui.margins(Ui.lp(Ui.MATCH, Ui.dp(170)), 0, 8, 0, 0));
+            post(livePoll);
+        }
         JSONObject pg = j.optJSONObject("progress");      // real engine progress: step n of max
         if (run != null && pg != null && pg.optInt("max") > 0) {
             int pct = Math.max(1, Math.min(100, pg.optInt("pct")));

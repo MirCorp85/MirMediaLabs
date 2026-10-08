@@ -1,5 +1,5 @@
 """MIR MEDIA LABS prompt builders (standalone copy of the MirOS builders) — one per generative model, each following that model's
-official prompting guide. The console engine (local Ollama — MUSE / Llama 3.1 8B by default; pictures are
+official prompting guide. The console engine (local Ollama — MUSE / Gemma 4 12B by default; pictures are
 only sent to vision-capable engines) does the rewriting; every builder fails soft and returns the user's own text.
 
 Sources (Oct 2026):
@@ -10,6 +10,8 @@ Sources (Oct 2026):
   ACE-Step 1.5    — github.com/ace-step/ACE-Step-1.5 docs/en/Tutorial.md
 """
 import base64
+import json
+import os
 import re
 
 # ── Qwen-Image 2.1 · text→image (condensed from the official 8-step PE-T2I spec) ──
@@ -98,6 +100,48 @@ No other text."""
 
 QWEN_MAX_REFS = 10   # Qwen-Image 2.1 edit/reference limit (TextEncodeQwenImage21 images.image_1..10)
 
+# ── Official Comfy prompting guides (Comfy MCP get_prompting_guide), harvested offline into
+# prompt_guides.json by tools/refresh_prompt_guides.py. They AUGMENT the hand-built specs above with
+# extra rules and recommended sampler settings — a missing/broken file just means no addenda. ──
+GUIDES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "prompt_guides.json")
+_guides = {"mtime": None, "data": {}}
+
+
+def guides():
+    """{key: {rules: [...], settings: {...}, source, fetched}} — reloaded when the file changes."""
+    try:
+        mt = os.path.getmtime(GUIDES_FILE)
+        if mt != _guides["mtime"]:
+            with open(GUIDES_FILE, encoding="utf-8") as f:
+                data = json.load(f)
+            _guides.update(mtime=mt, data=data.get("guides", {}) if isinstance(data, dict) else {})
+    except OSError:                                 # compiled build: static/ is embedded in the binary
+        if _guides["mtime"] != "asset":
+            try:
+                import core
+                raw = core.asset("prompt_guides.json")
+                _guides.update(mtime="asset", data=json.loads(raw).get("guides", {}) if raw else {})
+            except Exception:
+                _guides.update(mtime="asset", data={})
+    except ValueError:
+        _guides.update(mtime=None, data={})
+    return _guides["data"]
+
+
+def _sys(key, base):
+    """System prompt = hand-built spec + the official guide's extra rules for this model."""
+    rules = [r for r in (guides().get(key) or {}).get("rules") or [] if isinstance(r, str) and r.strip()]
+    if not rules:
+        return base
+    return base + "\n\nAlso follow the official Comfy prompting guide for this model:\n" + "\n".join("- " + r.strip() for r in rules)
+
+
+def settings_for(key):
+    """Recommended sampler settings from the official guide (steps/cfg/sampler/scheduler/...) — {} if none.
+    Callers only use these where the user/saved mode left a value unset."""
+    st = (guides().get(key) or {}).get("settings")
+    return dict(st) if isinstance(st, dict) else {}
+
 
 def _b64(path, max_side=None):
     """Base64 for the vision engine. max_side downsizes first — 10 full-res phone photos
@@ -127,7 +171,7 @@ def qwen_t2i(ask, text, ratio=None):
     """→ (ratio, prompt). `ratio` from the user's flags always wins."""
     brief = text + (("\n(aspect ratio is fixed by the user: %s)" % ratio) if ratio else "")
     try:
-        out = ask(brief, QWEN_T2I, timeout=300).strip()
+        out = ask(brief, _sys("qwen_t2i", QWEN_T2I), timeout=300).strip()
     except Exception:
         return ratio, text
     m = re.match(r"\s*RATIO:\s*(\d+)\s*:\s*(\d+)\s*\n(.*)", out, re.S | re.I)
@@ -137,7 +181,7 @@ def qwen_t2i(ask, text, ratio=None):
         try:
             more = ask("Expand this image description to 400-500 words following every rule (keep all fixed details, "
                        "add positional phrases, materials, lighting sentence, one closing sentence). Return only the "
-                       "paragraph:\n\n" + para, QWEN_T2I.split("OUTPUT EXACTLY:")[0], timeout=300).strip()
+                       "paragraph:\n\n" + para, _sys("qwen_t2i", QWEN_T2I.split("OUTPUT EXACTLY:")[0]), timeout=300).strip()
             more = re.sub(r"^\s*RATIO:.*\n", "", more)
             more = re.sub(r"\s*\n\s*", " ", more).strip().strip('"')
             if len(more.split()) > len(para.split()):
@@ -158,7 +202,7 @@ def qwen_edit(ask, text, image_paths):
         # the engine sees EVERY reference (up to the model's 10), downsized so it stays fast
         side = 768 if n <= 3 else 512 if n <= 6 else 384
         imgs = [_b64(p, side) for p in image_paths[:QWEN_MAX_REFS]]
-        out = ask(brief, QWEN_EDIT, timeout=300, images=imgs).strip()
+        out = ask(brief, _sys("qwen_edit", QWEN_EDIT), timeout=300, images=imgs).strip()
     except Exception:
         out = ""
     if len(out) < 12:
@@ -180,7 +224,7 @@ def h3(ask, text, secs=5, first_frame=None):
         kw = {"images": [_b64(first_frame)]} if first_frame else {}
         if first_frame:
             brief += "\n(The attached image is the FIRST FRAME — describe motion starting from it.)"
-        out = ask(brief, H3_VIDEO, timeout=240, **kw).strip()
+        out = ask(brief, _sys("h3", H3_VIDEO), timeout=240, **kw).strip()
     except Exception:
         return None
     return out if re.search(r"SHOTS?:", out, re.I) and len(out) > 80 else None
@@ -188,7 +232,7 @@ def h3(ask, text, secs=5, first_frame=None):
 
 def music3(ask, text, secs):
     try:
-        out = ask("%s\n(target length: %d seconds)" % (text, secs), MUSIC3, timeout=420)
+        out = ask("%s\n(target length: %d seconds)" % (text, secs), _sys("music3", MUSIC3), timeout=420)
     except Exception:
         return ""
     return re.sub(r"(?<=: )<([^<>]+)>", r"\1", out)   # leaked <placeholder> brackets
@@ -198,7 +242,7 @@ def ace(ask, text, secs, instrumental=False):
     """→ dict(tags, bpm, key, lyrics) or None."""
     try:
         out = ask("%s\n(target length: %d seconds)%s" % (text, secs, "\n(instrumental)" if instrumental else ""),
-                  ACE, timeout=300)
+                  _sys("ace", ACE), timeout=300)
     except Exception:
         return None
     t = re.search(r"TAGS:\s*(.+)", out)
@@ -212,3 +256,85 @@ def ace(ask, text, secs, instrumental=False):
         lyrics = "[Intro]\n\n[Instrumental]\n\n[Instrumental]\n\n[Outro]"
     return {"tags": t.group(1).strip(), "bpm": int(b.group(1)) if b else None,
             "key": k.group(1).strip() if k else None, "lyrics": lyrics}
+
+
+# ── attachments → reference tags (MiniMax H3 reference mode) ──
+_PIC = r"(?:picture|image|photo|pic|img|selfie|photograph|reference picture|reference image|ref)"
+_VID = r"(?:video|clip|footage|reel|recording)"
+_ORD = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5, "sixth": 6, "seventh": 7, "eighth": 8, "ninth": 9,
+        "1st": 1, "2nd": 2, "3rd": 3, "4th": 4, "5th": 5, "last": -1}
+
+
+def link_refs(text, n_img, n_vid):
+    """Point the person's words at the attachments, so the model knows WHICH reference they mean:
+    'the woman in the picture' → 'the woman in <Picture 1>', 'image 2' / '@2' / 'the second photo' → '<Picture 2>',
+    'the man in the video' → 'the man in <Video 1>'. Existing <Picture N>/<Video N> tags are left alone."""
+    if not text or not (n_img or n_vid):
+        return text
+    out = text
+
+    def num(kind, n, m):
+        k = int(m.group(1))
+        return "<%s %d>" % (kind, k) if 1 <= k <= n else m.group(0)
+
+    if n_img:
+        out = re.sub(r"(?<![<\w])@(?:img|image|pic)?\s?(\d)\b", lambda m: num("Picture", n_img, m), out, flags=re.I)
+        out = re.sub(r"(?<![<\w])" + _PIC + r"\s*#?\s*(\d)\b", lambda m: num("Picture", n_img, m), out, flags=re.I)
+        out = re.sub(r"\bthe (first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|1st|2nd|3rd|4th|5th|last) "
+                     r"(?:attached |reference |uploaded )?" + _PIC + r"s?\b",
+                     lambda m: "<Picture %d>" % (n_img if _ORD[m.group(1).lower()] == -1 else _ORD[m.group(1).lower()])
+                     if (_ORD[m.group(1).lower()] == -1 or _ORD[m.group(1).lower()] <= n_img) else m.group(0), out, flags=re.I)
+        if n_img == 1:
+            out = re.sub(r"\b(?:the|this|that|my|attached|uploaded)\s+(?:attached\s+|uploaded\s+|reference\s+)?" + _PIC + r"\b(?!\s*\d)",
+                         "<Picture 1>", out, flags=re.I)
+        else:
+            out = re.sub(r"\b(?:the|these|those|my)\s+(?:attached\s+|uploaded\s+|reference\s+)?" + _PIC + r"s\b",
+                         ", ".join("<Picture %d>" % (i + 1) for i in range(n_img)), out, flags=re.I)
+    if n_vid:
+        out = re.sub(r"(?<![<\w])" + _VID + r"\s*#?\s*(\d)\b", lambda m: num("Video", n_vid, m), out, flags=re.I)
+        out = re.sub(r"\bthe (first|second|third|1st|2nd|3rd|last) (?:attached |reference |uploaded )?" + _VID + r"\b",
+                     lambda m: "<Video %d>" % (n_vid if _ORD[m.group(1).lower()] == -1 else _ORD[m.group(1).lower()])
+                     if (_ORD[m.group(1).lower()] == -1 or _ORD[m.group(1).lower()] <= n_vid) else m.group(0), out, flags=re.I)
+        if n_vid == 1:
+            out = re.sub(r"\b(?:the|this|that|my|attached|uploaded)\s+(?:attached\s+|uploaded\s+|reference\s+)?" + _VID + r"\b(?!\s*\d)",
+                         "<Video 1>", out, flags=re.I)
+    return out
+
+
+H3_REFS = H3_VIDEO + """
+
+REFERENCE MODE. The user attached reference media, tagged in order as <Picture 1>, <Picture 2> … and <Video 1> … You are shown
+the pictures (and a still from each video). Rules for references:
+- Mention every tag at least once, exactly as written (e.g. "the woman from <Picture 1>"). Never rename or renumber tags.
+- Use the tag instead of re-describing a referenced face; describe only what the user wants changed or what happens.
+- Respect each reference's ROLE given in the brief (identity / style / scene / everything).
+- A <Video N> gives motion, camera movement and framing: describe the action following it.
+- If the user swaps or replaces someone, say clearly who from which tag takes whose place in which tag."""
+
+_ROLE = {"identity": "pictures = identity of the subjects (faces, people, products) — not their background",
+         "style": "pictures = visual style and colours only",
+         "scene": "pictures = the location / setting",
+         "all": "pictures = the subjects, their outfits and the setting"}
+
+
+def h3_refs(ask, text, secs, image_paths, video_frames, n_vid, role="identity"):
+    """MiniMax H3 reference-to-video director: the engine SEES the attachments and writes a prompt that names them by tag."""
+    n_img = len(image_paths)
+    tags = ["<Picture %d>" % (i + 1) for i in range(n_img)] + ["<Video %d>" % (i + 1) for i in range(n_vid)]
+    brief = ("Clip length: %d seconds. References attached (in this order): %s. Role: %s. "
+             "The images you see are, in order: %s.\nIdea: %s" % (
+                 secs, ", ".join(tags), _ROLE.get(role, _ROLE["identity"]),
+                 ", ".join(["<Picture %d>" % (i + 1) for i in range(min(n_img, 6))] +
+                           ["a still from <Video %d>" % (i + 1) for i in range(len(video_frames))]), text))
+    try:
+        side = 640 if n_img + len(video_frames) <= 3 else 448
+        imgs = [_b64(p, side) for p in image_paths[:6]] + [_b64(p, side) for p in video_frames[:2]]
+        out = ask(brief, _sys("h3_refs", H3_REFS), timeout=300, images=imgs).strip()
+    except Exception:
+        return None
+    if not (re.search(r"SHOTS?:", out, re.I) and len(out) > 80):
+        return None
+    missing = [t for t in tags if t.lower().replace(" ", "") not in out.lower().replace(" ", "")]
+    if missing:                                           # every attachment must stay referenced
+        out = "REFERENCES: %s.\n%s" % (", ".join(missing), out)
+    return out

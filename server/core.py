@@ -307,7 +307,8 @@ def new_name(prefix, ext):
 
 # ── prompt engine (local Ollama) — rewrites prompts only, never sees anything else ──
 OLLAMA = "http://127.0.0.1:11434"
-DEFAULT_ENGINE = "llama3.1:8b"  # MUSE: chat, prompt building + Auto-mode model picker (never renders); falls back to any installed llama3.1 / first model
+DEFAULT_ENGINE = "gemma4:12b"  # MUSE: chat, prompt building + Auto-mode model picker (never renders); falls back to any installed gemma4 / first model
+LEGACY_ENGINES = ("llama3.1:8b", "qwen3.5:9b")   # older installs pinned these → moved to DEFAULT_ENGINE
 
 
 _OLLAMA_LOCK = threading.Lock()
@@ -364,13 +365,15 @@ def ensure_ollama(wait=60):
 
 def engine_model():
     want = prefs().get("engine_model") or DEFAULT_ENGINE
+    if want in LEGACY_ENGINES:
+        want = DEFAULT_ENGINE
     try:
         tags = [m["name"] for m in requests.get(OLLAMA + "/api/tags", timeout=3).json().get("models", [])]
     except Exception:
         return want
     if want in tags or not tags:
         return want
-    pick = next((t for t in tags if t.startswith("llama3.1")), None) or tags[0]
+    pick = next((t for t in tags if t.startswith(DEFAULT_ENGINE.split(":")[0])), None) or tags[0]
     return pick
 
 
@@ -378,8 +381,8 @@ _CAPS = {}
 
 
 def engine_sees(model=None):
-    """True when the prompt engine can look at pictures (Ollama 'vision' capability). MUSE (Llama 3.1) is
-    text-only: pictures are then left out of engine requests instead of failing them."""
+    """True when the prompt engine can look at pictures (Ollama 'vision' capability). MUSE (Gemma 4 12B) sees
+    pictures; a text-only engine: pictures are then left out of engine requests instead of failing them."""
     if model is None and _cloud_brain():
         import cloud
         return cloud.sees(_cloud_brain())            # Claude / GPT read pictures; GLM 5.2 is text-only
@@ -423,6 +426,20 @@ def ask(prompt, system, timeout=120, images=None, want_json=False, role="prompt"
     if images and engine_sees(model):
         body["images"] = images
     r = requests.post(OLLAMA + "/api/generate", json=body, timeout=timeout)
+    if r.status_code >= 500 and ("loading model" in r.text or "llama-server" in r.text):
+        # the engine couldn't load: ComfyUI still holds the GPU from the last render. Free it and try once more —
+        # before, this failed silently and the director / picture-reading rewriter fell back to the raw words
+        _note("[engine] %s couldn't load (GPU busy) — freeing ComfyUI VRAM and retrying" % model)
+        try:
+            try:
+                from . import comfy as _c
+            except ImportError:
+                import comfy as _c
+            requests.post(_c.BASE + "/free", json={"unload_models": True, "free_memory": True}, timeout=30)
+            time.sleep(3)
+        except Exception:
+            pass
+        r = requests.post(OLLAMA + "/api/generate", json=body, timeout=timeout)
     r.raise_for_status()
     d = r.json()
     return (d.get("response") or "").strip() or (d.get("thinking") or "").strip()

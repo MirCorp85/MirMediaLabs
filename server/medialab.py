@@ -39,11 +39,14 @@ import console
 import tts
 import router
 import watermark
+import workflows
 
 app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = 600 * 1024 * 1024
 UPLOAD_MAX_MB = 500
 users.load()
+# people without "Custom parameters" render on the defaults (old saved ⚙ values no longer apply to them)
+params.LOCK = lambda who: who not in (None, "owner") and users.can(users.by_id(who) or {}, "advanced") is not None
 events.load()
 console.start()
 
@@ -59,6 +62,8 @@ def _loopback():
 @app.before_request
 def gate():
     if request.path in OPEN_PATHS:
+        return None
+    if request.path.startswith("/social/pub/"):     # signed, expiring media links for Instagram's fetcher (social.py)
         return None
     if request.path.startswith("/updates/pc/"):     # PC update channel: signed files + channel token
         return None if pcupdate.publisher_ok(request) else (jsonify({"error": "forbidden"}), 403)
@@ -246,7 +251,7 @@ ORDER = []
 Q = queue.Queue()
 _JLOCK = threading.Lock()
 PUBLIC = ("id", "model", "prompt", "refs", "loras", "status", "stage", "log", "output", "files", "created", "started",
-          "finished", "error", "params", "user", "input", "skill", "pipeline", "steps", "step", "route", "lora_sel",
+          "finished", "error", "social", "params", "user", "input", "skill", "pipeline", "steps", "step", "route", "lora_sel",
           "loras_skipped", "plan", "pipeline_id", "knobs", "progress", "brain")
 
 
@@ -437,6 +442,10 @@ def worker():
             job.pop("_cancel", None)
             _persist()
             events.job_event(job)          # phone / TV notification (long-poll feed)
+            try:
+                social.on_job_done(job)
+            except Exception:
+                pass
 
 
 # ── MUSE Director: Auto mode decides the tool for each message ─────────────
@@ -498,6 +507,8 @@ def _route(job):
             else ["llama"] if d["action"] == "chat" or (d["action"] == "skill" and d.get("role") == "text") \
             else [skills.model_for(d["role"])]
         deny = next((users.can_use(who, m) for m in picks if users.can_use(who, m)), None)
+        if not deny and d["action"] == "pipeline":
+            deny = users.can(who, "pipelines")
         if deny:
             raise RuntimeError("MUSE wanted %s, but %s" % (router.label(d), deny))
     lbl = router.label(d)
@@ -549,7 +560,8 @@ def _route(job):
 
 # ── pages + static ─────────────────────────────────────────────────────────
 _MIME = {".js": "application/javascript", ".css": "text/css", ".html": "text/html", ".json": "application/json",
-         ".svg": "image/svg+xml", ".png": "image/png", ".woff2": "font/woff2", ".ico": "image/x-icon"}
+         ".svg": "image/svg+xml", ".png": "image/png", ".woff2": "font/woff2", ".ico": "image/x-icon",
+         ".mp4": "video/mp4", ".jpg": "image/jpeg", ".webp": "image/webp"}
 
 
 def _static(fn):
@@ -704,6 +716,8 @@ def api_perf():
 
 @app.route("/api/engine/start", methods=["POST"])
 def engine_start():
+    if (r := _host_only()):
+        return r
     try:
         if not os.path.isfile(comfy.COMFY_PY):
             raise RuntimeError("ComfyUI engine not found — run MirMediaLabs-Setup.exe (Repair)")
@@ -719,18 +733,24 @@ def settings():
     if request.method == "POST":
         if not is_owner():
             return jsonify({"error": "only the owner can change the prompt engine"}), 403
-        m = str((request.get_json(silent=True) or {}).get("engine_model") or "").strip()
+        body = request.get_json(silent=True) or {}
+        m = str(body.get("engine_model") or "").strip()
         if m:
             core.save_pref("engine_model", m[:120])
+        if body.get("live_preview") in comfy.PREVIEW_METHOD:
+            core.save_pref("live_preview", body["live_preview"])
         _refresh_status()
-    return jsonify({"engine_model": core.engine_model()})
+    return jsonify({"engine_model": core.engine_model(), "live_preview": core.prefs().get("live_preview") or "sharp"})
 
 
 # ── models + parameters ────────────────────────────────────────────────────
 @app.route("/api/models")
 def models():
     out = {"auto": AUTO_MODEL}                     # first = the default: MUSE Director picks the engine per message
-    out.update({k: dict(v, values=params.get(k, uid=uid())) for k, v in params.MODELS.items()})
+    mine_ = users.allowed(g.user)
+    locked = users.can(g.user, "advanced") is not None
+    out.update({k: dict(params.schema(k, users.caps(g.user)), values=params.get(k, uid=uid()), locked=locked)
+                for k in params.MODELS if k in mine_})
     return jsonify(out)
 
 
@@ -744,12 +764,40 @@ AUTO_MODEL = {"label": "AUTO · MUSE", "kind": "auto", "color": "#b48cff", "para
 def model_params(model):
     if model not in params.MODELS:
         abort(404)
+    if users.can_use(g.user, model):
+        return jsonify({"error": users.can_use(g.user, model)}), 403
     if request.method == "POST":
+        if users.can(g.user, "advanced"):
+            return jsonify({"error": users.can(g.user, "advanced")}), 403
         body = request.get_json(silent=True) or {}
         if body.get("reset"):
             return jsonify(params.save(model, {}, uid()))
         return jsonify(params.save(model, body.get("values") or {}, uid()))
     return jsonify(params.get(model, uid=uid()))
+
+
+# ── custom ComfyUI workflows (⚙ → Workflow) ─────────────────────────────────
+params.WORKFLOWS = workflows.options
+
+
+@app.route("/api/workflows", methods=["GET", "POST"])
+def api_workflows():
+    if request.method == "POST":
+        if (r := _host_only()):
+            return r
+        b = request.get_json(silent=True) or {}
+        item, err = workflows.save(str(b.get("model") or ""), b.get("label") or b.get("name"), b.get("graph"))
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(item)
+    return jsonify({"items": workflows.items(request.args.get("model") or None)})
+
+
+@app.route("/api/workflows/<wid>/delete", methods=["POST"])
+def api_workflow_delete(wid):
+    if (r := _host_only()):
+        return r
+    return jsonify({"ok": workflows.remove(wid)})
 
 
 # ── references (📎) ─────────────────────────────────────────────────────────
@@ -819,6 +867,8 @@ def _upload_converted(f, stem, ext):
 
 @app.route("/api/upload", methods=["POST"])
 def upload():
+    if users.can(g.user, "attach"):
+        return jsonify({"error": users.can(g.user, "attach")}), 403
     f = request.files.get("file")
     if not f or not f.filename:
         return jsonify({"error": "no file"}), 400
@@ -839,6 +889,8 @@ def upload():
 
 @app.route("/api/upload-text", methods=["POST"])
 def upload_text():
+    if users.can(g.user, "attach"):
+        return jsonify({"error": users.can(g.user, "attach")}), 403
     body = request.get_json(silent=True) or {}
     text = str(body.get("text") or "").strip()
     if not text:
@@ -899,6 +951,10 @@ def generate():
         return jsonify({"error": skills.missing(pl, [core.kind_of(r) for r in refs])}), 400
     deny = users.over_limit(g.user) or (None if model == "auto" else users.can_use(g.user, model))
     if not deny and pl:
+        deny = users.can(g.user, "pipelines")
+    if not deny and refs:
+        deny = users.can(g.user, "attach")
+    if not deny and pl:
         deny = next((users.can_use(g.user, skills.model_for(st["role"])) for st in pl["steps"]
                      if users.can_use(g.user, skills.model_for(st["role"]))), None)
     if deny:
@@ -909,14 +965,16 @@ def generate():
     if busy:   # one request at a time: the next can't start until the previous finishes
         return jsonify({"error": "the lab is still working on your previous request — wait for it to finish",
                         "busy": busy["id"]}), 409
-    sel = [] if model == "llama" else loras.selection(body.get("loras"))     # LoRAs are for the media engines
+    sel = [] if model == "llama" or users.can(g.user, "loras") else loras.selection(body.get("loras"))  # media engines only
     if body.get("params") and model != "auto":
         params.save(model, body["params"], uid())
     jid = "j%d" % int(time.time() * 1000)
     job = {"id": jid, "model": model, "prompt": prompt, "refs": refs, "status": "queued", "stage": "queued",
            "log": "", "output": "", "files": [], "created": time.time(),
            "params": {} if model == "auto" else params.get(model, uid=uid()),
-           "user": uid(), "input": prompt, "loras": [], "lora_sel": sel}
+           "user": uid(), "input": prompt, "loras": [], "lora_sel": sel, "caps": users.caps(g.user)}
+    if body.get("social") and is_owner():           # Chat → Lab → Social: finished output becomes a VIRAL-Ω draft
+        job["social"] = body["social"] if isinstance(body["social"], dict) else {}
     if sk:
         kv = skills.knob_values(sk, body.get("knobs"))
         over, add = skills.knob_effects(sk, kv, None, model)
@@ -1164,6 +1222,21 @@ def job_get(jid):
     return jsonify(public(j)) if j and mine(j.get("user")) else (jsonify({"error": "no such job"}), 404)
 
 
+@app.route("/api/jobs/<jid>/preview")
+def job_preview(jid):
+    """Newest live ComfyUI sampler preview (JPEG) of a running job; 204 = none yet / unchanged since ?n=."""
+    j = JOBS.get(jid)
+    if not j or not mine(j.get("user")):
+        return jsonify({"error": "no such job"}), 404
+    img, n = j.get("_pv"), j.get("_pv_n")
+    if not img or str(n) == request.args.get("n"):
+        return Response(status=204)
+    resp = Response(img, mimetype="image/jpeg")
+    resp.headers["Cache-Control"] = "no-store"
+    resp.headers["X-Frame-N"] = str(n)
+    return resp
+
+
 @app.route("/api/jobs/<jid>/cancel", methods=["POST"])
 def job_cancel(jid):
     j = JOBS.get(jid)
@@ -1274,6 +1347,8 @@ def lib_use(name):
     p = core.in_dir(core.LIB, name)
     if not p or not _my_file(name):
         return jsonify({"error": "not found"}), 404
+    if users.can(g.user, "attach"):
+        return jsonify({"error": users.can(g.user, "attach")}), 403
     stem, ext = os.path.splitext(os.path.basename(p))
     ref = _store_ref(stem, ext.lower())
     shutil.copy2(p, core.safe_path(os.path.join(core.REFS, ref)))
@@ -1292,7 +1367,7 @@ def _running_by_user():
 
 @app.route("/api/me")
 def me():
-    return jsonify({"id": uid(), "name": g.user["name"], "role": g.user["role"], "host": _host()})
+    return jsonify({"id": uid(), "name": g.user["name"], "role": g.user["role"], "host": _host(), "rights": users.rights(g.user)})
 
 
 @app.route("/api/online")
@@ -1374,11 +1449,13 @@ def host_users():
         return r
     if request.method == "POST":
         b = request.get_json(silent=True) or {}
-        u = users.create(b.get("name"), b.get("allow"), b.get("daily"), b.get("expires_days"))
+        u = users.create(b.get("name"), b.get("allow"), b.get("daily"), b.get("expires_days"), b.get("caps"))
         return jsonify({"id": u["id"], "name": u["name"], "key": u["key"]})
     d = users.summary(include_keys=True, running_by_user=_running_by_user())
     d.update(remote=REMOTE["on"], log=users.recent_log(), lan=_lan_ip(), port=core.PORT, away=core.prefs().get("away_url") or "",
-             engines=[{"id": k, "label": users.ENGINE_NAMES[k]} for k in users.ENGINES])
+             engines=[{"id": k, "label": users.ENGINE_NAMES[k]} for k in users.ENGINES],
+             caps=[{"id": k, "label": users.CAP_NAMES[k]} for k in users.CAPS],
+             defaults={"allow": list(users.DEFAULT_ALLOW), "caps": list(users.DEFAULT_CAPS)})
     return jsonify(d)
 
 
@@ -1533,6 +1610,24 @@ def _port_busy(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.3)
         return s.connect_ex(("127.0.0.1", port)) == 0
+
+
+# ── timeline video editor (editor.py — identical in the MirOS copy) ──
+import editor  # noqa: E402
+editor.register(app, {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "store_ref": _store_ref, "ref_info": _ref_info,
+                      "can_attach": lambda: users.can(g.user, "attach"), "static": _static})
+
+
+# ── SOCIAL panel + VIRAL-Ω growth agent (social.py — identical in the MirOS copy) ──
+import social  # noqa: E402
+
+
+def _public_base():
+    return core.load_json(social.ACC_FILE, {}).get("public_base") or core.prefs().get("away_url") or ""
+
+
+social.register(app, {"uid": uid, "is_owner": lambda: _loopback() or is_owner(), "my_file": _my_file,
+                      "push": events.push, "public_base": _public_base, "static": _static})
 
 
 def main():

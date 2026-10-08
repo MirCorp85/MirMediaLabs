@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en" data-theme="claude">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#262624">
+<title>MIR MEDIA LABS · Editor</title>
+<link rel="icon" href="static/icon-512.png">
+<link rel="stylesheet" href="static/editor.css">
+</head>
+<body>
+<div id="ed" class="ed">
+  <header class="ed-top">
+    <button class="eb ic" data-a="close" title="Back to the lab"><i class="mi" data-ic="arrow-left"></i></button>
+    <div class="ed-brand"><i class="mi" data-ic="film"></i><b>EDITOR</b></div>
+    <input class="ed-name" id="ed-name" value="Untitled edit" spellcheck="false" title="Project name">
+    <span class="ed-save" id="ed-save">saved</span>
+    <span class="sp"></span>
+    <button class="eb ic" data-a="undo" title="Undo (Ctrl+Z)"><i class="mi" data-ic="rewind"></i></button>
+    <button class="eb ic" data-a="redo" title="Redo (Ctrl+Y)"><i class="mi" data-ic="forward"></i></button>
+    <select class="ed-aspect" id="ed-aspect" title="Canvas">
+      <option value="1280x720">16:9 · 720p</option><option value="1920x1080">16:9 · 1080p</option>
+      <option value="720x1280">9:16 · vertical</option><option value="1080x1920">9:16 · 1080</option>
+      <option value="1080x1080">1:1 · square</option><option value="1080x1350">4:5 · portrait</option>
+    </select>
+    <button class="eb" data-a="projects" title="Your edits"><i class="mi" data-ic="folder"></i><span> Projects</span></button>
+    <button class="eb pri" data-a="export" title="Render the timeline"><i class="mi" data-ic="upload"></i><span> Export</span></button>
+  </header>
+  <div class="ed-body">
+    <aside class="ed-bin" id="ed-bin">
+      <div class="tabs"><button data-t="lib" class="on">Library</button><button data-t="ai">AI</button><button data-t="add">Add</button></div>
+      <div class="pane" data-p="lib">
+        <div class="chips"><button data-k="" class="on">All</button><button data-k="video">Video</button><button data-k="image">Images</button><button data-k="audio">Audio</button></div>
+        <div class="grid" id="ed-lib"></div>
+      </div>
+      <div class="pane" data-p="ai" hidden>
+        <div class="ai-h">Generate straight onto the timeline — results land at the playhead.</div>
+        <div class="seg" id="ai-role"></div>
+        <textarea id="ai-prompt" rows="4" placeholder="Describe the shot, picture or music…"></textarea>
+        <div class="ai-opts" id="ai-opts"></div>
+        <button class="eb pri wide" id="ai-go"><i class="mi" data-ic="sparkle"></i> Generate at playhead</button>
+        <div class="ai-h2">Timeline tools</div>
+        <button class="eb wide" data-a="score"><i class="mi" data-ic="music"></i> Score the whole edit</button>
+        <button class="eb wide" data-a="voice"><i class="mi" data-ic="mic"></i> Voiceover from text</button>
+        <button class="eb wide" data-a="fill"><i class="mi" data-ic="wand"></i> Fill the gap at the playhead</button>
+        <div class="ai-h2">Jobs</div>
+        <div id="ai-jobs" class="jobs"><div class="dim">nothing running</div></div>
+      </div>
+      <div class="pane" data-p="add" hidden>
+        <button class="eb wide" data-a="upload"><i class="mi" data-ic="upload"></i> Upload media</button>
+        <button class="eb wide" data-a="addtext"><i class="mi" data-ic="type"></i> Title / text</button>
+        <button class="eb wide" data-a="addcolor"><i class="mi" data-ic="palette"></i> Colour card</button>
+        <button class="eb wide" data-a="addtrack-video"><i class="mi" data-ic="video"></i> Video track</button>
+        <button class="eb wide" data-a="addtrack-audio"><i class="mi" data-ic="music"></i> Audio track</button>
+        <button class="eb wide" data-a="addtrack-text"><i class="mi" data-ic="type"></i> Text track</button>
+        <input type="file" id="ed-file" multiple accept="video/*,image/*,audio/*" hidden>
+      </div>
+    </aside>
+    <main class="ed-main">
+      <div class="ed-stagewrap" id="ed-stagewrap"><div class="ed-stage" id="ed-stage"></div></div>
+      <div class="ed-transport">
+        <button class="eb ic" data-a="bin" title="Media + AI"><i class="mi" data-ic="grid"></i></button>
+        <button class="eb ic" data-a="start" title="Go to start (Home)"><i class="mi" data-ic="rewind"></i></button>
+        <button class="eb ic big" data-a="play" id="ed-play" title="Play / pause (Space)"><i class="mi" data-ic="play"></i></button>
+        <button class="eb ic" data-a="end" title="Go to end (End)"><i class="mi" data-ic="forward"></i></button>
+        <span class="tc" id="ed-tc">00:00.00 / 00:00.00</span>
+        <span class="sp"></span>
+        <button class="eb ic" data-a="split" title="Split at playhead (S)"><i class="mi" data-ic="scissors"></i></button>
+        <button class="eb ic" data-a="dup" title="Duplicate (Ctrl+D)"><i class="mi" data-ic="copy"></i></button>
+        <button class="eb ic" data-a="del" title="Delete (Del) · Shift = ripple"><i class="mi" data-ic="trash"></i></button>
+        <button class="eb ic" data-a="snap" id="ed-snap" title="Snapping"><i class="mi" data-ic="link"></i></button>
+        <input type="range" id="ed-zoom" min="10" max="400" value="80" title="Zoom (+ / −)">
+        <button class="eb ic" data-a="insp" title="Inspector"><i class="mi" data-ic="sliders"></i></button>
+      </div>
+      <div class="ed-tl" id="ed-tl">
+        <div class="ed-heads" id="ed-heads"></div>
+        <div class="ed-scroll" id="ed-scroll">
+          <div class="ed-ruler" id="ed-ruler"></div>
+          <div class="ed-tracks" id="ed-tracks"></div>
+          <div class="ed-ph" id="ed-ph"><i></i></div>
+        </div>
+      </div>
+    </main>
+    <aside class="ed-insp" id="ed-insp"><div class="dim pad">Select a clip to edit it.</div></aside>
+  </div>
+</div>
+<div id="ed-modal" class="ed-modal" hidden></div>
+<div id="ed-toast" class="ed-toast"></div>
+<script>
+(function () {   /* icons live in different places in the two lab copies */
+  var mlab = location.pathname.indexOf('/mlab') === 0;
+  document.write('<script src="' + (mlab ? '/static/icons/miros-icons.js' : '/static/miros-icons.js') + '"><\/script>');
+})();
+</script>
+<script src="static/editor.js"></script>
+<script src="/static/fonts/miros/mirfont.js" data-vars="--sans"></script>
+</body>
+</html>

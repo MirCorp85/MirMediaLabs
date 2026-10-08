@@ -679,6 +679,13 @@ html[data-theme] #mascot .mcard{background:color-mix(in srgb,var(--surface) 93%,
 .mc-bar i{position:absolute;top:0;bottom:0;left:0;width:34%;background:linear-gradient(90deg,transparent,var(--mc),transparent);animation:mcbar 1.5s linear infinite}
 .mc-bar.det{height:5px}.mc-bar.det i{animation:none;background:var(--mc);transition:width .8s ease;border-radius:3px}
 .mc-pg{display:flex;justify-content:space-between;margin-top:4px;font:10px var(--mono);color:var(--faint);letter-spacing:.04em}.mc-pg b{color:var(--dim);font-weight:600}
+.livepv{display:none;position:relative;margin-top:9px;border-radius:10px;overflow:hidden;border:1px solid var(--line2);background:#000;aspect-ratio:16/9;max-height:240px}
+.livepv.on{display:block}
+.livepv img{display:block;width:100%;height:100%;object-fit:contain;transition:opacity .2s}
+.livepv .lp-tag{position:absolute;left:7px;top:6px;display:flex;align-items:center;gap:5px;font:600 9.5px var(--mono);letter-spacing:.1em;color:#fff;background:rgba(0,0,0,.55);padding:3px 7px;border-radius:20px}
+.livepv .lp-tag i{width:6px;height:6px;border-radius:50%;background:#ff3b5c;animation:lpPulse 1.2s infinite}
+@keyframes lpPulse{50%{opacity:.25}}
+.mb .livepv{margin:8px 12px 0}
 #mascot[data-s=queued] .mc-bar i{animation-duration:3.5s;opacity:.5}
 #mascot[data-s=done] .mc-bar i{animation:none;width:100%;background:var(--grn)}
 #mascot[data-s=error] .mc-bar i{animation:none;width:100%;background:var(--red)}
@@ -915,13 +922,37 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 @media (max-width:760px){#mpk .mpb{grid-template-columns:1fr}#mpk .mpl{border-right:0;max-height:42vh}}
 @media (prefers-reduced-motion:reduce){#mpk *,#mpk{animation:none!important;transition:none!important}}
 </style>
+<style id="mml-params">
+.sheet .bd .pgrp{grid-column:1/-1;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.12)}
+.pgrp>summary{cursor:pointer;list-style:none;padding:10px 12px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--dim);display:flex;gap:8px;align-items:center;user-select:none}
+.pgrp>summary::-webkit-details-marker{display:none}
+.pgrp>summary::after{content:'\25BE';margin-left:auto;transition:transform .2s}.pgrp:not([open])>summary::after{transform:rotate(-90deg)}
+.pgrp>summary small{color:var(--acc);letter-spacing:0;text-transform:none;font-weight:600;font-size:11px}
+.pgrp .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;padding:0 12px 12px}
+.pgrp .pgrid .fld.wide{grid-column:1/-1}
+.fhelp{display:block;color:var(--faint);font-size:11px;margin-top:4px;line-height:1.35}
+.ftech{font-size:9.5px;letter-spacing:.04em;color:var(--faint);text-transform:none;font-weight:500;margin-left:5px}
+.odesc{display:block;color:var(--dim);font-size:11px;margin-top:3px;line-height:1.35;min-height:0}
+.fxstrip{display:flex;gap:8px;overflow-x:auto;padding:6px 1px 4px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.fxt{flex:0 0 124px;scroll-snap-align:start;position:relative;border:1px solid var(--line2);border-radius:10px;overflow:hidden;background:rgba(0,0,0,.35);padding:0;cursor:pointer;text-align:left}
+.fxt img,.fxt video{display:block;width:124px;height:70px;object-fit:cover}
+.fxt video{position:absolute;inset:0;opacity:0;transition:opacity .15s}
+.fxt.play video{opacity:1}
+.fxt span{display:block;font-size:10.5px;padding:4px 6px 5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fxt.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.fxt.on span{color:var(--text,#fff)}
+.plock{grid-column:1/-1;margin:0 0 4px;padding:9px 12px;border-radius:10px;border:1px dashed var(--line2);color:var(--dim);font-size:12.5px}
+.wfbox{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;padding:4px 0 0}
+.wfrow{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:9px}
+.wfrow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wfrow small{color:var(--faint)}
+</style>
 </head>
 <body data-tab="create">
 <div class="app">
   <header class="top">
     <div class="brand"><img src="/static/icon-512.png" alt=""><b>MIR MEDIA LABS</b></div>
     <button class="iconbtn" id="b-theme" title="Theme" onclick="openThemes()"><i class="mi" data-ic="palette"></i></button><button class="iconbtn" id="b-voice" title="MUSE voice on / off"><i class="mi" data-ic="volume"></i></button>
-    <button class="iconbtn" id="b-font" title="MIR FONTS — pick a typeface" onclick="window.MirFont&&MirFont.openPicker()"><i class="mi" data-ic="type"></i></button>
+    <button class="iconbtn" id="b-font" title="MIR FONTS — pick a typeface" onclick="window.MirFont&&MirFont.openPicker()"><i class="mi" data-ic="type"></i></button><button class="iconbtn" id="b-editor" title="Video editor — cut, arrange and re-render on a timeline" onclick="mmlEditor()"><i class="mi" data-ic="film"></i></button>
     <div class="pills">
       <div class="pill" id="p-comfy"><span class="d"></span><span class="lbl">GPU</span> <b id="p-comfy-v">…</b></div>
       <div class="pill e" id="p-eng"><span class="d"></span>PROMPT ENGINE <b id="p-eng-v">…</b></div>
@@ -1028,12 +1059,12 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
     </section>
   </main>
 
-  <nav class="tabs"><button data-t="create" class="on">CHAT</button><button data-t="library">LIBRARY</button></nav>
+  <nav class="tabs"><button data-t="create" class="on">CHAT</button><button data-t="library">LIBRARY</button><button data-t="social">SOCIAL</button></nav>
 </div>
 
 <div class="lb" id="lb">
   <div class="bar"><span class="chip" id="lb-chip"></span><span class="nm" id="lb-name"></span>
-    <button class="btn" id="lb-use"><i class="mi" data-ic="refresh"></i> Use as ref</button><a class="btn" id="lb-dl"><i class="mi" data-ic="download"></i> Save</a><button class="btn danger" id="lb-del"><i class="mi" data-ic="trash"></i></button><button class="iconbtn" id="lb-x"><i class="mi" data-ic="close"></i></button></div>
+    <button class="btn" id="lb-edit" onclick="viewing&&mmlEditor('lib:'+viewing.name)"><i class="mi" data-ic="scissors"></i> Edit</button><button class="btn" id="lb-social" onclick="viewing&&mmlSocialDraft(viewing.name)"><i class="mi" data-ic="globe"></i> Post</button><button class="btn" id="lb-use"><i class="mi" data-ic="refresh"></i> Use as ref</button><a class="btn" id="lb-dl"><i class="mi" data-ic="download"></i> Save</a><button class="btn danger" id="lb-del"><i class="mi" data-ic="trash"></i></button><button class="iconbtn" id="lb-x"><i class="mi" data-ic="close"></i></button></div>
   <div class="view" id="lb-view"></div>
 </div>
 <div class="drop" id="drop">DROP TO ATTACH</div>
@@ -1192,6 +1223,8 @@ function mcTags(j){const p=j.params||{},m=j.model,t=[],seen=new Set();
   const kinds={};(j.refs||[]).forEach(r=>{const x=kindOf(r);if(x)kinds[x]=(kinds[x]||0)+1});
   Object.entries(kinds).forEach(([x,n])=>add(x==='audio'?'music':x==='video'?'film':x==='text'?'note':'image',n+' '+({image:'picture',video:'clip',audio:'audio',text:'text'}[x]||x)+(n>1&&x!=='audio'?'s':'')+' in'));
   return t.slice(0,14)}
+const LIVEPV_MODELS=['h3','qimg'];   /* models with a visual latent → ComfyUI sends per-step previews */
+const livePv=j=>LIVEPV_MODELS.includes(j.model)?`<div class="livepv" data-livepv="${j.id}"><img alt=""><span class="lp-tag"><i></i>LIVE</span></div>`:'';
 function mcCard(j,state,title){const m=MODELS[j.model]||{},col=m.color||'var(--orange)';
   const plan=j.plan||[],run=plan.find(r=>r.status==='running');
   const steps=plan.length?plan.map((r,i)=>{const st=state==='done'?'done':r.status,ic=st==='done'?'check':st==='error'?'close':ROLE_IC[r.role]||'dot';
@@ -1201,6 +1234,7 @@ function mcCard(j,state,title){const m=MODELS[j.model]||{},col=m.color||'var(--o
     <div class="mc-t"><b>${esc(m.label||j.model)}${plan.length?` · STEP ${esc(j.step||'')}`:''}</b><small>${esc(stage)}</small></div><em>${esc(title)}</em></div>
     ${j.route?`<div class="mc-route">${MI.html('sparkle')}<span>MUSE chose <b>${esc(j.route.label)}</b>${j.route.why?' — '+esc(j.route.why):''}</span></div>`:''}
     ${steps?`<div class="mc-steps">${steps}</div>`:''}
+    ${state==='render'?livePv(j):''}
     ${j.progress&&j.progress.max&&state==='render'?`<div class="mc-bar det"><i style="width:${j.progress.pct}%"></i></div><div class="mc-pg"><span>${esc(j.progress.what)}</span><b>${j.progress.value} / ${j.progress.max}</b></div>`:'<div class="mc-bar"><i></i></div>'}
     <div class="mc-tags">${mcTags(j).map(([ic,v])=>`<span class="mc-tag">${MI.html(ic)}${esc(v)}</span>`).join('')}</div>`}
 
@@ -1375,7 +1409,11 @@ let LAB_BUSY=false;
 async function go(){
   if(LAB_BUSY)return toast('One at a time — wait for the current request to finish');
   if(atts.some(a=>a.uploading))return toast('Wait for the uploads to finish');
-  const prompt=$('#prompt').value.trim();
+  let prompt=$('#prompt').value.trim();
+  /* Chat → Lab → Social: "/post …" or ending with "… and post it" sends the finished result to VIRAL-Ω */
+  let SOC=window.MML_SOCIAL||null;window.MML_SOCIAL=null;
+  const pm=prompt.match(/^\/post\s+([\s\S]+)$/i)||prompt.match(/^([\s\S]+?)[,.\s]+(?:and\s+)?post (?:it|this)(?: (?:to|on) (?:social|instagram|youtube|ig|yt)(?: and (?:instagram|youtube))?)?[.!]*$/i);
+  if(pm){prompt=pm[1].trim();SOC=SOC||{platforms:['instagram','youtube']}}
   const lc=prompt.toLowerCase();
   if(lc==='/help'||lc==='/commands'){$('#prompt').value='';autosize();return openBook()}
   if(lc==='/skills'){$('#prompt').value='';autosize();if(innerWidth<=860)setTab('create');return $('#sklist').scrollIntoView({behavior:'smooth'})}
@@ -1385,7 +1423,8 @@ async function go(){
   $('#b-go').disabled=true;closeAC();
   const body={model:cur,prompt,refs:atts.map(a=>a.name),loras:(typeof loraSel!=='undefined'?loraSel.map(l=>({file:l.file,strength:l.strength})):[])};
   if(ARMED){body[ARMED.type]=ARMED.id;body.knobs=KNOBV}
-  try{const _r=await api('/api/generate',{method:'POST',body:JSON.stringify(body)});VOICE.mine(_r&&_r.id);
+  if(SOC)body.social=SOC;
+  try{const _r=await api('/api/generate',{method:'POST',body:JSON.stringify(body)});VOICE.mine(_r&&_r.id);if(SOC)toast('When it finishes, VIRAL-Ω will draft the post for your approval');
     $('#prompt').value='';autosize();atts=[];saveAtts();renderAtts();disarm();stick=true;pollJobs(true);pollStatus()}
   catch(e){toast(e.message);$('#b-go').disabled=false}
 }
@@ -1496,7 +1535,7 @@ function museBlock(j){const live=j.status==='running'||j.status==='queued',S=mbS
   const tags=live&&typeof mcTags==='function'?`<div class="mb-tags">${mcTags(j).slice(0,8).map(([ic,v])=>`<span>${MI.html(ic)}${esc(v)}</span>`).join('')}</div>`:'';
   const ln=MB_LINE[j.id];
   const liveLine=live?`<div class="mb-live ${ln?ln.level:''}"><i class="d"></i><b class="mb-src">${esc(ln?ln.src:'LAB')}</b><span class="mb-ln">${esc(ln?ln.text:(j.status==='queued'?'waiting for the GPU':(j.stage||'starting')))}</span></div>`:'';
-  return `<div class="mb${live&&MB_FOLD.has(j.id)?' fold':''}" data-mb="${j.id}" style="--mbc:${c};--mbc2:${c2}"><div class="mb-h">${mbRing(j)}<div class="tx"><div class="mb-who"><span><span class="av">${MI.html('lab')}</span>MUSE${j.brain?`<small class="mb-brain">${esc(j.brain)}</small>`:''}</span><em class="mb-t">${t2}</em></div><div class="mb-tx">${mbText(j)}</div></div></div>${liveLine}${steps}${tags}${live?'<div class="mb-hint">tap to expand</div>':''}</div>`}
+  return `<div class="mb${live&&MB_FOLD.has(j.id)?' fold':''}" data-mb="${j.id}" style="--mbc:${c};--mbc2:${c2}"><div class="mb-h">${mbRing(j)}<div class="tx"><div class="mb-who"><span><span class="av">${MI.html('lab')}</span>MUSE${j.brain?`<small class="mb-brain">${esc(j.brain)}</small>`:''}</span><em class="mb-t">${t2}</em></div><div class="mb-tx">${mbText(j)}</div></div></div>${liveLine}${j.status==='running'&&typeof livePv==='function'?livePv(j):''}${steps}${tags}${live?'<div class="mb-hint">tap to expand</div>':''}</div>`}
 /* live patch (no rebuild): timer, ring %, bar, step counter */
 function mbTick(jobs){jobs.forEach(j=>{MB_P[j.id]=j.status==='running'?(j.progress&&j.progress.max?j.progress.pct:null):null;if(j.status!=='running')return;const b=document.querySelector(`.mb[data-mb="${j.id}"]`);if(!b)return;
   const t=b.querySelector('.mb-t');if(t)t.textContent=dur(j.started);
@@ -1689,20 +1728,51 @@ function openParams(k){
   const m=MODELS[k];const v=m.values||{};
   head(m.label,m.color,'PARAMETERS');
   document.documentElement.style.setProperty('--acc',m.color);
-  const fld=f=>{const val=v[f.k]??f.def;const mod=String(val)!==String(f.def);let inp;
-    if(f.type==='select')inp=`<select data-k="${f.k}">${f.opts.map(o=>{const[a,b]=Array.isArray(o)?o:[o,o];return `<option value="${esc(a)}" ${String(a)===String(val)?'selected':''}>${esc(b)}</option>`}).join('')}</select>`;
-    else if(f.type==='number')inp=`<input data-k="${f.k}" type="number" value="${esc(val)}" ${f.min!=null?'min="'+f.min+'"':''} ${f.max!=null?'max="'+f.max+'"':''} step="${f.step||1}" placeholder="${esc(f.def===''?'auto':f.def)}">`;
-    else inp=`<input data-k="${f.k}" type="text" value="${esc(val)}">`;
-    return `<div class="fld ${f.type==='text'?'wide':''} ${mod?'mod':''}"><label>${esc(f.label)}</label>${inp}</div>`};
-  $('#s-body').innerHTML=m.fields.map(fld).join('')+
+  const isMod=f=>String(v[f.k]??f.def)!==String(f.def);
+  const plain=l=>String(l).split(' · ')[0];
+  const fxstrip=f=>{const pv=f.opreview||{};const os=f.opts.map(o=>Array.isArray(o)?o:[o,o]).filter(([a])=>pv[a]);
+    if(!os.length)return '';const val=String(v[f.k]??f.def);
+    return `<div class="fxstrip" data-for="${f.k}">${os.map(([a,b])=>`<button type="button" class="fxt ${String(a)===val?'on':''}" data-v="${esc(a)}" title="${esc((f.odesc||{})[a]||b)}"><img loading="lazy" alt="" src="${esc(pv[a].poster)}">${pv[a].video?`<video muted loop playsinline preload="none" data-src="${esc(pv[a].video)}"></video>`:''}<span>${esc(plain(b))}</span></button>`).join('')}</div>`};
+  const fld=f=>{const val=v[f.k]??f.def;const mod=isMod(f);let inp;const dis=m.locked?'disabled':'';
+    if(f.type==='select')inp=`<select data-k="${f.k}" ${dis}>${f.opts.map(o=>{const[a,b]=Array.isArray(o)?o:[o,o];return `<option value="${esc(a)}" ${String(a)===String(val)?'selected':''}>${esc(b)}</option>`}).join('')}</select>`;
+    else if(f.type==='number')inp=`<input data-k="${f.k}" type="number" ${dis} value="${esc(val)}" ${f.min!=null?'min="'+f.min+'"':''} ${f.max!=null?'max="'+f.max+'"':''} step="${f.step||1}" placeholder="${esc(f.def===''?'auto':f.def)}">`;
+    else inp=`<input data-k="${f.k}" type="text" ${dis} value="${esc(val)}">`;
+    const tip=[f.desc,f.help].filter(Boolean);const strip=f.type==='select'&&!m.locked?fxstrip(f):'';
+    const od=f.odesc?`<small class="odesc" data-od="${f.k}">${esc(f.odesc[String(val)]||'')}</small>`:'';
+    return `<div class="fld ${f.type==='text'||strip?'wide':''} ${mod?'mod':''}" ${tip.length?`title="${esc(tip.join(' '))}"`:''}><label>${esc(f.label)}${f.tech?`<span class="ftech">${esc(f.tech)}</span>`:''}</label>${inp}${od}${strip}${tip.map(t=>`<small class="fhelp">${esc(t)}</small>`).join('')}</div>`};
+  const groups=[];m.fields.forEach(f=>{const g=f.group||'Settings';let e=groups.find(x=>x[0]===g);if(!e)groups.push(e=[g,[]]);e[1].push(f)});
+  const wfAdmin=typeof ME!=='undefined'&&(ME.host===true||(ME.host===undefined&&ME.role==='owner'));
+  $('#s-body').innerHTML=(m.locked?`<p class="plock">${MI.html('lock')} The host set your parameters — you render with the lab's defaults. Ask the host for <b>Custom parameters</b> to change them.</p>`:'')+
+    groups.map(([g,fs],i)=>{const n=fs.filter(isMod).length;
+      return `<details class="pgrp" data-g="${esc(g)}" ${i===0||n?'open':''}><summary>${esc(g)}${n?`<small>${n} changed</small>`:''}</summary><div class="pgrid">${fs.map(fld).join('')}${g==='Workflow'&&wfAdmin?'<div class="wfbox" id="wfbox"></div>':''}</div></details>`}).join('')+
     `<div class="accepts">${Object.entries(m.accepts).map(([a,t])=>`<div><b>${ICON[a]} ${a}</b>${esc(t)}</div>`).join('')}</div>`;
-  $('#s-ft').innerHTML=`<span style="color:var(--faint);font-size:11.5px;flex:1">Saved on the PC — the same values apply on desktop, phone and the app. Inline --flags in a message still win for that one run.</span>
+  if(wfAdmin&&$('#wfbox'))wfList(k);
+  const body=$('#s-body');
+  body.onchange=e=>{const sel=e.target.closest('select[data-k]');if(!sel)return;const f=m.fields.find(x=>x.k===sel.dataset.k);
+    const od=body.querySelector(`[data-od="${sel.dataset.k}"]`);if(od&&f&&f.odesc)od.textContent=f.odesc[sel.value]||'';
+    body.querySelectorAll(`.fxstrip[data-for="${sel.dataset.k}"] .fxt`).forEach(t=>t.classList.toggle('on',t.dataset.v===sel.value))};
+  const fxPlay=(t,on)=>{const vd=t.querySelector('video');if(!vd)return;
+    if(on){if(!vd.src)vd.src=vd.dataset.src;t.classList.add('play');vd.play().catch(()=>{})}else{t.classList.remove('play');vd.pause()}};
+  body.querySelectorAll('.fxt').forEach(t=>{t.onmouseenter=()=>fxPlay(t,true);t.onmouseleave=()=>fxPlay(t,false);
+    t.onclick=()=>{const sel=body.querySelector(`select[data-k="${t.closest('.fxstrip').dataset.for}"]`);if(!sel)return;
+      sel.value=t.dataset.v;sel.dispatchEvent(new Event('change',{bubbles:true}));
+      body.querySelectorAll('.fxt.play').forEach(x=>x!==t&&fxPlay(x,false));fxPlay(t,true)}});
+  $('#s-ft').innerHTML=m.locked?`<span style="color:var(--faint);font-size:11.5px;flex:1">Read-only — the host manages your parameters.</span>`:`<span style="color:var(--faint);font-size:11.5px;flex:1">Saved on the PC — the same values apply on desktop, phone and the app. Inline --flags in a message still win for that one run.</span>
     <button class="btn" id="s-reset">Reset defaults</button><button class="btn pri" id="s-save">Save</button>`;
+  if(m.locked){openSheet();return}
   $('#s-save').onclick=async()=>{const vals={};$$('#s-body [data-k]').forEach(i=>vals[i.dataset.k]=i.value);
     try{MODELS[k].values=await api('/api/params/'+k,{method:'POST',body:JSON.stringify({values:vals})});toast(m.label+' parameters saved');closeSheet();renderHint()}catch(e){toast(e.message)}};
   $('#s-reset').onclick=async()=>{MODELS[k].values=await api('/api/params/'+k,{method:'POST',body:JSON.stringify({reset:true})});openParams(k);renderHint()};
   openSheet();
 }
+/* custom ComfyUI workflows (⚙ → Workflow): host adds /api/-format exports; everyone with the right picks them */
+async function wfList(k){const box=$('#wfbox');if(!box)return;let d={items:[]};try{d=await api('/api/workflows?model='+k)}catch(e){}
+  box.innerHTML=(d.items||[]).map(w=>`<div class="wfrow">${MI.html('layers')}<span>${esc(w.label)} <small>${esc((w.tokens||[]).map(t=>'{{'+t+'}}').join(' '))}</small></span><button class="btn sm" data-wfdel="${esc(w.id)}">Remove</button></div>`).join('')+
+    `<label class="btn sm" style="align-self:flex-start;cursor:pointer">${MI.html('plus')} Add workflow (.json · Export (/api/))<input type="file" accept=".json,application/json" id="wf-file" hidden></label>`;
+  $$('#wfbox [data-wfdel]').forEach(b=>b.onclick=async()=>{if(!confirm('Remove this workflow?'))return;try{await api('/api/workflows/'+encodeURIComponent(b.dataset.wfdel)+'/delete',{method:'POST'});await wfReload(k)}catch(e){toast(e.message)}});
+  $('#wf-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const txt=await f.text();
+    await api('/api/workflows',{method:'POST',body:JSON.stringify({model:k,label:f.name.replace(/\.json$/i,''),graph:txt})});toast('Workflow added — pick it under ComfyUI workflow');await wfReload(k)}catch(err){toast(err.message)}}}
+async function wfReload(k){try{const mm=await api('/api/models');for(const x in mm)MODELS[x]=mm[x]}catch(e){}openParams(k);const d=$('#s-body details[data-g="Workflow"]');if(d)d.open=true}
 function openTextAttach(){
   head('note','#fff1e2','ATTACH TEXT');
   $('#s-body').innerHTML=`<div class="fld wide"><label>Name</label><input id="t-name" value="lyrics"></div>
@@ -1717,6 +1787,8 @@ $('#b-settings').onclick=()=>{
   head('gear','#fff1e2','SETTINGS');
   $('#s-body').innerHTML=`<div class="fld wide"><label>Prompt engine — local Ollama model that rewrites prompts (sees only your prompt + attached pictures)</label>
       <select id="eng">${(e.available&&e.available.length?e.available:[e.model]).map(t=>`<option ${t===e.model?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+    <div class="fld wide"><label>Live render viewer — watch ComfyUI's picture form step by step in the job card</label>
+      <select id="lpv"><option value="sharp">Sharp — near-final previews (small extra GPU work)</option><option value="fast">Fast — rough colour preview, no extra cost</option><option value="off">Off</option></select></div>
     <div class="kv">
       <div>GPU engine: <code>${c.up?'ComfyUI '+esc(c.version)+' on :'+c.port:'offline'}</code> ${c.up?'':'<button class="btn sm" id="eng-start">Start it</button>'}</div>
       ${c.vram&&c.vram.total?`<div>VRAM free: <code>${(c.vram.free/1e9).toFixed(1)} / ${(c.vram.total/1e9).toFixed(1)} GB</code></div>`:''}
@@ -1726,7 +1798,9 @@ $('#b-settings').onclick=()=>{
     </div>`;
   $('#s-ft').innerHTML=ME.role==='owner'?`<span style="flex:1"></span><button class="btn pri" id="eng-save">Save</button>`:'';
   if(ME.role!=='owner'){$('#eng').disabled=true}
-  if($('#eng-save'))$('#eng-save').onclick=async()=>{await api('/api/settings',{method:'POST',body:JSON.stringify({engine_model:$('#eng').value})});toast('Saved');closeSheet();pollStatus()};
+  api('/api/settings').then(r=>{if($('#lpv')&&r.live_preview)$('#lpv').value=r.live_preview}).catch(()=>{});
+  if(ME.role!=='owner'&&$('#lpv'))$('#lpv').disabled=true;
+  if($('#eng-save'))$('#eng-save').onclick=async()=>{await api('/api/settings',{method:'POST',body:JSON.stringify({engine_model:$('#eng').value,live_preview:$('#lpv').value})});toast('Saved');closeSheet();pollStatus()};
   if(ME.host){$('#s-body').insertAdjacentHTML('beforeend','<div id="cb-slot"></div>');cloudCard()}   // cloud brain: host PC only
   if(ME.role==='owner'){$('#s-body').insertAdjacentHTML('beforeend','<div id="civ-slot"></div>');
     const fill=async()=>{const s=await civKeyStatus();const slot=$('#civ-slot');if(!slot)return;slot.innerHTML=civKeyBox('civ-set',s);civKeyWire('civ-set',fill)};fill()}
@@ -1878,13 +1952,15 @@ const hostAgo=t=>t?ago(t)+' ago':'never';
 function hostInvite(key){const aw=HOST.d&&HOST.d.away;return lanBase()+'/?key='+key+(aw?'&away='+encodeURIComponent(aw):'')}
 function hostExp(u){if(!u.expires)return '';if(u.expired)return '<span class="hx bad">expired</span>';
   const d=Math.ceil((u.expires-Date.now()/1000)/86400);return `<span class="hx">expires in ${d} day${d===1?'':'s'}</span>`}
-function hostForm(u){const E=HOST.d.engines,al=u&&u.allow;const lim=u?u.daily:0;
+function hostForm(u){const E=HOST.d.engines,C=HOST.d.caps||[],D=HOST.d.defaults||{allow:[],caps:[]};const al=u?(u.allow||[]):D.allow,ca=u?(u.caps||[]):D.caps;const lim=u?u.daily:0;
   const ex=u&&u.expires?Math.max(1,Math.ceil((u.expires-Date.now()/1000)/86400)):0;
   return `<div class="hform"><div class="fld"><label>Name</label><input id="hf-name" value="${esc(u?u.name:'')}" placeholder="e.g. Alex (phone)"></div>
-    <div class="fld wide"><label>Can use</label><div class="hchips">${E.map(e=>`<label class="hck"><input type="checkbox" value="${e.id}" ${!al||al.includes(e.id)?'checked':''}> ${esc(e.label)}</label>`).join('')}</div></div>
+    <div class="fld wide"><label>Engines they can use</label><div class="hchips heng">${E.map(e=>`<label class="hck"><input type="checkbox" value="${e.id}" ${al.includes(e.id)?'checked':''}> ${esc(e.label)}</label>`).join('')}</div></div>
+    <div class="fld wide"><label>Features they can use</label><div class="hchips hcap">${C.map(e=>`<label class="hck"><input type="checkbox" value="${e.id}" ${ca.includes(e.id)?'checked':''}> ${esc(e.label)}</label>`).join('')}</div>
+      <small class="fhelp">Nothing is implied: an unticked engine or feature is blocked on every device (web, app, TV). New invites start with Image + Chat and attachments only.</small></div>
     <div class="fld"><label>Daily limit</label><select id="hf-daily">${[[0,'Unlimited'],[5,'5 requests'],[10,'10 requests'],[25,'25 requests'],[50,'50 requests']].map(([v,t])=>`<option value="${v}" ${+lim===v?'selected':''}>${t}</option>`).join('')}${[0,5,10,25,50].includes(+lim)?'':`<option value="${lim}" selected>${lim} requests</option>`}</select></div>
     <div class="fld"><label>Access expires</label><select id="hf-exp">${[[0,'Never'],[1,'In 1 day'],[7,'In 7 days'],[30,'In 30 days'],[90,'In 90 days']].map(([v,t])=>`<option value="${v}" ${(ex===v||(!ex&&!v))?'selected':''}>${t}</option>`).join('')}${ex&&![1,7,30,90].includes(ex)?`<option value="${ex}" selected>In ${ex} days</option>`:''}</select></div></div>`}
-function hostFormVal(){return {name:$('#hf-name').value,allow:$$('.hchips input:checked').map(i=>i.value),daily:+$('#hf-daily').value,expires_days:+$('#hf-exp').value}}
+function hostFormVal(){return {name:$('#hf-name').value,allow:$$('.heng input:checked').map(i=>i.value),caps:$$('.hcap input:checked').map(i=>i.value),daily:+$('#hf-daily').value,expires_days:+$('#hf-exp').value}}
 /* one QR at a time: two side by side made phone cameras grab the wrong one */
 function hqSwap(b){const w=b.closest('.hqrs');w.querySelectorAll('[data-qt]').forEach(x=>x.classList.toggle('on',x===b));
   w.querySelectorAll('figure').forEach(f=>f.classList.toggle('on',f.dataset.q===b.dataset.qt))}
@@ -1911,7 +1987,7 @@ function hostInviteCard(u){const link=hostInvite(u.key);
     <div class="hcopy"><code>${esc(u.key)}</code><button class="btn sm" data-cp="${esc(u.key)}">${MI.html('copy')} Copy key</button></div></div></div>`}
 function hostPeople(){const d=HOST.d,E=Object.fromEntries(d.engines.map(e=>[e.id,e.label]));
   return d.users.map(u=>{const devs=u.devices||[],live=devs.filter(x=>x.live),own=u.role==='owner',off=!u.enabled||u.expired;
-    const chips=own?'<span class="hx ok">full access</span>':(u.allow?u.allow.map(a=>`<span class="hx">${esc(E[a]||a)}</span>`).join(''):'<span class="hx ok">all engines</span>')+
+    const CN=Object.fromEntries((d.caps||[]).map(e=>[e.id,e.label]));const chips=own?'<span class="hx ok">full access</span>':((u.allow&&u.allow.length?u.allow.map(a=>`<span class="hx">${esc(E[a]||a)}</span>`).join(''):'<span class="hx bad">no engines</span>')+(u.caps||[]).map(a=>`<span class="hx" style="opacity:.75">${esc(CN[a]||a)}</span>`).join(''))+
       (u.daily?`<span class="hx ${u.today>=u.daily?'bad':''}">${u.today}/${u.daily} today</span>`:'')+hostExp(u);
     const ed=HOST.edit===u.id;
     return `<div class="hcard ${off?'off':''}"><div class="hrow"><span class="dot ${u.live?'live':''}"></span>
@@ -1951,7 +2027,7 @@ function hostRender(){const d=HOST.d;if(!d)return;
     try{await api('/api/host/users/'+b.dataset.u,{method:'POST',body:JSON.stringify({action:a})});toast({disable:'Access revoked',enable:'Access restored',newkey:'New key issued',unbind:'Device lock reset',delete:'Removed',stop:'Stopped'}[a]||'Done');
       if(a==='newkey')HOST.qr=b.dataset.u;hostLoad()}catch(e){toast(e.message)}});
   $$('#h-body [data-cp]').forEach(b=>b.onclick=()=>(navigator.clipboard?navigator.clipboard.writeText(b.dataset.cp):Promise.reject()).then(()=>toast('Copied')).catch(()=>prompt('Copy',b.dataset.cp)));
-  const mk=$('#h-make');if(mk)mk.onclick=async()=>{const v=hostFormVal();if(!v.allow.length)return toast('Pick at least one thing they can use');
+  const mk=$('#h-make');if(mk)mk.onclick=async()=>{const v=hostFormVal();if(!v.allow.length)return toast('Tick at least one engine they can use');
     try{HOST.made=await api('/api/host/users',{method:'POST',body:JSON.stringify(v)});hostLoad()}catch(e){toast(e.message)}};
   const ag=$('#h-again');if(ag)ag.onclick=()=>{HOST.made=null;hostRender()};
   const sa=$('#h-away-save');if(sa)sa.onclick=async()=>{try{await api('/api/host/away',{method:'POST',body:JSON.stringify({url:$('#h-away').value.trim()})});toast('Saved — new invites include it');hostLoad()}catch(e){toast(e.message)}};
@@ -2012,7 +2088,7 @@ async function pcUpdate(){
 }
 
 /* phone tabs */
-function setTab(t){document.body.dataset.tab=t;$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
+function setTab(t){if(t==='social')return mmlSocial();document.body.dataset.tab=t;$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
 $$('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
 
 (async function boot(){
@@ -2024,10 +2100,24 @@ $$('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
   if(ME.host&&DESK)$('#b-users').style.display='grid';      // Host control: only the desktop app on the GPU PC
   if(ME.role==='owner'){$('#b-mykey').style.display='none';if(ME.host)$('#b-master').style.display='grid'}   // owner key = master: host PC only
   if(ME.role==='owner')pcUpdate()
+  if(ME.rights&&!ME.rights.owner){const R=ME.rights.caps||[];
+    if(!R.includes('attach')){$$('#b-attach,#attmenu').forEach(e=>e.style.display='none')}
+    if(!R.includes('loras')){$$('.col.left>.card[data-fold=loras],#lcol-loras').forEach(e=>e.style.display='none');try{localStorage.removeItem('mml.loras')}catch(e){}}
+    if(!R.includes('pipelines')){document.body.classList.add('no-pipes')}}
   if(ME.role!=='owner'){const n=$('.side-note');if(n)n.innerHTML='Signed in as <b>'+esc(ME.name)+'</b>. Your creations are private to you. Renders run on the host PC\'s GPU, one at a time.'}
   setModel(cur);await pollStatus();await pollJobs(true);loadLib(true);
   setInterval(()=>{if(!document.hidden)pollStatus()},4000);
   setInterval(()=>{if(!document.hidden)pollJobs()},2000);
+  /* live ComfyUI render viewer: newest sampler preview of every running job on screen (204 = unchanged) */
+  const LPV={};
+  setInterval(async()=>{if(document.hidden)return;
+    const ids=[...new Set([...document.querySelectorAll('[data-livepv]')].map(e=>e.dataset.livepv))];
+    for(const id of ids){const st=LPV[id]||(LPV[id]={n:'',url:''});
+      try{const r=await fetch('api/jobs/'+id+'/preview?n='+st.n,{cache:'no-store'});
+        if(r.status===200){const b=await r.blob();if(st.url)URL.revokeObjectURL(st.url);st.url=URL.createObjectURL(b);st.n=r.headers.get('X-Frame-N')||''}}catch(e){}
+      if(st.url)document.querySelectorAll(`[data-livepv="${id}"]`).forEach(e=>{const i=e.querySelector('img');if(i.getAttribute('src')!==st.url)i.src=st.url;e.classList.add('on')})}
+    for(const id in LPV)if(!ids.includes(id)){if(LPV[id].url)URL.revokeObjectURL(LPV[id].url);delete LPV[id]}
+  },500);
   setInterval(async()=>{if(document.hidden)return;try{const m=await api('/api/models');for(const k in m)MODELS[k]=m[k];renderHint()}catch(e){}},30000);
 })();
 
@@ -2172,5 +2262,37 @@ function lDetail(it){lFull=false;head('layers','var(--panel2)','LoRA');
   new MutationObserver(fit).observe(P,{attributes:true,attributeFilter:['placeholder']});fit();})();
 </script>
 <script src="/static/fonts/miros/mirfont.js" data-vars="--sans"></script>
+<script>
+/* ── TIMELINE EDITOR (editor.html, same in both lab copies): full-screen layer over the lab ── */
+/* SOCIAL panel (social.py / static/social.html) — VIRAL-Ω drafts, approvals, analytics */
+function mmlSocial(view){
+  var f=document.getElementById('mml-so');if(f)return;
+  f=document.createElement('iframe');f.id='mml-so';f.src='social'+(view?'?v='+view:'');f.allow='autoplay; fullscreen; clipboard-write';
+  f.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9998;background:#000';document.body.appendChild(f);
+  try{closeLB()}catch(e){}
+}
+async function mmlSocialDraft(name){
+  try{await api('api/social/draft',{method:'POST',body:JSON.stringify({library_ref:name})});toast('Sent to Social — VIRAL-Ω is writing the post');mmlSocial('queue')}catch(e){toast(e.message)}
+}
+window.addEventListener('message',function(e){var d=e.data||{};
+  if(d.mml==='social-close'){var f=document.getElementById('mml-so');if(f)f.remove();return}
+  if(d.mml==='social-make'){var f2=document.getElementById('mml-so');if(f2)f2.remove();window.MML_SOCIAL=d.social||{platforms:['instagram','youtube']};
+    setTab('create');$('#prompt').value=d.prompt||'';autosize();$('#prompt').focus();toast('Idea loaded — press Send; the result goes straight to Social for approval')}
+});
+function mmlEditor(src){
+  var f=document.getElementById('mml-ed');
+  if(f){if(src)f.contentWindow.postMessage({mml:'editor-add',src:src},'*');return;}
+  f=document.createElement('iframe');f.id='mml-ed';f.src='editor'+(src?'?add='+encodeURIComponent(src):'');f.allow='autoplay; fullscreen; clipboard-write';
+  f.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9999;background:#000';document.body.appendChild(f);
+  try{closeLB()}catch(e){}
+}
+window.addEventListener('message',function(e){var d=e.data||{};if(d.mml!=='editor-close')return;
+  var f=document.getElementById('mml-ed');if(f)f.remove();
+  var i=d.info||{};
+  if(i.ref){try{atts.push(i.ref);saveAtts();renderAtts();toast('Your edit is attached — ready for the next request')}catch(x){}}
+  else if(i.lib){toast('Your edit is in the library')}
+  try{loadLib()}catch(x){}
+});
+</script>
 </body>
 </html>

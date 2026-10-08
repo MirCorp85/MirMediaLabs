@@ -94,6 +94,8 @@ final class Viewer extends Dialog {
         save.setOnClickListener(v -> m.downloadFile(name));
         TextView use = Ui.button(c, "[[refresh]] USE AS REF", col, true);
         use.setOnClickListener(v -> { m.useAsRef(name); dismiss(); });
+        TextView edit = Ui.button(c, "[[scissors]] EDIT", col, false);
+        edit.setOnClickListener(v -> { EditorActivity.open(m, "lib:" + name); dismiss(); });
         TextView del = Ui.button(c, "[[trash]]", col, false);
         del.setOnClickListener(v -> new AlertDialog.Builder(c, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle("Move to trash?").setMessage(name + "\n\nIt goes to data\\trash on the PC (recoverable).")
@@ -104,6 +106,7 @@ final class Viewer extends Dialog {
                 .setNegativeButton("Cancel", null).show());
         bar.addView(save, Ui.lpw(1));
         bar.addView(use, Ui.margins(Ui.lpw(1.3f), 8, 0, 8, 0));
+        bar.addView(edit, Ui.margins(Ui.lpw(1), 0, 0, 8, 0));
         bar.addView(del, Ui.lp(Ui.dp(56), ViewGroup.LayoutParams.WRAP_CONTENT));
         if (BuildConfig.PLAY) {                              // Play AI-content policy: flag offensive results in-app
             TextView rep = Ui.button(c, "[[warn]]", col, false);
