@@ -46,6 +46,8 @@ _RLOCK = threading.Lock()
 _PROBE = {}
 _ID_RE = re.compile(r"^[a-z0-9]{6,32}$")
 MAX_CLIPS = 400
+MAX_DUR = 3600.0                  # one hour: longest timeline position / export (stops a stray start=1e7 rendering for days)
+SPEED_LO, SPEED_HI = 0.1, 8.0     # same range in clip_len, the render and the preview (editor.js spd())
 LOOKS = {   # name -> ffmpeg filter chain (applied after colour)
     "none": "", "mono": "hue=s=0", "sepia": "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131",
     "warm": "colorbalance=rs=.08:gs=.02:bs=-.08:rm=.06:bm=-.06", "cool": "colorbalance=rs=-.06:bs=.08:rm=-.04:bm=.06",
@@ -193,12 +195,22 @@ def _atempo(speed):
 
 def clip_len(c):
     if c.get("type") in ("text", "image", "color"):
-        return max(0.1, _num(c.get("dur"), 3.0))
-    return max(0.05, (_num(c.get("out"), 1.0) - _num(c.get("in"), 0.0)) / max(0.1, _num(c.get("speed"), 1.0)))
+        return _num(c.get("dur"), 3.0, 0.1, MAX_DUR)
+    return min(MAX_DUR, max(0.05, (_num(c.get("out"), 1.0) - _num(c.get("in"), 0.0)) / _num(c.get("speed"), 1.0, SPEED_LO, SPEED_HI)))
 
 
-def build(project, resolve, out_path, rng=None, w=None, h=None):
-    """Timeline → ffmpeg argv. resolve(src) -> absolute path or None. Returns (argv, total_seconds)."""
+def clip_start(c):
+    return _num(c.get("start"), 0, 0, MAX_DUR)
+
+
+def timeline_len(project):
+    return max([clip_start(c) + clip_len(c) for t in (project.get("tracks") or []) if isinstance(t, dict)
+                for c in (t.get("clips") or [])[:MAX_CLIPS] if isinstance(c, dict)] + [0.0])
+
+
+def build(project, resolve, out_path, rng=None, w=None, h=None, tmpdir=TMP):
+    """Timeline → ffmpeg argv. resolve(src) -> absolute path or None. Returns (argv, total_seconds).
+    Title text + the filter graph go into tmpdir (render() gives each export its own and deletes it)."""
     W = int(_num(w or project.get("w"), 1280, 160, 3840)) // 2 * 2
     H = int(_num(h or project.get("h"), 720, 160, 3840)) // 2 * 2
     FPS = int(_num(project.get("fps"), 30, 10, 60))
@@ -208,7 +220,7 @@ def build(project, resolve, out_path, rng=None, w=None, h=None):
         for c in (t.get("clips") or [])[:MAX_CLIPS]:
             if isinstance(c, dict):
                 clips_all.append((ti, t, c))
-    T = max([_num(c.get("start")) + clip_len(c) for _, _, c in clips_all] + [0.5])
+    T = min(MAX_DUR, max(timeline_len(project), 0.5))
     a0, a1 = 0.0, T
     if rng and len(rng) == 2:
         a0, a1 = _num(rng[0], 0, 0, T), _num(rng[1], T, 0, T)
@@ -226,7 +238,7 @@ def build(project, resolve, out_path, rng=None, w=None, h=None):
             continue
         for c in sorted((t.get("clips") or [])[:MAX_CLIPS], key=lambda x: _num(x.get("start"))):
             typ = c.get("type") or "video"
-            st, ln = _num(c.get("start"), 0, 0), clip_len(c)
+            st, ln = clip_start(c), clip_len(c)
             fi, fo = _num(c.get("fade_in"), 0, 0, ln / 2), _num(c.get("fade_out"), 0, 0, ln / 2)
             if typ == "color":
                 src = "color=c=%s:s=%dx%d:r=%d:d=%.3f,format=yuva420p" % (_color(c.get("color")), W, H, FPS, ln)
@@ -245,7 +257,7 @@ def build(project, resolve, out_path, rng=None, w=None, h=None):
                     a, b = _num(c.get("in"), 0, 0), _num(c.get("out"), 1)
                     b = max(b, a + 0.05)
                     inputs += ["-ss", "%.3f" % a, "-t", "%.3f" % (b - a), "-i", p]     # input seek: fast on long sources
-                    sp = _num(c.get("speed"), 1, 0.1, 8)
+                    sp = _num(c.get("speed"), 1, SPEED_LO, SPEED_HI)
                     chain = ["[%d:v]trim=duration=%.3f" % (idx, b - a), "setpts=(PTS-STARTPTS)/%.4f" % sp]
                     if not t.get("muted") and not c.get("muted") and info.get("audio") and _num(c.get("volume"), 1, 0, 4) > 0:
                         amix.append(_achain(idx, 0, b - a, sp, c, st, ln, k))
@@ -308,9 +320,9 @@ def build(project, resolve, out_path, rng=None, w=None, h=None):
             txt = str(c.get("text") or "").strip()
             if not txt:
                 continue
-            st, ln = _num(c.get("start"), 0, 0), clip_len(c)
+            st, ln = clip_start(c), clip_len(c)
             fi, fo = _num(c.get("fade_in"), 0.3, 0, ln / 2), _num(c.get("fade_out"), 0.3, 0, ln / 2)
-            tf = os.path.join(TMP, "t_%s.txt" % uuid.uuid4().hex[:10])
+            tf = os.path.join(tmpdir, "t_%s.txt" % uuid.uuid4().hex[:10])
             with open(tf, "w", encoding="utf-8") as f:
                 f.write(txt[:2000])
             size = int(_num(c.get("size"), 0.07, 0.015, 0.4) * H)
@@ -346,7 +358,7 @@ def build(project, resolve, out_path, rng=None, w=None, h=None):
             a, b = _num(c.get("in"), 0, 0), _num(c.get("out"), 1)
             b = max(b, a + 0.05)
             inputs += ["-ss", "%.3f" % a, "-t", "%.3f" % (b - a), "-i", p]
-            amix.append(_achain(idx, 0, b - a, _num(c.get("speed"), 1, 0.1, 8), c, _num(c.get("start"), 0, 0), clip_len(c), k))
+            amix.append(_achain(idx, 0, b - a, _num(c.get("speed"), 1, SPEED_LO, SPEED_HI), c, clip_start(c), clip_len(c), k))
             k += 1
     fl.append("[%s]trim=start=%.3f:end=%.3f,setpts=PTS-STARTPTS,format=yuv420p[vout]" % (layer, a0, a1))
     if amix:
@@ -357,12 +369,12 @@ def build(project, resolve, out_path, rng=None, w=None, h=None):
                   "asetpts=PTS-STARTPTS,alimiter=limit=0.95[aout]" % (mix, len(amix), mv, a0, a1))
     else:
         fl.append("anullsrc=r=48000:cl=stereo,atrim=duration=%.3f[aout]" % (a1 - a0))
-    gf = os.path.join(TMP, "g_%s.txt" % uuid.uuid4().hex[:10])
+    gf = os.path.join(tmpdir, "g_%s.txt" % uuid.uuid4().hex[:10])
     with open(gf, "w", encoding="utf-8") as f:
         f.write(";\n".join(fl))
     argv = ["-y", "-v", "error", "-progress", "pipe:1", "-nostats"] + inputs + [
         "-/filter_complex", gf, "-map", "[vout]", "-map", "[aout]",
-        "-c:v", "libx264", "-preset", str(project.get("preset") or "veryfast"), "-crf", str(int(_num(project.get("crf"), 19, 12, 35))),
+        "-c:v", "libx264", "-preset", project.get("preset") if project.get("preset") in _PRESETS else "veryfast", "-crf", str(int(_num(project.get("crf"), 19, 12, 35))),
         "-pix_fmt", "yuv420p", "-r", str(FPS), "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
         "-movflags", "+faststart", "-t", "%.3f" % (a1 - a0), out_path]
     return argv, a1 - a0
@@ -385,39 +397,49 @@ def _achain(idx, a, b, sp, c, st, ln, k):
     return (",".join(ch) + "[a%d]" % k, "a%d" % k)
 
 
+_PRESETS = ("ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow")
+
+
+def _ffmpeg(argv, job, total):
+    """Run one ffmpeg export, updating job pct. Returns (returncode, stderr text) — stderr fully read."""
+    p = subprocess.Popen([core.FFMPEG, "-hide_banner"] + argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         text=True, encoding="utf-8", errors="replace", creationflags=getattr(core, "NO_WINDOW", 0))
+    job["_proc"] = p
+    err = []
+    reader = threading.Thread(target=lambda: err.extend(p.stderr.readlines()), daemon=True)
+    reader.start()
+    for ln in p.stdout:
+        m = re.match(r"out_time_(?:us|ms)=(\d+)", ln.strip())
+        if m and total > 0:
+            job["pct"] = min(99.0, round(int(m.group(1)) / 1e6 / total * 100, 1))
+        if job.get("cancel"):
+            p.kill()
+    p.wait()
+    reader.join(10)                 # the stderr text decides the ffmpeg<7 fallback — it must be complete first
+    return p.returncode, "".join(err)
+
+
+def _prune_renders():
+    cut = time.time() - 6 * 3600
+    for k in [k for k, r in RENDERS.items() if r.get("status") != "running" and (r.get("finished") or 0) < cut]:
+        RENDERS.pop(k, None)
+
+
 def render(rid, project, resolve, out_path, rng, on_done):
     job = RENDERS[rid]
+    tmpdir = os.path.join(TMP, rid)
     try:
-        argv, total = build(project, resolve, out_path, rng)
+        os.makedirs(tmpdir, exist_ok=True)
+        argv, total = build(project, resolve, out_path, rng, tmpdir=tmpdir)
         job.update(stage="rendering", total=round(total, 2))
-        p = subprocess.Popen([core.FFMPEG, "-hide_banner"] + argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             text=True, encoding="utf-8", errors="replace", creationflags=getattr(core, "NO_WINDOW", 0))
-        job["_proc"] = p
-        err = []
-        threading.Thread(target=lambda: err.extend(p.stderr.readlines()), daemon=True).start()
-        for ln in p.stdout:
-            m = re.match(r"out_time_(?:us|ms)=(\d+)", ln.strip())
-            if m and total > 0:
-                job["pct"] = min(99.0, round(int(m.group(1)) / 1e6 / total * 100, 1))
-            if job.get("cancel"):
-                p.kill()
-        p.wait()
-        if p.returncode != 0 and "/filter_complex" in "".join(err):      # ffmpeg < 7: old script flag
+        rc, err = _ffmpeg(argv, job, total)
+        if rc != 0 and not job.get("cancel") and "/filter_complex" in err:      # ffmpeg < 7: old script flag
             argv = [("-filter_complex_script" if x == "-/filter_complex" else x) for x in argv]
-            err.clear()
-            p = subprocess.Popen([core.FFMPEG, "-hide_banner"] + argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                 text=True, encoding="utf-8", errors="replace", creationflags=getattr(core, "NO_WINDOW", 0))
-            job["_proc"] = p
-            threading.Thread(target=lambda: err.extend(p.stderr.readlines()), daemon=True).start()
-            for ln in p.stdout:
-                m = re.match(r"out_time_(?:us|ms)=(\d+)", ln.strip())
-                if m and total > 0:
-                    job["pct"] = min(99.0, round(int(m.group(1)) / 1e6 / total * 100, 1))
-            p.wait()
+            rc, err = _ffmpeg(argv, job, total)
         if job.get("cancel"):
             raise RuntimeError("cancelled")
-        if p.returncode != 0 or not os.path.isfile(out_path):
-            raise RuntimeError(("".join(err) or "ffmpeg failed")[-600:])
+        if rc != 0 or not os.path.isfile(out_path):
+            raise RuntimeError((err or "ffmpeg failed")[-600:])
         job.update(pct=100.0)
         on_done(job)
         job.update(status="done", stage="done", finished=time.time())
@@ -430,6 +452,7 @@ def render(rid, project, resolve, out_path, rng, on_done):
             pass
     finally:
         job.pop("_proc", None)
+        shutil.rmtree(tmpdir, ignore_errors=True)       # title text + filter graph of this export
 
 
 # ── Flask wiring (both copies call register) ────────────────────────────────────────────────────
@@ -475,7 +498,7 @@ def register(app, hk):
             except Exception:
                 continue
             clips = sum(len(t.get("clips") or []) for t in d.get("tracks") or [])
-            dur = max([_num(c.get("start")) + clip_len(c) for t in d.get("tracks") or [] for c in t.get("clips") or []] + [0])
+            dur = timeline_len(d)
             out.append({"id": d.get("id"), "name": d.get("name") or "Untitled edit", "updated": d.get("updated"),
                         "clips": clips, "dur": round(dur, 2), "w": d.get("w"), "h": d.get("h"), "cover": d.get("cover")})
         out.sort(key=lambda x: -(x.get("updated") or 0))
@@ -598,19 +621,33 @@ def register(app, hk):
         if not isinstance(proj, dict) or not isinstance(proj.get("tracks"), list):
             return jsonify({"error": "nothing to render"}), 400
         me = hk["uid"]()
-        with _RLOCK:
+        target = "ref" if b.get("target") == "ref" else "library"
+        # same gates as the rest of the lab: an export counts as a job (daily limit); an attachment needs the attach right
+        err = (hk.get("can_render") or (lambda: None))() or (hk["can_attach"]() if target == "ref" else None)
+        if err:
+            return jsonify({"error": err}), 403
+        if max([_num(c.get("start")) + clip_len(c) for t in proj["tracks"] if isinstance(t, dict)
+                for c in (t.get("clips") or []) if isinstance(c, dict)] + [0]) > MAX_DUR:
+            return jsonify({"error": "the timeline is longer than %d minutes — trim it before exporting" % (MAX_DUR // 60)}), 400
+        rid = "r" + uuid.uuid4().hex[:10]
+        with _RLOCK:                # check + claim the slot together, so a double-click can't start two exports
+            _prune_renders()
             if any(r.get("user") == me and r.get("status") == "running" for r in RENDERS.values()):
                 return jsonify({"error": "an export is already running — wait for it or cancel it"}), 409
-        target = "ref" if b.get("target") == "ref" else "library"
-        rid = "r" + uuid.uuid4().hex[:10]
-        if target == "ref":
-            name = hk["store_ref"](re.sub(r"[^A-Za-z0-9_-]+", "_", str(proj.get("name") or "edit"))[:24] + "_edit", ".mp4")
-            out = core.safe_path(os.path.join(core.REFS, name))
-        else:
-            name = core.new_name("edit", ".mp4")
-            out = os.path.join(core.LIB, name)
-        RENDERS[rid] = {"id": rid, "status": "running", "stage": "preparing", "pct": 0.0, "user": me, "started": time.time(),
-                        "name": name, "target": target, "project": proj.get("id")}
+            RENDERS[rid] = {"id": rid, "status": "running", "stage": "preparing", "pct": 0.0, "user": me, "started": time.time(),
+                            "target": target, "project": proj.get("id")}
+        try:
+            if target == "ref":
+                name = hk["store_ref"](re.sub(r"[^A-Za-z0-9_-]+", "_", str(proj.get("name") or "edit"))[:24] + "_edit", ".mp4")
+                out = core.safe_path(os.path.join(core.REFS, name))
+            else:
+                name = core.new_name("edit", ".mp4")
+                out = os.path.join(core.LIB, name)
+        except Exception:
+            RENDERS.pop(rid, None)
+            raise
+        RENDERS[rid]["name"] = name
+        (hk.get("count_render") or (lambda: None))()
 
         def done(job):
             if target == "library":

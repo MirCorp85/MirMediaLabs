@@ -18,7 +18,7 @@ MODELS = {
         "desc": "Text / image / reference → video with native audio · extend clips · storyboard · effects",
         "accepts": {"image": "first frame (1) · first+last (2) · storyboard keyframes (2-9) · identity refs (r2v, up to 9)",
                     "video": "motion / camera reference (r2v, up to 3) · a clip to extend",
-                    "audio": "soundtrack — muxed onto the finished clip",
+                    "audio": "soundtrack — muxed onto the finished clip · in sing mode the vocal the mouths follow",
                     "text": "script / shot list — added to the prompt"},
         "fields": [
             # ── basics
@@ -27,7 +27,8 @@ MODELS = {
              "opts": [["auto", "auto (refs → r2v, else t2v)"], ["t2v", "text → video"], ["i2v", "image → video (1st picture)"],
                       ["flf2v", "first + last frame (2 pictures)"], ["r2v", "reference → video"],
                       ["story", "storyboard — pictures are keyframes (1→2→3…)"],
-                      ["extend", "extend the attached clip"]]},
+                      ["extend", "extend the attached clip"],
+                      ["sing", "sing / lip-sync to the attached audio (picture or previous clip)"]]},
             {"k": "aspect", "label": "Aspect", "type": "select", "def": "auto", "group": "Basics",
              "opts": [["auto", "auto (picture shape or 16:9)"], "16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]},
             {"k": "res", "label": "Resolution", "type": "select", "def": "standard", "group": "Basics",

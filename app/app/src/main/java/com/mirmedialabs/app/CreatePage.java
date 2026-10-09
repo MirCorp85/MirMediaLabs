@@ -31,6 +31,11 @@ final class CreatePage extends LinearLayout {
         }
     }
     private final TextView goBtn;
+    private TextView sessChip;
+
+    void paintSession() {
+        if (sessChip != null) sessChip.setText(Icons.apply("[[folder]] " + Sessions.name + "  ▾", sessChip.getTextSize(), Ui.INK));
+    }
     private final EditText prompt;
     private String sig = "";
     String lastResult, lastModel;
@@ -40,22 +45,29 @@ final class CreatePage extends LinearLayout {
         m = a;
         setOrientation(VERTICAL);
 
-        if (a.wide) {                                   // tablet: the model list lives in the left column
-            modelRow = Ui.vbox(a);
-        } else {
-            HorizontalScrollView hs = new HorizontalScrollView(a);
-            hs.setHorizontalScrollBarEnabled(false);
-            modelRow = Ui.hbox(a);
-            modelRow.setPadding(Ui.dp(10), Ui.dp(2), Ui.dp(10), Ui.dp(5));
-            hs.addView(modelRow);
-            addView(hs);
-        }
+        modelRow = Ui.hbox(a);                          // the model chip — lives in the composer (picker sheet on tap)
+        modelRow.setGravity(Gravity.CENTER_VERTICAL);
 
         scroll = new ScrollView(a);
         scroll.setFillViewport(true);
         thread = Ui.vbox(a);
         thread.setPadding(Ui.dp(12), Ui.dp(6), Ui.dp(12), Ui.dp(14));
         scroll.addView(thread);
+        // the chat session (project) this chat belongs to — tap to switch, start a new one, rename or delete
+        sessChip = Ui.text(a, "", 12.5f, Ui.INK);
+        sessChip.setPadding(Ui.dp(10), Ui.dp(6), Ui.dp(12), Ui.dp(6));
+        sessChip.setBackground(Ui.box(10, Ui.CARD2, Ui.LINE2));
+        sessChip.setSingleLine(true);
+        sessChip.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        sessChip.setMaxWidth(Ui.dp(260));
+        sessChip.setFocusable(Tv.is(a));
+        sessChip.setOnClickListener(v -> Sessions.picker(m));
+        LinearLayout sbar = Ui.hbox(a);
+        sbar.setGravity(Gravity.CENTER_VERTICAL);
+        sbar.setPadding(Ui.dp(12), Ui.dp(6), Ui.dp(12), Ui.dp(2));
+        sbar.addView(sessChip);
+        addView(sbar, new LayoutParams(Ui.MATCH, Ui.WRAP));
+        paintSession();
         FrameLayout stage = new FrameLayout(a);
         stage.addView(scroll, new FrameLayout.LayoutParams(Ui.MATCH, Ui.MATCH));
         addView(stage, new LayoutParams(Ui.MATCH, 0, 1));
@@ -68,6 +80,7 @@ final class CreatePage extends LinearLayout {
         recipeBar.setBackground(Ui.box(14, 0x14FFC21A, 0x73FFC21A));
         recipeBar.setVisibility(GONE);
         comp.addView(recipeBar, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 0, 0, 6));
+        comp.addView(modelRow, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 0, 0, 6));
         HorizontalScrollView as = new HorizontalScrollView(a);
         as.setHorizontalScrollBarEnabled(false);
         attRow = Ui.hbox(a);
@@ -304,6 +317,12 @@ final class CreatePage extends LinearLayout {
     /** Tablet: the vertical model list for the left column. */
     View modelPane() { return modelRow; }
 
+    /** The generative models (MUSE still answers chat through Auto). */
+    static final String[] PICK = {"auto", "h3", "music3", "qimg", "ace"};
+    static final String[] PICK_ICON = {"sparkle", "video", "music", "image", "drum"};
+    static final String[] PICK_KIND = {"picks the right model for you", "video", "song with vocals", "image", "music / instrumental"};
+
+    /** The composer's model chip: colour dot · name · chevron. Tap = picker, long-press = parameters. */
     void renderModels() {
         JSONObject comfy = m.status.optJSONObject("comfy");
         JSONObject ready = comfy == null ? null : comfy.optJSONObject("models");
@@ -311,37 +330,52 @@ final class CreatePage extends LinearLayout {
         if (ms.equals(modelSig) && modelRow.getChildCount() > 0) return;   // keeps D-pad focus on TV
         modelSig = ms;
         modelRow.removeAllViews();
-        for (String k : MainActivity.ORDER) {
+        JSONObject md = m.model(m.cur);
+        if (md.length() == 0) return;
+        int c = m.colorOf(m.cur);
+        LinearLayout chip = Ui.hbox(m);
+        chip.setGravity(Gravity.CENTER_VERTICAL);
+        chip.setPadding(Ui.dp(11), Ui.dp(6), Ui.dp(9), Ui.dp(6));
+        chip.setBackground(Ui.box(99, Ui.alpha(c, 0.14f), Ui.alpha(c, 0.6f)));
+        View dot = new View(m);
+        dot.setBackground(Ui.box(99, c, 0));
+        chip.addView(dot, Ui.margins(Ui.lp(Ui.dp(8), Ui.dp(8)), 0, 0, 8, 0));
+        TextView name = Ui.bold(m, md.optString("label").toUpperCase(), 11, Ui.INK);
+        name.setLetterSpacing(0.06f);
+        chip.addView(name, Ui.lp(Ui.WRAP, Ui.WRAP));
+        TextView cv = Ui.text(m, "[[chevron-down]]", 12, Ui.DIM);
+        chip.addView(cv, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 6, 0, 0, 0));
+        Object r = ready == null ? null : ready.opt(m.cur);
+        if (Boolean.FALSE.equals(r) && !"auto".equals(m.cur)) {
+            TextView w = Ui.text(m, "[[warn]]", 12, Ui.RED);
+            chip.addView(w, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 6, 0, 0, 0));
+        }
+        chip.setOnClickListener(v -> modelPicker());
+        chip.setOnLongClickListener(v -> { m.openParams(m.cur); return true; });
+        chip.setFocusable(Tv.is(m));
+        modelRow.addView(chip, Ui.lp(Ui.WRAP, Ui.WRAP));
+    }
+
+    /** The model picker: the lab's generative models, one tap to switch; parameters for the current one. */
+    void modelPicker() {
+        JSONObject comfy = m.status.optJSONObject("comfy");
+        JSONObject ready = comfy == null ? null : comfy.optJSONObject("models");
+        Sheet sh = new Sheet(m, "Model", "lab", Ui.pal());
+        sh.section("Generative models");
+        for (int i = 0; i < PICK.length; i++) {
+            final String k = PICK[i];
             JSONObject md = m.model(k);
             if (md.length() == 0) continue;
-            int c = m.colorOf(k);
-            boolean on = k.equals(m.cur);
-            LinearLayout card = Ui.hbox(m);
-            card.setPadding(Ui.dp(10), Ui.dp(6), Ui.dp(11), Ui.dp(6));
-            GradientDrawable bg = new GradientDrawable();     // themed: selected = raised card + accent edge, no glow
-            bg.setCornerRadius(Ui.dp(10));
-            bg.setColor(on ? Ui.CARD2 : 0);
-            bg.setStroke(Math.max(1, Ui.dp(1)), on ? Ui.VIO : Ui.LINE);
-            card.setBackground(bg);
-            View dot = new View(m);
             Object r = ready == null ? null : ready.opt(k);
-            dot.setBackground(Ui.box(99, Ui.RED, 0));           // only a problem gets a marker (weights missing)
-            if (Boolean.FALSE.equals(r)) card.addView(dot, Ui.margins(Ui.lp(Ui.dp(6), Ui.dp(6)), 0, 0, 6, 0));
-            if (m.wide) card.setPadding(Ui.dp(12), Ui.dp(10), Ui.dp(12), Ui.dp(10));
-            TextView name = Ui.bold(m, md.optString("label"), m.wide ? 12.5f : 11, on ? Ui.INK : Ui.DIM);
-            name.setLetterSpacing(0.05f);
-            card.addView(name, Ui.lp(Ui.WRAP, Ui.WRAP));
-            card.setOnClickListener(v -> m.setModel(k));
-            card.setOnLongClickListener(v -> { m.openParams(k); return true; });
-            card.setFocusable(Tv.is(m));
-            if (m.wide) {                                // full-width row with the model colour edge
-                View edge = new View(m);
-                edge.setBackground(Ui.box(2, c, 0));
-                card.addView(edge, 0, Ui.margins(Ui.lp(Ui.dp(3), Ui.dp(16)), 0, 0, 9, 0));
-                card.setGravity(Gravity.CENTER_VERTICAL);
-                modelRow.addView(card, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 0, 0, 6));
-            } else modelRow.addView(card, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 0, 8, 0));
+            String state = "auto".equals(k) ? "routes for you" : Boolean.TRUE.equals(r) ? "ready" : Boolean.FALSE.equals(r) ? "weights missing" : "GPU offline";
+            String sub = (k.equals(m.cur) ? "Selected · " : "") + PICK_KIND[i] + " · " + state;
+            sh.row(PICK_ICON[i], md.optString("label"), sub, m.colorOf(k), () -> { if (!k.equals(m.cur)) m.setModel(k); });
         }
+        if (!"auto".equals(m.cur)) {
+            sh.section("Settings");
+            sh.row("sliders", "Parameters", "for " + m.model(m.cur).optString("label"), () -> m.openParams(m.cur));
+        }
+        sh.show();
     }
 
     void renderAtts() {
@@ -547,19 +581,64 @@ final class CreatePage extends LinearLayout {
         t.setLineSpacing(0, 1.2f);
         b.addView(t, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 7, 0, 0));
         JSONArray refs = j.optJSONArray("refs");
-        if (refs != null && refs.length() > 0) {
-            StringBuilder rs = new StringBuilder();
-            for (int k = 0; k < refs.length(); k++) {
-                String n = refs.optString(k);
-                String[] parts = n.split("_", 3);
-                rs.append(Ui.icon(Ui.kindOf(n))).append(" ").append(parts.length == 3 ? parts[2] : n).append("   ");
-            }
-            b.addView(Ui.text(m, rs.toString().trim(), 11, Ui.DIM), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
-        }
+        if (refs != null && refs.length() > 0) b.addView(refThumbs(refs), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 8, 0, 0));
         LayoutParams lp = guest ? Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 56, 6) : Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 56, 6, 0, 6);
         lp.gravity = guest ? Gravity.START : Gravity.END;
         b.setLayoutParams(lp);
         return b;
+    }
+
+    /** The references a request was sent with, as media: picture / clip stills (tap = full size), song / text chips. */
+    private View refThumbs(JSONArray refs) {
+        HorizontalScrollView hs = new HorizontalScrollView(m);
+        hs.setHorizontalScrollBarEnabled(false);
+        LinearLayout row = Ui.hbox(m);
+        for (int k = 0; k < refs.length(); k++) {
+            final String n = refs.optString(k);
+            String kind = Ui.kindOf(n);
+            String[] parts = n.split("_", 3);
+            String label = parts.length == 3 && n.startsWith("ref_") ? parts[2] : n;
+            if ("image".equals(kind) || "video".equals(kind)) {
+                FrameLayout f = new FrameLayout(m);
+                f.setBackground(Ui.box(10, 0x40000000, Ui.LINE2));
+                f.setClipToOutline(true);
+                ImageView iv = new ImageView(m);
+                iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                Thumbs.load(m, iv, "/refthumb/" + Api.enc(n));
+                f.addView(iv, new FrameLayout.LayoutParams(Ui.MATCH, Ui.MATCH));
+                TextView badge = Ui.text(m, "video".equals(kind) ? "[[play]]" : "[[image]]", 11, 0xFFFFFFFF);
+                badge.setBackground(Ui.box(6, 0x8C000000, 0));
+                badge.setPadding(Ui.dp(4), Ui.dp(2), Ui.dp(4), Ui.dp(2));
+                FrameLayout.LayoutParams bp = new FrameLayout.LayoutParams(Ui.WRAP, Ui.WRAP, "video".equals(kind) ? Gravity.CENTER : Gravity.BOTTOM | Gravity.START);
+                bp.setMargins(Ui.dp(4), Ui.dp(4), Ui.dp(4), Ui.dp(4));
+                f.addView(badge, bp);
+                f.setContentDescription(label);
+                f.setOnClickListener(v -> refZoom(n));
+                f.setFocusable(Tv.is(m));
+                row.addView(f, Ui.margins(Ui.lp(Ui.dp(76), Ui.dp(76)), 0, 0, 6, 0));
+            } else {
+                TextView c = Ui.text(m, Ui.icon(kind) + " " + label, 11.5f, Ui.INK);
+                c.setMaxWidth(Ui.dp(200));
+                c.setSingleLine(true);
+                c.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                c.setPadding(Ui.dp(9), Ui.dp(7), Ui.dp(9), Ui.dp(7));
+                c.setBackground(Ui.box(10, 0x40000000, Ui.LINE2));
+                row.addView(c, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 0, 6, 0));
+            }
+        }
+        hs.addView(row);
+        return hs;
+    }
+
+    /** A picture / clip reference full screen (a clip shows its still; pinch to zoom). */
+    private void refZoom(String n) {
+        android.app.Dialog d = new android.app.Dialog(m, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        ImageView z = new ZoomImageView(m);
+        z.setBackgroundColor(0xF0000000);
+        Thumbs.load(m, z, "image".equals(Ui.kindOf(n)) ? "/refs/" + Api.enc(n) : "/refthumb/" + Api.enc(n));
+        z.setOnClickListener(v -> d.dismiss());
+        d.setContentView(z);
+        d.show();
     }
 
     private View labBubble(JSONObject j, double now) {

@@ -110,10 +110,15 @@ def asset(fn):
     if ASSETS is None:
         return None
     fn = fn.replace("\\", "/").lstrip("/")
-    if fn not in _ASSET_CACHE and fn in ASSETS:
-        import zlib
-        _ASSET_CACHE[fn] = zlib.decompress(ASSETS[fn])
-    return _ASSET_CACHE.get(fn)
+    if fn in _ASSET_CACHE:
+        return _ASSET_CACHE[fn]
+    if fn not in ASSETS:
+        return None
+    import zlib
+    data = zlib.decompress(ASSETS[fn])
+    if len(data) < 262144:                           # pages / icons stay cached; preview media is decoded per request
+        _ASSET_CACHE[fn] = data
+    return data
 
 
 def _find_ffmpeg():

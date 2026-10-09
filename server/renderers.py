@@ -130,6 +130,8 @@ def save(entry, prefix, ext, job, extra=None):
     comfy.fetch(entry, os.path.join(core.LIB, name))
     meta = {"model": job["model"], "prompt": (job.get("prompt") or "")[:2000], "job": job["id"], "created": time.time(),
             "user": job.get("user") or "owner"}
+    if job.get("session"):                          # the chat session (project) it was asked for in
+        meta["session"] = job["session"]
     meta.update(extra or {})
     core.index_add(name, meta)
     return name
@@ -199,7 +201,7 @@ H3_SHORT = {"vertical": ("aspect", "9:16"), "portrait": ("aspect", "9:16"), "squ
             "silent": ("audio", "off"), "mute": ("audio", "off"), "fast": ("quality", "turbo4"),
             "turbo4": ("quality", "turbo4"), "turbo8": ("quality", "turbo8"), "full": ("quality", "full"),
             "best": ("quality", "full"), "draft": ("res", "draft"), "hd": ("res", "high"), "max768": ("res", "max"),
-            "t2v": ("mode", "t2v"), "i2v": ("mode", "i2v"), "flf2v": ("mode", "flf2v"), "r2v": ("mode", "r2v"),
+            "t2v": ("mode", "t2v"), "i2v": ("mode", "i2v"), "sing": ("mode", "sing"), "lipsync": ("mode", "sing"), "flf2v": ("mode", "flf2v"), "r2v": ("mode", "r2v"),
             "raw": ("enhance", "off"), "handheld": ("steady", "off"), "story": ("mode", "story"),
             "storyboard": ("mode", "story"), "slowmo": ("speed", "0.5"), "smooth": ("fps", "60"), "boomerang": ("loop", "boomerang"),
             "bw": ("grade", "bw"), "grain": ("grain", "light"), "xfade": ("join", "xfade")}
@@ -544,12 +546,16 @@ def run_h3(job):
     elif mode == "story" and len(imgs) < 2:
         mode = "i2v" if imgs else ("extend" if vids else "t2v")
         log(job, "storyboard needs 2+ pictures (keyframes) — using %s" % mode)
+    elif mode == "sing" and not auds:
+        raise RuntimeError("sing mode needs the vocal / song chunk attached as audio")
+    elif mode == "sing" and not (vids or imgs):
+        raise RuntimeError("sing mode needs a picture to start from or the previous clip to continue")
     elif mode == "extend" and not vids:
         if not imgs:
             raise RuntimeError("extend needs the clip to continue — attach it (or a picture to start from)")
         mode = "i2v"
         log(job, "no clip attached to extend — starting from the picture instead")
-    extra = int(c.get("extend") or 0)
+    extra = 0 if mode == "sing" else int(c.get("extend") or 0)
     if mode in ("story", "extend") or extra:
         _need_cap(job, "extend", "Long videos (extend / storyboard)")
     wf = custom_workflow(job, "h3", text, c, refs, *h3_dims(c["mp"], c["aspect"] if c["aspect"] != "auto" else "16:9"),
@@ -578,6 +584,8 @@ def run_h3(job):
         aspect = aspect or aspect_of(src, "16:9")
     elif mode == "extend":
         aspect = aspect or aspect_of(vids[0], "16:9")
+    elif mode == "sing":
+        aspect = aspect or aspect_of(vids[0] if vids else imgs[0], "16:9")
     elif mode == "r2v":
         if H3["r2v_unet"] not in comfy.models("diffusion_models"):
             raise RuntimeError("reference mode needs %s in ComfyUI" % H3["r2v_unet"])
@@ -589,6 +597,9 @@ def run_h3(job):
     length = h3_frames(c["seconds"])
     soundtrack = auds[0] if (auds and c["soundtrack"] != "ignore") else None
     silent = c["audio"] == "off" or (soundtrack and c["soundtrack"] == "replace")
+    if mode == "sing":                     # the audio is the guide the picture is generated to, not a mux afterwards
+        soundtrack, silent = None, False
+        length = h3_frames(max(2.0, media_seconds(auds[0])))
     direction = h3_direction(c)
     steady = c["steady"] == "on" and c.get("camera") not in ("handheld", "fpv")
     segs_text = [t.strip() for t in str(c.get("extend_prompt") or "").split("||") if t.strip()]
@@ -707,6 +718,43 @@ def run_h3(job):
             prepped.append(base)
             segments.append(base), drops.append(0), prompts_used.append("(your clip)")
             extra = max(1, extra)
+        elif mode == "sing":
+            # performance clip driven by a fixed vocal: the song chunk is anchored on the audio stream at frame 0 and the
+            # picture is generated to it (mouths follow the real singing). With the previous clip attached, its last
+            # frames are anchored too, so this clip continues it — the caller sends audio that starts `anchor` frames
+            # before the new section, and those overlap frames are trimmed off the result.
+            anchor = int(c.get("extend_anchor") or 22) if vids else 0
+            p = "Animated musical performance. " if not re.search(r"realistic|photoreal|live.action", text, re.I) else ""
+            if vids:
+                p += "The shot continues seamlessly from its opening frames: same characters, outfits, place and light. "
+            p += text.rstrip(". ") + ". "
+            if direction:
+                p += direction + " "
+            p += ("The singing character's lips, jaw and face move precisely in sync with every sung word of the soundtrack; "
+                  "mouth closed during instrumental gaps; expressive, on-the-beat body movement. Keep every face stable and "
+                  "undistorted. AUDIO: the given song only.")
+            if c["style"] != "none":
+                p += " embedding:minimaxh3_" + c["style"]
+            prepare_gpu(job)
+            node = {"cond": {"class_type": "MiniMaxH3ImageToVideo", "inputs": {
+                "clip": ["clip", 0], "vae": ["vvae", 0], "prompt": p, "width": w, "height": h, "length": length}},
+                "song": {"class_type": "LoadAudio", "inputs": {"audio": comfy.upload(auds[0])}}}
+            gin = {"positive": ["cond", 0], "latent": ["cond", 1], "frame_idx": 0, "audio_vae": ["avae", 0], "audio": ["song", 0]}
+            if vids:
+                tail = _tail(vids[0], anchor, w, h)
+                prepped.append(tail)
+                node["tailv"] = {"class_type": "LoadVideo", "inputs": {"file": comfy.upload(tail)}}
+                node["tailc"] = {"class_type": "GetVideoComponents", "inputs": {"video": ["tailv", 0]}}
+                gin.update(vae=["vvae", 0], image=["tailc", 0])
+            else:
+                node["ff"] = {"class_type": "LoadImage", "inputs": {"image": comfy.upload(imgs[0])}}
+                node["cond"]["inputs"]["first_frame"] = ["ff", 0]
+            guide = {"guide": {"class_type": "MiniMaxH3AddGuide", "inputs": gin}}
+            log(job, "singing %dx%d · %.1fs to the attached vocal%s …" % (
+                w, h, length / 24, " · continuing the last %d frames" % anchor if vids else ""))
+            p_, dt = render(node, H3["unet"], flf, guide, tag="sing")
+            segments.append(p_), drops.append(anchor), prompts_used.append(p)
+            t_all += dt
         else:
             built = direct(text, src)
             prompt = compose(text, built)
@@ -723,7 +771,7 @@ def run_h3(job):
             p_, dt = render(node, H3["unet"], flf)
             segments.append(p_), drops.append(0), prompts_used.append(prompt)
             t_all += dt
-        if c["trim"] > 0 and segments and mode != "extend":
+        if c["trim"] > 0 and segments and mode not in ("extend", "sing"):
             drops[0] = int(c["trim"])
         # ── extensions: every new clip starts from the last frames of the one before (first frame → last frame chain)
         anchor = int(c.get("extend_anchor") or 22)
@@ -786,7 +834,7 @@ def run_h3(job):
         fx = post_video(job, path, c)
         core.index_add(name, {"model": job["model"], "prompt": (job.get("prompt") or "")[:2000], "job": job["id"],
                               "created": time.time(), "user": job.get("user") or "owner", "mode": mode, "seed": seed,
-                              "size": "%dx%d" % (w, h), "clips": len(segments)})
+                              "size": "%dx%d" % (w, h), "clips": len(segments), **({"session": job["session"]} if job.get("session") else {})})
     finally:
         for p in prepped:
             try:
@@ -796,6 +844,7 @@ def run_h3(job):
     total = media_seconds(path)
     label = {"t2v": "text → video", "i2v": "image → video", "flf2v": "first + last frame → video",
              "story": "storyboard (%d keyframes)" % len(imgs[:9]), "extend": "extended clip",
+             "sing": "sung to the vocal" + (" (continued)" if vids else ""),
              "r2v": "reference → video (%d picture%s, %d clip%s)" % (len(img_names), "" if len(img_names) == 1 else "s",
                                                                       len(vid_names), "" if len(vid_names) == 1 else "s")}[mode]
     shown = prompts_used[0] if len(prompts_used) == 1 else "\n\n".join(
@@ -919,6 +968,9 @@ def qimg_render(job, prompt, c, aspect, steps, seed, ref_imgs, tag):
             g[str(20 + i)] = {"class_type": "LoadImage", "inputs": {"image": comfy.upload(p)}}
             g["5"]["inputs"]["images.image_%d" % (i + 1)] = [str(20 + i), 0]
         latent = ["5", 2]
+        if job.get("keep_clean") and c.get("aspect") not in (None, "auto"):   # SERIES: the asked-for shape (16:9 location
+            g["6"] = {"class_type": "EmptyLatentImage", "inputs": {"width": w, "height": h, "batch_size": 1}}  # from a 3:4 hero)
+            latent = ["6", 0]
     else:
         g["6"] = {"class_type": "EmptyLatentImage", "inputs": {"width": w, "height": h, "batch_size": 1}}
         latent = ["6", 0]
