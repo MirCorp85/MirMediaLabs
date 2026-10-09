@@ -24,10 +24,11 @@ _SESS = {}                      # (uid, ip, device) -> {first, last, hits, path}
 _DIRTY = {"t": 0}
 ENGINES = ("h3", "music3", "qimg", "ace", "llama")    # what "allow" can list (Auto routes into these)
 # Features beyond the engines. An invited person has ONLY what is listed in their "allow" + "caps" — nothing implied.
-CAPS = ("attach", "pipelines", "loras", "advanced", "extend", "workflows")
+CAPS = ("attach", "pipelines", "loras", "advanced", "extend", "workflows", "grab")
 CAP_NAMES = {"attach": "Attachments / uploads", "pipelines": "Multi-step pipelines", "loras": "LoRA styles",
              "advanced": "Custom parameters (⚙)", "extend": "Long videos (extend / storyboard)",
-             "workflows": "Custom ComfyUI workflows"}
+             "workflows": "Custom ComfyUI workflows",
+             "grab": "Link downloader (YouTube → MP3 / MP4)"}
 DEFAULT_ALLOW = ("qimg", "llama")       # a new invite: pictures + MUSE chat; the host ticks more
 DEFAULT_CAPS = ("attach",)
 PERM_V = 2

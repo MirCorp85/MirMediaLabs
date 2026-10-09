@@ -19,7 +19,7 @@ import socket
 import sys
 import threading
 import time
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from flask import Flask, Response, abort, g, jsonify, redirect, request, send_file, send_from_directory
 
@@ -34,6 +34,8 @@ import skills
 import loras
 import users
 import events
+import grab
+import sessions
 import perf
 import console
 import tts
@@ -55,15 +57,37 @@ OPEN_PATHS = ("/api/ping", "/privacy", "/sw.js", "/static/apple-touch-icon.png",
 LOOPBACK_ONLY = ("/api/admin/presence",)       # read by the owner's MirOS ACCESS panel on this PC
 
 
+_LOCAL_NAMES = ("127.0.0.1", "localhost", "::1")
+
+
 def _loopback():
-    return request.remote_addr in ("127.0.0.1", "::1")
+    """This PC = the owner — but only a request this PC actually means to make:
+    · Host must name loopback (a DNS-rebound evil.example → 127.0.0.1 carries Host: evil.example)
+    · a browser request started by another site (Origin / Sec-Fetch-Site) gets no host rights
+    · the downloader's own fetches (grab.FETCH_HEADER) never count as the host."""
+    if request.remote_addr not in ("127.0.0.1", "::1"):
+        return False
+    if request.headers.get(grab.FETCH_HEADER):
+        return False
+    if (urlparse("//" + (request.host or "")).hostname or "") not in _LOCAL_NAMES:
+        return False
+    origin = request.headers.get("Origin")
+    if origin and (urlparse(origin).hostname or "") not in _LOCAL_NAMES:
+        return False
+    if request.headers.get("Sec-Fetch-Site") == "cross-site" and request.headers.get("Sec-Fetch-Mode") != "navigate":
+        return False
+    return True
 
 
 @app.before_request
 def gate():
+    if request.headers.get(grab.FETCH_HEADER):      # the downloader fetching this lab itself (SSRF) — never
+        return jsonify({"error": "forbidden"}), 403
     if request.path in OPEN_PATHS:
         return None
     if request.path.startswith("/social/pub/"):     # signed, expiring media links for Instagram's fetcher (social.py)
+        return None
+    if request.path.startswith("/social/tiktok/"):  # TikTok sign-in return (one-time state checked) + public legal pages
         return None
     if request.path.startswith("/updates/pc/"):     # PC update channel: signed files + channel token
         return None if pcupdate.publisher_ok(request) else (jsonify({"error": "forbidden"}), 403)
@@ -252,12 +276,14 @@ Q = queue.Queue()
 _JLOCK = threading.Lock()
 PUBLIC = ("id", "model", "prompt", "refs", "loras", "status", "stage", "log", "output", "files", "created", "started",
           "finished", "error", "social", "params", "user", "input", "skill", "pipeline", "steps", "step", "route", "lora_sel",
-          "loras_skipped", "plan", "pipeline_id", "knobs", "progress", "brain")
+          "loras_skipped", "plan", "pipeline_id", "knobs", "progress", "comfy_pid", "brain", "internal", "session")
 
 
 def _persist():
-    with _JLOCK:
-        keep = ORDER[-300:]
+    with _JLOCK:   # 300 real requests are kept; tool jobs (preview generators) only the last 30, so they never push chats out
+        real = [i for i in ORDER if i in JOBS and not JOBS[i].get("internal")][-300:]
+        tool = [i for i in ORDER if i in JOBS and JOBS[i].get("internal")][-30:]
+        keep = [i for i in ORDER if i in set(real) | set(tool)]
         core.save_json(core.JOBS_FILE, [{k: JOBS[i].get(k) for k in PUBLIC} for i in keep if i in JOBS])
 
 
@@ -265,6 +291,8 @@ def _load_jobs():
     for j in core.load_json(core.JOBS_FILE, []):
         if j.get("status") == "running":
             j["status"], j["error"] = "error", "server restarted during the render"
+            if j.get("comfy_pid"):                 # its render may still be running in ComfyUI: stop OUR orphan
+                threading.Thread(target=comfy.cancel, args=(j["comfy_pid"],), daemon=True).start()
         JOBS[j["id"]] = j
         ORDER.append(j["id"])
         if j.get("status") == "queued":
@@ -423,6 +451,8 @@ def worker():
                 _route(job)
                 _persist()
             res = _run_pipeline(job) if job.get("steps") else _run_once(job)
+            if job.get("keep_clean") and res["files"]:   # SERIES: unmarked reference copy (the next shot builds on it)
+                _keep_clean(res["files"], job.get("user") or "owner")
             if watermark.enabled() and res["files"]:
                 job["stage"] = "watermarking"
                 if watermark.apply(res["files"], lambda m: console.emit("LAB", m, job, "warn")):
@@ -526,7 +556,8 @@ def _route(job):
             job["prompt"] = prompt
         with _JLOCK:
             hist = [JOBS[i] for i in ORDER if i in JOBS and JOBS[i].get("model") == "llama" and JOBS[i].get("status") == "done"
-                    and (JOBS[i].get("user") or "owner") == owner and JOBS[i].get("output") and JOBS[i] is not job]
+                    and (JOBS[i].get("user") or "owner") == owner and JOBS[i].get("output") and JOBS[i] is not job
+                    and (JOBS[i].get("session") or "") == (job.get("session") or "")]
         job["history"] = [{"q": h.get("input") or h.get("prompt") or "", "a": h["output"][:6000]} for h in hist[-12:]]
         return
     if d["action"] == "pipeline":
@@ -561,7 +592,7 @@ def _route(job):
 # ── pages + static ─────────────────────────────────────────────────────────
 _MIME = {".js": "application/javascript", ".css": "text/css", ".html": "text/html", ".json": "application/json",
          ".svg": "image/svg+xml", ".png": "image/png", ".woff2": "font/woff2", ".ico": "image/x-icon",
-         ".mp4": "video/mp4", ".jpg": "image/jpeg", ".webp": "image/webp"}
+         ".mp4": "video/mp4", ".jpg": "image/jpeg", ".webp": "image/webp", ".mp3": "audio/mpeg"}
 
 
 def _static(fn):
@@ -571,7 +602,12 @@ def _static(fn):
     if data is None:
         abort(404)
     ext = os.path.splitext(fn)[1].lower()
-    resp = Response(data, mimetype=_MIME.get(ext) or mimetypes.guess_type(fn)[0] or "application/octet-stream")
+    mt = _MIME.get(ext) or mimetypes.guess_type(fn)[0] or "application/octet-stream"
+    if ext in (".mp4", ".mp3", ".webm", ".m4a"):     # phone / iOS players need byte ranges for embedded media
+        import io
+        return send_file(io.BytesIO(data), mimetype=mt, conditional=True, etag=False, max_age=86400,
+                         download_name=os.path.basename(fn))
+    resp = Response(data, mimetype=mt)
     resp.headers["Cache-Control"] = "no-cache"
     return resp
 
@@ -813,13 +849,36 @@ def _ref_info(name):
 REFS_INDEX = os.path.join(core.DATA, "refs_index.json")
 
 
+_REF_LOCK = threading.Lock()
+
+
 def _store_ref(stem, ext, owner=None):
     safe = re.sub(r"[^A-Za-z0-9_-]+", "_", stem)[:40].strip("_") or "ref"
-    name = "ref_%d_%s%s" % (int(time.time() * 1000), safe, ext)
-    ix = core.load_json(REFS_INDEX, {})
-    ix[name] = owner or uid()
-    core.save_json(REFS_INDEX, ix)
+    who = owner or uid()
+    with _REF_LOCK:                                 # read-modify-write of the index: concurrent uploads used to drop owners
+        ix = core.load_json(REFS_INDEX, {})
+        name = "ref_%d_%s%s" % (int(time.time() * 1000), safe, ext)
+        while name in ix or os.path.exists(os.path.join(core.REFS, name)):   # same ms + same stem: never reuse a name
+            name = "ref_%d_%s_%s%s" % (int(time.time() * 1000), safe, secrets.token_hex(2), ext)
+        ix[name] = who
+        core.save_json(REFS_INDEX, ix)
     return name
+
+
+def _keep_clean(files, owner):
+    """ref_clean_<library name>: the render before its watermark, owned by the person (series.attach prefers it)."""
+    for fn in files:
+        src = core.in_dir(core.LIB, fn)
+        if not src or not os.path.isfile(src) or core.kind_of(fn) not in ("image", "video"):
+            continue
+        name = "ref_clean_" + os.path.basename(fn)
+        try:
+            shutil.copy2(src, os.path.join(core.REFS, name))
+            ix = core.load_json(REFS_INDEX, {})
+            ix[name] = owner
+            core.save_json(REFS_INDEX, ix)
+        except OSError:
+            pass
 
 
 def _my_ref(name):
@@ -911,6 +970,21 @@ def ref_file(name):
     return send_file(p, conditional=True)
 
 
+@app.route("/refthumb/<path:name>")
+def ref_thumb(name):
+    """A small still of a picture / clip reference (chat bubbles in the page and the apps)."""
+    p = core.in_dir(core.REFS, name)
+    if not p or not _my_ref(name) or core.kind_of(name) not in ("image", "video"):
+        abort(404)
+    t = os.path.join(core.THUMBS, "ref__" + os.path.basename(p) + ".jpg")
+    if not os.path.isfile(t) or os.path.getmtime(t) < os.path.getmtime(p):
+        try:
+            core.still(p, t, 480, at=None if core.kind_of(name) == "image" else 0.6)
+        except Exception:
+            abort(404)
+    return send_file(t, max_age=86400)
+
+
 # ── generate + jobs ────────────────────────────────────────────────────────
 @app.route("/api/generate", methods=["POST"])
 def generate():
@@ -961,8 +1035,11 @@ def generate():
         return jsonify({"error": deny}), 403
     with _JLOCK:
         busy = next((JOBS[i] for i in ORDER if i in JOBS and JOBS[i].get("status") in ("queued", "running")
-                     and (JOBS[i].get("user") or "owner") == uid()), None)
+                     and (JOBS[i].get("user") or "owner") == uid()
+                     and (getattr(g, "series_runner", False) or not JOBS[i].get("runner"))), None)
     if busy:   # one request at a time: the next can't start until the previous finishes
+        # (a background SERIES run never blocks the person: their request just queues behind its current shot;
+        #  the run itself still waits while the person has something going)
         return jsonify({"error": "the lab is still working on your previous request — wait for it to finish",
                         "busy": busy["id"]}), 409
     sel = [] if model == "llama" or users.can(g.user, "loras") else loras.selection(body.get("loras"))  # media engines only
@@ -971,8 +1048,16 @@ def generate():
     jid = "j%d" % int(time.time() * 1000)
     job = {"id": jid, "model": model, "prompt": prompt, "refs": refs, "status": "queued", "stage": "queued",
            "log": "", "output": "", "files": [], "created": time.time(),
-           "params": {} if model == "auto" else params.get(model, uid=uid()),
-           "user": uid(), "input": prompt, "loras": [], "lora_sel": sel, "caps": users.caps(g.user)}
+           "params": {} if model == "auto" else params.get(model, uid=uid(),
+                                                            override=body.get("override") if isinstance(body.get("override"), dict) else None),
+           "user": uid(), "input": prompt, "loras": [], "lora_sel": sel, "caps": users.caps(g.user),
+           "session": sessions.valid(uid(), body.get("session"))}
+    if body.get("series"):                            # SERIES studio renders keep an unmarked reference copy
+        job["keep_clean"] = True
+    if body.get("internal") and _loopback() and is_owner():   # a lab tool on this PC (preview generators): not a chat request
+        job["internal"] = True
+    if getattr(g, "series_runner", False):            # submitted by the background series runner (not the page)
+        job["runner"] = True
     if body.get("social") and is_owner():           # Chat → Lab → Social: finished output becomes a VIRAL-Ω draft
         job["social"] = body["social"] if isinstance(body["social"], dict) else {}
     if sk:
@@ -992,7 +1077,8 @@ def generate():
     if model == "llama":
         with _JLOCK:
             hist = [JOBS[i] for i in ORDER if i in JOBS and JOBS[i].get("model") == "llama" and JOBS[i].get("status") == "done"
-                    and (JOBS[i].get("user") or "owner") == uid() and JOBS[i].get("output")]
+                    and (JOBS[i].get("user") or "owner") == uid() and JOBS[i].get("output")
+                    and (JOBS[i].get("session") or "") == (job.get("session") or "")]
         job["history"] = [{"q": h.get("input") or h.get("prompt") or "", "a": h["output"][:6000]} for h in hist[-12:]]
         job["who"] = {"name": g.user.get("name", ""), "role": g.user.get("role", "")}
     users.count_job(g.user)
@@ -1212,7 +1298,10 @@ def api_console():
 @app.route("/api/jobs")
 def jobs():
     n = min(200, int(request.args.get("limit", 60)))
-    own = [i for i in ORDER if i in JOBS and mine(JOBS[i].get("user"))]
+    own = [i for i in ORDER if i in JOBS and mine(JOBS[i].get("user")) and not JOBS[i].get("internal")]   # tool jobs never show in chat
+    sess = request.args.get("session")
+    if sess is not None:                            # one chat session ("" = General); no parameter = all (old apps)
+        own = [i for i in own if (JOBS[i].get("session") or "") == sess]
     return jsonify([public(JOBS[i]) for i in reversed(own[-n:])])
 
 
@@ -1254,9 +1343,11 @@ def job_cancel(jid):
 
 @app.route("/api/jobs/clear", methods=["POST"])
 def jobs_clear():
+    sess = (request.get_json(silent=True) or {}).get("session")       # Clear finished: just this session's
     with _JLOCK:
         for i in list(ORDER):
-            if JOBS.get(i, {}).get("status") in ("done", "error", "cancelled") and (JOBS[i].get("user") or "owner") == uid():
+            if JOBS.get(i, {}).get("status") in ("done", "error", "cancelled") and (JOBS[i].get("user") or "owner") == uid() \
+                    and (sess is None or (JOBS[i].get("session") or "") == sess):
                 ORDER.remove(i)
                 JOBS.pop(i, None)
     _persist()
@@ -1281,10 +1372,12 @@ def library():
     off = int(request.args.get("offset", 0))
     n = min(200, int(request.args.get("limit", 60)))
     ix = core.index()
-    items = [x for x in _lib_files() if (not kind or x[2] == kind) and mine(ix.get(x[1], {}).get("user"))]
+    sess = request.args.get("session")             # one session's media ("" = General); no parameter = all
+    items = [x for x in _lib_files() if (not kind or x[2] == kind) and mine(ix.get(x[1], {}).get("user"))
+             and (sess is None or (ix.get(x[1], {}).get("session") or "") == sess)]
     return jsonify({"total": len(items), "items": [
         {"name": f, "kind": k, "size": sz, "mtime": mt, "url": "/media/" + f,
-         "thumb": "/thumb/" + f if k != "audio" else None, **{key: ix.get(f, {}).get(key) for key in ("model", "prompt", "job", "mode", "seed")}}
+         "thumb": "/thumb/" + f if k != "audio" else None, **{key: ix.get(f, {}).get(key) for key in ("model", "prompt", "job", "mode", "seed", "session")}}
         for mt, f, k, sz in items[off:off + n]]})
 
 
@@ -1313,6 +1406,48 @@ def thumb(name):
         except Exception:
             abort(404)
     return send_file(t, max_age=3600)
+
+
+@app.route("/api/library/<path:name>/session", methods=["POST"])
+def library_session(name):
+    """Move one file to another session ({session: id}, "" = General)."""
+    name = os.path.basename(name)
+    if not core.in_dir(core.LIB, name) or not _my_file(name):
+        abort(404)
+    sid = sessions.valid(uid(), (request.get_json(silent=True) or {}).get("session"))
+    ix = core.index()
+    meta = dict(ix.get(name) or {})
+    if sid:
+        meta["session"] = sid
+    else:
+        meta.pop("session", None)
+    core.index_add(name, meta)
+    return jsonify({"ok": True, "session": sid})
+
+
+def _session_move(owner, sid, to):
+    """A deleted session: its chats + media go to `to` (General) — nothing is deleted."""
+    n = 0
+    with _JLOCK:
+        for j in JOBS.values():
+            if (j.get("user") or "owner") == owner and j.get("session") == sid:
+                j["session"] = to
+                n += 1
+    _persist()
+    ix = core.index()
+    for f, meta in list(ix.items()):
+        if isinstance(meta, dict) and (meta.get("user") or "owner") == owner and meta.get("session") == sid:
+            meta = dict(meta)
+            if to:
+                meta["session"] = to
+            else:
+                meta.pop("session", None)
+            core.index_add(f, meta)
+            n += 1
+    return n
+
+
+sessions.register(app, {"uid": uid, "move": _session_move})
 
 
 @app.route("/api/library/<path:name>/delete", methods=["POST"])
@@ -1592,7 +1727,7 @@ def isolation():
         "blocked_paths": core.FORBIDDEN if is_owner() else ["(owner only)"],
         "own_access_key": True,
         "talks_to": {"comfyui": comfy.BASE + " (GPU renders)", "ollama": core.OLLAMA + " (prompt rewriting only, no context)"},
-        "never_talks_to": ["MirOS dashboard :5000", "Robinhood / brokers", "MirOS vault", "Hermes"],
+        "never_talks_to": ["MirOS dashboard :5000", "trading / broker accounts", "MirOS vault", "Hermes"],
     })
 
 
@@ -1615,7 +1750,81 @@ def _port_busy(port):
 # ── timeline video editor (editor.py — identical in the MirOS copy) ──
 import editor  # noqa: E402
 editor.register(app, {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "store_ref": _store_ref, "ref_info": _ref_info,
-                      "can_attach": lambda: users.can(g.user, "attach"), "static": _static})
+                      "can_attach": lambda: users.can(g.user, "attach"), "static": _static,
+                      "can_render": lambda: users.over_limit(g.user), "count_render": lambda: users.count_job(g.user)})
+
+
+# ── SERIES studio: style bible → cast sheets → locations → episodes (series.py — identical in the MirOS copy) ──
+import series  # noqa: E402
+
+
+def _series_seconds(src):
+    kind, _, name = str(src).partition(":")
+    p = core.in_dir(core.LIB if kind == "lib" else core.REFS, os.path.basename(name))
+    return ((editor.probe(p) or {}).get("dur") or 0.0) if p and os.path.isfile(p) else 0.0
+
+
+def _series_editor_dir(user_id=None):
+    d = os.path.join(editor.PROJ, re.sub(r"[^A-Za-z0-9_-]", "_", str(user_id or uid())))
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _series_submit(user_id, req):
+    """The background series runner submits exactly like the page does: through /api/generate (rights, queue,
+    one-request-at-a-time), as the series' owner. → (job, error, busy)"""
+    u = users.by_id(user_id) or (users.owner() if user_id in (None, "", "owner") else None)
+    if not u:
+        return None, "that person no longer has an account here", False
+    body = {k: req.get(k) for k in ("model", "prompt", "refs", "override")}
+    body["series"] = True
+    with app.test_request_context("/api/generate", method="POST", json=body):
+        g.user = u
+        g.series_runner = True
+        r = generate()
+    code = 200
+    if isinstance(r, tuple):
+        r, code = r[0], r[1]
+    j = r.get_json(silent=True) or {}
+    if code == 409:
+        return None, j.get("error"), True
+    if code >= 400 or j.get("error"):
+        return None, j.get("error") or "HTTP %d" % code, False
+    return j, None, False
+
+
+def _series_job(jid):
+    with _JLOCK:
+        j = JOBS.get(jid)
+        return {k: j.get(k) for k in PUBLIC} if j else None
+
+
+def _series_cancel(jid):
+    """Cancel a render the series runner / picture queue owns (same as the job's own Cancel)."""
+    with _JLOCK:
+        j = JOBS.get(jid)
+        if not j:
+            return
+        if j["status"] == "queued":
+            j["status"], j["error"], j["finished"] = "cancelled", "cancelled", time.time()
+        elif j["status"] == "running":
+            j["_cancel"] = True
+            if j.get("comfy_pid"):
+                comfy.cancel(j["comfy_pid"])
+    _persist()
+
+
+series.register(app, {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "store_ref": _store_ref, "ref_info": _ref_info,
+                      "can_attach": lambda: users.can(g.user, "attach"), "static": _static,
+                      "seconds_of": _series_seconds, "editor_dir": _series_editor_dir,
+                      "submit": _series_submit, "job": _series_job, "cancel": _series_cancel})
+
+
+# ── DOWNLOADER: YouTube & co. → MP3 / MP4 in the library (grab.py — identical in the MirOS copy) ──
+import grab  # noqa: E402
+grab.register(app, {"uid": uid, "can_grab": lambda: users.can(g.user, "grab"), "static": _static,
+                    "lib_path": lambda n: core.in_dir(core.LIB, n) if _my_file(n) else None,
+                    "session": lambda s: sessions.valid(uid(), s)})
 
 
 # ── SOCIAL panel + VIRAL-Ω growth agent (social.py — identical in the MirOS copy) ──

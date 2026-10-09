@@ -54,13 +54,13 @@ public class MainActivity extends Activity {
 
     private TextView pill, qBadge, menu;
     CreatePage create;
-    private LibraryPage library;
+    LibraryPage library;
     private final TextView[] tabs = new TextView[2];
     private int tab = 0;
     /** Tablet mode: models + tools | chat | library side by side (big screens, or forced in Settings - Look - Layout). */
     boolean wide;
     private final Handler h = new Handler(Looper.getMainLooper());
-    private int tick = 0;
+    int tick = 0;
     private boolean resumed = false;
 
     @Override protected void onCreate(Bundle b) {
@@ -81,10 +81,11 @@ public class MainActivity extends Activity {
         voice = new MuseVoice(this);
         loras = new Loras(this);
         cur = Prefs.str(this, "model2", "auto");     // Auto (MUSE Director) is the default
+        if ("llama".equals(cur)) cur = "auto";      // the picker lists the generative models only
         loadAtts();
         build();
         api.probe(() -> {
-            refreshModels(); poll(); library.reload(); Fonts.sync(this, api); Theme.sync(this, api); voice.sync(); loras.refresh(null);
+            Sessions.init(this); refreshModels(); poll(); library.reload(); Fonts.sync(this, api); Theme.sync(this, api); voice.sync(); loras.refresh(null);
             if (!fromNotification(getIntent())) Updater.check(this, false);
         });
         handleShare(getIntent());
@@ -98,7 +99,11 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); if (!fromNotification(i)) handleShare(i); }
-    @Override protected void onResume() { super.onResume(); resumed = true; Push.appVisible = true; h.removeCallbacks(loop); h.postDelayed(loop, 400); }
+    @Override protected void onResume() {
+        super.onResume(); resumed = true; Push.appVisible = true; h.removeCallbacks(loop); h.postDelayed(loop, 400);
+        String ref = GrabActivity.pendingRef;
+        if (ref != null) { GrabActivity.pendingRef = null; showTab(0); useAsRef(ref); }
+    }
     @Override protected void onPause() { super.onPause(); resumed = false; Push.appVisible = false; h.removeCallbacks(loop); }
 
     /** Tapped a notification: open the finished piece, or the update. */
@@ -210,15 +215,28 @@ public class MainActivity extends Activity {
 
         LinearLayout bar = Ui.hbox(this);
         bar.setBackgroundColor(Ui.BAR);
-        String[] names = {"CHAT", "LIBRARY"};
+        String[] names = {"[[lab]]\nCHAT", "[[grid]]\nLIBRARY"};
         for (int i = 0; i < 2; i++) {
             final int ix = i;
-            TextView t = Ui.bold(this, names[i], 11.5f, Ui.DIM);
-            t.setLetterSpacing(0.16f);
+            TextView t = Ui.bold(this, names[i], 10f, Ui.DIM);
+            t.setLetterSpacing(0.1f);
             t.setGravity(Gravity.CENTER);
-            t.setPadding(0, Ui.dp(10), 0, Ui.dp(10));
+            t.setPadding(0, Ui.dp(7), 0, Ui.dp(8));
             t.setOnClickListener(v -> showTab(ix));
             tabs[i] = t;
+            bar.addView(t, Ui.lpw(1));
+        }
+        // the studios are big features: their own labelled tabs (each opens its full-screen page)
+        String[] studios = {"[[film]]\nEDITOR", "[[tv]]\nSERIES", "[[download]]\nDOWNLOAD"};
+        Runnable[] go = {() -> EditorActivity.open(this, null), () -> SeriesActivity.open(this, null), () -> GrabActivity.open(this, null)};
+        for (int i = 0; i < studios.length; i++) {
+            final Runnable r = go[i];
+            TextView t = Ui.bold(this, studios[i], 10f, accent());
+            t.setLetterSpacing(0.1f);
+            t.setGravity(Gravity.CENTER);
+            t.setPadding(0, Ui.dp(7), 0, Ui.dp(8));
+            t.setFocusable(Tv.is(this));
+            t.setOnClickListener(v -> r.run());
             bar.addView(t, Ui.lpw(1));
         }
         qBadge = tabs[0];
@@ -252,6 +270,8 @@ public class MainActivity extends Activity {
         sh.section("Create");
         sh.row("globe", "Social · VIRAL-Ω", "@mirmedialabs · approve posts · analytics · growth skills", () -> SocialActivity.open(this, null));
         sh.row("film", "Video editor", "timeline · cut, trim, titles, music · AI animate / extend / restyle", () -> EditorActivity.open(this, null));
+        sh.row("tv", "Series studio", "animated series · cast, world, episodes, songs", () -> SeriesActivity.open(this, null));
+        sh.row("download", "Downloader", "YouTube & links → MP3 / MP4 in your library", () -> GrabActivity.open(this, null));
         sh.row("layers", "LoRA samples", "browse + apply community LoRAs", () -> loras.browse(Loras.roleOf(cur), ""));
         sh.row("sparkle", "Skills", "one tuned render", () -> { withSkills(() -> pickSkill(false)); });
         sh.row("chain", "Pipelines", "chained renders, one request", () -> { withSkills(() -> pickSkill(true)); });
@@ -434,9 +454,19 @@ public class MainActivity extends Activity {
         sv.setFillViewport(true);
         LinearLayout col = Ui.vbox(this);
         col.setPadding(Ui.dp(12), Ui.dp(8), Ui.dp(10), Ui.dp(12));
-        col.addView(Ui.label(this, "Models"), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 2, 0, 8));
-        col.addView(create.modelPane(), Ui.lp(Ui.MATCH, Ui.WRAP));
-        col.addView(Ui.label(this, "Create"), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 16, 0, 8));
+        col.addView(Ui.label(this, "Studios"), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 2, 0, 8));
+        String[][] st = {{"film", "Video editor"}, {"tv", "Series studio"}, {"download", "Downloader"}};
+        Runnable[] sgo = {() -> EditorActivity.open(this, null), () -> SeriesActivity.open(this, null), () -> GrabActivity.open(this, null)};
+        for (int i = 0; i < st.length; i++) {
+            TextView r = Ui.bold(this, "[[" + st[i][0] + "]]  " + st[i][1], 13.5f, Ui.INK);
+            r.setPadding(Ui.dp(12), Ui.dp(11), Ui.dp(10), Ui.dp(11));
+            r.setBackground(Ui.box(10, Ui.alpha(accent(), 0.12f), Ui.alpha(accent(), 0.55f)));
+            r.setFocusable(Tv.is(this));
+            final Runnable g2 = sgo[i];
+            r.setOnClickListener(v -> g2.run());
+            col.addView(r, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 0, 0, 6));
+        }
+        col.addView(Ui.label(this, "Create"), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 14, 0, 8));
         String[][] tools = {{"layers", "LoRA samples"}, {"sparkle", "Skills"}, {"chain", "Pipelines"}, {"book", "Command book"}, {"volume", "MUSE voice"}};
         Runnable[] acts = {() -> loras.browse(Loras.roleOf(cur), ""), () -> withSkills(() -> pickSkill(false)),
                 () -> withSkills(() -> pickSkill(true)), this::commandBook, () -> voice.pick()};
@@ -499,11 +529,11 @@ public class MainActivity extends Activity {
             int q = (status.optJSONArray("queued") == null ? 0 : status.optJSONArray("queued").length()) + (running ? 1 : 0);
             pill.setText((up ? (running ? "● RENDERING" : "● READY") : "● GPU OFFLINE") + (Prefs.onLan(this) ? " · HOME" : " · REMOTE"));
             pill.setTextColor(up ? (running ? Ui.AMB : Ui.GRN) : Ui.RED);
-            qBadge.setText(q > 0 ? "CHAT · " + q + " ⟳" : "CHAT");
+            Icons.set(qBadge, q > 0 ? "[[lab]]\nCHAT · " + q : "[[lab]]\nCHAT");
             create.renderModels();
         });
         if (tick % 6 == 1) api.get("/api/online", r -> { if (r.ok()) popCount(r.obj().optInt("live")); });
-        api.get("/api/jobs?limit=40", r -> {
+        api.get("/api/jobs?limit=40" + Sessions.q(), r -> {      // this chat session only
             if (!r.ok()) return;
             jobs = r.arr();
             JSONObject fresh = null;
@@ -539,6 +569,7 @@ public class MainActivity extends Activity {
         for (JSONObject a : atts) refs.put(a.optString("name"));
         JSONObject body = Api.obj("model", cur, "prompt", prompt, "refs", refs, "loras", loras.forRender(cur));
         if (recipeOf(prompt) != null) try { body.put("knobs", knobs); } catch (Exception ignored) { }
+        try { body.put("session", Sessions.id); } catch (Exception ignored) { }      // the result is filed in this session
         api.post("/api/generate", body, r -> {
             if (!r.ok()) { toast(r.err()); return; }
             voice.mine(r.obj().optString("id"));
@@ -779,6 +810,8 @@ public class MainActivity extends Activity {
         sh.row("attach", "Attach", "picture · clip · song · text", this::attachMenu);
         sh.row("globe", "Social · VIRAL-Ω", "approve posts · analytics · skills", () -> SocialActivity.open(this, null));
         sh.row("film", "Video editor", "open the timeline editor", () -> EditorActivity.open(this, null));
+        sh.row("tv", "Series studio", "cast · world · episodes · songs", () -> SeriesActivity.open(this, null));
+        sh.row("download", "Downloader", "YouTube & links → MP3 / MP4 in your library", () -> GrabActivity.open(this, null));
         sh.row("sliders", "Parameters", "settings for the selected model", () -> openParams(cur));
         sh.row("layers", "LoRA samples", "browse + apply community LoRAs", () -> loras.browse(Loras.roleOf(cur), ""));
         sh.row("sparkle", "Skills", "one tuned render", () -> withSkills(() -> pickSkill(false)));
@@ -882,6 +915,7 @@ public class MainActivity extends Activity {
         showTab(0);
     }
 
+    LibraryPage lib() { return library; }
     void openViewer(String name, String model) { voice.stop(); new Viewer(this, name, model).show(); }
     void openParams(String k) {
         if ("auto".equals(k)) {

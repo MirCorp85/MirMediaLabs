@@ -48,3 +48,6 @@ marketing/
 
 # -- generated settings previews (tools/make_param_previews.py) --
 server/static/fx/
+
+# rejected preview tiles (kept locally only)
+server/static/series/samples_old_*/

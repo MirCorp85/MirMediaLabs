@@ -32,7 +32,7 @@ import renderers     # noqa: E402
 
 LAB = "http://127.0.0.1:%d" % core.PORT          # loopback = the host, no key needed
 FX = os.path.join(SERVER, "static", "fx")
-MIRRORS = [r"C:\AiMir-Tools\MirOSMediaLab\server\static\fx"]   # MirOS /mlab serves its own static copy
+MIRRORS = [p for p in os.environ.get("MML_FX_MIRROR", "").split(";") if p]   # optional local mirror copies (env var, never a hardcoded path)
 SEED = 424242
 SCENE = ("A young woman in a long red wool coat walks slowly across a rain-wet city plaza at dusk, "
          "warm shop windows glowing behind her, a few pedestrians in the distance")
@@ -43,14 +43,14 @@ H3_BASE = {"mode": "t2v", "aspect": "16:9", "res": "draft", "seconds": 4, "quali
            "loop": "off", "extend": 0, "workflow": "builtin"}
 QIMG_BASE = {"mode": "generate", "aspect": "16:9", "size": "standard", "enhance": "off", "seed": SEED,
              "upscale": "off", "workflow": "builtin"}
-H3_CLIPS = ("camera", "shot", "motion", "scene_fx", "style")
+H3_CLIPS = ("camera", "shot", "motion", "scene_fx", "style", "res")
 STILLS = {"look": renderers.H3_LOOK, "lighting": renderers.H3_LIGHT}
 POST = ("grade", "grain", "vignette", "sharpen", "fade", "fps", "speed", "loop")
 SKIP = {"auto", "none", "off", "1", "24"}
 
 
-def opts(field):
-    f = next(x for x in __import__("params").MODELS["h3"]["fields"] if x["k"] == field)
+def opts(field, model="h3"):
+    f = next(x for x in __import__("params").MODELS[model]["fields"] if x["k"] == field)
     return [str(o[0] if isinstance(o, list) else o) for o in f["opts"] if str(o[0] if isinstance(o, list) else o) not in SKIP]
 
 
@@ -59,11 +59,14 @@ def plan():
     jobs += [("h3", k, v) for k in H3_CLIPS for v in opts(k)]
     jobs += [("still", k, v) for k in STILLS for v in opts(k)]
     jobs += [("post", k, v) for k in POST for v in opts(k)]
+    jobs += [("crop", "aspect", v) for v in opts("aspect")]                    # picture shape: the base clip, cropped
+    jobs += [("qcrop", "aspect", v) for v in opts("aspect", "qimg")]           # Qwen picture shapes: the base still, cropped
     return jobs
 
 
-def out_paths(field, val):
-    d = os.path.join(FX, "h3", field)
+def out_paths(field, val, model="h3"):
+    d = os.path.join(FX, model, field)
+    val = val.replace(":", "x")                    # 16:9 → 16x9 (no ":" in Windows file names; the manifest maps it back)
     return os.path.join(d, val + ".mp4"), os.path.join(d, val + ".jpg")
 
 
@@ -100,7 +103,7 @@ def render(model, params, prompt):
         while True:
             while not lab_idle():
                 time.sleep(20)                       # someone is rendering — they go first
-            r = requests.post(LAB + "/api/generate", json={"model": model, "prompt": prompt, "params": params}, timeout=30)
+            r = requests.post(LAB + "/api/generate", json={"model": model, "prompt": prompt, "params": params, "internal": True}, timeout=30)
             if r.status_code != 409:
                 break
             time.sleep(30)
@@ -125,6 +128,8 @@ def write_manifest():
             if fn.endswith(".jpg") and not fn.startswith("_"):
                 rel = os.path.relpath(os.path.join(root, fn), os.path.join(SERVER, "static")).replace("\\", "/")
                 key = rel[3:-4]                                    # fx/h3/camera/orbit.jpg → h3/camera/orbit
+                if "/aspect/" in key:
+                    key = key.replace("x", ":")                    # h3/aspect/16x9 → h3/aspect/16:9
                 ent = {"poster": "static/" + rel}          # relative: the page lives at / (lab) or /mlab/ (MirOS)
                 if os.path.isfile(os.path.join(root, fn[:-4] + ".mp4")):
                     ent["video"] = "static/" + rel[:-4] + ".mp4"
@@ -148,7 +153,7 @@ def main():
         f, _, v = a.only.partition("=")
         f = f.split(".")[-1]
         todo = [t for t in todo if t[1] in (f, "_base") and (not v or t[2] in (v, "base"))]
-    todo = [t for t in todo if not os.path.isfile(out_paths(t[1], t[2])[1])]
+    todo = [t for t in todo if not os.path.isfile(out_paths(t[1], t[2], "qimg" if t[0] == "qcrop" else "h3")[1])]
     if a.limit:
         todo = todo[:a.limit + (1 if todo and todo[0][1] == "_base" else 0)]
     print("%d previews to make" % len(todo))
@@ -159,12 +164,22 @@ def main():
     renderers.log = lambda job, msg: None                         # post_video logs to the lab console
     base_mp4 = out_paths("_base", "base")[0]
     for i, (kind, field, val) in enumerate(todo, 1):
-        mp4, jpg = out_paths(field, val)
+        mp4, jpg = out_paths(field, val, "qimg" if kind == "qcrop" else "h3")
         print("[%d/%d] %s %s=%s" % (i, len(todo), kind, field, val), flush=True)
         try:
             if kind == "h3":
                 p = dict(H3_BASE, **({} if field == "_base" else {field: val}))
                 small_clip(render("h3", p, SCENE), mp4, jpg)
+            elif kind in ("crop", "qcrop"):
+                w, h = (float(x) for x in val.split(":"))
+                crop = "crop='min(iw,ih*%g)':'min(ih,iw*%g)'" % (w / h, h / w)
+                os.makedirs(os.path.dirname(jpg), exist_ok=True)
+                if kind == "crop":
+                    ff("-i", base_mp4, "-vf", crop + ",scale=-2:360", "-an", "-c:v", "libx264", "-crf", "30",
+                       "-pix_fmt", "yuv420p", "-movflags", "+faststart", mp4)
+                    ff("-ss", "1.5", "-i", mp4, "-frames:v", "1", "-q:v", "4", jpg)
+                else:
+                    ff("-i", out_paths("_base", "base")[1], "-vf", crop + ",scale=-2:360", "-q:v", "4", jpg)
             elif kind == "still":
                 small_still(render("qimg", QIMG_BASE, SCENE + ". " + STILLS[field][val]), jpg)
             else:

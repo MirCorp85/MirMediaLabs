@@ -46,7 +46,9 @@ final class Viewer extends Dialog {
         LinearLayout top = Ui.hbox(c);
         top.setPadding(Ui.dp(14), Ui.dp(14), Ui.dp(8), Ui.dp(10));
         top.addView(Ui.chip(c, MainActivity.shortName(model), col));
-        TextView t = Ui.text(c, name, 12, Ui.DIM);
+        LibraryPage lib = m.lib();
+        int pos = lib == null ? -1 : lib.indexOf(name);
+        TextView t = Ui.text(c, (pos >= 0 ? (pos + 1) + " / " + lib.total() + "   " : "") + name, 12, Ui.DIM);
         t.setSingleLine(true);
         top.addView(t, Ui.margins(Ui.lpw(1), 10, 0, 8, 0));
         TextView x = Ui.text(c, "[[close]]", 20, Ui.INK);
@@ -58,8 +60,7 @@ final class Viewer extends Dialog {
         FrameLayout stage = new FrameLayout(c);
         String url = m.api.mediaUrl("/media/" + Api.enc(name));
         if ("image".equals(kind)) {
-            ImageView iv = new ImageView(c);
-            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            ImageView iv = new ZoomImageView(c);              // pinch to zoom, drag to pan, double-tap 2.5×
             stage.addView(iv, new FrameLayout.LayoutParams(Ui.MATCH, Ui.MATCH));
             TextView wait = Ui.mono(c, "loading…", 12, Ui.DIM);
             wait.setGravity(Gravity.CENTER);
@@ -86,6 +87,10 @@ final class Viewer extends Dialog {
             stage.addView(MPlayer.audio(c, url, col, m.model(model).optString("label", "AUDIO"), name, h, hold), lp);
             mp = hold[0];
         }
+        if (pos >= 0) {                                   // previous / next file in the library
+            if (pos > 0) stage.addView(navBtn(c, "[[chevron-left]]", -1), navLp(Gravity.START));
+            if (pos < lib.total() - 1) stage.addView(navBtn(c, "[[chevron-right]]", 1), navLp(Gravity.END));
+        }
         root.addView(stage, new LinearLayout.LayoutParams(Ui.MATCH, 0, 1));
 
         LinearLayout bar = Ui.hbox(c);
@@ -107,6 +112,9 @@ final class Viewer extends Dialog {
         bar.addView(save, Ui.lpw(1));
         bar.addView(use, Ui.margins(Ui.lpw(1.3f), 8, 0, 8, 0));
         bar.addView(edit, Ui.margins(Ui.lpw(1), 0, 0, 8, 0));
+        TextView mv = Ui.button(c, "[[folder]]", col, false);          // move it to another chat session (project)
+        mv.setOnClickListener(vv -> Sessions.moveFile(m, name));
+        bar.addView(mv, Ui.margins(Ui.lp(Ui.dp(56), ViewGroup.LayoutParams.WRAP_CONTENT), 0, 0, 8, 0));
         bar.addView(del, Ui.lp(Ui.dp(56), ViewGroup.LayoutParams.WRAP_CONTENT));
         if (BuildConfig.PLAY) {                              // Play AI-content policy: flag offensive results in-app
             TextView rep = Ui.button(c, "[[warn]]", col, false);
@@ -116,6 +124,33 @@ final class Viewer extends Dialog {
         root.addView(bar);
         setContentView(root);
         Ui.insets(root);
+    }
+
+    private TextView navBtn(Context c, String icon, int d) {
+        TextView b = Ui.text(c, icon, 22, 0xFFFFFFFF);
+        b.setGravity(Gravity.CENTER);
+        b.setBackground(Ui.box(99, 0x9E0A0806, 0x2EFFFFFF));
+        b.setFocusable(true);
+        b.setOnClickListener(v -> goTo(d));
+        return b;
+    }
+    private static FrameLayout.LayoutParams navLp(int side) {
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Ui.dp(44), Ui.dp(44), side | Gravity.CENTER_VERTICAL);
+        lp.setMargins(Ui.dp(8), 0, Ui.dp(8), 0);
+        return lp;
+    }
+    /** Swap to the previous / next library file. */
+    private void goTo(int d) {
+        LibraryPage lib = m.lib();
+        JSONObject it = lib == null ? null : lib.neighbor(name, d);
+        if (it == null) return;
+        dismiss();
+        m.openViewer(it.optString("name"), it.optString("model"));
+    }
+    @Override public boolean onKeyDown(int code, android.view.KeyEvent e) {
+        if (code == android.view.KeyEvent.KEYCODE_DPAD_LEFT || code == android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS) { goTo(-1); return true; }
+        if (code == android.view.KeyEvent.KEYCODE_DPAD_RIGHT || code == android.view.KeyEvent.KEYCODE_MEDIA_NEXT) { goTo(1); return true; }
+        return super.onKeyDown(code, e);
     }
 
     private void report(Context c, String file, String mdl) {

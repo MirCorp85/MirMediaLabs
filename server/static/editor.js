@@ -363,8 +363,9 @@
     if (c.type === 'image') e.addEventListener('load', function () { if (!c.sw) { c.sw = e.naturalWidth; c.sh = e.naturalHeight; } render(true); });
     return e;
   }
+  var MASTER = null, STALLED = false, STALL_T = 0;
   function render(force) {
-    var live = {}, z = 1, t = T;
+    var live = {}, z = 1, t = T; MASTER = null; STALLED = false;
     var empty = !P.tracks.some(function (tr) { return tr.clips.length; });
     var em = $('.empty', STAGE);
     if (empty && !em) { em = document.createElement('div'); em.className = 'empty'; em.innerHTML = 'Add clips from the Library or generate with AI — drag them onto the timeline, or tap <b>+</b> on a card.'; STAGE.appendChild(em); }
@@ -372,17 +373,27 @@
     for (var i = P.tracks.length - 1; i >= 0; i--) {           // bottom track first → higher z for upper tracks
       var tr = P.tracks[i];
       tr.clips.slice().sort(function (a, b) { return a.start - b.start; }).forEach(function (c) {
-        var on = t >= c.start && t < end(c) && !(tr.hidden && tr.kind !== 'audio'), near = t >= c.start - 1.5 && t < end(c);
+        var on = t >= c.start && t < end(c) && !(tr.hidden && tr.kind !== 'audio'), near = t >= c.start - 2.5 && t < end(c);
         if (!on && !near) return;
         var e = el(c); live[c.id] = 1;
         var srcT = num(c.in, 0) + (t - c.start) * num(c.speed, 1);
         if (c.type === 'video' || c.type === 'audio') {
           var muted = tr.muted || c.muted || !on;
           e.muted = muted; e.volume = clamp(num(c.volume, 1) * num(P.master, 1) * fadeK(c, t), 0, 1);
-          var rate = num(c.speed, 1); if (e.playbackRate !== rate) e.playbackRate = clamp(rate, 0.0625, 16);
-          if (on && PLAYING) { if (e.paused) { try { e.currentTime = srcT; } catch (x) { } var pr = e.play(); if (pr && pr.catch) pr.catch(function () { }); }
-            else if (Math.abs(e.currentTime - srcT) > 0.3) { try { e.currentTime = srcT; } catch (x) { } } }
-          else { if (!e.paused) e.pause(); var want = on ? srcT : num(c.in, 0); if (Math.abs(e.currentTime - want) > 0.04 && (force || on)) { try { e.currentTime = want; } catch (x) { } } }
+          var rate = clamp(num(c.speed, 1), 0.0625, 16);
+          if (on && PLAYING) {
+            if (e.error) { /* broken source — never let it hold the clock */ }
+            else if (e.paused) { if (!e.seeking && Math.abs(e.currentTime - srcT) > 0.1) { try { e.currentTime = srcT; } catch (x) { } }   // pre-rolled → no seek, no stall
+              if (e.playbackRate !== rate) e.playbackRate = rate; var pr = e.play(); if (pr && pr.catch) pr.catch(function () { }); }
+            else if (!e.seeking) {   // drift: nudge the rate for small error, hard-seek only for a big jump (seeks flush the buffer → the old freeze loop)
+              var d = e.currentTime - srcT, r = rate;
+              if (Math.abs(d) > 0.75) { try { e.currentTime = srcT; } catch (x) { } }
+              else if (Math.abs(d) > 0.04) r = rate * clamp(1 - d * 0.6, 0.9, 1.1);
+              if (Math.abs(e.playbackRate - r) > 0.001) e.playbackRate = r;
+              if (!MASTER || (c.type === 'audio' && !muted && MASTER.c.type !== 'audio')) MASTER = { e: e, c: c }; }
+            if (!e.error && (e.seeking || e.readyState < 3) && !e.ended) STALLED = true; }
+          else { if (!e.paused) e.pause(); if (e.playbackRate !== rate) e.playbackRate = rate;
+            var want = on ? srcT : num(c.in, 0); if (!e.seeking && Math.abs(e.currentTime - want) > 0.04 && (force || on || !PLAYING || e.readyState >= 1)) { try { e.currentTime = want; } catch (x) { } } }
         }
         if (c.type === 'audio') return;
         if (!on) { e.style.display = 'none'; return; }
@@ -413,16 +424,33 @@
         e.style.filter = f.join(' ');
       });
     }
-    Object.keys(POOL).forEach(function (id) { if (!live[id]) { var e = POOL[id]; if (e.pause && !e.paused) e.pause(); e.style.display = 'none';
-      if (!find(id)) { e.remove(); delete POOL[id]; } } });
+    var now = performance.now(), idle = [];
+    Object.keys(POOL).forEach(function (id) { var e = POOL[id]; if (live[id]) { e._idle = 0; return; }
+      if (e.pause && !e.paused) e.pause(); e.style.display = 'none';
+      if (!find(id)) { drop(id); return; }
+      if (e.pause) { e._idle = e._idle || now; idle.push(id); } });
+    // idle <video>/<audio> keep HTTP range connections open — the browser allows ~6 per host, so a pile of them starves the
+    // clips that ARE playing (the freeze). Keep only the 4 most recent for quick scrub-back; release the rest.
+    idle.sort(function (a, b) { return POOL[b]._idle - POOL[a]._idle; }).slice(4).forEach(drop);
   }
+  function drop(id) { var e = POOL[id]; if (!e) return; if (e.pause) { try { e.pause(); e.removeAttribute('src'); e.load(); } catch (x) { } } e.remove(); delete POOL[id]; }
   function hexA(h, a) { var m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return 'rgba(0,0,0,' + a + ')'; var n = parseInt(m[1], 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
-  var raf = 0, t0 = 0, tStart = 0;
-  function loop(now) { if (!PLAYING) return; T = tStart + (now - t0) / 1000;
+  var raf = 0, t0 = 0, tStart = 0, lastNow = 0;
+  function loop(now) { if (!PLAYING) return;
+    // Clock: follow the playing media itself (audio first) so sound never gets re-seeked; while a clip is buffering, hold
+    // the playhead instead of running ahead of it (wall-clock-only timing drifted → hard seek → re-buffer → freeze).
+    if (now - lastNow > 250) { t0 = now; tStart = T; }   // background tab / main-thread hitch: resume, don't leap ahead
+    lastNow = now; var wall = tStart + (now - t0) / 1000;
+    if (STALLED) { if (!STALL_T) STALL_T = now; } else STALL_T = 0;
+    if (STALLED && now - STALL_T < 4000) { t0 = now; tStart = T; }   // give up holding after 4s (dead source) and free-run
+    else {
+      var m = MASTER, mt = m && !m.e.paused && !m.e.seeking && m.e.readyState >= 3 ? m.c.start + (m.e.currentTime - num(m.c.in, 0)) / num(m.c.speed, 1) : null;
+      if (mt != null && mt >= m.c.start && mt < end(m.c) && Math.abs(mt - wall) < 1) { if (mt > T) T = mt; t0 = now; tStart = T; }
+      else T = Math.max(T, wall); }
     if (T >= total()) { T = total(); pause(); }
     drawPH(); render(); var x = T * PPS; if (x > SCROLL.scrollLeft + SCROLL.clientWidth - 30) SCROLL.scrollLeft = x - 60;
     raf = requestAnimationFrame(loop); }
-  function play() { if (PLAYING) return; if (T >= total() - 0.05) T = 0; PLAYING = true; t0 = performance.now(); tStart = T; $('#ed-play').innerHTML = mi('pause'); raf = requestAnimationFrame(loop); }
+  function play() { if (PLAYING) return; if (T >= total() - 0.05) T = 0; PLAYING = true; t0 = lastNow = performance.now(); tStart = T; $('#ed-play').innerHTML = mi('pause'); raf = requestAnimationFrame(loop); }
   function pause() { if (!PLAYING) return; PLAYING = false; cancelAnimationFrame(raf); $('#ed-play').innerHTML = mi('play'); render(true); drawPH(); }
 
   /* ══════════ INSPECTOR ══════════ */

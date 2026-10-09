@@ -22,15 +22,16 @@
       STATS = r[0]; POSTS = r[1].posts; AN = null;
       $('#acct-ig').classList.toggle('on', STATS.accounts.instagram.connected);
       $('#acct-yt').classList.toggle('on', STATS.accounts.youtube.connected);
+      var tb = $('#acct-tt'); if (tb) tb.classList.toggle('on', !!(STATS.accounts.tiktok || {}).connected);
       render();
     }).catch(function (e) { $('#view').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; });
   }
 
   function card(p) {
     var m = '';
-    ['instagram', 'youtube'].forEach(function (pl) {
+    ['instagram', 'youtube', 'tiktok'].forEach(function (pl) {
       var x = last(p, pl), r = (p.remote || {})[pl];
-      if (r) m += '<span>' + (pl === 'instagram' ? 'IG' : 'YT') + ' <a href="' + esc(r.url) + '" target="_blank" style="color:var(--acc)">open</a>' +
+      if (r) m += '<span>' + ({ instagram: 'IG', youtube: 'YT', tiktok: 'TT' })[pl] + ' <a href="' + esc(r.url) + '" target="_blank" style="color:var(--acc)">open</a>' +
         (x ? ' · <b>' + fmt(x.views || x.plays) + '</b> views · <b>' + fmt(x.likes) + '</b> likes' + (x.shares != null ? ' · <b>' + fmt(x.shares) + '</b> shares' : '') : '') + '</span>';
     });
     var a = '';
@@ -73,7 +74,8 @@
   }
 
   /* ── charts (pure SVG, theme colours) ─────────────────────────────────────────── */
-  var C = { ig: '#e1306c', yt: '#ff4433', acc: 'var(--acc)', ok: 'var(--ok)' };
+  var C = { ig: '#e1306c', yt: '#ff4433', tt: '#25f4ee', acc: 'var(--acc)', ok: 'var(--ok)' };
+  var PNAME = { instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok' }, PCOL = { instagram: '#e1306c', youtube: '#ff4433', tiktok: '#25f4ee' };
   var PAL = ['#d97757', '#5fd38d', '#5b8def', '#e3a949', '#b48cff'];
   function nodata(t) { return '<div class="nodata">' + (t || 'Collecting data — charts fill in as posts get metrics.') + '</div>'; }
   function legend(series) { return '<div class="lg">' + series.map(function (s) { return '<span><i style="background:' + s.color + '"></i>' + esc(s.name) + '</span>'; }).join('') + '</div>'; }
@@ -131,18 +133,18 @@
     var f = AN.followers, t = STATS.totals, ps = AN.posts, lf = f.length ? f[f.length - 1] : {}, ff = f.length ? f[0] : {};
     var dl = function (k) { return lf[k] != null && ff[k] != null ? lf[k] - ff[k] : null; };
     var eng = ps.length ? ps.reduce(function (a, p) { return a + p.eng; }, 0) / ps.length : 0;
-    var kp = [['IG followers', lf.instagram, dl('instagram')], ['YT subscribers', lf.youtube, dl('youtube')], ['Total views', t.views], ['Likes', t.likes],
+    var kp = [['IG followers', lf.instagram, dl('instagram')], ['YT subscribers', lf.youtube, dl('youtube')], ['TikTok followers', lf.tiktok, dl('tiktok')], ['Total views', t.views], ['Likes', t.likes],
       ['Shares', t.shares], ['Saves', t.saved], ['Avg engagement', eng ? eng.toFixed(1) + '%' : null], ['Median views/post', AN.median_views]];
     var recent = ps.slice(-5), last30 = ps.slice(-30), off = ps.length - last30.length;
-    var plats = Object.keys(AN.platforms).map(function (k) { return { name: k === 'instagram' ? 'Instagram' : 'YouTube', value: AN.platforms[k].views, color: k === 'instagram' ? C.ig : C.yt }; });
+    var plats = Object.keys(AN.platforms).map(function (k) { return { name: PNAME[k] || k, value: AN.platforms[k].views, color: PCOL[k] || C.acc }; });
     return '<div class="kpis">' + kp.map(function (k) {
         return '<div class="kpi"><small>' + k[0] + '</small><b>' + (k[1] == null ? '—' : typeof k[1] === 'string' ? k[1] : fmt(k[1])) + '</b>' +
           (k[2] != null ? '<em class="' + (k[2] >= 0 ? 'up' : 'down') + '">' + (k[2] >= 0 ? '+' : '') + fmt(k[2]) + '</em>' : '') + '</div>'; }).join('') + '</div>' +
-      '<div class="g2"><div class="box"><h3>Audience growth</h3>' + lines([{ name: 'Instagram followers', color: C.ig, pts: fser(f, 'instagram') }, { name: 'YouTube subscribers', color: C.yt, pts: fser(f, 'youtube') }]) + '</div>' +
+      '<div class="g2"><div class="box"><h3>Audience growth</h3>' + lines([{ name: 'Instagram followers', color: C.ig, pts: fser(f, 'instagram') }, { name: 'YouTube subscribers', color: C.yt, pts: fser(f, 'youtube') }, { name: 'TikTok followers', color: C.tt, pts: fser(f, 'tiktok') }]) + '</div>' +
       '<div class="box"><h3>Views by platform</h3>' + donut(plats) + '</div></div>' +
       '<div class="box"><h3>Views per post <span class="hint">green = beat your median</span></h3>' + bars(last30.map(function (p, i) { return { label: '#' + (off + i + 1), value: p.views, color: p.views >= AN.median_views ? C.ok : C.acc, title: p.hook + ' · ' + fmt(p.views) + ' views' }; }), { ref: AN.median_views }) + '</div>' +
       '<div class="g2"><div class="box"><h3>Engagement rate per post</h3>' + bars(last30.map(function (p, i) { return { label: String(off + i + 1), value: p.eng, title: p.hook + ' · ' + p.eng + '%' }; })) + '</div>' +
-      '<div class="box"><h3>First-week view curve <span class="hint">last 5 posts · hours after posting</span></h3>' + lines(recent.map(function (p, i) { var c = p.curve.instagram || p.curve.youtube || []; return { name: (p.hook || '').slice(0, 22), color: PAL[i], pts: c.map(function (x) { return [x.t, x.views]; }) }; })) + '</div></div>' +
+      '<div class="box"><h3>First-week view curve <span class="hint">last 5 posts · hours after posting</span></h3>' + lines(recent.map(function (p, i) { var c = p.curve.instagram || p.curve.tiktok || p.curve.youtube || []; return { name: (p.hook || '').slice(0, 22), color: PAL[i], pts: c.map(function (x) { return [x.t, x.views]; }) }; })) + '</div></div>' +
       '<div class="g2"><div class="box"><h3>Best hour to post <span class="hint">avg views by publish hour</span></h3>' + heat(AN.hours) + '</div>' +
       '<div class="box"><h3>Best day</h3>' + bars(AN.days.map(function (d) { return { label: d.d, value: d.avg, title: d.n + ' posts · avg ' + fmt(d.avg) }; }), { h: 120 }) + '</div></div>' +
       '<div class="g2"><div class="box"><h3>Content pillars <span class="hint">avg views</span></h3>' + bars(AN.pillars.slice(0, 8).map(function (p) { return { label: p.pillar.slice(0, 12), value: p.avg, title: p.pillar + ' · ' + p.posts + ' posts' }; }), { h: 140 }) + '</div>' +
@@ -163,7 +165,7 @@
       '<div class="g2"><div class="box"><h3>Needs you</h3>' + (need.length ? need.slice(0, 4).map(function (p) {
         return '<div class="tp"><img src="' + esc(p.cover_url) + '" alt=""><span class="tt">' + esc(p.hook || '') + '<small>' + (p.platforms || []).join(' + ') + '</small></span><button class="sb ok" data-ap="' + p.id + '">' + mi('check') + ' Approve</button></div>'; }).join('') : nodata('Nothing waiting. Make something in the lab and say “post it”.')) +
       (next ? '<div class="why" style="margin-top:10px">Next post: ' + esc(next.hook || '') + ' · ' + when(next.schedule_at) + '</div>' : '') + '</div>' +
-      '<div class="box"><h3>Audience</h3>' + lines([{ name: 'Instagram', color: C.ig, pts: fser(f, 'instagram') }, { name: 'YouTube', color: C.yt, pts: fser(f, 'youtube') }], 140) + '</div></div>' +
+      '<div class="box"><h3>Audience</h3>' + lines([{ name: 'Instagram', color: C.ig, pts: fser(f, 'instagram') }, { name: 'YouTube', color: C.yt, pts: fser(f, 'youtube') }, { name: 'TikTok', color: C.tt, pts: fser(f, 'tiktok') }], 140) + '</div></div>' +
       '<div class="box"><h3>VIRAL-Ω suggests</h3>' + (ideas.length ? ideas.map(function (i, n) { return '<div class="idea"><b>' + esc(i.title) + '</b> — ' + esc(i.hook) + ' <button class="sb" data-make="' + n + '">' + mi('sparkle') + ' Make</button></div>'; }).join('') : nodata('No ideas yet — open the VIRAL-Ω tab.')) + '</div>';
   }
 
@@ -203,15 +205,25 @@
   function accountsView() {
     var a = STATS.accounts;
     return '<div class="box"><h3>Instagram ' + esc(a.handle) + '</h3><div class="row">' + (a.instagram.connected ? '<span class="acct on">connected · @' + esc(a.instagram.username) + '</span>' + (a.instagram.expires ? '<span class="why">token renews automatically · expires ' + when(a.instagram.expires) + '</span>' : '') : '<span class="acct">not connected</span>') + '</div>' +
-      '<label class="f">Meta access token (from your Meta developer app — Graph API Explorer, with instagram_basic, instagram_content_publish, instagram_manage_insights, pages_show_list)</label><input class="t" id="ig-tok" type="password" autocomplete="off">' +
-      '<label class="f">App ID (optional — enables 60-day auto-renew)</label><input class="t" id="ig-app">' +
-      '<label class="f">App secret (optional)</label><input class="t" id="ig-sec" type="password" autocomplete="off">' +
+      '<label class="f">Instagram access token — Meta app → Instagram → API setup with Instagram login → Generate token (starts with IG…). An older Facebook-Page token also works.</label><input class="t" id="ig-tok" type="password" autocomplete="off">' +
+      '<label class="f">Instagram app ID (optional)</label><input class="t" id="ig-app">' +
+      '<label class="f">Instagram app secret (optional — only needed for short 1-hour tokens)</label><input class="t" id="ig-sec" type="password" autocomplete="off">' +
       '<label class="f">Public https address of this lab (Instagram downloads the video from here)</label><input class="t" id="pub" placeholder="https://your-lab.example.com">' +
       '<div class="row" style="margin-top:10px"><button class="sb pri" id="ig-save">Connect Instagram</button></div></div>' +
       '<div class="box"><h3>YouTube</h3><div class="row">' + (a.youtube.connected ? '<span class="acct on">connected · ' + esc(a.youtube.channel) + '</span>' : '<span class="acct">not connected</span>') + '</div>' +
       '<label class="f">Google OAuth client ID (Desktop app; redirect: this lab’s …/api/social/youtube/callback)</label><input class="t" id="yt-id">' +
       '<label class="f">Client secret</label><input class="t" id="yt-sec" type="password" autocomplete="off">' +
-      '<div class="row" style="margin-top:10px"><button class="sb" id="yt-save">Save client</button><button class="sb pri" id="yt-go"' + (a.youtube.has_client ? '' : ' disabled') + '>Sign in with Google</button><span class="why">Do this on the lab PC.</span></div></div>';
+      '<div class="row" style="margin-top:10px"><button class="sb" id="yt-save">Save client</button><button class="sb pri" id="yt-go"' + (a.youtube.has_client ? '' : ' disabled') + '>Sign in with Google</button><span class="why">Do this on the lab PC.</span></div></div>' + ttBox();
+  }
+
+  function ttBox() {
+    var t = STATS.accounts.tiktok || {}, base = t.base || 'https://<set the public address above>';
+    return '<div class="box"><h3>TikTok</h3><div class="row">' + (t.connected ? '<span class="acct on">connected · @' + esc(t.username || '') + '</span><button class="sb" id="tt-off">Disconnect</button>' : '<span class="acct">not connected</span>') + '</div>' +
+      '<div class="why">TikTok developer app → Login Kit redirect URI: <b>' + esc(base) + '/social/tiktok/callback</b> · Terms: ' + esc(base) + '/social/tiktok/legal/terms · Privacy: ' + esc(base) + '/social/tiktok/legal/privacy</div>' +
+      '<label class="f">Client key</label><input class="t" id="tt-key">' +
+      '<label class="f">Client secret</label><input class="t" id="tt-sec" type="password" autocomplete="off">' +
+      '<div class="row" style="margin-top:10px"><button class="sb" id="tt-save">Save client</button><button class="sb pri" id="tt-go"' + (t.has_client ? '' : ' disabled') + '>Sign in with TikTok</button>' +
+      '<span class="why">Until TikTok approves the app, posts only go up as “Only me” and the TikTok account must be set to private.</span></div></div>';
   }
 
   function act(id, a) {
@@ -238,18 +250,48 @@
       '<label class="f">YouTube description</label><textarea class="t" id="e-ytd">' + esc(p.yt_description || '') + '</textarea>' +
       '<div class="row"><label class="row" style="font-size:12px"><input type="checkbox" id="e-ig"' + ((p.platforms || []).indexOf('instagram') > -1 ? ' checked' : '') + '> Instagram</label>' +
       '<label class="row" style="font-size:12px"><input type="checkbox" id="e-ytb"' + ((p.platforms || []).indexOf('youtube') > -1 ? ' checked' : '') + '> YouTube</label>' +
+      '<label class="row" style="font-size:12px"><input type="checkbox" id="e-tt"' + ((p.platforms || []).indexOf('tiktok') > -1 ? ' checked' : '') + '> TikTok</label>' +
       '<label class="f" style="margin:0">Post at</label><input class="t" type="datetime-local" id="e-at" value="' + loc + '" style="width:auto">' +
       '<button class="sb" id="e-cover">' + mi('camera') + ' Use current frame as cover</button></div>' +
+      '<div id="e-ttbox" class="box" style="margin-top:12px" hidden></div>' +
       '<div class="row" style="margin-top:14px;justify-content:flex-end"><button class="sb" id="e-cancel">Cancel</button><button class="sb pri" id="e-save">Save</button></div></div>';
     m.hidden = false;
+    var T = Object.assign({}, p.tiktok || {});
+    var ttBoxDraw = function (ci) {
+      var bx = $('#e-ttbox'); if (!bx) return;
+      bx.hidden = !$('#e-tt').checked; if (bx.hidden) return;
+      if (!ci) { bx.innerHTML = '<div class="why">Checking your TikTok account…</div>'; api('api/social/tiktok/creator').then(ttBoxDraw).catch(function (e) { bx.innerHTML = '<div class="warnb">' + esc(e.message) + ' — connect TikTok in Accounts</div>'; }); return; }
+      var opts = ci.privacy_level_options || [], lab = { PUBLIC_TO_EVERYONE: 'Everyone', MUTUAL_FOLLOW_FRIENDS: 'Friends', FOLLOWER_OF_CREATOR: 'Followers', SELF_ONLY: 'Only me' };
+      var ck = function (id, on, dis, txt) { return '<label class="row" style="font-size:12px' + (dis ? ';opacity:.45' : '') + '"><input type="checkbox" id="' + id + '"' + (on && !dis ? ' checked' : '') + (dis ? ' disabled' : '') + '> ' + txt + '</label>'; };
+      bx.innerHTML = '<h3>TikTok · posting as ' + esc(ci.creator_nickname || ci.creator_username || '') + '</h3>' +
+        '<label class="f">Who can see this video</label><select class="t" id="tt-priv"><option value="">Choose…</option>' + opts.map(function (o) { return '<option value="' + o + '"' + (T.privacy_level === o ? ' selected' : '') + '>' + (lab[o] || o) + '</option>'; }).join('') + '</select>' +
+        '<div class="row" style="margin-top:8px">' + ck('tt-cm', T.allow_comment, ci.comment_disabled, 'Allow comments') + ck('tt-du', T.allow_duet, ci.duet_disabled, 'Allow Duet') + ck('tt-st', T.allow_stitch, ci.stitch_disabled, 'Allow Stitch') + '</div>' +
+        '<div class="row" style="margin-top:8px">' + ck('tt-dis', T.disclose, false, 'Disclose commercial content') + '</div>' +
+        '<div class="row" id="tt-disrow"' + (T.disclose ? '' : ' hidden') + '>' + ck('tt-org', T.brand_organic, false, 'Your brand') + ck('tt-bc', T.brand_content, false, 'Branded content (paid partnership)') + '</div>' +
+        '<div class="why" id="tt-label"></div>' +
+        '<label class="row" style="font-size:12px;margin-top:8px"><input type="checkbox" id="tt-ok"' + (T.consent ? ' checked' : '') + '> By posting, I agree to TikTok’s <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" style="color:var(--acc)">Music Usage Confirmation</a>' +
+        '<span id="tt-bcp"></span></label><div class="why">Labelled as AI-generated content. Video limit: ' + (ci.max_video_post_duration_sec || '?') + 's.</div>';
+      var lbl = function () {
+        var o = $('#tt-org').checked, b = $('#tt-bc').checked, d = $('#tt-dis').checked;
+        $('#tt-disrow').hidden = !d;
+        $('#tt-label').textContent = !d ? '' : b ? 'Your video will be labelled “Paid partnership”.' : o ? 'Your video will be labelled “Promotional content”.' : 'Pick at least one.';
+        $('#tt-bcp').innerHTML = d && b ? ' and <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" style="color:var(--acc)">Branded Content Policy</a>' : '';
+        var so = $('#tt-priv').querySelector('option[value="SELF_ONLY"]'); if (so) { so.disabled = d && b; if (so.selected && so.disabled) $('#tt-priv').value = ''; }
+      };
+      ['tt-dis', 'tt-org', 'tt-bc'].forEach(function (i) { $('#' + i).onchange = lbl; }); lbl();
+    };
+    $('#e-tt').onchange = function () { ttBoxDraw(); };
+    ttBoxDraw();
     if (window.MI && MI.fill) MI.fill(m);
     var close = function () { m.hidden = true; m.innerHTML = ''; };
     $('#mx').onclick = $('#e-cancel').onclick = close;
     $('#e-cover').onclick = function () { api('api/social/posts/' + p.id, { method: 'POST', body: { cover_at: $('#pv').currentTime } }).then(function () { toast('Cover set'); }); };
     $('#e-save').onclick = function () {
-      var pl = []; if ($('#e-ig').checked) pl.push('instagram'); if ($('#e-ytb').checked) pl.push('youtube');
+      var pl = []; if ($('#e-ig').checked) pl.push('instagram'); if ($('#e-ytb').checked) pl.push('youtube'); if ($('#e-tt').checked) pl.push('tiktok');
       var b = { hook: $('#e-hook').value, caption: $('#e-cap').value, hashtags: $('#e-tags').value.split(/[\s,#]+/).filter(Boolean),
         yt_title: $('#e-yt').value, yt_description: $('#e-ytd').value, platforms: pl };
+      if ($('#tt-priv')) b.tiktok = { privacy_level: $('#tt-priv').value, allow_comment: $('#tt-cm').checked, allow_duet: $('#tt-du').checked, allow_stitch: $('#tt-st').checked,
+        disclose: $('#tt-dis').checked, brand_organic: $('#tt-dis').checked && $('#tt-org').checked, brand_content: $('#tt-dis').checked && $('#tt-bc').checked, consent: $('#tt-ok').checked };
       if ($('#e-at').value) b.schedule_at = new Date($('#e-at').value).getTime() / 1000;
       api('api/social/posts/' + p.id, { method: 'POST', body: b }).then(function () { close(); load(); toast('Saved'); }).catch(function (e) { toast(e.message); });
     };
@@ -313,7 +355,10 @@
       api('api/social/accounts', { method: 'POST', body: b }).then(function () { toast('Saved'); load(); }).catch(function (e) { toast(e.message); });
     };
     var ys = $('#yt-save'); if (ys) ys.onclick = function () { api('api/social/accounts', { method: 'POST', body: { yt_client_id: $('#yt-id').value, yt_client_secret: $('#yt-sec').value } }).then(function () { toast('Saved'); load(); }).catch(function (e) { toast(e.message); }); };
-    var yg = $('#yt-go'); if (yg) yg.onclick = function () { window.open('api/social/youtube/connect', '_blank'); };
+    var yg = $('#yt-go'); if (yg) yg.onclick = function () { window.open(location.hostname === '127.0.0.1' || location.hostname === 'localhost' ? 'api/social/youtube/connect' : 'http://127.0.0.1:5400/api/social/youtube/connect', '_blank'); };
+    var tts = $('#tt-save'); if (tts) tts.onclick = function () { api('api/social/accounts', { method: 'POST', body: { tt_client_key: $('#tt-key').value, tt_client_secret: $('#tt-sec').value } }).then(function () { toast('Saved'); load(); }).catch(function (e) { toast(e.message); }); };
+    var ttg = $('#tt-go'); if (ttg) ttg.onclick = function () { window.open('api/social/tiktok/connect', '_blank'); };
+    var tto = $('#tt-off'); if (tto) tto.onclick = function () { if (confirm('Disconnect TikTok? (Deletes the saved sign-in.)')) api('api/social/tiktok/disconnect', { method: 'POST' }).then(load); };
     var pub = $('#pub'); if (pub) api('api/social/accounts').then(function (a) { pub.value = a.public_base || ''; });
   }
 

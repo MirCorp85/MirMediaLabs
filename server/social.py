@@ -6,7 +6,8 @@ the media-lab sync rule: copy, never import across. Each copy wires it in with
     social.register(app, hooks)
 hooks: uid, is_owner, my_file, push(user, etype, title, body), public_base() -> https base or "".
 
-Accounts: @mirmedialabs Instagram (official Graph API, Creator/Business account) + YouTube (Data API v3).
+Accounts: @mirmedialabs Instagram (official API — Instagram Login token "IG…" or the older Facebook-Page token),
+YouTube (Data API v3) and TikTok (Content Posting API, Login Kit OAuth; opt-in per post).
 Nothing is ever published without the owner pressing APPROVE — enforced here, server side.
 
   posts      data/social/posts.json   draft → approved/scheduled → publishing → published | failed | rejected
@@ -40,9 +41,15 @@ ACC_FILE = os.path.join(SD, "accounts.json")
 SOUL_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "viral_soul.md")
 
 AGENT = "VIRAL-Ω"
-PLATFORMS = ("instagram", "youtube")
+PLATFORMS = ("instagram", "youtube")   # default targets of a new draft; TikTok is opt-in per post (needs its own settings)
+ALL_PLATFORMS = ("instagram", "youtube", "tiktok")
 GRAPH = "https://graph.facebook.com/v21.0"
+IG_GRAPH = "https://graph.instagram.com/v21.0"   # "Instagram API with Instagram Login" (Meta's current setup)
 IG_DAILY_CAP = 25                      # IG API allows 50/24h; stay well under it (account health)
+TT_API = "https://open.tiktokapis.com/v2"
+TT_SCOPES = "user.info.basic,user.info.profile,user.info.stats,video.publish,video.list"
+TT_DAILY_CAP = 10                      # TikTok caps API posts per creator per day; stay under it
+TT_PRIVACY = ("PUBLIC_TO_EVERYONE", "MUTUAL_FOLLOW_FRIENDS", "FOLLOWER_OF_CREATOR", "SELF_ONLY")
 METRIC_AT = (3600, 6 * 3600, 86400, 3 * 86400, 7 * 86400)
 _LOCK = threading.RLock()
 _HK = {}
@@ -98,12 +105,15 @@ def _secret():
 
 def public_accounts():
     a = accounts()
-    ig, yt = a.get("instagram") or {}, a.get("youtube") or {}
+    ig, yt, tt = a.get("instagram") or {}, a.get("youtube") or {}, a.get("tiktok") or {}
     return {"handle": a.get("handle", "@mirmedialabs"),
             "instagram": {"connected": bool(ig.get("token") and ig.get("user_id")), "username": ig.get("username", ""),
-                          "expires": ig.get("expires", 0)},
+                          "expires": ig.get("expires", 0), "api": ig.get("api", "fb" if ig.get("token") else "")},
             "youtube": {"connected": bool(yt.get("refresh_token")), "channel": yt.get("channel", ""),
-                        "has_client": bool(yt.get("client_id"))}}
+                        "has_client": bool(yt.get("client_id"))},
+            "tiktok": {"connected": bool(tt.get("refresh_token")), "username": tt.get("username", ""),
+                       "has_client": bool(tt.get("client_key")), "expires": tt.get("refresh_exp", 0),
+                       "base": ((_HK.get("public_base") or (lambda: ""))() or "").rstrip("/")}}
 
 
 # ── formatter (ffmpeg) ───────────────────────────────────────────────────────────────────────
@@ -325,6 +335,8 @@ def approve(pid, when=None):
     p = get(pid)
     if not p or p["status"] not in ("draft", "failed", "rejected", "scheduled"):
         raise ValueError("post is not awaiting approval")
+    if "tiktok" in (p.get("platforms") or []):
+        tt_check(p.get("tiktok") or {})
     ts = float(when) if when else next_slot(p.get("best_time") or "18:00")
     return update(pid, status="scheduled", schedule_at=ts, approved_at=time.time(), error="")
 
@@ -358,30 +370,52 @@ def _ig():
     return ig
 
 
-def _g(method, path, **kw):
-    r = requests.request(method, GRAPH + path, timeout=60, **kw)
-    d = r.json() if r.content else {}
+def _g(method, path, base=None, **kw):
+    if base is None:     # Instagram-Login tokens talk to graph.instagram.com, Facebook-Page tokens to graph.facebook.com
+        base = IG_GRAPH if (accounts().get("instagram") or {}).get("api") == "ig" else GRAPH
+    r = requests.request(method, base + path, timeout=60, **kw)
+    try:
+        d = r.json() if r.content else {}
+    except ValueError:
+        d = {"error": {"message": r.text[:300]}}
     if r.status_code >= 400 or "error" in d:
-        raise PubError((d.get("error") or {}).get("message") or r.text[:300])
+        e = d.get("error")
+        raise PubError((e.get("message") if isinstance(e, dict) else e) or r.text[:300])
     return d
 
 
 def ig_connect(token, app_id="", app_secret=""):
-    """Short- or long-lived user token → long-lived token + the IG business account id behind the FB Page."""
+    """Instagram-Login token ("IG…", from the Meta dashboard's 'Generate token') or a Facebook user token →
+    long-lived token + the Instagram professional account id."""
+    if token.startswith("IG"):
+        exp = time.time() + 5184000           # dashboard tokens are already 60-day tokens
+        if app_secret:                        # a 1-hour token from a login flow → swap for a 60-day one
+            try:
+                d = _g("GET", "/access_token", base="https://graph.instagram.com",
+                       params={"grant_type": "ig_exchange_token", "client_secret": app_secret, "access_token": token})
+                token, exp = d["access_token"], time.time() + int(d.get("expires_in", 5184000))
+            except PubError:
+                pass                          # it was already long-lived
+        me = _g("GET", "/me", base=IG_GRAPH, params={"fields": "user_id,username,account_type", "access_token": token})
+        a = accounts()
+        a["instagram"] = {"api": "ig", "token": token, "user_id": str(me.get("user_id") or me["id"]),
+                          "username": me.get("username", ""), "expires": exp, "app_id": app_id, "app_secret": app_secret}
+        save_accounts(a)
+        return public_accounts()
     if app_id and app_secret:
-        d = _g("GET", "/oauth/access_token", params={"grant_type": "fb_exchange_token", "client_id": app_id,
+        d = _g("GET", "/oauth/access_token", base=GRAPH, params={"grant_type": "fb_exchange_token", "client_id": app_id,
                                                       "client_secret": app_secret, "fb_exchange_token": token})
         token, exp = d["access_token"], time.time() + int(d.get("expires_in", 5184000))
     else:
         exp = time.time() + 5184000
-    pages = _g("GET", "/me/accounts", params={"fields": "instagram_business_account{id,username},name",
-                                               "access_token": token}).get("data", [])
+    pages = _g("GET", "/me/accounts", base=GRAPH, params={"fields": "instagram_business_account{id,username},name",
+                                                           "access_token": token}).get("data", [])
     acct = next((pg["instagram_business_account"] for pg in pages if pg.get("instagram_business_account")), None)
     if not acct:
         raise PubError("no Instagram Creator/Business account linked to your Facebook Pages")
     a = accounts()
-    a["instagram"] = {"token": token, "user_id": acct["id"], "username": acct.get("username", ""), "expires": exp,
-                      "app_id": app_id, "app_secret": app_secret}
+    a["instagram"] = {"api": "fb", "token": token, "user_id": acct["id"], "username": acct.get("username", ""),
+                      "expires": exp, "app_id": app_id, "app_secret": app_secret}
     save_accounts(a)
     return public_accounts()
 
@@ -389,12 +423,22 @@ def ig_connect(token, app_id="", app_secret=""):
 def ig_refresh():
     a = accounts()
     ig = a.get("instagram") or {}
+    if ig.get("api") == "ig" and ig.get("token"):
+        # Instagram-Login tokens refresh themselves (no app secret); allowed once the token is a day old
+        if ig.get("expires", 0) - time.time() > 30 * 86400:
+            return
+        d = _g("GET", "/refresh_access_token", base="https://graph.instagram.com",
+               params={"grant_type": "ig_refresh_token", "access_token": ig["token"]})
+        ig["token"], ig["expires"] = d["access_token"], time.time() + int(d.get("expires_in", 5184000))
+        save_accounts(a)
+        return
     if not (ig.get("token") and ig.get("app_id") and ig.get("app_secret")):
         return
     if ig.get("expires", 0) - time.time() > 10 * 86400:
         return
-    d = _g("GET", "/oauth/access_token", params={"grant_type": "fb_exchange_token", "client_id": ig["app_id"],
-                                                  "client_secret": ig["app_secret"], "fb_exchange_token": ig["token"]})
+    d = _g("GET", "/oauth/access_token", base=GRAPH,
+           params={"grant_type": "fb_exchange_token", "client_id": ig["app_id"],
+                   "client_secret": ig["app_secret"], "fb_exchange_token": ig["token"]})
     ig["token"], ig["expires"] = d["access_token"], time.time() + int(d.get("expires_in", 5184000))
     save_accounts(a)
 
@@ -545,10 +589,191 @@ def yt_account():
             "videos": int(s.get("videoCount", 0)), "channel": it[0].get("snippet", {}).get("title", "")}
 
 
+# ── TikTok Content Posting API (Login Kit OAuth, Direct Post via FILE_UPLOAD) ─────────────────
+# TikTok rules this follows: read creator_info before every post, owner picks the privacy level (no default),
+# comment/duet/stitch are off unless the owner turns them on, commercial-content disclosure, AI-content label.
+# Until TikTok audits the app, posts only work as SELF_ONLY on a PRIVATE TikTok account.
+def tt_redirect():
+    base = (_HK.get("public_base") or (lambda: ""))()
+    if not base.startswith("https://"):
+        raise PubError("TikTok needs the lab's public https address (Social → Accounts)")
+    return base.rstrip("/") + "/social/tiktok/callback"
+
+
+def tt_auth_url():
+    a = accounts()
+    tt = a.get("tiktok") or {}
+    if not tt.get("client_key"):
+        raise PubError("add the TikTok client key and secret first")
+    from urllib.parse import urlencode
+    tt["state"], tt["state_exp"] = uuid.uuid4().hex, time.time() + 900
+    a["tiktok"] = tt
+    save_accounts(a)
+    return "https://www.tiktok.com/v2/auth/authorize/?" + urlencode({
+        "client_key": tt["client_key"], "scope": TT_SCOPES, "response_type": "code",
+        "redirect_uri": tt_redirect(), "state": tt["state"]})
+
+
+def _tt_store(tt, r):
+    now = time.time()
+    tt.update(access=r["access_token"], access_exp=now + int(r.get("expires_in", 86400)) - 120,
+              refresh_token=r.get("refresh_token") or tt.get("refresh_token"),
+              refresh_exp=now + int(r.get("refresh_expires_in", 31536000)), open_id=r.get("open_id", tt.get("open_id", "")),
+              scope=r.get("scope", tt.get("scope", "")))
+
+
+def _tt_oauth(data):
+    r = requests.post(TT_API + "/oauth/token/", timeout=30, data=data,
+                      headers={"Content-Type": "application/x-www-form-urlencoded"})
+    try:
+        d = r.json()
+    except ValueError:
+        raise PubError("TikTok: " + r.text[:300])
+    if "access_token" not in d:
+        raise PubError("TikTok: " + str(d.get("error_description") or d.get("error") or d)[:300])
+    return d
+
+
+def tt_callback(code, state):
+    a = accounts()
+    tt = a.get("tiktok") or {}
+    if not state or not tt.get("state") or not hmac.compare_digest(str(state), str(tt["state"])) \
+            or tt.get("state_exp", 0) < time.time():
+        raise PubError("this sign-in link expired — start again from Social → Accounts")
+    d = _tt_oauth({"client_key": tt["client_key"], "client_secret": tt.get("client_secret", ""), "code": code,
+                   "grant_type": "authorization_code", "redirect_uri": tt_redirect()})
+    _tt_store(tt, d)
+    tt.pop("state", None)
+    tt.pop("state_exp", None)
+    a["tiktok"] = tt
+    save_accounts(a)
+    try:
+        u = tt_account()
+        a = accounts()
+        a["tiktok"].update(username=u.get("username", ""), display_name=u.get("display_name", ""))
+        save_accounts(a)
+    except Exception as e:
+        _log("[social] TikTok profile: %s" % e)
+    return public_accounts()
+
+
+def tt_refresh(force=False):
+    a = accounts()
+    tt = a.get("tiktok") or {}
+    if not tt.get("refresh_token"):
+        raise PubError("TikTok not connected")
+    if not force and tt.get("access") and tt.get("access_exp", 0) > time.time():
+        return tt["access"]
+    d = _tt_oauth({"client_key": tt["client_key"], "client_secret": tt.get("client_secret", ""),
+                   "grant_type": "refresh_token", "refresh_token": tt["refresh_token"]})
+    _tt_store(tt, d)
+    save_accounts(a)
+    return tt["access"]
+
+
+def _tt(method, path, **kw):
+    r = requests.request(method, TT_API + path, timeout=60, headers={"Authorization": "Bearer " + tt_refresh(),
+                                                                       "Content-Type": "application/json; charset=UTF-8"}, **kw)
+    try:
+        d = r.json()
+    except ValueError:
+        raise PubError("TikTok: " + r.text[:300])
+    e = d.get("error") or {}
+    if r.status_code >= 400 or (e.get("code") not in (None, "", "ok")):
+        raise PubError("TikTok: %s" % (e.get("message") or e.get("code") or r.text[:300]))
+    return d.get("data") or {}
+
+
+def tt_creator():
+    """What this creator may do right now: privacy options, whether comments/duet/stitch are disabled, max length."""
+    return _tt("POST", "/post/publish/creator_info/query/", json={})
+
+
+def tt_check(s, ci=None):
+    if s.get("privacy_level") not in TT_PRIVACY:
+        raise ValueError("TikTok: choose who can see this post (Edit → TikTok)")
+    if not s.get("consent"):
+        raise ValueError("TikTok: tick the Music Usage Confirmation agreement (Edit → TikTok)")
+    if s.get("brand_content") and s["privacy_level"] == "SELF_ONLY":
+        raise ValueError("TikTok: branded content can't be private (only me)")
+    if s.get("disclose") and not (s.get("brand_content") or s.get("brand_organic")):
+        raise ValueError("TikTok: commercial content is on — pick 'Your brand' and/or 'Branded content'")
+    if ci and s["privacy_level"] not in (ci.get("privacy_level_options") or []):
+        raise PubError("TikTok doesn't offer '%s' for this account right now (unaudited apps: private account + "
+                       "'Only me')" % s["privacy_level"])
+
+
+def tt_publish(p):
+    s = p.get("tiktok") or {}
+    ci = tt_creator()
+    tt_check(s, ci)
+    dur, maxd = (p.get("media") or {}).get("duration") or 0, ci.get("max_video_post_duration_sec") or 0
+    if maxd and dur > maxd:
+        raise PubError("TikTok: video is %ds, this account allows %ds" % (dur, maxd))
+    path = os.path.join(OUT, p["media"]["file"])
+    size = os.path.getsize(path)
+    MB = 1024 * 1024
+    chunk, n = (size, 1) if size <= 64 * MB else (10 * MB, size // (10 * MB))   # last chunk takes the remainder
+    title = (p.get("caption") or p.get("hook") or "").strip()
+    if p.get("hashtags"):
+        title += "\n\n" + " ".join("#" + h for h in p["hashtags"])
+    info = {"title": title[:2200], "privacy_level": s["privacy_level"],
+            "disable_comment": bool(ci.get("comment_disabled") or not s.get("allow_comment")),
+            "disable_duet": bool(ci.get("duet_disabled") or not s.get("allow_duet")),
+            "disable_stitch": bool(ci.get("stitch_disabled") or not s.get("allow_stitch")),
+            "video_cover_timestamp_ms": int(float(p.get("cover_at", 0.5)) * 1000),
+            "brand_content_toggle": bool(s.get("brand_content")), "brand_organic_toggle": bool(s.get("brand_organic")),
+            "is_aigc": True}
+    d = _tt("POST", "/post/publish/video/init/", json={"post_info": info, "source_info": {
+        "source": "FILE_UPLOAD", "video_size": size, "chunk_size": chunk, "total_chunk_count": n}})
+    pub_id, up = d["publish_id"], d["upload_url"]
+    with open(path, "rb") as f:
+        for i in range(n):
+            a = i * chunk
+            b = size - 1 if i == n - 1 else a + chunk - 1
+            f.seek(a)
+            buf = f.read(b - a + 1)
+            r = requests.put(up, data=buf, timeout=900, headers={"Content-Type": "video/mp4", "Content-Length": str(len(buf)),
+                                                                 "Content-Range": "bytes %d-%d/%d" % (a, b, size)})
+            if r.status_code not in (200, 201, 206):
+                raise PubError("TikTok upload: %s %s" % (r.status_code, r.text[:200]))
+    vid = ""
+    for _ in range(90):                          # processing: poll up to ~15 min
+        st = _tt("POST", "/post/publish/status/fetch/", json={"publish_id": pub_id})
+        if st.get("status") == "PUBLISH_COMPLETE":
+            ids = st.get("publicaly_available_post_id") or st.get("publicly_available_post_id") or []
+            vid = str(ids[0]) if ids else ""
+            break
+        if st.get("status") == "FAILED":
+            raise PubError("TikTok processing failed: %s" % st.get("fail_reason", ""))
+        time.sleep(10)
+    else:
+        raise PubError("TikTok processing timed out (publish id %s)" % pub_id)
+    user = (accounts().get("tiktok") or {}).get("username", "")
+    url = ("https://www.tiktok.com/@%s/video/%s" % (user, vid)) if vid and user else \
+          ("https://www.tiktok.com/@%s" % user if user else "https://www.tiktok.com/")
+    return {"id": vid or pub_id, "publish_id": pub_id, "url": url, "privacy": s["privacy_level"]}
+
+
+def tt_metrics(vid):
+    if not str(vid).isdigit():                   # private posts may not get a public video id
+        return {}
+    d = _tt("POST", "/video/query/", params={"fields": "id,view_count,like_count,comment_count,share_count"},
+            json={"filters": {"video_ids": [str(vid)]}})
+    v = (d.get("videos") or [{}])[0]
+    return {"views": int(v.get("view_count", 0)), "likes": int(v.get("like_count", 0)),
+            "comments": int(v.get("comment_count", 0)), "shares": int(v.get("share_count", 0))}
+
+
+def tt_account():
+    return _tt("GET", "/user/info/", params={"fields": "open_id,username,display_name,follower_count,video_count,likes_count"}
+               ).get("user") or {}
+
+
 # ── publish + scheduler ──────────────────────────────────────────────────────────────────────
-def _ig_today():
+def _today(plat):
     day = time.time() - 86400
-    return sum(1 for p in posts() if (p.get("remote") or {}).get("instagram") and p.get("published_at", 0) > day)
+    return sum(1 for p in posts() if (p.get("remote") or {}).get(plat) and p.get("published_at", 0) > day)
 
 
 def publish(pid):
@@ -562,11 +787,15 @@ def publish(pid):
             continue
         try:
             if plat == "instagram":
-                if _ig_today() >= IG_DAILY_CAP:
+                if _today("instagram") >= IG_DAILY_CAP:
                     raise PubError("daily Instagram cap reached")
                 remote[plat] = ig_publish(p)
             elif plat == "youtube":
                 remote[plat] = yt_publish(p)
+            elif plat == "tiktok":
+                if _today("tiktok") >= TT_DAILY_CAP:
+                    raise PubError("daily TikTok cap reached")
+                remote[plat] = tt_publish(p)
         except Exception as e:
             errs.append("%s: %s" % (plat, str(e)[:240]))
     st = "published" if remote and not errs else ("partial" if remote else "failed")
@@ -583,7 +812,9 @@ def pull_metrics(p):
     m = dict(p.get("metrics") or {})
     for plat, r in (p.get("remote") or {}).items():
         try:
-            row = ig_metrics(r["id"]) if plat == "instagram" else yt_metrics(r["id"])
+            row = {"instagram": ig_metrics, "youtube": yt_metrics, "tiktok": tt_metrics}[plat](r["id"])
+            if not row:
+                continue
             row["t"] = time.time()
             m.setdefault(plat, []).append(row)
         except Exception as e:
@@ -602,6 +833,11 @@ def snapshot_accounts():
         row["youtube"] = yt_account().get("subscribers")
     except Exception:
         pass
+    if (accounts().get("tiktok") or {}).get("refresh_token"):
+        try:
+            row["tiktok"] = tt_account().get("follower_count")
+        except Exception:
+            pass
     if len(row) > 1:
         hist.append(row)
         core.save_json(os.path.join(SD, "followers.json"), hist[-2000:])
@@ -629,6 +865,11 @@ def _loop():
                     ig_refresh()
                 except Exception as e:
                     _log("[social] IG token refresh: %s" % e)
+                if (accounts().get("tiktok") or {}).get("refresh_token"):
+                    try:
+                        tt_refresh(force=True)          # keeps the 1-year refresh token rolling
+                    except Exception as e:
+                        _log("[social] TikTok token refresh: %s" % e)
             if now - last_idea > 86400 and time.localtime().tm_hour >= 9 and accounts().get("daily_ideas", True)                     and any(v["connected"] for k, v in public_accounts().items() if isinstance(v, dict)):
                 last_idea = now
                 try:
@@ -726,7 +967,7 @@ SKILLS = {
                   'Turn our best-performing post into a series of 4 follow-ups. JSON {"series":[{"title","hook","lab_prompt","format"}]}'),
     "best_time": ("Best Time", "clock", "When to post, learned from our own numbers.",
                   'From the performance data (hours/days averages), recommend the 2 best posting slots per platform and why. '
-                  'JSON {"instagram":["HH:MM"],"youtube":["HH:MM"],"why"}'),
+                  'JSON {"instagram":["HH:MM"],"youtube":["HH:MM"],"tiktok":["HH:MM"],"why"}'),
     "comment_bait": ("Pinned Comment", "chain", "A pinned first comment that sparks replies.",
                      'Write 3 pinned-comment options that invite replies (question / choice / challenge). JSON {"comments":[],"pick"}'),
     "growth_plan": ("7-Day Plan", "finance", "A posting calendar for the next week with pillars and hooks.",
@@ -820,6 +1061,13 @@ def register(app, hk):
         b = body()
         keep = {k: b[k] for k in ("caption", "hashtags", "hook", "yt_title", "yt_description", "yt_tags", "platforms",
                                   "schedule_at", "pillar") if k in b}
+        if "platforms" in keep:
+            keep["platforms"] = [x for x in keep["platforms"] if x in ALL_PLATFORMS]
+        if isinstance(b.get("tiktok"), dict):
+            t = b["tiktok"]
+            keep["tiktok"] = {"privacy_level": t.get("privacy_level") if t.get("privacy_level") in TT_PRIVACY else "",
+                              **{k: bool(t.get(k)) for k in ("allow_comment", "allow_duet", "allow_stitch", "disclose",
+                                                              "brand_organic", "brand_content", "consent")}}
         if "cover_at" in b:
             set_cover(pid, b["cover_at"])
         return jsonify(out(update(pid, **keep)) or {"error": "not found"})
@@ -951,7 +1199,15 @@ def register(app, hk):
         if "handle" in b:
             a["handle"] = b["handle"]
         if b.get("yt_client_id"):
-            a.setdefault("youtube", {}).update(client_id=b["yt_client_id"].strip(), client_secret=b.get("yt_client_secret", "").strip())
+            yt = a.setdefault("youtube", {})
+            yt["client_id"] = b["yt_client_id"].strip()
+            if b.get("yt_client_secret", "").strip():          # an empty box keeps the saved secret
+                yt["client_secret"] = b["yt_client_secret"].strip()
+        if b.get("tt_client_key"):
+            tt = a.setdefault("tiktok", {})
+            tt["client_key"] = b["tt_client_key"].strip()
+            if b.get("tt_client_secret", "").strip():
+                tt["client_secret"] = b["tt_client_secret"].strip()
         save_accounts(a)
         if b.get("ig_token"):
             try:
@@ -960,12 +1216,20 @@ def register(app, hk):
                 return jsonify({"error": str(e)}), 400
         return jsonify(public_accounts())
 
-    def _redirect():          # Google "Desktop app" clients accept any loopback port — works for both lab copies
-        return request.base_url.replace("/youtube/connect", "/youtube/callback")
+    def _redirect():
+        # Google "Desktop app" OAuth clients only accept a LOOPBACK return address, so sign-in must finish on the lab
+        # PC itself (not a phone / the public domain / the MirOS proxy). Always hand Google the standalone lab's
+        # loopback callback; the MirOS copy has no YouTube publishing of its own.
+        return "http://127.0.0.1:%d/api/social/youtube/callback" % core.PORT
 
     @app.get("/api/social/youtube/connect")
     def social_yt_connect():
         owner()
+        if request.remote_addr not in ("127.0.0.1", "::1") or request.host.split(":")[0] not in ("127.0.0.1", "localhost"):
+            return ("<body style='font:15px system-ui;background:#262624;color:#f5f4ef;padding:30px'>"
+                    "<h3>Finish YouTube sign-in on the lab PC</h3><p>Google only returns to this lab on the PC it runs on. "
+                    "On that PC, open <b>http://127.0.0.1:%d/social</b> &rarr; Accounts &rarr; Sign in with Google.</p></body>"
+                    % core.PORT), 200
         try:
             return redirect(yt_auth_url(_redirect()))
         except PubError as e:
@@ -978,6 +1242,64 @@ def register(app, hk):
             yt_callback(request.args.get("code", ""), _redirect())
         except Exception as e:
             return "YouTube connect failed: %s" % e, 400
-        return redirect(request.base_url.replace("api/social/youtube/callback", "social"))
+        return redirect("/social?v=accounts")
+
+    # ── TikTok ── sign-in returns to the PUBLIC https address (TikTok requires https), so the callback is
+    # public (the host gate lets /social/tiktok/ through) and is protected by the one-time state instead.
+    @app.get("/api/social/tiktok/connect")
+    def social_tt_connect():
+        owner()
+        try:
+            return redirect(tt_auth_url())
+        except PubError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.get("/social/tiktok/callback")
+    def social_tt_cb():
+        if request.args.get("error"):
+            msg = request.args.get("error_description") or request.args.get("error")
+        else:
+            try:
+                tt_callback(request.args.get("code", ""), request.args.get("state", ""))
+                msg = ""
+            except Exception as e:
+                msg = str(e)
+        from html import escape
+        return ("<body style='font:15px system-ui;background:#262624;color:#f5f4ef;padding:30px'><h3>%s</h3><p>%s</p></body>"
+                % (("TikTok connected" if not msg else "TikTok sign-in failed"),
+                   ("You can close this tab — the Social panel now shows TikTok as connected." if not msg else escape(msg)))), \
+            (200 if not msg else 400)
+
+    @app.get("/api/social/tiktok/creator")
+    def social_tt_creator():
+        owner()
+        try:
+            return jsonify(tt_creator())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.post("/api/social/tiktok/disconnect")
+    def social_tt_off():
+        owner()
+        a = accounts()
+        tt = a.get("tiktok") or {}
+        a["tiktok"] = {k: tt[k] for k in ("client_key", "client_secret") if k in tt}
+        save_accounts(a)
+        return jsonify(public_accounts())
+
+    @app.get("/social/tiktok/legal/<doc>")
+    def social_tt_legal(doc):          # public Terms / Privacy pages the TikTok developer app asks for
+        if doc not in ("terms", "privacy"):
+            abort(404)
+        h = accounts().get("handle", "@mirmedialabs")
+        txt = {"terms": "MIR MEDIA LABS is a private publishing tool used only by the owner of %s to post their own "
+                        "videos to their own TikTok, Instagram and YouTube accounts. It is not offered to other users. "
+                        "Every post is reviewed and approved by the owner before it is published." % h,
+               "privacy": "MIR MEDIA LABS connects only the owner's own %s accounts. It stores the access tokens and the "
+                          "owner's own post statistics on the owner's PC, never sells or shares data, and uses the "
+                          "TikTok, Instagram and YouTube APIs only to publish the owner's approved videos and read their "
+                          "performance. Disconnecting in Social → Accounts deletes the stored tokens." % h}[doc]
+        return ("<body style='font:15px/1.6 system-ui;max-width:720px;margin:40px auto;padding:0 16px'><h2>MIR MEDIA LABS — %s"
+                "</h2><p>%s</p><p>Contact: via %s</p></body>" % ("Terms of Service" if doc == "terms" else "Privacy Policy", txt, h))
 
     start()

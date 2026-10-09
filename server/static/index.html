@@ -391,6 +391,108 @@ body.lcol-off .lrail{display:flex}
 .mp.aud.lg{width:min(640px,92vw);padding:26px;gap:22px;border-radius:20px}.mp.aud.lg .mp-big{width:72px;height:72px}
 .mp.aud.lg .mp-viz{height:110px}.mp.aud.lg .mp-ttl{font-size:14px}
 .msg .lora-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin:-2px 0 8px}.msg .lora-line b{color:var(--ink)}.msg .lora-line .off{color:var(--faint)}
+
+/* ── Oct 8 2026: library spacing + hi-res viewer fit (synced MirOS /mlab ⇄ standalone) ──
+   rows used to collapse to ~27px (overflow:hidden tiles have no min height) so tiles stacked on top of each other */
+.grid,.lgrid,.thgrid,.vgrid,.pgrid,.cbm{grid-auto-rows:max-content}
+.grid{gap:10px!important;padding:2px 12px 14px!important}
+.lfull .lgrid,.lgrid{gap:10px!important}
+.th{border-radius:12px}
+@media (max-width:860px){.grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important;gap:12px!important}}
+/* viewer: any resolution fits the screen; tap the image for 1:1 (scroll / pan), tap again to fit */
+.lb .view{position:relative;display:block;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.lb .view>img{position:absolute;inset:0;margin:auto;width:auto;height:auto;max-width:calc(100% - 32px);max-height:calc(100% - 32px);object-fit:contain;cursor:zoom-in}
+.lb .view.zoom>img{position:static;display:block;max-width:none;max-height:none;margin:16px auto;cursor:zoom-out;border-radius:0}
+.lb .view>:not(img){position:absolute;inset:16px;margin:auto;max-width:calc(100% - 32px);max-height:calc(100% - 32px)}
+.lb .view>.audiocard{height:max-content}
+.lb .bar{overflow-x:auto;scrollbar-width:none}.lb .bar::-webkit-scrollbar{display:none}.lb .bar>*{flex:none}.lb .bar .nm{flex:1 0 80px}
+.lb .view .zhint{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);inset:auto auto calc(14px + env(safe-area-inset-bottom)) 50%;max-width:none;max-height:none;height:auto;width:auto;margin:0;
+  font:11px var(--mono,monospace);letter-spacing:.06em;color:var(--dim);background:color-mix(in srgb,var(--bg,#000) 80%,transparent);padding:5px 10px;border-radius:999px;pointer-events:none}
+#lb-view img.pz{cursor:zoom-in;transition:transform .08s linear;will-change:transform;user-select:none;-webkit-user-select:none}#lb-view img.pz.zoomed{cursor:grab}#lb-view:has(img.pz){overflow:hidden}
+
+/* ── studio tabs: Video editor · Series studio · Downloader (labelled, every lab version) ── */
+.studios{display:flex;gap:6px;flex:none}
+.studio{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:10px;cursor:pointer;white-space:nowrap;
+  border:1px solid color-mix(in srgb,var(--acc) 45%,var(--line));background:color-mix(in srgb,var(--acc) 12%,var(--panel));
+  color:var(--ink);font-family:inherit;font-weight:700;font-size:10.5px;line-height:1;letter-spacing:.13em}
+.studio .mi{color:var(--acc)}.studio:hover{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 22%,var(--panel))}
+@media (max-width:1380px){.studio{padding:0 9px;letter-spacing:.08em}}
+@media (max-width:1100px){.studio span{font-size:9.5px}}
+@media (max-width:860px){.studios{display:none}
+  .tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 9px!important;font-size:9px!important;letter-spacing:.08em!important}
+  .tabs button .mi svg{width:18px;height:18px}.tabs button.st .mi{color:var(--acc)}}
+
+/* ── model picker in the composer (replaces the model list / phone swipe strip) ── */
+.cbar{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-width:0}
+.mchip{--mc:var(--acc);display:inline-flex;align-items:center;gap:8px;height:32px;max-width:100%;padding:0 10px 0 12px;border-radius:99px;cursor:pointer;
+  border:1px solid color-mix(in srgb,var(--mc) 55%,var(--line2));background:color-mix(in srgb,var(--mc) 13%,var(--panel2));color:var(--ink);
+  font-family:inherit;font-weight:700;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+.mchip:hover,.mchip.open{border-color:var(--mc)}
+.mchip .d{width:8px;height:8px;border-radius:50%;background:var(--mc);box-shadow:0 0 8px var(--mc);flex:none}
+.mchip .nm{overflow:hidden;text-overflow:ellipsis}.mchip .cv{display:flex;color:var(--dim);transition:transform .15s}.mchip.open .cv{transform:rotate(180deg)}
+.mmpick{display:none;position:absolute;left:10px;bottom:calc(100% - 6px);width:min(540px,calc(100% - 20px));max-height:min(70vh,560px);overflow:auto;z-index:60;
+  background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:6px;box-shadow:0 18px 50px rgba(0,0,0,.55)}
+.mmpick.on{display:block;animation:mmin .14s ease-out}
+@keyframes mmin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.mmh{display:flex;align-items:center;gap:7px;padding:6px 8px 8px;font-size:10.5px;letter-spacing:.16em;font-weight:700;color:var(--dim)}
+.mmh .sp{flex:1}.mmh span:last-child{letter-spacing:.04em;font-weight:500}
+.mmo{--mc:var(--acc);display:grid;grid-template-columns:14px minmax(0,1fr) auto auto;gap:2px 10px;align-items:start;padding:9px 10px;border-radius:11px;
+  border:1px solid transparent;cursor:pointer;outline:0}
+.mmo:hover,.mmo:focus-visible{background:rgba(255,255,255,.045)}
+.mmo.on{border-color:color-mix(in srgb,var(--mc) 70%,transparent);background:color-mix(in srgb,var(--mc) 11%,transparent)}
+.mmo .d{width:10px;height:10px;border-radius:50%;background:var(--mc);margin-top:4px;grid-row:1/span 3}.mmo .d.bad{opacity:.35}
+.mmo .tt{display:flex;align-items:baseline;gap:8px;min-width:0}.mmo .tt b{font-size:13.5px;white-space:nowrap}
+.mmo .kd{font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mmo .st{font-size:10.5px;color:var(--dim);white-space:nowrap;display:flex;align-items:center;gap:3px}.mmo.on .st{color:var(--mc)}.mmo .st.warn{color:var(--faint,var(--dim))}
+.mmo .s{grid-column:2/4;font-size:11.5px;color:var(--dim);line-height:1.35}
+.mmo .k{grid-column:2/4;display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.mmo .g{grid-column:4;grid-row:1/span 3;align-self:center;width:30px;height:30px;border-radius:9px;border:1px solid var(--line2);background:var(--panel2);color:var(--dim);display:grid;place-items:center;cursor:pointer}
+.mmo .g:hover{color:var(--ink);border-color:var(--mc)}
+@media (max-width:860px){.cbar{margin-bottom:6px}.mchip{height:30px;font-size:11px}
+  .mmpick{position:fixed;left:8px;right:8px;width:auto;bottom:calc(150px + env(safe-area-inset-bottom));max-height:62vh}
+  .mmo .s{display:none}.mmo{padding:8px 9px}}
+
+/* ── references in the sent chat bubble: real thumbnails ── */
+.refthumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.rth{position:relative;border:1px solid var(--line2);border-radius:10px;overflow:hidden;background:rgba(0,0,0,.25);padding:0;color:var(--ink);cursor:pointer;text-decoration:none}
+.rth.img,.rth.vid{width:88px;height:88px}
+.rth img,.rth video{width:100%;height:100%;object-fit:cover;display:block}
+.rth .rk{position:absolute;left:4px;bottom:4px;display:grid;place-items:center;width:20px;height:20px;border-radius:6px;background:rgba(0,0,0,.55);color:#fff}
+.rth.vid .rk{left:50%;top:50%;bottom:auto;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%}
+.rth:hover{border-color:var(--acc)}
+.rth.gone{width:auto;height:auto;padding:6px 9px;font-size:11px;color:var(--dim)}.rth.gone img,.rth.gone video{display:none}.rth.gone .rk{position:static;background:none;transform:none}
+.rth.gone::after{content:attr(title)}
+.rth.aud{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:2px 8px;padding:7px 9px;width:min(250px,100%);cursor:default}
+.rth.aud audio{grid-column:1/-1;width:100%;height:30px}
+.rth.txt{display:flex;align-items:center;gap:7px;padding:8px 10px;max-width:220px}
+.rth .ri{display:flex;color:var(--acc)}.rth .rn{font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.rzoom{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.rzoom img,.rzoom video{max-width:94vw;max-height:92vh;border-radius:8px;cursor:default}
+@media (max-width:860px){.rth.img,.rth.vid{width:72px;height:72px}}
+
+/* ── library preview: previous / next ── */
+.lbnav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  border:1px solid rgba(255,255,255,.18);background:rgba(10,8,6,.62);color:#fff;backdrop-filter:blur(6px)}
+.lbnav:hover{border-color:var(--acc);background:rgba(10,8,6,.82)}.lbnav .mi svg{width:22px;height:22px}
+.lbnav.prev{left:14px}.lbnav.next{right:14px}.lbnav[hidden]{display:none}
+.lbpos{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:3;font-size:11.5px;letter-spacing:.06em;color:rgba(255,255,255,.75);
+  background:rgba(10,8,6,.55);padding:3px 10px;border-radius:99px;pointer-events:none}.lbpos:empty{display:none}
+@media (max-width:860px){.lbnav{width:38px;height:38px;opacity:.85}.lbnav.prev{left:6px}.lbnav.next{right:6px}}
+/* Oct 9 2026: chat sessions (projects) — the chat + library split per session */
+.sess{display:inline-flex;align-items:center;gap:6px;max-width:min(320px,52vw);height:28px;padding:0 10px;border-radius:9px;border:1px solid var(--line2,rgba(255,255,255,.18));background:transparent;color:var(--ink,#eee);font:inherit;font-size:12px;letter-spacing:0;text-transform:none;font-weight:600;cursor:pointer}
+.sess:hover{border-color:var(--acc,#d97757)}.sess b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.sessmenu{position:fixed;z-index:60;width:min(320px,calc(100vw - 20px));max-height:min(70vh,520px);overflow:auto;background:var(--panel2,#333);border:1px solid var(--line2,rgba(255,255,255,.2));border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.45);padding:6px}
+.sessmenu .sr{display:flex;align-items:center;gap:4px;border-radius:8px;padding:2px 2px 2px 8px}
+.sessmenu .sr.on{background:color-mix(in srgb,var(--acc,#d97757) 16%,transparent)}
+.sessmenu .sr>button.nm{flex:1;min-width:0;text-align:left;background:none;border:0;color:var(--ink,#eee);font:inherit;font-size:13px;padding:8px 2px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sessmenu .sr.on>button.nm{color:var(--acc,#d97757);font-weight:600}
+.sessmenu .sr>button.ic{width:30px;height:30px;border:0;background:none;color:var(--dim,#aaa);border-radius:7px;cursor:pointer;display:grid;place-items:center}
+.sessmenu .sr>button.ic:hover{background:rgba(255,255,255,.08);color:var(--ink,#eee)}
+.sessmenu .new{display:flex;gap:6px;padding:6px;border-top:1px solid var(--line,rgba(255,255,255,.1));margin-top:4px}
+.sessmenu .new input{flex:1;min-width:0;height:34px;border-radius:8px;border:1px solid var(--line2,rgba(255,255,255,.2));background:var(--bg,#222);color:var(--ink,#eee);padding:0 10px;font:inherit;font-size:14px}
+.sessmenu .hint{font-size:11.5px;color:var(--dim,#aaa);padding:6px 8px 2px;letter-spacing:0;text-transform:none}
+.libscope{letter-spacing:0;text-transform:none}
+@media (max-width:860px){.sess{max-width:46vw}.sessmenu .sr>button.nm{padding:11px 2px;font-size:14px}}
 </style>
 <script src="/static/miros-icons.js"></script>
 <style id="mml-themes">
@@ -951,8 +1053,9 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 <div class="app">
   <header class="top">
     <div class="brand"><img src="/static/icon-512.png" alt=""><b>MIR MEDIA LABS</b></div>
+    <nav class="studios" aria-label="Studios"><button class="studio" id="b-editor" title="Video editor — cut, arrange and re-render on a timeline" onclick="mmlEditor()"><i class="mi" data-ic="film"></i><span>VIDEO EDITOR</span></button><button class="studio" id="b-series" title="SERIES studio — build an animated series: cast, world, episodes, songs" onclick="mmlSeries()"><i class="mi" data-ic="tv"></i><span>SERIES STUDIO</span></button><button class="studio" id="b-grab" title="Downloader — YouTube and other links to MP3 or MP4 in your library" onclick="mmlGrab()"><i class="mi" data-ic="download"></i><span>DOWNLOADER</span></button></nav>
     <button class="iconbtn" id="b-theme" title="Theme" onclick="openThemes()"><i class="mi" data-ic="palette"></i></button><button class="iconbtn" id="b-voice" title="MUSE voice on / off"><i class="mi" data-ic="volume"></i></button>
-    <button class="iconbtn" id="b-font" title="MIR FONTS — pick a typeface" onclick="window.MirFont&&MirFont.openPicker()"><i class="mi" data-ic="type"></i></button><button class="iconbtn" id="b-editor" title="Video editor — cut, arrange and re-render on a timeline" onclick="mmlEditor()"><i class="mi" data-ic="film"></i></button>
+    <button class="iconbtn" id="b-font" title="MIR FONTS — pick a typeface" onclick="window.MirFont&&MirFont.openPicker()"><i class="mi" data-ic="type"></i></button>
     <div class="pills">
       <div class="pill" id="p-comfy"><span class="d"></span><span class="lbl">GPU</span> <b id="p-comfy-v">…</b></div>
       <div class="pill e" id="p-eng"><span class="d"></span>PROMPT ENGINE <b id="p-eng-v">…</b></div>
@@ -970,13 +1073,8 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
     <section class="col left">
       <div class="lrail" id="lrail">
         <button class="rb" id="lcol-open" title="Show the models &amp; skills column"><i class="mi" data-ic="chevron-right"></i></button>
-        <div class="rmods" id="rmods"></div>
         <button class="rb" id="lcol-loras" title="LoRA samples" onclick="lOpen()"><i class="mi" data-ic="layers"></i></button>
         <button class="rb" id="lcol-skills" title="Skills &amp; pipelines"><i class="mi" data-ic="sparkle"></i></button>
-      </div>
-      <div class="card fold" data-fold="models">
-        <div class="h">Models<span class="sp"></span><button class="btn sm lcbtn" id="lcol-close" title="Collapse this column"><i class="mi" data-ic="chevron-left"></i></button><span class="fcv">▾</span></div>
-        <div class="models" id="models"></div>
       </div>
       <div class="card lsm fold" data-fold="loras">
         <div class="h">LoRA samples<span class="sp"></span><button class="btn sm" id="l-browse" title="Browse the LoRA library"><i class="mi" data-ic="grid"></i></button><span class="fcv">▾</span></div>
@@ -998,7 +1096,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 
     <section class="col center">
       <div class="card chat">
-        <div class="h">Lab chat<span class="sp"></span><button class="btn sm" id="b-panel" title="Hide the left panel for a wider chat"><i class="mi" data-ic="chevron-left"></i> Panel</button><button class="btn sm" id="b-book" title="Command book — or type /help"><i class="mi" data-ic="book"></i> Commands</button><button class="btn sm" id="b-clear">Clear finished</button></div>
+        <div class="h"><button class="sess" id="b-sess" title="Chat session — each one keeps its own chat and media (a project)"><i class="mi" data-ic="folder"></i><b id="sess-name">General</b><i class="mi" data-ic="chevron-down"></i></button><span class="sp"></span><button class="btn sm" id="b-panel" title="Hide the left panel for a wider chat"><i class="mi" data-ic="chevron-left"></i> Panel</button><button class="btn sm" id="b-book" title="Command book — or type /help"><i class="mi" data-ic="book"></i> Commands</button><button class="btn sm" id="b-clear">Clear finished</button></div>
         <div class="thread" id="thread"></div>
 <div id="mascot" data-s="idle" data-anim="slide"><div class="in"><svg id="m-flask" viewBox="0 0 120 130" width="40" height="44" aria-hidden="true"></svg><div class="lbl"><b id="m-t">Ready</b><span id="m-s">lab ready</span></div></div><div class="mcard" id="m-card"></div></div>
         <div id="perfcard" hidden title="Live PC performance (desktop app only) — click to collapse">
@@ -1014,7 +1112,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
         <div class="composer">
           <div class="ac" id="ac"></div>
           <div class="recipe" id="recipe"></div>
-          <div class="atts" id="atts"></div><div class="atts" id="lsel"></div>
+          <div class="cbar"><button class="mchip" id="b-model" type="button" title="Pick the model (Alt+M)"></button></div><div class="mmpick" id="mmpick" role="listbox" aria-label="Models"></div><div class="atts" id="atts"></div><div class="atts" id="lsel"></div>
           <div class="inrow">
             <div class="pill" id="pill">
             <div class="recbar"><i class="dot"></i><span id="rec-t">0:00</span><span class="lvl"><b id="rec-l"></b></span><button id="rec-x" title="Discard the recording"><i class="mi" data-ic="trash"></i></button></div>
@@ -1027,6 +1125,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
                 <button data-x="loras"><i class="mi" data-ic="layers"></i> LoRA samples<small>browse + apply community LoRAs</small></button>
                 <button data-x="skills"><i class="mi" data-ic="sparkle"></i> Skills &amp; pipelines<small>tuned renders and chains</small></button>
                 <button data-x="book"><i class="mi" data-ic="book"></i> Command book<small>every slash command</small></button>
+                <button data-x="editor"><i class="mi" data-ic="film"></i> Video editor<small>timeline · cuts · titles · music</small></button><button data-x="series"><i class="mi" data-ic="tv"></i> Series studio<small>cast · world · episodes · songs</small></button><button data-x="grab"><i class="mi" data-ic="download"></i> Downloader<small>YouTube &amp; links → MP3 / MP4</small></button>
               </div>
             </div>
             <textarea class="prompt" id="prompt" rows="1" placeholder="Message the lab…"></textarea>
@@ -1049,7 +1148,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 
     <section class="col right">
       <div class="card lib">
-        <div class="h">Library<span class="sp"></span><span id="libcount" style="letter-spacing:0;text-transform:none;font-weight:500"></span></div>
+        <div class="h">Library<span class="sp"></span><span id="libcount" style="letter-spacing:0;text-transform:none;font-weight:500"></span><button class="btn sm libscope" id="b-libscope" title="Show this session's media, or everything">This session</button></div>
         <div class="filters" id="filters">
           <button data-k="" class="on">ALL</button><button data-k="image">IMAGES</button><button data-k="video">VIDEO</button><button data-k="audio">AUDIO</button>
         </div>
@@ -1059,13 +1158,14 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
     </section>
   </main>
 
-  <nav class="tabs"><button data-t="create" class="on">CHAT</button><button data-t="library">LIBRARY</button><button data-t="social">SOCIAL</button></nav>
+  <nav class="tabs"><button data-t="create" class="on"><i class="mi" data-ic="lab"></i>CHAT</button><button data-t="library"><i class="mi" data-ic="grid"></i>LIBRARY</button><button data-t="editor" class="st"><i class="mi" data-ic="film"></i>EDITOR</button><button data-t="series" class="st"><i class="mi" data-ic="tv"></i>SERIES</button><button data-t="grab" class="st"><i class="mi" data-ic="download"></i>DOWNLOAD</button><button data-t="social"><i class="mi" data-ic="globe"></i>SOCIAL</button></nav>
 </div>
 
 <div class="lb" id="lb">
   <div class="bar"><span class="chip" id="lb-chip"></span><span class="nm" id="lb-name"></span>
-    <button class="btn" id="lb-edit" onclick="viewing&&mmlEditor('lib:'+viewing.name)"><i class="mi" data-ic="scissors"></i> Edit</button><button class="btn" id="lb-social" onclick="viewing&&mmlSocialDraft(viewing.name)"><i class="mi" data-ic="globe"></i> Post</button><button class="btn" id="lb-use"><i class="mi" data-ic="refresh"></i> Use as ref</button><a class="btn" id="lb-dl"><i class="mi" data-ic="download"></i> Save</a><button class="btn danger" id="lb-del"><i class="mi" data-ic="trash"></i></button><button class="iconbtn" id="lb-x"><i class="mi" data-ic="close"></i></button></div>
+    <button class="btn" id="lb-edit" onclick="viewing&&mmlEditor('lib:'+viewing.name)"><i class="mi" data-ic="scissors"></i> Edit</button><button class="btn" id="lb-social" onclick="viewing&&mmlSocialDraft(viewing.name)"><i class="mi" data-ic="globe"></i> Post</button><button class="btn" id="lb-use"><i class="mi" data-ic="refresh"></i> Use as ref</button><a class="btn" id="lb-dl"><i class="mi" data-ic="download"></i> Save</a><button class="btn" id="lb-sess" title="Move it to another session"><i class="mi" data-ic="folder"></i> Move</button><button class="btn danger" id="lb-del"><i class="mi" data-ic="trash"></i></button><button class="iconbtn" id="lb-x"><i class="mi" data-ic="close"></i></button></div>
   <div class="view" id="lb-view"></div>
+  <button class="lbnav prev" id="lb-prev" title="Previous (←)"><i class="mi" data-ic="chevron-left"></i></button><button class="lbnav next" id="lb-next" title="Next (→)"><i class="mi" data-ic="chevron-right"></i></button><span class="lbpos" id="lb-pos"></span>
 </div>
 <div class="drop" id="drop">DROP TO ATTACH</div>
 <div class="scrim" id="scrim"></div>
@@ -1086,6 +1186,10 @@ const MUSE_SKIP=['/help','/skills','/clear','/commands'];
 function museLines(t){return (t||'').split('\n').map(l=>l.trim().replace(/^(?:[-*•]|\d+[.)])\s+/,'')).filter(l=>/^\/[a-z0-9]{2,20}\s+\S/i.test(l)&&!MUSE_SKIP.includes(l.split(/\s/)[0].toLowerCase()))}
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 let openModel=null, MODELS={}, ORDER=['auto','h3','music3','qimg','ace','llama'], cur=LS.get('mml.model2','auto'), atts=LS.get('mml.atts',[]);
+if(!['auto','h3','music3','qimg','ace'].includes(cur))cur='auto';
+/* chat session (project) in view — set before the first chat poll */
+var SESS={id:'',name:'General',list:[],all:false};
+try{SESS.id=localStorage.getItem('mml.session')||'';SESS.all=localStorage.getItem('mml.libscope')==='all'}catch(e){}
 let viewing=null, libKind='', libItems=[], jobsSig='', seeded=false, seen=new Set(), status={}, stick=true;
 
 async function api(path,opt={}){
@@ -1100,6 +1204,18 @@ function ago(t){if(!t)return'';const s=Math.max(0,Date.now()/1000-t);return s<60
 function stamp(t){if(!t)return '';const d=new Date(t*1000),o={hour:'numeric',minute:'2-digit'};return d.toDateString()===new Date().toDateString()?d.toLocaleTimeString([],o):d.toLocaleDateString([],{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString([],o)}
 function dur(a,b){const s=Math.max(0,(b||Date.now()/1000)-a);return s<60?Math.round(s)+'s':Math.floor(s/60)+'m '+String(Math.round(s%60)).padStart(2,'0')+'s'}
 function kindOf(n){n=String(n).toLowerCase();return /\.(png|jpe?g|webp)$/.test(n)?'image':/\.(mp4|mov|webm|m4v|mkv)$/.test(n)?'video':/\.(mp3|wav|flac|ogg|m4a|aac)$/.test(n)?'audio':/\.(txt|md|lrc|srt|json|csv)$/.test(n)?'text':''}
+/* the references a request was sent with, as media in the chat bubble (tap a picture / clip to view it big) */
+function refThumbs(refs){
+  return `<div class="refthumbs">${refs.map(r=>{const k=kindOf(r),u='refs/'+encodeURIComponent(r),lb=esc(refLabel(r));
+    if(k==='image')return `<button class="rth img" data-rz="${esc(r)}" title="${lb}"><img src="refthumb/${encodeURIComponent(r)}" loading="lazy" alt="" onerror="this.parentNode.classList.add('gone')"><span class="rk">${MI.html('image','sm')}</span></button>`;
+    if(k==='video')return `<button class="rth vid" data-rz="${esc(r)}" title="${lb}"><img src="refthumb/${encodeURIComponent(r)}" loading="lazy" alt="" onerror="this.parentNode.classList.add('gone')"><span class="rk">${MI.html('play','sm')}</span></button>`;
+    if(k==='audio')return `<div class="rth aud" title="${lb}"><span class="ri">${MI.html('music')}</span><span class="rn">${lb}</span><audio controls preload="none" src="${u}"></audio></div>`;
+    return `<a class="rth txt" href="${u}" target="_blank" rel="noopener" title="${lb}"><span class="ri">${ICON[k]||MI.html('note')}</span><span class="rn">${lb}</span></a>`}).join('')}</div>`}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-rz]');if(!b)return;e.preventDefault();
+  const r=b.dataset.rz,u='refs/'+encodeURIComponent(r),z=document.createElement('div');z.className='rzoom';
+  z.innerHTML=kindOf(r)==='video'?`<video src="${u}" controls autoplay playsinline loop></video>`:`<img src="${u}" alt="">`;
+  z.onclick=ev=>{if(ev.target===z)z.remove()};document.body.appendChild(z)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$$('.rzoom').forEach(z=>z.remove())});
 function refLabel(r){const p=String(r).split('_');return p.length>2&&p[0]==='ref'?p.slice(2).join('_'):r}
 
 /* collapsible cards: click a card header to open / close it (remembered per device) */
@@ -1111,22 +1227,37 @@ function refLabel(r){const p=String(r).split('_');return p.length>2&&p[0]==='ref
 /* whole left column collapses to a slim rail (remembered per device) */
 (function(){function setL(off){document.body.classList.toggle('lcol-off',off);try{localStorage.setItem('mml.lcol',off?'off':'on')}catch(e){}}
   let v=null;try{v=localStorage.getItem('mml.lcol')}catch(e){}setL(v==='off');
-  document.getElementById('lcol-close').onclick=e=>{e.stopPropagation();setL(true)};
+  let lc=document.getElementById('lcol-close');
+  if(!lc){const h=document.querySelector('.col.left .card .h');if(h){lc=document.createElement('button');lc.className='btn sm lcbtn';lc.id='lcol-close';lc.title='Collapse this column';lc.innerHTML='<i class="mi" data-ic="chevron-left"></i>';const f=h.querySelector('.fcv');h.insertBefore(lc,f||null)}}
+  if(lc)lc.onclick=e=>{e.stopPropagation();setL(true)};
   document.getElementById('lcol-open').onclick=()=>setL(false);
   document.getElementById('lcol-skills').onclick=()=>{setL(false);const c=document.querySelector('.card.skl');if(c&&c.classList.contains('shut'))c.querySelector('.h').click()};})();
 /* models rail */
+const PICK=['auto','h3','music3','qimg','ace'];   /* the generative models (MUSE still answers chat through Auto) */
+const PICKN={auto:'Picks the right model, skill or pipeline for you — and answers questions',h3:'Video',music3:'Song with vocals',qimg:'Image',ace:'Music / instrumental'};
 function renderModels(){
-  const st=(status.comfy||{}).models||{};
-  $('#models').innerHTML=ORDER.filter(k=>MODELS[k]).map(k=>{const m=MODELS[k];const ok=st[k];
-    return `<button class="model ${k===cur?'on':''} ${k===openModel?'open':''}" data-m="${k}" style="--mc:${m.color}">
-      <div class="t"><span class="d ${ok===true?'ok':ok===false?'bad':''}" title="${ok===true?'weights ready':ok===false?'weights missing':'GPU engine offline'}"></span><span class="nm">${esc(m.label)}</span><span class="gear" data-g="${k}" title="parameters">${MI.html('sliders')}</span><span class="cv">▾</span></div>
-      <div class="s">${esc(m.desc)}</div>
-      <div class="k">${Object.keys(m.accepts).map(a=>`<span class="tag">${ICON[a]} ${a}</span>`).join('')}</div></button>`}).join('');
-  const rm=$('#rmods');if(rm){rm.innerHTML=ORDER.filter(k=>MODELS[k]).map(k=>`<button class="rb rm ${k===cur?'on':''}" data-rm="${k}" style="--mc:${MODELS[k].color}" title="${esc(MODELS[k].label)}">${esc((SHORT[k]||k).slice(0,2))}</button>`).join('');
-    $$('#rmods [data-rm]').forEach(b=>b.onclick=()=>setModel(b.dataset.rm));}
-  $$('#models .model').forEach(b=>b.onclick=e=>{if(e.target.dataset.g){openParams(e.target.dataset.g);return}
-    const k=b.dataset.m;openModel=(k===cur&&openModel===k)?null:k;if(k!==cur)setModel(k);else renderModels()});
+  const st=(status.comfy||{}).models||{},m=MODELS[cur]||MODELS.auto;if(!m)return;
+  const b=$('#b-model');
+  b.style.setProperty('--mc',m.color);
+  b.innerHTML=`<span class="d"></span><span class="nm">${esc(m.label)}</span><span class="cv">${MI.html('chevron-down','sm')}</span>`;
+  const box=$('#mmpick');if(!box.classList.contains('on'))return;
+  box.innerHTML=`<div class="mmh">${MI.html('lab','sm')} MODEL<span class="sp"></span><span>${PICK.filter(k=>MODELS[k]).length} generative models</span></div>`+
+    PICK.filter(k=>MODELS[k]).map(k=>{const x=MODELS[k],ok=st[k];
+      const sv=k==='auto'?'routes for you':ok===true?'ready':ok===false?'weights missing':'GPU offline';
+      return `<div class="mmo ${k===cur?'on':''}" data-m="${k}" role="option" aria-selected="${k===cur}" tabindex="0" style="--mc:${x.color}">
+        <span class="d ${k!=='auto'&&ok===false?'bad':''}"></span><span class="tt"><b>${esc(x.label)}</b><span class="kd">${esc(PICKN[k]||'')}</span></span>
+        <span class="st ${k!=='auto'&&ok!==true?'warn':''}">${k===cur?MI.html('check','sm')+' ':''}${sv}</span>
+        <span class="s">${esc(x.desc||'')}</span>
+        <span class="k">${Object.keys(x.accepts||{}).map(a=>`<span class="tag">${ICON[a]||''} ${a}</span>`).join('')}</span>
+        ${k==='auto'?'':`<button class="g" data-g="${k}" title="${esc(x.label)} parameters">${MI.html('sliders','sm')}</button>`}</div>`}).join('');
 }
+function mmOpen(on){const box=$('#mmpick');box.classList.toggle('on',on==null?!box.classList.contains('on'):on);$('#b-model').classList.toggle('open',box.classList.contains('on'));renderModels()}
+$('#b-model').onclick=e=>{e.stopPropagation();mmOpen()};
+$('#mmpick').addEventListener('click',e=>{e.stopPropagation();const g=e.target.closest('[data-g]');if(g){mmOpen(false);openParams(g.dataset.g);return}
+  const o=e.target.closest('[data-m]');if(!o)return;setModel(o.dataset.m);mmOpen(false);$('#prompt').focus()});
+$('#mmpick').addEventListener('keydown',e=>{const o=e.target.closest('[data-m]');if(o&&(e.key==='Enter'||e.key===' ')){e.preventDefault();o.click()}});
+document.addEventListener('click',e=>{if(!e.target.closest('#mmpick')&&$('#mmpick').classList.contains('on'))mmOpen(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')mmOpen(false);if(e.altKey&&(e.key==='m'||e.key==='M')){e.preventDefault();mmOpen()}});
 function setModel(k){cur=k;if(typeof lSetRole==='function'&&LROLE[k]&&LROLE[k]!==lRole)setTimeout(()=>lSetRole(LROLE[k]),0);if(typeof renderLsel==='function')setTimeout(renderLsel,0);LS.set('mml.model2',k);(document.documentElement.dataset.theme||document.documentElement.style.setProperty('--acc',mcol(k)));renderModels();renderHint();renderAtts()}
 const PH={auto:'Just say what you want — MUSE picks the tool… e.g. a neon city at night, 8 s video · or ask anything',
   h3:'Ask H3 for a video… e.g. a lighthouse keeper climbs the stairs at dusk, slow crane up 8s',
@@ -1173,7 +1304,7 @@ $('#b-more').onclick=e=>{e.stopPropagation();$('#moremenu').classList.toggle('op
 document.addEventListener('click',()=>$('#moremenu').classList.remove('open'));
 $$('#moremenu button').forEach(b=>b.onclick=e=>{e.stopPropagation();$('#moremenu').classList.remove('open');const x=b.dataset.x;
   if(x==='file')$('#file').click();else if(x==='text')openTextAttach();else if(x==='params')openParams(cur);
-  else if(x==='loras'){if(typeof lOpen==='function')lOpen()}else if(x==='book')openBook();
+  else if(x==='loras'){if(typeof lOpen==='function')lOpen()}else if(x==='book')openBook();else if(x==='series')mmlSeries();else if(x==='editor')mmlEditor();else if(x==='grab')mmlGrab();
   else if(x==='skills'){setTab('create');const l=$('#sklist');if(l)l.scrollIntoView({behavior:'smooth'})}});
 $('#b-attach').onclick=e=>{e.stopPropagation();$('#attmenu').classList.toggle('open')};
 document.addEventListener('click',()=>$('#attmenu').classList.remove('open'));
@@ -1424,6 +1555,7 @@ async function go(){
   const body={model:cur,prompt,refs:atts.map(a=>a.name),loras:(typeof loraSel!=='undefined'?loraSel.map(l=>({file:l.file,strength:l.strength})):[])};
   if(ARMED){body[ARMED.type]=ARMED.id;body.knobs=KNOBV}
   if(SOC)body.social=SOC;
+  body.session=SESS.id;
   try{const _r=await api('/api/generate',{method:'POST',body:JSON.stringify(body)});VOICE.mine(_r&&_r.id);if(SOC)toast('When it finishes, VIRAL-Ω will draft the post for your approval');
     $('#prompt').value='';autosize();atts=[];saveAtts();renderAtts();disarm();stick=true;pollJobs(true);pollStatus()}
   catch(e){toast(e.message);$('#b-go').disabled=false}
@@ -1432,7 +1564,7 @@ async function go(){
 /* chat thread */
 $('#thread').addEventListener('scroll',()=>{const t=$('#thread');stick=t.scrollHeight-t.scrollTop-t.clientHeight<80});
 async function pollJobs(force){
-  let jobs;try{jobs=await api('/api/jobs?limit=40')}catch(e){return}
+  let jobs;try{jobs=await api('/api/jobs?limit=40&session='+encodeURIComponent(SESS.id))}catch(e){return}
   if(!seeded){jobs.forEach(j=>j.status==='done'&&seen.add(j.id));seeded=true}
   let fresh=false;
   jobs.forEach(j=>{if(j.status==='done'&&!seen.has(j.id)){seen.add(j.id);fresh=true;toast((SHORT[j.model]||j.model)+' finished')}});
@@ -1638,7 +1770,7 @@ function renderThread(jobs){
     const me=`<div class="msg me${j.mine===false?' guest':''}"><div class="meta">${j.mine===false?`<span class="who">${MI.html('user','sm')} ${esc(j.user_name)}</span>`:''}<span class="chip" style="--mc:${(j.route||j.model==='auto')?'#b48cff':(m.color||'#888')}">→ ${esc((j.route||j.model==='auto')?'AUTO':(SHORT[j.model]||j.model))}</span><span title="${ago(j.created)} ago">${stamp(j.created)}</span></div>
       ${j.skill||j.pipeline?`<div style="margin-bottom:5px"><span class="pl-tag">${j.skill?MI.html('sparkle','sm')+' '+esc(j.skill):MI.html('chain','sm')+' '+esc(j.pipeline)}</span></div>`:''}
       ${(j.input??j.prompt)?`<div class="txt">${esc(j.input??j.prompt)}</div>`:'<div class="txt" style="color:var(--dim)">(references only)</div>'}
-      ${j.refs?.length?`<div class="reftags">${j.refs.map(r=>`<span class="tag">${ICON[kindOf(r)]||MI.html('attach')} ${esc(refLabel(r))}</span>`).join('')}</div>`:''}</div>`;
+      ${j.refs?.length?refThumbs(j.refs):''}</div>`;
     const t2=j.status==='running'?dur(j.started):(j.finished&&j.started)?dur(j.started,j.finished):'';
     let body='';
     if(live&&j.model==='llama'&&j.output)body=`<div class="txt wr">${esc(j.output)}<span class="caret"></span></div><div class="acts"><button class="btn sm danger" data-c="${j.id}">Stop</button></div>`;
@@ -1667,7 +1799,7 @@ function renderThread(jobs){
   $$('#thread [data-open]').forEach(b=>b.onclick=()=>showFile(b.dataset.open,b.closest('.msg').dataset.model));
 }
 function tickTimers(jobs){jobs.forEach(j=>{if(j.status!=='running')return;const el=document.querySelector(`.msg[data-job="${j.id}"] .tm`);if(el)el.textContent=dur(j.started)})}
-$('#b-clear').onclick=()=>api('/api/jobs/clear',{method:'POST'}).then(()=>pollJobs(true));
+$('#b-clear').onclick=()=>api('/api/jobs/clear',{method:'POST',body:JSON.stringify({session:SESS.id})}).then(()=>pollJobs(true));
 
 /* library + lightbox */
 function thumbHTML(it){const m=MODELS[it.model]||{};const c=m.color||'#888';const s=SHORT[it.model]||'';
@@ -1675,7 +1807,7 @@ function thumbHTML(it){const m=MODELS[it.model]||{};const c=m.color||'#888';cons
   return `<div class="th" data-n="${esc(it.name)}" data-m="${esc(it.model||'')}" style="--mc:${c}" title="${esc(it.prompt||it.name)}"><img loading="lazy" src="/thumb/${encodeURIComponent(it.name)}" onerror="this.style.display='none'" alt="">${it.kind==='video'?'<span class="play">'+MI.html('play','sm')+' VIDEO</span>':''}<button class="uref" data-ref="${esc(it.name)}" title="Add as a reference to your next message">${MI.html('plus','sm')} REF</button><div class="ov"><span class="m">${esc(s)}</span></div></div>`}
 async function loadLib(reset){
   if(reset)libItems=[];
-  let j;try{j=await api(`/api/library?kind=${libKind}&offset=${libItems.length}&limit=40`)}catch(e){return}
+  let j;try{j=await api(`/api/library?kind=${libKind}&offset=${libItems.length}&limit=40${SESS.all?'':'&session='+encodeURIComponent(SESS.id)}`)}catch(e){return}
   libItems=libItems.concat(j.items);
   $('#grid').innerHTML=libItems.length?libItems.map(thumbHTML).join(''):'<div style="grid-column:1/-1;color:var(--faint);font-size:12.5px;padding:8px 2px">Nothing here yet — your creations land in this library.</div>';
   $('#libcount').textContent=j.total+' item'+(j.total===1?'':'s');
@@ -1684,17 +1816,100 @@ async function loadLib(reset){
   $$('#grid .uref').forEach(b=>b.onclick=e=>{e.stopPropagation();useAsRef(b.dataset.ref)});
 }
 $('#more').onclick=()=>loadLib(false);
+/* chat sessions (sessions.py): a session = one project's chat + media. "General" (id "") holds everything older. */
+function sessPaint(){
+  const s=SESS.list.find(x=>x.id===SESS.id);if(!s)SESS.id='';SESS.name=s?s.name:'General';
+  $('#sess-name').textContent=SESS.name;$('#b-sess').title='Chat session: '+SESS.name+' — each session keeps its own chat and media';
+  $('#b-libscope').textContent=SESS.all?'All sessions':'This session';$('#b-libscope').classList.toggle('on',!SESS.all);
+}
+async function sessLoad(){try{const d=await api('/api/sessions');SESS.list=d.sessions||[];if(!localStorage.getItem('mml.session')&&d.last)SESS.id=d.last}catch(e){}sessPaint()}
+function sessOpen(id){
+  SESS.id=id||'';try{localStorage.setItem('mml.session',SESS.id)}catch(e){}
+  api('/api/sessions/'+(SESS.id||'_')+'',{method:'POST',body:JSON.stringify({last:true})}).catch(()=>{});
+  sessPaint();seeded=false;seen=new Set();jobsSig='';stick=true;$('#thread').innerHTML='';pollJobs(true);loadLib(true);closeSess();
+  toast('Session: '+SESS.name);
+}
+function closeSess(){const m=document.getElementById('sessmenu');if(m)m.remove()}
+function sessMenu(){
+  if(document.getElementById('sessmenu'))return closeSess();
+  const b=$('#b-sess').getBoundingClientRect(),m=document.createElement('div');m.className='sessmenu';m.id='sessmenu';
+  m.style.left=Math.max(10,Math.min(b.left,innerWidth-330))+'px';m.style.top=(b.bottom+6)+'px';
+  const row=(id,name,own)=>`<div class="sr${id===SESS.id?' on':''}" data-sid="${esc(id)}"><button class="nm" data-so="1" title="${esc(name)}">${esc(name)}</button>`+
+    (own?`<button class="ic" data-sr="1" title="Rename">${MI.html('type','sm')}</button><button class="ic" data-sd="1" title="Delete the session (its chats and media move to General)">${MI.html('trash','sm')}</button>`:'')+'</div>';
+  m.innerHTML='<div class="hint">Each session keeps its own chat and media — one per project.</div>'+row('','General',false)+
+    SESS.list.slice().reverse().map(s=>row(s.id,s.name,true)).join('')+
+    `<div class="new"><input id="sess-new" placeholder="New session name…" maxlength="60"><button class="btn sm" id="sess-add">${MI.html('plus','sm')} New</button></div>`;
+  document.body.appendChild(m);
+  const add=async()=>{const n=$('#sess-new').value.trim()||('Session '+new Date().toLocaleDateString());
+    try{const d=await api('/api/sessions',{method:'POST',body:JSON.stringify({name:n})});SESS.list=d.sessions||[];sessOpen(d.session.id)}catch(e){toast(e.message)}};
+  $('#sess-add').onclick=add;$('#sess-new').onkeydown=e=>{if(e.key==='Enter')add()};
+  m.onclick=async e=>{
+    const r=e.target.closest('[data-sid]');if(!r)return;const id=r.dataset.sid;
+    if(e.target.closest('[data-so]'))return sessOpen(id);
+    if(e.target.closest('[data-sr]')){const s=SESS.list.find(x=>x.id===id);const n=prompt('Rename session',s?s.name:'');if(!n)return;
+      try{const d=await api('/api/sessions/'+id,{method:'POST',body:JSON.stringify({name:n})});SESS.list=d.sessions||[];sessPaint();closeSess();sessMenu()}catch(e2){toast(e2.message)}return}
+    if(e.target.closest('[data-sd]')){const s=SESS.list.find(x=>x.id===id);if(!confirm('Delete the session "'+(s?s.name:'')+'"? Its chats and media are not deleted — they move to General.'))return;
+      try{const d=await api('/api/sessions/'+id+'/delete',{method:'POST'});SESS.list=d.sessions||[];if(SESS.id===id)sessOpen('');else{sessPaint();closeSess();sessMenu()}toast('Session deleted — '+(d.moved||0)+' items moved to General')}catch(e2){toast(e2.message)}}
+  };
+  setTimeout(()=>{const o=e=>{if(!m.contains(e.target)&&!e.target.closest('#b-sess')){closeSess();document.removeEventListener('pointerdown',o,true)}};document.addEventListener('pointerdown',o,true)},0);
+}
+$('#b-sess').onclick=sessMenu;
+$('#b-libscope').onclick=()=>{SESS.all=!SESS.all;try{localStorage.setItem('mml.libscope',SESS.all?'all':'session')}catch(e){}sessPaint();loadLib(true)};
+$('#lb-sess').onclick=()=>{
+  if(!viewing)return;const opts=[{id:'',name:'General'}].concat(SESS.list);
+  const pick=prompt('Move '+viewing.name+' to which session?\n'+opts.map((o,i)=>(i+1)+'. '+o.name).join('\n')+'\n\nType the number:');
+  const o=opts[(parseInt(pick,10)||0)-1];if(!o)return;
+  api('/api/library/'+encodeURIComponent(viewing.name)+'/session',{method:'POST',body:JSON.stringify({session:o.id})})
+    .then(()=>{toast('Moved to '+o.name);loadLib(true)}).catch(e=>toast(e.message));
+};
+sessLoad().then(()=>{pollJobs(true);loadLib(true)});
 $$('#filters button').forEach(b=>b.onclick=()=>{$$('#filters button').forEach(x=>x.classList.toggle('on',x===b));libKind=b.dataset.k;loadLib(true)});
+/* pinch-zoom (touch: two fingers zoom, one finger pans, double-tap 2.5× ↔ fit; mouse: wheel zooms, drag pans, double-click) */
+function pinchZoom(im,hint){let s=1,x=0,y=0,st=null,lastTap=0;const P=new Map();
+  const put=()=>{if(s<=1.001){s=1;x=0;y=0}else{const w=im.offsetWidth,h=im.offsetHeight;x=Math.min(0,Math.max(w-w*s,x));y=Math.min(0,Math.max(h-h*s,y))}
+    im.style.transform=s===1?'':`translate(${x}px,${y}px) scale(${s})`;im.classList.toggle('zoomed',s>1);if(hint&&s>1)hint.remove()};
+  const at=(cx,cy,ns)=>{const r=im.getBoundingClientRect(),px=cx-(r.left-x),py=cy-(r.top-y);ns=Math.max(1,Math.min(8,ns));x=px-(px-x)*ns/s;y=py-(py-y)*ns/s;s=ns;put()};
+  im.style.transformOrigin='0 0';im.style.touchAction='none';im.draggable=false;
+  im.addEventListener('pointerdown',e=>{e.stopPropagation();try{im.setPointerCapture(e.pointerId)}catch(_){}P.set(e.pointerId,[e.clientX,e.clientY]);
+    if(P.size===2){const[a,b]=[...P.values()];st={d:Math.hypot(a[0]-b[0],a[1]-b[1]),s,mx:(a[0]+b[0])/2,my:(a[1]+b[1])/2}}
+    else{const now=Date.now();if(now-lastTap<300){at(e.clientX,e.clientY,s>1?1:2.5);lastTap=0}else lastTap=now;st={px:e.clientX,py:e.clientY,x,y}}});
+  im.addEventListener('pointermove',e=>{if(!P.has(e.pointerId))return;P.set(e.pointerId,[e.clientX,e.clientY]);
+    if(P.size>=2&&st&&st.d){const[a,b]=[...P.values()];const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;at(mx,my,st.s*Math.hypot(a[0]-b[0],a[1]-b[1])/st.d);x+=mx-st.mx;y+=my-st.my;st.mx=mx;st.my=my;put()}
+    else if(P.size===1&&st&&st.px!=null&&s>1){x=st.x+e.clientX-st.px;y=st.y+e.clientY-st.py;put()}});
+  const up=e=>{P.delete(e.pointerId);if(P.size===1){const[a]=[...P.values()];st={px:a[0],py:a[1],x,y}}else if(!P.size)st=null};
+  im.addEventListener('pointerup',up);im.addEventListener('pointercancel',up);
+  im.addEventListener('click',e=>e.stopPropagation());
+  im.addEventListener('wheel',e=>{e.preventDefault();at(e.clientX,e.clientY,s*(e.deltaY<0?1.15:1/1.15))},{passive:false});
+  addEventListener('resize',put)}
 function showFile(name,model){
   const k=kindOf(name),url='/media/'+encodeURIComponent(name),m=MODELS[model]||{};
   viewing={name,model};const v=$('#lb-view');v.style.setProperty('--mc',m.color||'#ff5a1f');
-  if(k==='image')v.innerHTML=`<img src="${url}" alt="">`;
+  v.classList.remove('zoom');
+  if(k==='image'){v.innerHTML=`<img src="${url}" alt="" class="pz"><span class="zhint">pinch or double-tap to zoom</span>`;pinchZoom(v.querySelector('img'),v.querySelector('.zhint'))}
   else if(k==='video')v.innerHTML=mpHTML('video',url,{big:1,autoplay:1,name});
   else v.innerHTML=mpHTML('audio',url,{big:1,autoplay:1,name,label:m.label||'AUDIO'});
   $('#lb-chip').textContent=SHORT[model]||'';$('#lb-chip').style.background=m.color||'#888';
-  $('#lb-name').textContent=name;$('#lb-dl').href=url+'?dl=1';$('#lb').classList.add('on');
+  $('#lb-name').textContent=name;$('#lb-dl').href=url+'?dl=1';$('#lb').classList.add('on');lbNavState();
 }
-function closeLB(){$('#lb').classList.remove('on');$('#lb-view').innerHTML=''}
+/* previous / next through the library as it's listed (current filter); loads the next page at the end */
+function lbIdx(){return viewing?libItems.findIndex(x=>x.name===viewing.name):-1}
+function lbMore(){const b=$('#more');return b&&b.style.display!=='none'}
+function lbNavState(){const i=lbIdx(),n=libItems.length;
+  $('#lb-prev').hidden=i<=0;$('#lb-next').hidden=i<0||(i>=n-1&&!lbMore());
+  $('#lb-pos').textContent=i<0?'':(i+1)+' / '+(lbMore()?n+'+':n)}
+async function lbNav(d){const i=lbIdx();if(i<0)return;let j=i+d;
+  if(j>=libItems.length&&lbMore())await loadLib(false);
+  const it=libItems[j];if(it)showFile(it.name,it.model)}
+$('#lb-prev').onclick=e=>{e.stopPropagation();lbNav(-1)};
+$('#lb-next').onclick=e=>{e.stopPropagation();lbNav(1)};
+document.addEventListener('keydown',e=>{if(!$('#lb').classList.contains('on'))return;const t=document.activeElement;
+  if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;
+  if(e.key==='ArrowLeft'){e.preventDefault();lbNav(-1)}else if(e.key==='ArrowRight'){e.preventDefault();lbNav(1)}else if(e.key==='Escape')closeLB()});
+(function(){let sx=null,sy=0,multi=false;const v=$('#lb-view');   /* swipe left / right (not while zoomed in or pinching) */
+  v.addEventListener('touchstart',e=>{multi=e.touches.length>1;if(multi)return;sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+  v.addEventListener('touchend',e=>{if(sx==null||multi){sx=null;return}const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;sx=null;
+    if(v.querySelector('.zoomed')||Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.7)return;lbNav(dx<0?1:-1)},{passive:true})})();
+function closeLB(){$('#lb').classList.remove('on');$('#lb-view').classList.remove('zoom');$('#lb-view').innerHTML=''}
 $('#lb-x').onclick=closeLB;
 $('#lb-view').onclick=e=>{if(e.target.id==='lb-view')closeLB()};
 $('#lb-use').onclick=()=>viewing&&useAsRef(viewing.name);
@@ -2088,7 +2303,7 @@ async function pcUpdate(){
 }
 
 /* phone tabs */
-function setTab(t){if(t==='social')return mmlSocial();document.body.dataset.tab=t;$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
+function setTab(t){if(t==='social')return mmlSocial();if(t==='editor')return mmlEditor();if(t==='series')return mmlSeries();if(t==='grab')return mmlGrab();document.body.dataset.tab=t;$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
 $$('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
 
 (async function boot(){
@@ -2279,6 +2494,20 @@ window.addEventListener('message',function(e){var d=e.data||{};
   if(d.mml==='social-make'){var f2=document.getElementById('mml-so');if(f2)f2.remove();window.MML_SOCIAL=d.social||{platforms:['instagram','youtube']};
     setTab('create');$('#prompt').value=d.prompt||'';autosize();$('#prompt').focus();toast('Idea loaded — press Send; the result goes straight to Social for approval')}
 });
+/* SERIES studio (series.py / static/series.html) — style bible, cast sheets, locations, episodes */
+function mmlSeries(){
+  var f=document.getElementById('mml-se');if(f)return;
+  f=document.createElement('iframe');f.id='mml-se';f.src='series';f.allow='autoplay; fullscreen; clipboard-write';
+  f.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9998;background:#000';document.body.appendChild(f);
+  try{closeLB()}catch(e){}
+}
+window.addEventListener('message',function(e){var d=e.data||{};
+  if(d.mml!=='series-close'&&d.mml!=='series-edit')return;
+  var f=document.getElementById('mml-se');if(f)f.remove();
+  if(d.mml==='series-edit'&&d.project){var g=document.createElement('iframe');g.id='mml-ed';g.src='editor?p='+encodeURIComponent(d.project);g.allow='autoplay; fullscreen; clipboard-write';
+    g.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9999;background:#000';document.body.appendChild(g)}
+  try{loadLib()}catch(x){}
+});
 function mmlEditor(src){
   var f=document.getElementById('mml-ed');
   if(f){if(src)f.contentWindow.postMessage({mml:'editor-add',src:src},'*');return;}
@@ -2291,6 +2520,26 @@ window.addEventListener('message',function(e){var d=e.data||{};if(d.mml!=='edito
   var i=d.info||{};
   if(i.ref){try{atts.push(i.ref);saveAtts();renderAtts();toast('Your edit is attached — ready for the next request')}catch(x){}}
   else if(i.lib){toast('Your edit is in the library')}
+  try{loadLib()}catch(x){}
+});
+
+/* LIVE VOICE (MirOS MUSE) — show a voice-started render / download as it happens */
+window.addEventListener('message',function(e){var d=e.data||{};if(d.mml!=='voice-show')return;
+  try{if(typeof d.session==='string'&&d.session!==SESS.id)sessOpen(d.session);else pollJobs(true);}catch(x){}
+  try{if(d.grab)mmlGrab();else setTab('create');}catch(x){}
+});/* DOWNLOADER (grab.py / static/grab.html) — link → MP3 / MP4 in the library → editor, Series, chat */
+function mmlGrab(){
+  var f=document.getElementById('mml-gr');if(f)return;
+  f=document.createElement('iframe');f.id='mml-gr';f.src='grab';f.allow='autoplay; fullscreen; clipboard-write; clipboard-read';
+  f.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9997;background:#000';document.body.appendChild(f);
+  try{closeLB()}catch(e){}
+}
+window.addEventListener('message',function(e){var d=e.data||{};
+  if(['grab-close','grab-editor','grab-series','grab-attach'].indexOf(d.mml)<0)return;
+  var f=document.getElementById('mml-gr');if(f)f.remove();
+  if(d.mml==='grab-editor')mmlEditor(d.src||'');
+  else if(d.mml==='grab-series')mmlSeries();
+  else if(d.mml==='grab-attach'&&d.ref){try{atts.push(d.ref);saveAtts();renderAtts();setTab('create');toast('Attached — ready for your next request')}catch(x){}}
   try{loadLib()}catch(x){}
 });
 </script>

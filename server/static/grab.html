@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#262624">
+<title>MIR MEDIA LABS · Downloader</title>
+<link rel="icon" href="static/icon-512.png">
+<link rel="stylesheet" href="static/series.css">
+<style>
+/* Downloader — identical in both lab copies; reuses the Series look (series.css) */
+[hidden]{display:none!important}
+.gr-url{display:flex;gap:8px}.gr-url input{flex:1;height:40px;font-size:15px}
+.gr-pv{display:flex;gap:12px;align-items:center;margin-top:10px}.gr-pv img{width:160px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:var(--bg)}
+.gr-pv b{display:block;font-size:15px}.gr-pv small{color:var(--dim)}
+.gr-opt{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;align-items:center;margin-top:12px}
+.gr-opt .lbl{min-width:0}.gr-trim{display:flex;gap:8px;align-items:center}.gr-trim input{width:100px}
+.gr-go{margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.gr-list{display:flex;flex-direction:column;gap:10px}
+.gr-job{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.gr-job .hd{display:flex;align-items:center;gap:8px}.gr-job .hd b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gr-job .bar{height:4px;background:var(--line);border-radius:2px;margin:8px 0 2px;overflow:hidden}.gr-job .bar i{display:block;height:100%;background:var(--acc);transition:width .4s}
+.gr-job .st{font-size:12px;color:var(--dim)}.gr-job .st.err{color:#e5484d}
+.gr-files{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.gr-file{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px}
+.gr-file .nm{flex:1;min-width:160px;font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gr-file img,.gr-file video{width:96px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:#000}
+.gr-file audio{width:220px;margin:0;height:32px}
+.gr-stills{display:flex;gap:6px;flex-wrap:wrap}.gr-stills img{width:72px;aspect-ratio:16/9;object-fit:cover;border-radius:6px}
+.gr-rights{font-size:12px;color:var(--dim);display:flex;gap:6px;align-items:flex-start}
+/* Download | Convert switch + converter */
+.gr-tabs{display:flex;gap:6px;margin:4px 0 12px}
+.gr-tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;height:42px;border:1px solid var(--line2);background:var(--panel);color:var(--dim);border-radius:12px;font:inherit;font-size:14px;cursor:pointer}
+.gr-tabs button.on{border-color:var(--acc);color:var(--acc);background:color-mix(in srgb,var(--acc) 10%,var(--panel))}
+.cv-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:120px;border:2px dashed var(--line2);border-radius:12px;padding:14px;text-align:center;color:var(--dim)}
+.cv-drop.over{border-color:var(--acc);color:var(--acc)}
+.cv-drop .row{justify-content:center;margin:0}
+.cv-src{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:10px}
+.cv-src b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.cv-up{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:8px}.cv-up i{display:block;height:100%;width:0;background:var(--acc)}
+@media (max-width:600px){.gr-pv img{width:110px}.gr-opt{grid-template-columns:1fr;gap:4px}.gr-opt .lbl{margin-top:8px}.gr-file audio{width:100%}
+  .gr-url{flex-wrap:wrap}.gr-url input{min-width:0}.gr-go .eb.pri{flex:1;justify-content:center;height:44px}
+  .gr-trim input{flex:1;width:auto;min-width:0}.gr-file .nm{min-width:0;flex-basis:100%}.gr-file{gap:6px}.gr-file .eb{flex:1;justify-content:center}}
+</style>
+</head>
+<body>
+<div class="se">
+  <header class="se-top">
+    <a class="eb ic" id="gr-back" title="Back to the lab"><i class="mi" data-ic="arrow-left"></i></a>
+    <div class="se-brand"><i class="mi" data-ic="download"></i><b>DOWNLOADER</b></div>
+    <span class="sp"></span>
+    <button class="eb sm" id="gr-editor" title="Open the video editor"><i class="mi" data-ic="film"></i><span> Editor</span></button>
+    <button class="eb sm" id="gr-series" title="Open the Series studio"><i class="mi" data-ic="tv"></i><span> Series</span></button>
+  </header>
+
+  <nav class="gr-tabs" id="gr-tabs">
+    <button data-t="dl" class="on"><i class="mi" data-ic="download"></i> Download a link</button>
+    <button data-t="cv"><i class="mi" data-ic="refresh"></i> Convert a file</button>
+  </nav>
+
+  <div class="card" id="gr-cv" hidden>
+    <h3><i class="mi" data-ic="refresh"></i> Convert a file</h3>
+    <p class="dim">Turn a video into an MP3 (or M4A / WAV), or any video into an MP4 the editor and every phone can play.
+      The result goes to your library, next to your downloads.</p>
+    <div class="cv-drop" id="cv-drop">
+      <i class="mi" data-ic="upload"></i>
+      <span>Drop a video or audio file here</span>
+      <div class="row"><button class="eb" id="cv-pick"><i class="mi" data-ic="upload"></i> Choose a file</button>
+        <button class="eb" id="cv-lib"><i class="mi" data-ic="folder"></i> From library</button></div>
+    </div>
+    <div id="cv-src"></div>
+    <input type="file" id="cv-file" accept="video/*,audio/*,.mkv,.webm,.mov,.avi,.flac,.ogg,.opus,.m4a,.wav" hidden>
+    <div class="gr-opt">
+      <span class="lbl">Convert to</span>
+      <div class="chips" id="cv-to">
+        <button data-v="mp3" class="on"><i class="mi" data-ic="music"></i> MP3</button>
+        <button data-v="m4a"><i class="mi" data-ic="music"></i> M4A</button>
+        <button data-v="wav"><i class="mi" data-ic="music"></i> WAV</button>
+        <button data-v="mp4"><i class="mi" data-ic="video"></i> MP4 video</button>
+      </div>
+      <span class="lbl"></span>
+      <p class="dim" id="cv-what" style="margin:0;font-size:12px"></p>
+      <span class="lbl" data-cv="a">Audio quality</span>
+      <div class="chips" id="cv-abr" data-cv="a">
+        <button data-v="128">128 kbps</button><button data-v="192" class="on">192 kbps</button><button data-v="320">320 kbps</button>
+      </div>
+      <span class="lbl">Trim (optional)</span>
+      <div class="gr-trim"><input id="cv-s" placeholder="start 0:00"> <span class="dim">to</span> <input id="cv-e" placeholder="end"></div>
+    </div>
+    <div class="gr-go"><button class="eb pri" id="cv-go"><i class="mi" data-ic="refresh"></i> Convert</button><span class="sp"></span></div>
+  </div>
+
+  <div class="card" id="gr-dl">
+    <h3><i class="mi" data-ic="link"></i> Paste a link</h3>
+    <p class="dim">YouTube, Vimeo, SoundCloud, TikTok, Instagram and about 1,800 other sites. What you grab goes to your
+      library, so you can use it in the editor, the Series studio, or as a reference in chat.</p>
+    <div class="gr-url">
+      <input id="gr-u" type="url" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off" spellcheck="false">
+      <button class="eb" id="gr-check"><i class="mi" data-ic="search"></i><span> Check</span></button>
+    </div>
+    <div id="gr-pv"></div>
+
+    <div class="gr-opt">
+      <span class="lbl">Save as</span>
+      <div class="chips" id="gr-mode">
+        <button data-v="mp3" class="on"><i class="mi" data-ic="music"></i> MP3 audio</button>
+        <button data-v="video"><i class="mi" data-ic="video"></i> MP4 video</button>
+        <button data-v="both"><i class="mi" data-ic="layers"></i> Both</button>
+      </div>
+      <span class="lbl" data-for="a">Audio quality</span>
+      <div class="chips" id="gr-abr" data-for="a">
+        <button data-v="128">128 kbps</button><button data-v="192" class="on">192 kbps</button><button data-v="320">320 kbps</button>
+      </div>
+      <span class="lbl" data-for="v">Video quality</span>
+      <div class="chips" id="gr-q" data-for="v">
+        <button data-v="480">480p</button><button data-v="720">720p</button><button data-v="1080" class="on">1080p</button><button data-v="best">Best</button>
+      </div>
+      <span class="lbl" data-for="v">Stills</span>
+      <div class="chips" id="gr-stills" data-for="v" title="Evenly spaced frames saved as pictures — style frames for a Series bible, keyframes, references">
+        <button data-v="0" class="on">None</button><button data-v="4">4 frames</button><button data-v="6">6 frames</button><button data-v="8">8 frames</button>
+      </div>
+      <span class="lbl">Trim (optional)</span>
+      <div class="gr-trim"><input id="gr-s" placeholder="start 0:00"> <span class="dim">to</span> <input id="gr-e" placeholder="end"></div>
+    </div>
+
+    <div class="gr-go">
+      <button class="eb pri" id="gr-go"><i class="mi" data-ic="download"></i> Download</button>
+      <span class="sp"></span>
+    </div>
+    <p class="gr-rights"><i class="mi" data-ic="shield"></i><span>Only grab media you have the right to use: your own uploads, or
+      licensed, Creative Commons or public-domain media. Don't publish other people's work without permission.</span></p>
+  </div>
+
+  <h3 style="margin:18px 0 8px;display:flex;align-items:center;gap:6px"><i class="mi" data-ic="clock"></i> Downloads &amp; conversions</h3>
+  <div class="gr-list" id="gr-list"><p class="dim">Nothing yet.</p></div>
+</div>
+<div class="toast" id="gr-toast"></div>
+<script>
+(function () {   /* icons live in different places in the two lab copies */
+  var mlab = location.pathname.indexOf('/mlab') === 0;
+  document.write('<script src="' + (mlab ? '/static/icons/miros-icons.js' : '/static/miros-icons.js') + '"><\/script>');
+})();
+</script>
+<script src="static/grab.js"></script>
+</body>
+</html>

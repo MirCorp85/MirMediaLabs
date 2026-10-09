@@ -64,7 +64,9 @@ DOCS = {
                           "flf2v": {"label": "Start + end picture", "tech": "first/last frame", "desc": "Moves from picture 1 to picture 2."},
                           "r2v": {"label": "Use references", "tech": "reference → video", "desc": "Keeps faces, products or style from your pictures."},
                           "story": {"label": "Storyboard", "desc": "Each picture is a moment the video passes through, in order."},
-                          "extend": {"label": "Continue a clip", "desc": "Picks up where the attached video ends."}}},
+                          "extend": {"label": "Continue a clip", "desc": "Picks up where the attached video ends."},
+                          "sing": {"label": "Sing to my audio", "tech": "audio-guided lip-sync",
+                                   "desc": "The character's mouth follows the song or voice you attached. Attach a picture to start, or the previous clip to continue it."}}},
         "aspect": {"label": "Shape", "tech": "aspect ratio", "desc": "Wide for screens, tall for phones, square for feeds.",
                    "opts": {"auto": {"label": "Automatic", "desc": "Matches your picture, else wide 16:9."},
                             "16:9": {"label": "Wide 16:9", "desc": "TV, YouTube."}, "9:16": {"label": "Tall 9:16", "desc": "Reels, TikTok, Shorts."},
@@ -325,6 +327,102 @@ DOCS = {
     },
 }
 
+# ── a "what it does" line for every option that had none (Oct 9 2026). Merged under DOCS by _doc(); a DOCS desc wins ──
+_KEYS = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
+_LANGS = {"en": "English", "es": "Spanish", "fr": "French", "de": "German", "it": "Italian", "pt": "Portuguese",
+          "ja": "Japanese", "ko": "Korean", "zh": "Chinese", "ru": "Russian", "ar": "Arabic", "hi": "Hindi", "nl": "Dutch",
+          "sv": "Swedish", "pl": "Polish", "tr": "Turkish"}
+_ASPECT = {"1:1": "Square — feeds and profile posts.", "3:2": "Classic photo landscape.", "2:3": "Classic photo portrait.",
+           "16:9": "Widescreen — TV, YouTube, laptops.", "9:16": "Tall — phones, Shorts, Reels, TikTok.",
+           "4:3": "Old-TV / tablet shape.", "3:4": "Portrait tablet shape — good for full-body characters.",
+           "4:5": "Tall feed post (Instagram portrait).", "5:4": "Nearly square landscape.",
+           "21:9": "Extra-wide cinema strip.", "2:1": "Wide banner.", "1:2": "Tall banner / phone wallpaper."}
+_UPSCALE = {"off": "Keep the rendered size.", "1.5": "50% bigger — a quick sharp resize after rendering.",
+            "2": "Double the size — a quick sharp resize after rendering (no new detail is invented)."}
+_WF = {"builtin": "The lab's own tested pipeline — the safe choice."}
+OPT_DESC = {
+    "*": {"quality": {"V0": "Best quality, variable size.", "320k": "High quality, fixed size.",
+                      "128k": "Smallest file — fine for previews and phones."},
+          "upscale": _UPSCALE, "workflow": _WF},
+    "h3": {
+        "aspect": {"4:3": _ASPECT["4:3"], "3:4": _ASPECT["3:4"]},
+        "extend_anchor": {"22": "The new part starts from the last ~1 s of motion — the smoothest continuation.",
+                          "5": "Starts from the last few frames — follows on, with more freedom to change.",
+                          "1": "Starts from the final still only — most freedom, may jump in motion."},
+        "join": {"cut": "Joins the parts back-to-back with the overlap removed — no visible seam when it works.",
+                 "xfade": "Blends the parts over a quarter second — hides a seam at the cost of a soft moment."},
+        "shot": {"auto": "Let the engine pick the framing from your words."},
+        "motion": {"auto": "Let the engine decide how much moves."},
+        "steady": {"on": "Keeps the camera smooth — no shake.", "off": "Allows handheld wobble and energetic moves."},
+        "speed": {"0.75": "Slows the clip to three-quarter speed — dreamy.", "1": "Real time.",
+                  "1.25": "A little faster — snappier.", "1.5": "Noticeably faster — comedic or energetic."},
+        "look": {"auto": "No extra look — the engine follows your words."},
+        "scene_fx": {"none": "No added effect.", "rain": "Falling rain and wet reflections.", "snow": "Gentle falling snow.",
+                     "smoke": "Smoke drifting through the scene.", "sparks": "Glowing embers and sparks flying.",
+                     "petals": "Flower petals drifting down.", "confetti": "A burst of party confetti.",
+                     "lightning": "Storm with lightning flashes.", "particles": "Floating glowing magic dust.",
+                     "bubbles": "Bubbles floating by.", "explosion": "An explosion with flying debris.",
+                     "timelapse": "Clouds racing across the sky — time speeding up.",
+                     "slowmo": "Action played in slow motion."},
+        "lighting": {"auto": "No lighting instruction — follows your words.", "night": "Night-time with city lights.",
+                     "neon": "Bright coloured neon signs and glow."},
+        "style": {"none": "No extra effect."},
+        "grade": {"none": "Colours as rendered.", "bw": "Black and white."},
+        "grain": {"off": "Clean picture.", "light": "A little film grain — feels shot on film.",
+                  "heavy": "Strong grain — old-film or gritty look."},
+        "vignette": {"off": "Even brightness to the edges.", "on": "Darkens the corners to pull the eye to the centre."},
+        "sharpen": {"off": "As rendered.", "light": "Slightly crisper edges.", "strong": "Very crisp — can look harsh."},
+        "fade": {"none": "Starts and ends on picture.", "in": "Fades up from black at the start.",
+                 "out": "Fades to black at the end.", "both": "Fades in and out — good for standalone clips."},
+        "fps": {"30": "30 frames a second — standard for web video.",
+                "48": "48 frames — extra frames are blended in for very smooth motion."},
+        "loop": {"off": "Plays once.", "boomerang": "Plays forward then backward — a seamless loop."},
+        "audio": {"off": "No sound is generated."},
+        "soundtrack": {"replace": "Your track replaces any sound the clip had.",
+                       "mix": "Your track plays under the clip's own sound.", "ignore": "Your track is not used."},
+        "ref_size": {"max": "Reference pictures are used at full size — best detail.",
+                     "match": "Reference pictures are resized to the video size — lighter and faster."},
+        "enhance": {"on": "The engine rewrites your idea into a full scene, shot and sound plan (it also looks at your pictures).",
+                    "off": "Your words are used exactly as written."},
+    },
+    "qimg": {
+        "mode": {"generate": "Make a new picture from your words.", "cutout": "Removes the background from your picture."},
+        "aspect": _ASPECT,
+        "size": {"standard": "About 1 megapixel — fast and sharp enough for most uses.",
+                 "hd": "About 2 megapixels — finer detail, roughly twice as slow."},
+        "enhance": {"on": "Your idea is rewritten into a detailed picture description first.",
+                    "off": "Your words are used exactly as written."},
+        "edit_res": {"auto": "Picks a working size from how many pictures you attach.",
+                     "512": "Small — fastest, softer detail.", "768": "Medium — quick with decent detail.",
+                     "1024": "Large — the usual choice for edits.", "1536": "Very large — most detail, slow and memory-hungry."},
+        "cache": {"auto": "Lets the lab decide where to keep the model between jobs.",
+                  "gpu": "Keeps the model on the graphics card — fastest repeat jobs, uses video memory.",
+                  "cpu": "Parks the model in system memory — frees the graphics card, slower start.",
+                  "off": "Unloads after every job — slowest, frees everything."},
+    },
+    "music3": {
+        "lyrics": {"auto": "The engine writes lyrics that fit your idea.", "instrumental": "No vocals — music only."},
+        "model": {"fp16": "Full-precision model — best sound.", "int8": "Compressed model — lighter on memory, very close in sound."},
+        "decode": {"tiled": "Builds the audio in pieces — works on smaller graphics cards.",
+                   "full": "Builds it in one go — a little faster if you have the memory."},
+    },
+    "ace": {
+        "mode": {"text": "Make a new song from your description."},
+        "codes": {"on": "Plans the song's structure first — more coherent songs.", "off": "Skips the planning step — faster, looser."},
+        "key": dict({"auto": "Let the engine choose the key."},
+                    **{"%s major" % k: "%s major — bright and happy." % k for k in _KEYS},
+                    **{"%s minor" % k: "%s minor — darker, more emotional." % k for k in _KEYS}),
+        "timesig": {"4": "4/4 — most pop, rock and dance songs.", "3": "3/4 — a waltz feel.",
+                    "2": "2/4 — a march / polka feel.", "6": "6/8 — a rolling, swinging feel."},
+        "language": dict({"unknown": "Let the engine detect it from the lyrics."},
+                         **{k: "Sung in %s." % v for k, v in _LANGS.items()}),
+    },
+    "llama": {
+        "mode": {"chat": "Clear, direct answers.", "creative": "Vivid, original writing — stories, lyrics, ideas."},
+        "length": {"short": "About 300 words.", "medium": "About 800 words.", "long": "About 2000 words."},
+    },
+}
+
 ADVANCED = "Advanced (leave as is)"
 _manifest = {"mtime": None, "data": {}}
 
@@ -356,6 +454,10 @@ def _doc(model, k):
     d["opts"] = dict(base.get("opts") or {})
     for v, od in (own.get("opts") or {}).items():
         d["opts"][v] = dict(d["opts"].get(v) or {}, **od)
+    for src in (OPT_DESC["*"].get(k) or {}, OPT_DESC.get(model, {}).get(k) or {}):
+        for v, txt in src.items():
+            if not (d["opts"].get(v) or {}).get("desc"):
+                d["opts"][v] = dict(d["opts"].get(v) or {}, desc=txt)
     return d
 
 

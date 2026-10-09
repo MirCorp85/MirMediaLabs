@@ -23,6 +23,11 @@ final class LibraryPage extends LinearLayout {
     private final List<JSONObject> items = new ArrayList<>();
     private final TextView[] filters = new TextView[4];
     private final TextView count;
+    private TextView scope;
+
+    void paintScope() {
+        if (scope != null) scope.setText(Sessions.libAll ? "ALL SESSIONS" : "THIS SESSION");
+    }
     private final Adapter adapter = new Adapter();
     private String kind = "";
     private int total = 0;
@@ -38,6 +43,12 @@ final class LibraryPage extends LinearLayout {
         head.addView(Ui.label(a, "Library"), Ui.lpw(1));
         count = Ui.text(a, "", 11.5f, Ui.FAINT);
         head.addView(count);
+        scope = Ui.bold(a, "", 10.5f, Ui.DIM);        // this session's media, or every session's
+        scope.setPadding(Ui.dp(10), Ui.dp(5), Ui.dp(10), Ui.dp(5));
+        scope.setBackground(Ui.box(9, Ui.CARD2, Ui.LINE2));
+        scope.setFocusable(Tv.is(a));
+        scope.setOnClickListener(v -> { Sessions.libAll = !Sessions.libAll; Prefs.put(m, "lib_all", Sessions.libAll); paintScope(); reload(); });
+        head.addView(scope, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 8, 0, 0, 0));
         addView(head, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 2, 4, 2, 10));
 
         LinearLayout fr = Ui.hbox(a);
@@ -85,12 +96,26 @@ final class LibraryPage extends LinearLayout {
         }
     }
 
+    /** The viewer's previous / next: the item d places away from name in the list as it's shown, or null. */
+    JSONObject neighbor(String name, int d) {
+        int i = indexOf(name);
+        if (i < 0) return null;
+        if (i + d >= items.size() - 3 && items.size() < total) more();   // near the end: fetch the next page
+        int j = i + d;
+        return j >= 0 && j < items.size() ? items.get(j) : null;
+    }
+    int indexOf(String name) {
+        for (int i = 0; i < items.size(); i++) if (name.equals(items.get(i).optString("name"))) return i;
+        return -1;
+    }
+    int total() { return Math.max(total, items.size()); }
+
     void reload() { items.clear(); adapter.notifyDataSetChanged(); total = 0; loading = false; more(); }
 
     private void more() {
         if (loading) return;
         loading = true;
-        m.api.get("/api/library?kind=" + kind + "&offset=" + items.size() + "&limit=40", r -> {
+        m.api.get("/api/library?kind=" + kind + "&offset=" + items.size() + "&limit=40" + (Sessions.libAll ? "" : Sessions.q()), r -> {
             loading = false;
             if (!r.ok()) { count.setText(r.err()); return; }
             JSONObject j = r.obj();

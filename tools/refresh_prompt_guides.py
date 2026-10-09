@@ -19,7 +19,7 @@ import sys
 URL = "https://cloud.comfy.org/mcp"
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = [os.path.join(HERE, "..", "server", "static", "prompt_guides.json"),
-       r"C:\Users\MirCorp\Documents\AIDOCS\aimr-trading\data\prompt_guides.json"]   # MirOS mirror (skipped if absent)
+       os.environ.get("MML_GUIDES_MIRROR", "")]   # optional local mirror copy (env var, never a hardcoded path; skipped if unset)
 
 # our builder key → model family names to try with get_prompting_guide (first hit wins)
 FAMILIES = {

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#262624">
+<title>MIR MEDIA LABS · Series</title>
+<link rel="icon" href="static/icon-512.png">
+<link rel="stylesheet" href="static/series.css">
+</head>
+<body>
+<div class="se">
+  <header class="se-top">
+    <a class="eb ic" id="se-back" title="Back to the lab"><i class="mi" data-ic="arrow-left"></i></a>
+    <div class="se-brand"><i class="mi" data-ic="tv"></i><b>SERIES</b></div>
+    <select id="se-pick" title="Your series"></select>
+    <button class="eb" data-a="new"><i class="mi" data-ic="plus"></i><span> New series</span></button>
+    <span class="sp"></span>
+    <span class="se-save" id="se-save"></span>
+  </header>
+
+  <div class="se-empty" id="se-empty" hidden>
+    <i class="mi" data-ic="tv"></i>
+    <h2>Build an animated series</h2>
+    <p>Pick a format and a look → build your cast → write an original song → the song is cut into shots that are
+      lip-synced to it and flow from one to the next → one finished musical episode, ready for the editor.</p>
+    <button class="eb pri" data-a="new"><i class="mi" data-ic="plus"></i> Start a series</button>
+  </div>
+
+  <main class="se-main" id="se-main" hidden>
+    <nav class="tabs" id="se-tabs">
+      <button data-t="setup" class="on"><i class="mi" data-ic="sliders"></i> Setup</button>
+      <button data-t="bible"><i class="mi" data-ic="palette"></i> Style</button>
+      <button data-t="cast"><i class="mi" data-ic="users"></i> Cast</button>
+      <button data-t="world"><i class="mi" data-ic="globe"></i> World</button>
+      <button data-t="objs"><i class="mi" data-ic="box"></i> Objects</button>
+      <button data-t="eps"><i class="mi" data-ic="film"></i> Episodes</button>
+      <button data-t="assets"><i class="mi" data-ic="folder"></i> Assets</button>
+      <button data-t="hist"><i class="mi" data-ic="clock"></i> History <span id="se-runbadge" class="badge" hidden></span></button>
+    </nav>
+
+    <section data-p="setup">
+      <label>Series name <input id="se-name" spellcheck="false"></label>
+      <div class="card">
+        <h3><i class="mi" data-ic="layers"></i> 1 · Format</h3>
+        <p class="dim">How an episode is built. The bar shows its beats; sung beats are lip-synced to the song.</p>
+        <div id="su-struct" class="tiles struct"></div>
+        <div id="su-beats" hidden></div>
+      </div>
+      <div class="card">
+        <h3><i class="mi" data-ic="film"></i> 2 · Video style</h3>
+        <p class="dim">Seeds the style bible every picture and shot uses. You can still fine-tune it on the Style tab.</p>
+        <div id="su-style" class="tiles styles"></div>
+      </div>
+      <div class="card">
+        <h3><i class="mi" data-ic="clock"></i> 3 · Length &amp; shape</h3>
+        <div class="row"><span class="lbl">Length</span><div class="chips" id="su-len"></div></div>
+        <div class="row"><span class="lbl">Shape</span><div class="chips" id="su-aspect"></div></div>
+        <div class="row"><span class="lbl">Shot length</span><div class="chips" id="su-clip"></div></div>
+        <div class="row"><span class="lbl">Picture quality</span><div class="chips" id="su-res"></div></div>
+        <div class="row"><span class="lbl">Shot joins</span><div class="chips" id="su-join"></div></div>
+        <p class="dim">“Continue” shots always join frame-exact. On a cut, a soft dissolve blends the two shots for a moment — every shot still lands on its beat.</p>
+        <div class="est" id="su-est"></div>
+      </div>
+      <div class="card">
+        <h3><i class="mi" data-ic="music"></i> 4 · Song</h3>
+        <div id="su-song"></div>
+      </div>
+    </section>
+
+    <section data-p="bible" hidden>
+      <div class="card">
+        <h3><i class="mi" data-ic="sparkle"></i> Style bible</h3>
+        <p class="dim">Attach 3–8 frames from shows you love. The writer works out why the look appeals to kids and writes one
+          style prompt (it never names existing shows). Every picture in this series uses it.</p>
+        <div class="row"><button class="eb" data-a="style-attach"><i class="mi" data-ic="attach"></i> Attach frames</button>
+          <button class="eb" data-a="style-lib" title="Pictures already in your library: renders, or stills from the Downloader"><i class="mi" data-ic="folder"></i> From library</button>
+          <span id="se-style-refs" class="refs"></span>
+          <button class="eb pri" data-a="style-run"><i class="mi" data-ic="wand"></i> Analyse</button></div>
+        <div id="se-analysis" class="note"></div>
+        <label>Style prompt (edit freely) <textarea id="se-style" rows="7"></textarea></label>
+      </div>
+    </section>
+
+    <section data-p="cast" hidden>
+      <div class="row"><button class="eb" data-a="add-char"><i class="mi" data-ic="plus"></i> Add character</button>
+        <button class="eb" data-a="add-rand"><i class="mi" data-ic="sparkle"></i> Surprise me</button>
+        <span class="sp"></span>
+        <button class="eb" data-a="lineup"><i class="mi" data-ic="layers"></i> Make lineup</button></div>
+      <div id="se-cast" class="cards"></div>
+      <div class="card" id="se-lineup-card" hidden><h3><i class="mi" data-ic="layers"></i> Lineup</h3><div id="se-lineup"></div></div>
+    </section>
+
+    <section data-p="world" hidden>
+      <div class="row"><button class="eb" data-a="add-loc"><i class="mi" data-ic="plus"></i> Add location</button></div>
+      <div id="se-locs" class="cards"></div>
+    </section>
+
+    <section data-p="objs" hidden>
+      <div class="row"><button class="eb" data-a="add-obj"><i class="mi" data-ic="plus"></i> Add object</button>
+        <button class="eb" data-a="add-obj-rand"><i class="mi" data-ic="sparkle"></i> Surprise me</button></div>
+      <p class="dim">Cars, planes, boats, animals, trees, houses, toys… anything that isn't a cast member. Each one is drawn in the series style, with a turnaround and a detail sheet, and can be picked per episode so it looks the same in every shot.</p>
+      <div id="se-objs" class="cards"></div>
+    </section>
+
+    <section data-p="assets" hidden>
+      <div class="card">
+        <h3><i class="mi" data-ic="folder"></i> Your asset library</h3>
+        <p class="dim">Characters, locations, looks and songs you have saved — reusable in any series. Using one copies it in,
+          so changing it there never changes the original. Stored on this PC in <code id="as-root"></code></p>
+        <div class="row"><div class="chips" id="as-kinds"></div><span class="sp"></span>
+          <button class="eb sm" data-a="asset-save-cast"><i class="mi" data-ic="users"></i> Save this series' whole cast</button>
+          <button class="eb sm" data-a="asset-save" data-k="styles"><i class="mi" data-ic="palette"></i> Save this look</button></div>
+      </div>
+      <div id="as-grid" class="cards"></div>
+    </section>
+
+    <section data-p="hist" hidden>
+      <div class="card" id="hi-run"></div>
+      <div class="card">
+        <h3><i class="mi" data-ic="refresh"></i> Checkpoints</h3>
+        <p class="dim">A snapshot is saved after every step. Going back never deletes anything — your renders stay in the
+          library, and going back can itself be undone.</p>
+        <div class="row"><button class="eb sm" data-a="walk-back"><i class="mi" data-ic="arrow-left"></i> Walk back one step</button></div>
+        <div id="hi-versions" class="vlist"></div>
+      </div>
+      <div class="card">
+        <h3><i class="mi" data-ic="book"></i> Event log</h3>
+        <div id="hi-log" class="elog"></div>
+      </div>
+    </section>
+
+    <section data-p="eps" hidden>
+      <div class="row"><button class="eb" data-a="add-ep"><i class="mi" data-ic="plus"></i> New episode</button></div>
+      <div id="se-eps"></div>
+    </section>
+  </main>
+
+  <div class="jobs" id="se-jobs"></div>
+  <div class="toast" id="se-toast"></div>
+  <input type="file" id="se-file" accept="image/*" multiple hidden>
+  <audio id="se-voice" hidden></audio>
+  <input type="file" id="se-song" accept="audio/*,.mp3,.wav,.flac,.m4a,.ogg" hidden>
+</div>
+<script>
+(function () {   /* icons live in different places in the two lab copies */
+  var mlab = location.pathname.indexOf('/mlab') === 0;
+  document.write('<script src="' + (mlab ? '/static/icons/miros-icons.js' : '/static/miros-icons.js') + '"><\/script>');
+})();
+</script>
+<script src="static/series.js"></script>
+<script src="/static/fonts/miros/mirfont.js" data-vars="--sans"></script>
+</body>
+</html>

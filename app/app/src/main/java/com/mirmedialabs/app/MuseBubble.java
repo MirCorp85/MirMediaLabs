@@ -31,6 +31,11 @@ final class MuseBubble extends LinearLayout {
     private final List<Helix> helixes = new ArrayList<>();
     private final LinearLayout steps, tags;
     private boolean fold;
+    // live ComfyUI render viewer: the sampler's newest preview frame, polled while the job runs (204 = no new frame)
+    private android.widget.ImageView pv;
+    private String pvN = "";
+    private boolean pvRun, pvBusy;
+    private final Runnable pvPoll = this::pollPv;
 
     MuseBubble(MainActivity a, JSONObject j) {
         super(a);
@@ -82,6 +87,16 @@ final class MuseBubble extends LinearLayout {
             addView(ll, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 8, 0, 0));
             android.animation.ObjectAnimator pa = android.animation.ObjectAnimator.ofFloat(liveDot, "alpha", 1f, .3f);
             pa.setDuration(500); pa.setRepeatMode(android.animation.ValueAnimator.REVERSE); pa.setRepeatCount(android.animation.ValueAnimator.INFINITE); pa.start();
+        }
+        if (live && !"llama".equals(j.optString("model")) && !"ace".equals(j.optString("model")) && !"music3".equals(j.optString("model"))
+                || live && j.optJSONArray("plan") != null) {
+            pv = new android.widget.ImageView(a);
+            pv.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+            pv.setBackground(Ui.box(10, 0xFF000000, Ui.LINE2));
+            pv.setClipToOutline(true);
+            pv.setVisibility(GONE);                          // until the first frame arrives (audio steps never send one)
+            pv.setOnClickListener(v -> fullPv());
+            addView(pv, Ui.margins(Ui.lp(Ui.MATCH, Ui.dp(190)), 0, 8, 0, 0));
         }
 
         steps = Ui.vbox(a);
@@ -142,6 +157,34 @@ final class MuseBubble extends LinearLayout {
         update(j);
     }
 
+    private void pollPv() {
+        if (!pvRun || pv == null || !isAttachedToWindow() || pvBusy) { if (pvRun) postDelayed(pvPoll, 700); return; }
+        pvBusy = true;
+        m.api.bytes("/api/jobs/" + id + "/preview?n=" + pvN, r -> {
+            pvBusy = false;
+            if (r.ok() && r.status == 200 && r.bytes != null && r.bytes.length > 0) {
+                android.graphics.Bitmap b = android.graphics.BitmapFactory.decodeByteArray(r.bytes, 0, r.bytes.length);
+                if (b != null) { pv.setImageBitmap(b); pv.setVisibility(VISIBLE); }
+                if (r.body != null) pvN = r.body;
+            }
+            if (pvRun) postDelayed(pvPoll, 700);
+        });
+    }
+
+    /** Tap the live frame: watch it full screen (pinch to zoom). */
+    private void fullPv() {
+        android.graphics.drawable.Drawable d = pv.getDrawable();
+        if (!(d instanceof android.graphics.drawable.BitmapDrawable)) return;
+        android.app.Dialog dl = new android.app.Dialog(m, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        ZoomImageView z = new ZoomImageView(m);
+        z.setImageBitmap(((android.graphics.drawable.BitmapDrawable) d).getBitmap());
+        z.setOnClickListener(v -> dl.dismiss());
+        dl.setContentView(z);
+        dl.show();
+    }
+
+    @Override protected void onDetachedFromWindow() { removeCallbacks(pvPoll); super.onDetachedFromWindow(); }
+
     private java.util.Set<String> folded() {
         java.util.Set<String> s = new java.util.LinkedHashSet<>();
         for (String x : Prefs.str(m, "mbfold", "").split(",")) if (!x.isEmpty()) s.add(x);
@@ -191,6 +234,10 @@ final class MuseBubble extends LinearLayout {
     /** Patch the live bits in place. */
     void update(JSONObject j) {
         String st = j.optString("status");
+        boolean was = pvRun;
+        pvRun = pv != null && "running".equals(st);
+        if (pvRun && !was) post(pvPoll);
+        if (!pvRun && pv != null) { removeCallbacks(pvPoll); if (!"running".equals(st) && !"queued".equals(st)) pv.setVisibility(GONE); }
         double now = System.currentTimeMillis() / 1000.0;
         timer.setText("running".equals(st) ? Ui.dur(j.optDouble("started", now), now)
                 : j.has("finished") && !j.isNull("finished") && !j.isNull("started") ? Ui.dur(j.optDouble("started"), j.optDouble("finished")) : "");
