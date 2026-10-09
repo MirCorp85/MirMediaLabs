@@ -87,8 +87,8 @@ def stage(src, url):
     files, raw_total = {}, 0
     for dp, _, fns in os.walk(static):
         for fn in fns:
-            if ".bak" in fn:
-                continue
+            if ".bak" in fn or fn.endswith(".src.mp4") or (fn.startswith("_obase_")):
+                continue                                # backups + preview-generator scratch files
             p = os.path.join(dp, fn)
             rel = os.path.relpath(p, static).replace("\\", "/")
             data = open(p, "rb").read()

@@ -33,8 +33,11 @@ if (-not (Test-Path $py)) {
     }
     $env:UV_PYTHON_INSTALL_DIR = Join-Path $tools 'python'; $env:UV_CACHE_DIR = Join-Path $tools 'uvcache'
     & $uv venv (Join-Path $build 'nvenv') --python 3.12 --managed-python
-    & $uv pip install --python $py nuitka ordered-set zstandard flask requests cryptography qrcode pillow anthropic openai
+    & $uv pip install --python $py nuitka ordered-set zstandard flask requests cryptography qrcode pillow anthropic openai "yt-dlp[default]"
 }
+# the Downloader / Converter (grab.py) needs yt-dlp inside the binary — older build venvs get it added here
+& $py -c "import yt_dlp" 2>$null
+if ($LASTEXITCODE) { & (Join-Path $tools 'uv.exe') pip install --python $py "yt-dlp[default]" }
 if (-not (Test-Path (Join-Path $here 'pc_version.json'))) { '{"version": "1.0.0"}' | Set-Content -Encoding ascii (Join-Path $here 'pc_version.json') }
 if ($Bump) { & $py (Join-Path $here 'build_tool.py') bump }
 $ver = (Get-Content (Join-Path $here 'pc_version.json') | ConvertFrom-Json).version
@@ -54,7 +57,7 @@ $ico  = Join-Path $root 'MirMediaLabs.ico'
 $common = @("-m", "nuitka", "--assume-yes-for-downloads", "--windows-console-mode=disable", "--python-flag=no_docstrings", "--python-flag=no_asserts", "--lto=yes", "--deployment",
             "--windows-icon-from-ico=$ico", "--company-name=MirCorp", "--product-name=MIR MEDIA LABS",
             "--file-version=$ver.0", "--product-version=$ver.0", "--copyright=(c) 2026 MirCorp. GPL-3.0")
-$appArgs = $common + @("--standalone", "--include-package=openai", "--include-package=anthropic", "--nofollow-import-to=imageio_ffmpeg", "--nofollow-import-to=tkinter", "--nofollow-import-to=PIL",
+$appArgs = $common + @("--standalone", "--include-package=openai", "--include-package=anthropic", "--include-package=yt_dlp", "--nofollow-import-to=imageio_ffmpeg", "--nofollow-import-to=tkinter", "--nofollow-import-to=PIL",
                        "--output-filename=MirMediaLabs.exe", "--file-description=MIR MEDIA LABS",
                        "--output-dir=$appOut", (Join-Path $src 'app_main.py'))
 & $py @appArgs
