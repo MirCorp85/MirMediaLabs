@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
         api = new Api(this);
         voice = new MuseVoice(this);
         loras = new Loras(this);
-        cur = Prefs.str(this, "model2", "auto");     // Auto (MUSE Director) is the default
+        cur = Prefs.str(this, "model2", "auto");     // Auto (MirAI Director) is the default
         if ("llama".equals(cur)) cur = "auto";      // the picker lists the generative models only
         loadAtts();
         build();
@@ -170,7 +170,14 @@ public class MainActivity extends Activity {
         TextView brand = Ui.bold(this, "MIR MEDIA LABS", 14, Ui.INK);
         brand.setLetterSpacing(0.2f);
         Ui.gradientText(brand, 0xFFFFC21A, 0xFFFF5A1F);
-        top.addView(brand, Ui.margins(Ui.lpw(1), 10, 0, 0, 0));
+        top.addView(brand, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 10, 0, 0, 0));
+        prodChip = Ui.bold(this, "", 10.5f, Ui.AMB);              // the live production — tap → its project
+        prodChip.setSingleLine(true);
+        prodChip.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        prodChip.setPadding(Ui.dp(9), Ui.dp(4), Ui.dp(9), Ui.dp(4));
+        prodChip.setVisibility(View.GONE);
+        prodChip.setOnClickListener(v -> SeriesActivity.openPage(this, "production" + (prodId == null ? "" : "?id=" + prodId)));
+        top.addView(prodChip, Ui.margins(Ui.lpw(1), 8, 0, 6, 0));
         pill = Ui.mono(this, "…", 10.5f, Ui.DIM);
         pill.setPadding(Ui.dp(10), Ui.dp(5), Ui.dp(10), Ui.dp(5));
         pill.setBackground(Ui.box(99, Ui.CARD, Ui.LINE));
@@ -183,7 +190,7 @@ public class MainActivity extends Activity {
         aa.setPadding(Ui.dp(12), Ui.dp(2), Ui.dp(2), Ui.dp(2));
         aa.setOnClickListener(v -> Theme.pick(this));
         top.addView(aa);
-        voiceBtn = Ui.text(this, "[[volume]]", 17, Ui.DIM);           // MUSE voice on / off (same as the web header)
+        voiceBtn = Ui.text(this, "[[volume]]", 17, Ui.DIM);           // MirAI voice on / off (same as the web header)
         voiceBtn.setPadding(Ui.dp(10), Ui.dp(2), Ui.dp(2), Ui.dp(2));
         voiceBtn.setOnClickListener(v -> voice.toggle());
         top.addView(voiceBtn);
@@ -215,28 +222,20 @@ public class MainActivity extends Activity {
 
         LinearLayout bar = Ui.hbox(this);
         bar.setBackgroundColor(Ui.BAR);
-        String[] names = {"[[lab]]\nCHAT", "[[grid]]\nLIBRARY"};
-        for (int i = 0; i < 2; i++) {
-            final int ix = i;
-            TextView t = Ui.bold(this, names[i], 10f, Ui.DIM);
-            t.setLetterSpacing(0.1f);
-            t.setGravity(Gravity.CENTER);
-            t.setPadding(0, Ui.dp(7), 0, Ui.dp(8));
-            t.setOnClickListener(v -> showTab(ix));
-            tabs[i] = t;
-            bar.addView(t, Ui.lpw(1));
-        }
-        // the studios are big features: their own labelled tabs (each opens its full-screen page)
-        String[] studios = {"[[film]]\nEDITOR", "[[tv]]\nSERIES", "[[download]]\nDOWNLOAD"};
-        Runnable[] go = {() -> EditorActivity.open(this, null), () -> SeriesActivity.open(this, null), () -> GrabActivity.open(this, null)};
-        for (int i = 0; i < studios.length; i++) {
+        // CREATE CENTER dock (same six as the web lab): Create · Projects · Library · Editor · Publish · Tools
+        String[] names = {"[[lab]]\nCREATE", "[[layers]]\nPROJECTS", "[[grid]]\nLIBRARY", "[[scissors]]\nEDITOR", "[[globe]]\nPUBLISH", "[[wand]]\nTOOLS"};
+        Runnable[] go = {() -> showTab(0), () -> SeriesActivity.openPage(this, "production"), () -> showTab(1),
+                         () -> EditorActivity.open(this, null), () -> SocialActivity.open(this, null), () -> openMenu(menu)};
+        for (int i = 0; i < names.length; i++) {
             final Runnable r = go[i];
-            TextView t = Ui.bold(this, studios[i], 10f, accent());
-            t.setLetterSpacing(0.1f);
+            TextView t = Ui.bold(this, names[i], 9.5f, Ui.DIM);
+            t.setLetterSpacing(0.06f);
             t.setGravity(Gravity.CENTER);
             t.setPadding(0, Ui.dp(7), 0, Ui.dp(8));
             t.setFocusable(Tv.is(this));
             t.setOnClickListener(v -> r.run());
+            if (i == 0) tabs[0] = t;
+            if (i == 2) tabs[1] = t;
             bar.addView(t, Ui.lpw(1));
         }
         qBadge = tabs[0];
@@ -279,7 +278,7 @@ public class MainActivity extends Activity {
         sh.section("Look");
         sh.row("palette", "Theme", "Claude Dark · Graphite · Obsidian · Midnight · Paper", () -> Theme.pick(this));
         sh.row("type", "Font", "MIR FONTS", () -> Fonts.pick(this, api));
-        sh.row("volume", "MUSE voice", "natural voice made on the lab PC · voice + speed", () -> voice.pick());
+        sh.row("volume", "MirAI voice", "natural voice made on the lab PC · voice + speed", () -> voice.pick());
         sh.row("expand", "Layout", layoutLabel(), this::pickLayout);
         sh.section("App");
         sh.row("qr", "My key", "your key as a QR code · one device per key", () -> myKey(false));
@@ -393,7 +392,7 @@ public class MainActivity extends Activity {
             case "music3": return "MUSIC 3";
             case "qimg": return "QWEN";
             case "ace": return "ACE";
-            case "llama": return "MUSE";
+            case "llama": return "MirAI";
             default: return "";
         }
     }
@@ -467,7 +466,7 @@ public class MainActivity extends Activity {
             col.addView(r, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 0, 0, 6));
         }
         col.addView(Ui.label(this, "Create"), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 14, 0, 8));
-        String[][] tools = {{"layers", "LoRA samples"}, {"sparkle", "Skills"}, {"chain", "Pipelines"}, {"book", "Command book"}, {"volume", "MUSE voice"}};
+        String[][] tools = {{"layers", "LoRA samples"}, {"sparkle", "Skills"}, {"chain", "Pipelines"}, {"book", "Command book"}, {"volume", "MirAI voice"}};
         Runnable[] acts = {() -> loras.browse(Loras.roleOf(cur), ""), () -> withSkills(() -> pickSkill(false)),
                 () -> withSkills(() -> pickSkill(true)), this::commandBook, () -> voice.pick()};
         for (int i = 0; i < tools.length; i++) {
@@ -519,7 +518,33 @@ public class MainActivity extends Activity {
         voiceBtn.setAlpha(voice.on ? 1f : .55f);
     }
 
+    private TextView prodChip;
+    private String prodId;
+
+    /** The live production (Projects) → the header chip: "Toby's Big Splash · needs your OK". */
+    private void pollProduction() {
+        api.get("/api/produce", r -> {
+            if (!r.ok() || prodChip == null) return;
+            org.json.JSONArray L = r.obj().optJSONArray("productions");
+            JSONObject live = null;
+            for (int i = 0; L != null && i < L.length(); i++) {
+                JSONObject p = L.optJSONObject(i);
+                String s = p.optString("state");
+                if (s.equals("running") || s.equals("waiting") || s.equals("paused")) { live = p; break; }
+            }
+            if (live == null) { prodChip.setVisibility(View.GONE); prodId = null; return; }
+            prodId = live.optString("id");
+            String s = live.optString("state");
+            int col = s.equals("waiting") ? Ui.AMB : s.equals("paused") ? Ui.RED : accent();
+            prodChip.setText(live.optString("title") + " · " + (s.equals("waiting") ? "needs your OK" : s.equals("paused") ? "stopped" : "working"));
+            prodChip.setTextColor(col);
+            prodChip.setBackground(Ui.box(99, 0, col));
+            prodChip.setVisibility(View.VISIBLE);
+        });
+    }
+
     void poll() {
+        if (tick % 6 == 0) pollProduction();
         if (tick++ % 2 == 0) api.get("/api/status", r -> {
             if (!r.ok()) { pill.setText("OFFLINE"); pill.setTextColor(Ui.RED); return; }
             status = r.obj();
@@ -529,7 +554,7 @@ public class MainActivity extends Activity {
             int q = (status.optJSONArray("queued") == null ? 0 : status.optJSONArray("queued").length()) + (running ? 1 : 0);
             pill.setText((up ? (running ? "● RENDERING" : "● READY") : "● GPU OFFLINE") + (Prefs.onLan(this) ? " · HOME" : " · REMOTE"));
             pill.setTextColor(up ? (running ? Ui.AMB : Ui.GRN) : Ui.RED);
-            Icons.set(qBadge, q > 0 ? "[[lab]]\nCHAT · " + q : "[[lab]]\nCHAT");
+            Icons.set(qBadge, q > 0 ? "[[lab]]\nCREATE · " + q : "[[lab]]\nCREATE");
             create.renderModels();
         });
         if (tick % 6 == 1) api.get("/api/online", r -> { if (r.ok()) popCount(r.obj().optInt("live")); });
@@ -919,11 +944,11 @@ public class MainActivity extends Activity {
     void openViewer(String name, String model) { voice.stop(); new Viewer(this, name, model).show(); }
     void openParams(String k) {
         if ("auto".equals(k)) {
-            info("Auto · MUSE Director", "MUSE reads every message and decides what happens: it answers questions and writes "
+            info("Auto · MirAI Director", "MirAI reads every message and decides what happens: it answers questions and writes "
                     + "(lyrics, scripts, ideas), or renders on the right model (image, video, song, music), picks a skill "
                     + "preset, or runs a pipeline.\n\nFollow-ups work: \"now animate it\" or \"make a song for that\" reuse "
                     + "your last result.\n\nFlags you type (--8s, --vertical, --bpm 120) are always kept. Slash commands and "
-                    + "picking a model yourself skip MUSE. Each model keeps its own settings: long-press a model to change them.");
+                    + "picking a model yourself skip MirAI. Each model keeps its own settings: long-press a model to change them.");
             return;
         }
         new ParamsDialog(this, k).show();

@@ -1,4 +1,4 @@
-"""MUSE voice - natural local text-to-speech (Kokoro 82M, ONNX, on the CPU: never touches the GPU the renders need).
+"""MirAI voice - natural local text-to-speech (Kokoro 82M, ONNX, on the CPU: never touches the GPU the renders need).
 
 A long-lived worker process (the engine runtime's own tts-venv) loads Kokoro once and turns one sentence at a time
 into a WAV. Results are cached by (text, voice, speed). The worker starts on first use and stops after 10 idle minutes.
@@ -53,7 +53,7 @@ def available():
 
 
 def clean(text):
-    """What MUSE says out loud: no markdown, code, links, slash commands or emoji."""
+    """What MirAI says out loud: no markdown, code, links, slash commands or emoji."""
     t = re.sub(r"```.*?```", " ", text or "", flags=re.S)
     t = re.sub(r"`([^`]*)`", r"\1", t)
     t = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", t)
@@ -77,7 +77,7 @@ def _start():
     ready = json.loads(p.stdout.readline() or "{}")
     if not ready.get("ready"):
         p.kill()
-        raise RuntimeError("MUSE voice engine didn't start")
+        raise RuntimeError("MirAI voice engine didn't start")
     _P["proc"] = p
     console.emit("VOICE", "voice engine loaded (Kokoro · CPU)")
     threading.Thread(target=_reaper, daemon=True).start()
@@ -111,7 +111,7 @@ def say(text, voice=DEFAULT_VOICE, speed=1.0):
     if os.path.isfile(out):
         return out
     if not available():
-        raise RuntimeError("MUSE voice isn't installed - run MirMediaLabs-Setup.exe (Repair)")
+        raise RuntimeError("MirAI voice isn't installed - run MirMediaLabs-Setup.exe (Repair)")
     with _LOCK:
         if not _P["proc"] or _P["proc"].poll() is not None:
             _start()

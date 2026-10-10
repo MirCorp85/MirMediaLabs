@@ -29,7 +29,7 @@ CAP_NAMES = {"attach": "Attachments / uploads", "pipelines": "Multi-step pipelin
              "advanced": "Custom parameters (⚙)", "extend": "Long videos (extend / storyboard)",
              "workflows": "Custom ComfyUI workflows",
              "grab": "Link downloader (YouTube → MP3 / MP4)"}
-DEFAULT_ALLOW = ("qimg", "llama")       # a new invite: pictures + MUSE chat; the host ticks more
+DEFAULT_ALLOW = ("qimg", "llama")       # a new invite: pictures + MirAI chat; the host ticks more
 DEFAULT_CAPS = ("attach",)
 PERM_V = 2
 

@@ -25,6 +25,13 @@ public final class SeriesActivity extends Activity {
     private WebView web;
     private ValueCallback<Uri[]> pick;
 
+    /** Any lab web page full-screen — "production" = PROJECTS (MirAI productions + series), "series" = Series studio. */
+    static void openPage(Activity a, String page) {
+        Intent i = new Intent(a, SeriesActivity.class);
+        i.putExtra("page", page);
+        a.startActivity(i);
+    }
+
     static void open(Activity a, String src) {
         Intent i = new Intent(a, SeriesActivity.class);
         if (src != null) i.putExtra("src", src);
@@ -73,7 +80,8 @@ public final class SeriesActivity extends Activity {
             @Override public void onPermissionRequest(PermissionRequest r) { r.deny(); }
         });
         String src = getIntent().getStringExtra("src");
-        web.loadUrl(base + "/series");
+        String page = getIntent().getStringExtra("page");
+        web.loadUrl(base + "/" + (page != null ? page : "series"));
         setContentView(web);
         web.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
     }

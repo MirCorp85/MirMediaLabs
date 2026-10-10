@@ -1,6 +1,6 @@
-"""Live backend events for the MUSE bubble's one-line console.
+"""Live backend events for the MirAI bubble's one-line console.
 
-Every headless piece of the lab (worker, MUSE router, Ollama, ComfyUI and its log, GPU) calls emit(); the bubble
+Every headless piece of the lab (worker, MirAI router, Ollama, ComfyUI and its log, GPU) calls emit(); the bubble
 shows the newest line for its job. Lines are plain English: explain.py turns ComfyUI node classes into what the
 model is actually doing ("KSampler" -> "denoising - each step sharpens the frames").
 """
@@ -19,7 +19,7 @@ _GLOBAL = [None]      # newest engine-wide line (GPU, model loads, other users' 
 
 
 def emit(src, text, job=None, level="info"):
-    """src: LAB · MUSE · COMFY · GPU · IMG · VID · SONG · TEXT. job: a job dict or id (None = engine-wide)."""
+    """src: LAB · MirAI · COMFY · GPU · IMG · VID · SONG · TEXT. job: a job dict or id (None = engine-wide)."""
     jid = job.get("id") if isinstance(job, dict) else job
     text = " ".join(str(text).split())[:160]
     if not text:

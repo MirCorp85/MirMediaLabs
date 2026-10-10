@@ -101,7 +101,7 @@ def stage(src, url):
                 data = html.encode("utf-8")
             raw_total += len(data)
             files[rel] = zlib.compress(data, 9)
-    for md in glob.glob(os.path.join(ROOT, "server", "*.md")):     # agent briefs (MUSE soul, VIRAL-Ω soul)
+    for md in glob.glob(os.path.join(ROOT, "server", "*.md")):     # agent briefs (MirAI soul, VIRAL-Ω soul)
         data = open(md, "rb").read()
         raw_total += len(data)
         files["_md/" + os.path.basename(md)] = zlib.compress(data, 9)

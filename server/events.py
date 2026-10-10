@@ -76,7 +76,7 @@ def job_event(job):
     prompt = (job.get("input") or job.get("prompt") or "").strip().replace("\n", " ")
     snippet = prompt[:140] + ("…" if len(prompt) > 140 else "")
     if st == "done":
-        title = "MUSE replied" if what == "reply" else "Your %s is ready" % (what or "result")
+        title = "MirAI replied" if what == "reply" else "Your %s is ready" % (what or "result")
         body = (job.get("output") or "")[:300] if what == "reply" else snippet
     elif st == "error":
         title, body = "Request failed", (job.get("error") or "")[:300]

@@ -5,7 +5,7 @@ Sets up everything the studio renders with, inside the install folder:
   <dir>/runtime/       uv + a managed Python 3.13 venv (the engine's PyTorch lives here)
   <dir>/engine/ComfyUI headless ComfyUI (pinned release), started on demand by the server
   models               the chosen components, downloaded from Hugging Face (resumable)
-  Ollama               system install via ollama.com/install.sh (asks for sudo) + the MUSE model
+  Ollama               system install via ollama.com/install.sh (asks for sudo) + the MirAI model
 and writes the engine paths, GPU env and model swaps into <dir>/mml_config.json.
 
 GPU support: NVIDIA (CUDA wheels) or AMD RDNA2+ (ROCm wheels). Minimum 12 GB VRAM, 32 GB RAM.
@@ -281,7 +281,7 @@ class Setup:
             raise SystemExit("PyTorch can't see the GPU — %s, then re-run with --engine." % hint)
 
     def voice(self):
-        """MUSE voice: Kokoro 82M (ONNX, CPU only) in its own small venv, so the engine's packages never change."""
+        """MirAI voice: Kokoro 82M (ONNX, CPU only) in its own small venv, so the engine's packages never change."""
         tvenv = os.path.join(self.rt, "tts-venv")
         tpy = os.path.join(tvenv, "bin", "python")
         if not os.path.isfile(tpy):
@@ -291,7 +291,7 @@ class Setup:
         os.makedirs(kd, exist_ok=True)
         base = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
         for f, size in (("kokoro-v1.0.onnx", 325532387), ("voices-v1.0.bin", 28214398)):
-            download(base + f, os.path.join(kd, f), size=size, label="MUSE voice " + f)
+            download(base + f, os.path.join(kd, f), size=size, label="MirAI voice " + f)
 
     def ollama(self):
         tag = self.a.muse
@@ -300,7 +300,7 @@ class Setup:
         if not shutil.which("ollama"):
             log("Ollama isn't installed — running the official installer (it asks for your sudo password)")
             if not self.a.yes and input("Install Ollama system-wide now? [Y/n] ").strip().lower() in ("n", "no"):
-                log("skipped Ollama — MUSE chat/Auto mode stay off until it's installed")
+                log("skipped Ollama — MirAI chat/Auto mode stay off until it's installed")
                 return
             sh = download(OLLAMA_SH, os.path.join(self.cache, "ollama-install.sh"), label="Ollama installer")
             run(["sh", sh])
@@ -433,7 +433,7 @@ def main():
     ap.add_argument("--dir", default=os.path.join(os.environ.get("XDG_DATA_HOME") or
                                                   os.path.expanduser("~/.local/share"), "MirMediaLabs"))
     ap.add_argument("--components", help="comma list of: " + ",".join(COMPONENTS))
-    ap.add_argument("--muse", default=MUSE_TAG, help="Ollama model for MUSE, or 'none'")
+    ap.add_argument("--muse", default=MUSE_TAG, help="Ollama model for MirAI, or 'none'")
     ap.add_argument("--no-ollama", action="store_true")
     ap.add_argument("--skip-models", action="store_true")
     ap.add_argument("--yes", "-y", action="store_true", help="don't ask")

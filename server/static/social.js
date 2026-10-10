@@ -23,15 +23,16 @@
       $('#acct-ig').classList.toggle('on', STATS.accounts.instagram.connected);
       $('#acct-yt').classList.toggle('on', STATS.accounts.youtube.connected);
       var tb = $('#acct-tt'); if (tb) tb.classList.toggle('on', !!(STATS.accounts.tiktok || {}).connected);
+      var fbb = $('#acct-fb'); if (fbb) fbb.classList.toggle('on', !!(STATS.accounts.facebook || {}).connected);
       render();
     }).catch(function (e) { $('#view').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; });
   }
 
   function card(p) {
     var m = '';
-    ['instagram', 'youtube', 'tiktok'].forEach(function (pl) {
+    ['instagram', 'youtube', 'tiktok', 'facebook'].forEach(function (pl) {
       var x = last(p, pl), r = (p.remote || {})[pl];
-      if (r) m += '<span>' + ({ instagram: 'IG', youtube: 'YT', tiktok: 'TT' })[pl] + ' <a href="' + esc(r.url) + '" target="_blank" style="color:var(--acc)">open</a>' +
+      if (r) m += '<span>' + ({ instagram: 'IG', youtube: 'YT', tiktok: 'TT', facebook: 'FB' })[pl] + ' <a href="' + esc(r.url) + '" target="_blank" style="color:var(--acc)">open</a>' +
         (x ? ' · <b>' + fmt(x.views || x.plays) + '</b> views · <b>' + fmt(x.likes) + '</b> likes' + (x.shares != null ? ' · <b>' + fmt(x.shares) + '</b> shares' : '') : '') + '</span>';
     });
     var a = '';
@@ -75,7 +76,7 @@
 
   /* ── charts (pure SVG, theme colours) ─────────────────────────────────────────── */
   var C = { ig: '#e1306c', yt: '#ff4433', tt: '#25f4ee', acc: 'var(--acc)', ok: 'var(--ok)' };
-  var PNAME = { instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok' }, PCOL = { instagram: '#e1306c', youtube: '#ff4433', tiktok: '#25f4ee' };
+  var PNAME = { instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook' }, PCOL = { instagram: '#e1306c', youtube: '#ff4433', tiktok: '#25f4ee', facebook: '#1877f2' };
   var PAL = ['#d97757', '#5fd38d', '#5b8def', '#e3a949', '#b48cff'];
   function nodata(t) { return '<div class="nodata">' + (t || 'Collecting data — charts fill in as posts get metrics.') + '</div>'; }
   function legend(series) { return '<div class="lg">' + series.map(function (s) { return '<span><i style="background:' + s.color + '"></i>' + esc(s.name) + '</span>'; }).join('') + '</div>'; }
@@ -213,7 +214,16 @@
       '<div class="box"><h3>YouTube</h3><div class="row">' + (a.youtube.connected ? '<span class="acct on">connected · ' + esc(a.youtube.channel) + '</span>' : '<span class="acct">not connected</span>') + '</div>' +
       '<label class="f">Google OAuth client ID (Desktop app; redirect: this lab’s …/api/social/youtube/callback)</label><input class="t" id="yt-id">' +
       '<label class="f">Client secret</label><input class="t" id="yt-sec" type="password" autocomplete="off">' +
-      '<div class="row" style="margin-top:10px"><button class="sb" id="yt-save">Save client</button><button class="sb pri" id="yt-go"' + (a.youtube.has_client ? '' : ' disabled') + '>Sign in with Google</button><span class="why">Do this on the lab PC.</span></div></div>' + ttBox();
+      '<div class="row" style="margin-top:10px"><button class="sb" id="yt-save">Save client</button><button class="sb pri" id="yt-go"' + (a.youtube.has_client ? '' : ' disabled') + '>Sign in with Google</button><span class="why">Do this on the lab PC.</span></div></div>' + ttBox() + fbBox();
+  }
+
+  function fbBox() {
+    var f = STATS.accounts.facebook || {};
+    return '<div class="box"><h3>Facebook Page</h3><div class="row">' + (f.connected ? '<span class="acct on">connected · ' + esc(f.page || '') + '</span><button class="sb" id="fb-off">Disconnect</button>' : '<span class="acct">not connected</span>') + '</div>' +
+      '<label class="f">Facebook user access token — Meta app → Graph API Explorer, with pages_show_list, pages_manage_posts, pages_read_engagement, publish_video</label><input class="t" id="fb-tok" type="password" autocomplete="off">' +
+      '<label class="f">Page name (optional — first Page if empty)</label><input class="t" id="fb-page" placeholder="' + esc((f.pages || []).join(', ')) + '">' +
+      '<label class="f">App ID + secret (optional — turns a short token into one that never expires)</label><div class="row"><input class="t" id="fb-app" placeholder="app id"><input class="t" id="fb-sec" type="password" autocomplete="off" placeholder="app secret"></div>' +
+      '<div class="row" style="margin-top:10px"><button class="sb pri" id="fb-save">Connect Facebook</button><span class="why">Videos upload straight from this PC — no public address needed.</span></div></div>';
   }
 
   function ttBox() {
@@ -251,6 +261,7 @@
       '<div class="row"><label class="row" style="font-size:12px"><input type="checkbox" id="e-ig"' + ((p.platforms || []).indexOf('instagram') > -1 ? ' checked' : '') + '> Instagram</label>' +
       '<label class="row" style="font-size:12px"><input type="checkbox" id="e-ytb"' + ((p.platforms || []).indexOf('youtube') > -1 ? ' checked' : '') + '> YouTube</label>' +
       '<label class="row" style="font-size:12px"><input type="checkbox" id="e-tt"' + ((p.platforms || []).indexOf('tiktok') > -1 ? ' checked' : '') + '> TikTok</label>' +
+      '<label class="row" style="font-size:12px"><input type="checkbox" id="e-fb"' + ((p.platforms || []).indexOf('facebook') > -1 ? ' checked' : '') + '> Facebook</label>' +
       '<label class="f" style="margin:0">Post at</label><input class="t" type="datetime-local" id="e-at" value="' + loc + '" style="width:auto">' +
       '<button class="sb" id="e-cover">' + mi('camera') + ' Use current frame as cover</button></div>' +
       '<div id="e-ttbox" class="box" style="margin-top:12px" hidden></div>' +
@@ -287,7 +298,7 @@
     $('#mx').onclick = $('#e-cancel').onclick = close;
     $('#e-cover').onclick = function () { api('api/social/posts/' + p.id, { method: 'POST', body: { cover_at: $('#pv').currentTime } }).then(function () { toast('Cover set'); }); };
     $('#e-save').onclick = function () {
-      var pl = []; if ($('#e-ig').checked) pl.push('instagram'); if ($('#e-ytb').checked) pl.push('youtube'); if ($('#e-tt').checked) pl.push('tiktok');
+      var pl = []; if ($('#e-ig').checked) pl.push('instagram'); if ($('#e-ytb').checked) pl.push('youtube'); if ($('#e-tt').checked) pl.push('tiktok'); if ($('#e-fb') && $('#e-fb').checked) pl.push('facebook');
       var b = { hook: $('#e-hook').value, caption: $('#e-cap').value, hashtags: $('#e-tags').value.split(/[\s,#]+/).filter(Boolean),
         yt_title: $('#e-yt').value, yt_description: $('#e-ytd').value, platforms: pl };
       if ($('#tt-priv')) b.tiktok = { privacy_level: $('#tt-priv').value, allow_comment: $('#tt-cm').checked, allow_duet: $('#tt-du').checked, allow_stitch: $('#tt-st').checked,
@@ -359,6 +370,8 @@
     var tts = $('#tt-save'); if (tts) tts.onclick = function () { api('api/social/accounts', { method: 'POST', body: { tt_client_key: $('#tt-key').value, tt_client_secret: $('#tt-sec').value } }).then(function () { toast('Saved'); load(); }).catch(function (e) { toast(e.message); }); };
     var ttg = $('#tt-go'); if (ttg) ttg.onclick = function () { window.open('api/social/tiktok/connect', '_blank'); };
     var tto = $('#tt-off'); if (tto) tto.onclick = function () { if (confirm('Disconnect TikTok? (Deletes the saved sign-in.)')) api('api/social/tiktok/disconnect', { method: 'POST' }).then(load); };
+    var fbs = $('#fb-save'); if (fbs) fbs.onclick = function () { api('api/social/accounts', { method: 'POST', body: { fb_token: $('#fb-tok').value, fb_page: $('#fb-page').value, fb_app_id: $('#fb-app').value, fb_app_secret: $('#fb-sec').value } }).then(function () { toast('Facebook connected'); load(); }).catch(function (e) { toast(e.message); }); };
+    var fbo = $('#fb-off'); if (fbo) fbo.onclick = function () { if (confirm('Disconnect Facebook?')) api('api/social/accounts', { method: 'POST', body: { fb_off: 1 } }).then(load); };
     var pub = $('#pub'); if (pub) api('api/social/accounts').then(function (a) { pub.value = a.public_base || ''; });
   }
 

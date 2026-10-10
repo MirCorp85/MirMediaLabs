@@ -60,7 +60,8 @@ final class Viewer extends Dialog {
         FrameLayout stage = new FrameLayout(c);
         String url = m.api.mediaUrl("/media/" + Api.enc(name));
         if ("image".equals(kind)) {
-            ImageView iv = new ZoomImageView(c);              // pinch to zoom, drag to pan, double-tap 2.5×
+            ImageView iv = new ZoomImageView(c);
+            zoomView = (ZoomImageView) iv;              // pinch to zoom, drag to pan, double-tap 2.5×
             stage.addView(iv, new FrameLayout.LayoutParams(Ui.MATCH, Ui.MATCH));
             TextView wait = Ui.mono(c, "loading…", 12, Ui.DIM);
             wait.setGravity(Gravity.CENTER);
@@ -124,6 +125,38 @@ final class Viewer extends Dialog {
         root.addView(bar);
         setContentView(root);
         Ui.insets(root);
+    }
+
+    // ── touch: swipe left / right = next / previous library item, swipe down = close ──────────────────────
+    // (not while a picture is zoomed in, not during a two-finger pinch, not on the video controls at the bottom)
+    private ZoomImageView zoomView;
+    private float sx, sy;
+    private boolean swipeOk;
+
+    @Override public boolean dispatchTouchEvent(android.view.MotionEvent e) {
+        switch (e.getActionMasked()) {
+            case android.view.MotionEvent.ACTION_DOWN:
+                sx = e.getRawX(); sy = e.getRawY();
+                android.view.View root = getWindow() == null ? null : getWindow().getDecorView();
+                int hgt = root == null ? 0 : root.getHeight();
+                swipeOk = !(zoomView != null && zoomView.zoomed()) && (hgt == 0 || sy < hgt - Ui.dp(130));
+                break;
+            case android.view.MotionEvent.ACTION_POINTER_DOWN:
+                swipeOk = false;
+                break;
+            case android.view.MotionEvent.ACTION_UP:
+                if (swipeOk && !(zoomView != null && zoomView.zoomed())) {
+                    float dx = e.getRawX() - sx, dy = e.getRawY() - sy;
+                    if (dy > Ui.dp(110) && Math.abs(dy) > Math.abs(dx) * 1.3f) { dismiss(); return true; }
+                    if (Math.abs(dx) > Ui.dp(70) && Math.abs(dx) > Math.abs(dy) * 1.5f) {
+                        LibraryPage lib = m.lib();
+                        int pos = lib == null ? -1 : lib.indexOf(name), d = dx < 0 ? 1 : -1;
+                        if (pos >= 0 && pos + d >= 0 && pos + d < lib.total()) { goTo(d); return true; }
+                    }
+                }
+                break;
+        }
+        return super.dispatchTouchEvent(e);
     }
 
     private TextView navBtn(Context c, String icon, int d) {

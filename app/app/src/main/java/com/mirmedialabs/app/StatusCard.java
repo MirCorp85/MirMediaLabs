@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** The mascot's status card — same as the web studio's: the model's own icon + colour, MUSE's pick, the pipeline's
+/** The mascot's status card — same as the web studio's: the model's own icon + colour, MirAI's pick, the pipeline's
  *  steps, the live stage and every tag the prompt is using. Shown while a job is queued / running; tap to hide. */
 final class StatusCard extends LinearLayout {
     private final MainActivity m;
@@ -224,7 +224,7 @@ final class StatusCard extends LinearLayout {
         JSONObject route = j.optJSONObject("route");
         if (route != null) {
             String why = CreatePage.str(route, "why");
-            addView(Ui.text(m, "[[sparkle]] MUSE chose " + CreatePage.str(route, "label") + (why.isEmpty() ? "" : " — " + why), 11, Ui.DIM),
+            addView(Ui.text(m, "[[sparkle]] MirAI chose " + CreatePage.str(route, "label") + (why.isEmpty() ? "" : " — " + why), 11, Ui.DIM),
                     Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 7, 0, 0));
         }
         if (plan != null && plan.length() > 0) {             // step pills
