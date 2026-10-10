@@ -5,7 +5,7 @@ Installs a self-contained copy on any Windows PC with an NVIDIA GPU:
   <dir>\\updates                            Android app update folder
   <dir>\\runtime\\uv.exe, python, venv      private Python 3.13 + PyTorch CUDA — the render engine only
   <dir>\\engine\\ComfyUI                     headless ComfyUI engine (pinned tag) + models/
-  Ollama + MUSE (Gemma 4 12B)              optional: chat, prompt building, Auto-mode model picker (never renders)
+  Ollama + MirAI (Gemma 4 12B)              optional: chat, prompt building, Auto-mode model picker (never renders)
 Everything except Ollama lives in <dir>; uninstall removes it.  Downloads resume.
 
   MirMediaLabs-Setup.exe                         wizard (install / modify / repair)
@@ -97,12 +97,12 @@ COMPONENTS = {
         ("vae/ace_1.5_vae.safetensors", ACE, 337431732),
     ]),
 }
-# MUSE = the lab's general-purpose language model: conversation, prompt building for every render model, and the
+# MirAI = the lab's general-purpose language model: conversation, prompt building for every render model, and the
 # Auto-mode model picker. It never renders anything — images, video and music always come from the render models.
 # The server pins the tag (llm.MODEL_TAG / core.DEFAULT_ENGINE) — change all three together.
 MUSE_TAG = "gemma4:12b"
-ENGINES = {MUSE_TAG: ("MUSE · Gemma 4 12B (recommended · sees pictures)", 8.0),
-           "": ("None — no MUSE: no chat or Auto mode, prompts used exactly as typed", 0)}
+ENGINES = {MUSE_TAG: ("MirAI · Gemma 4 12B (recommended · sees pictures)", 8.0),
+           "": ("None — no MirAI: no chat or Auto mode, prompts used exactly as typed", 0)}
 RUNTIME_GB = 9.0      # python + torch CUDA + ComfyUI deps (+ download cache, removed afterwards)
 PARALLEL_DOWNLOADS = 3   # model files fetched at once (a single HTTPS stream rarely fills a fast line)
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\%s" % APP_ID
@@ -516,7 +516,7 @@ class Installer:
         self.sh(base + ["-r", os.path.join(self.comfy, "requirements.txt"), "imageio-ffmpeg"])
 
     def step_voice(self):
-        """MUSE voice: Kokoro 82M (ONNX, CPU only) in its own small venv, so the render engine's packages never change."""
+        """MirAI voice: Kokoro 82M (ONNX, CPU only) in its own small venv, so the render engine's packages never change."""
         tvenv = os.path.join(self.rt, "tts-venv")
         tpy = os.path.join(tvenv, "Scripts", "python.exe")
         if not os.path.isfile(tpy):
@@ -525,7 +525,7 @@ class Installer:
         kd = os.path.join(self.engine, "models", "kokoro")
         os.makedirs(kd, exist_ok=True)
         for f, size in (("kokoro-v1.0.onnx", 325532387), ("voices-v1.0.bin", 28214398)):
-            self.download(KOKORO_URL + f, os.path.join(kd, f), size=size, label="MUSE voice · " + f)
+            self.download(KOKORO_URL + f, os.path.join(kd, f), size=size, label="MirAI voice · " + f)
 
     def step_ollama(self):
         tag = self.o["engine"]
@@ -722,8 +722,8 @@ class Installer:
                  ("Python runtime", self.step_python, 3),
                  ("ComfyUI engine", self.step_comfy, 3), ("PyTorch + engine packages", self.step_packages, 18)]
         if self.o["engine"]:
-            steps.append(("MUSE · Gemma 4 12B (Ollama)", self.step_ollama, 10))
-            steps.append(("MUSE voice (Kokoro)", self.step_voice, 3))
+            steps.append(("MirAI · Gemma 4 12B (Ollama)", self.step_ollama, 10))
+            steps.append(("MirAI voice (Kokoro)", self.step_voice, 3))
         self._dl_thread, self._dl_error = None, None
         if self.o["components"]:
             steps.append(("Finishing model downloads", self.wait_models, 60))
@@ -996,7 +996,7 @@ class Wizard(tk.Tk):
         grid.pack(fill="x", pady=(6, 8))
         feats = (("Video + sound", "MiniMax H3 · 4–15 s clips"), ("Full songs", "Music 3 · vocals, up to 5 min"),
                  ("Images", "Qwen-Image · edits, cutouts"), ("Beats", "ACE-Step · remix, cover"),
-                 ("MUSE", "Gemma 4 12B · chat + model picker"), ("Phone + TV", "free Android companion"))
+                 ("MirAI", "Gemma 4 12B · chat + model picker"), ("Phone + TV", "free Android companion"))
         for i, (t, d) in enumerate(feats):
             c = tk.Frame(grid, bg=PANEL, highlightthickness=1, highlightbackground=LINE)
             c.grid(row=i // 3, column=i % 3, sticky="nsew", padx=(0, 8), pady=(0, 8))
@@ -1005,7 +1005,7 @@ class Wizard(tk.Tk):
         for col in range(3):
             grid.columnconfigure(col, weight=1)
         self.text("Setup installs, in one folder: the compiled app with signed updates · a private PyTorch runtime · "
-                  "the ComfyUI render engine · the AI models you choose · optionally MUSE (Gemma 4 12B through Ollama). "
+                  "the ComfyUI render engine · the AI models you choose · optionally MirAI (Gemma 4 12B through Ollama). "
                   "Nothing else on your PC changes; uninstall from Windows Settings → Apps.", fg=DIM)
         if prev:
             self.text("An existing install was found at %s — continuing will modify / repair it. "
@@ -1099,7 +1099,7 @@ class Wizard(tk.Tk):
 
         row = tk.Frame(self.body, bg=BG)
         row.pack(fill="x")
-        eng = self.card(row, title="MUSE · chat + model picker", side="left", expand=True, padx=(0, 10))
+        eng = self.card(row, title="MirAI · chat + model picker", side="left", expand=True, padx=(0, 10))
         tk.Label(eng, text="The lab's language model: general conversation, prompt building for each render model, "
                            "and picking the right model per request in Auto mode. It never renders — images, video "
                            "and music come from the models above.",
@@ -1198,7 +1198,7 @@ class Wizard(tk.Tk):
         o = self.options()
         box = self.card(title="Summary")
         names = [COMPONENTS[k][0] for k in o["components"]] or ["(no models — app + engine only)"]
-        for k, v in (("Folder", o["dir"]), ("Models", ",  ".join(names)), ("MUSE", ENGINES.get(o["engine"], (o["engine"],))[0] if o["engine"] else "none"),
+        for k, v in (("Folder", o["dir"]), ("Models", ",  ".join(names)), ("MirAI", ENGINES.get(o["engine"], (o["engine"],))[0] if o["engine"] else "none"),
                      ("Download", "about %.0f GB" % self.need_gb())):
             f = tk.Frame(box, bg=PANEL)
             f.pack(fill="x", pady=3)

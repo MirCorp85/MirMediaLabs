@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#262624">
+<title>MIR MEDIA LABS · Projects</title>
+<link rel="icon" href="static/icon-512.png">
+<script src="static/miros-icons.js"></script>
+<!-- PRODUCTION tab — every MirAI production is a project: step timeline, resume / retry / redo-a-shot, live log, and
+     all its media grouped. Identical in both lab copies (MirOS /mlab + standalone). -->
+<style>
+:root{--bg:#262624;--panel:#30302e;--panel2:#3a3936;--ink:#f5f4ef;--acc:#d97757;--ok:#5fd38d;--bad:#e5484d;--warn:#e3a949;--info:#7aa7ff;
+  --dim:color-mix(in srgb,var(--ink) 62%,transparent);--faint:color-mix(in srgb,var(--ink) 40%,transparent);
+  --line:color-mix(in srgb,var(--ink) 12%,transparent);--line2:color-mix(in srgb,var(--ink) 22%,transparent);
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.45 var(--sans)}
+button,input{font:inherit;color:inherit}
+.mi{display:inline-flex;width:16px;height:16px;vertical-align:-3px}.mi svg{width:100%;height:100%}
+.top{display:flex;align-items:center;gap:10px;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;gap:8px;align-items:center;letter-spacing:.2em;font-size:12px;color:var(--acc)}
+.sp{flex:1}
+.sb{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;white-space:nowrap}
+.sb:hover{background:var(--panel2);border-color:var(--line2)}.sb:disabled{opacity:.4;cursor:default}
+.sb.ic{width:32px;padding:0;justify-content:center}.sb.pri{background:var(--acc);border-color:transparent;color:#fff;font-weight:600}
+.sb.ok{background:var(--ok);color:#102016;border-color:transparent;font-weight:700}.sb.bad{color:var(--bad)}
+.wrap{display:grid;grid-template-columns:300px 1fr;height:calc(100dvh - 53px)}
+.list{border-right:1px solid var(--line);overflow:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+.pj{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--panel);cursor:pointer}
+.pj.on{border-color:var(--acc)}.pj b{display:block;font-size:13px}.pj small{color:var(--faint)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--faint)}
+.s-running .dot{background:var(--info);box-shadow:0 0 8px var(--info)}.s-waiting .dot{background:var(--warn)}
+.s-paused .dot{background:var(--bad)}.s-done .dot{background:var(--ok)}
+.main{overflow:auto;padding:16px 18px 40px}
+h2{margin:0 0 2px;font-size:18px}h3{margin:22px 0 10px;font-size:12px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+.sub{color:var(--dim);margin-bottom:12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.tl{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.st{border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--panel);min-height:62px}
+.st b{display:flex;gap:6px;align-items:center;font-size:12px}.st small{color:var(--faint);display:block;margin-top:4px}
+.st.done{border-color:color-mix(in srgb,var(--ok) 50%,transparent)}.st.done b{color:var(--ok)}
+.st.now{border-color:var(--info)}.st.now b{color:var(--info)}.st.wait{border-color:var(--warn)}.st.wait b{color:var(--warn)}
+.st.fail{border-color:var(--bad)}.st.fail b{color:var(--bad)}
+.st .sa{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px}.st .sa button{height:24px;padding:0 8px;border-radius:7px;border:1px solid var(--line2);background:transparent;color:var(--ink);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}.st .sa button:hover{border-color:var(--acc)}.st .sa .mi{width:13px;height:13px}.dlg{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:20;padding:16px}.dlg .bx{background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:16px;width:min(520px,100%);display:flex;flex-direction:column;gap:10px}.dlg textarea{width:100%;min-height:96px;background:var(--bg);border:1px solid var(--line2);border-radius:10px;color:var(--ink);padding:10px;resize:vertical}.dlg small{color:var(--dim)}.dlg .row{display:flex;gap:8px;justify-content:flex-end}
+.alert{border:1px solid var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent);border-radius:10px;padding:10px 12px;margin:10px 0}
+.need{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}
+.log{border:1px solid var(--line);border-radius:12px;background:var(--panel);max-height:260px;overflow:auto;padding:6px 0}
+.ln{display:flex;gap:10px;padding:5px 12px}.ln time{color:var(--faint);flex:none;width:44px}
+.ln.warn{color:var(--warn)}.ln.error{color:var(--bad)}.ln.done{color:var(--ok)}.ln.need{color:var(--warn);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.it{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#000;position:relative;cursor:pointer}
+.it img,.it video{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;background:#111}
+.it span{position:absolute;left:0;right:0;bottom:0;padding:4px 7px;font-size:11px;background:linear-gradient(transparent,#000c)}
+.it .redo{position:absolute;top:5px;right:5px;height:24px;padding:0 8px;font-size:11px}
+.aud{grid-column:1/-1;background:var(--panel);padding:10px;border:1px solid var(--line);border-radius:10px}
+.aud audio{width:100%}
+.empty{color:var(--faint);padding:40px;text-align:center}
+.lb{position:fixed;inset:0;background:#000e;display:flex;align-items:center;justify-content:center;z-index:9}
+.lb img,.lb video{max-width:96vw;max-height:90vh;width:auto;height:auto;object-fit:contain;touch-action:none;user-select:none;-webkit-user-drag:none}
+.lb img{transform-origin:0 0;will-change:transform}
+.lb .nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:64px;border:0;border-radius:12px;background:#0008;color:#fff;font-size:26px;cursor:pointer}
+.lb .nav.l{left:10px}.lb .nav.r{right:10px}.lb .x{position:absolute;top:max(10px,env(safe-area-inset-top));right:10px;width:44px;height:44px;border:0;border-radius:12px;background:#0008;color:#fff;font-size:20px;cursor:pointer}
+.lb .cap{position:absolute;bottom:max(12px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:#fff;font-size:12px;text-shadow:0 1px 4px #000}
+@media (hover:none){.lb .nav{display:none}}
+@media(max-width:760px){.wrap{grid-template-columns:1fr}.list{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}
+  .pj{min-width:200px}.tl{grid-template-columns:repeat(2,1fr)}.wrap{height:auto}}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="sb ic" id="close" title="Back to the lab"><i class="mi" data-ic="arrow-left"></i></button>
+  <div class="brand"><i class="mi" data-ic="layers"></i><b>PROJECTS</b></div><span class="sp"></span>
+  <button class="sb" id="newser" title="Build a series by hand in the Series studio"><i class="mi" data-ic="tv"></i> New series</button>
+  <button class="sb" id="refresh"><i class="mi" data-ic="refresh"></i></button>
+</header>
+<div class="wrap"><nav class="list" id="list"></nav><main class="main" id="main"><div class="empty">Loading…</div></main></div>
+<script>
+(function () {
+  var $ = function (s) { return document.querySelector(s); }, SEL = new URLSearchParams(location.search).get('id'), LIST = [], CUR = null, SER = [];
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function api(u, o) { o = o || {}; if (o.body && typeof o.body !== 'string') { o.body = JSON.stringify(o.body); o.headers = { 'Content-Type': 'application/json' }; }
+    return fetch(u, o).then(function (r) { return r.json().then(function (j) { if (!r.ok || j.error) throw new Error(j.error || r.status); return j; }); }); }
+  function hm(t) { var d = new Date(t * 1000); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function ago(t) { var s = Date.now() / 1000 - t; return s < 90 ? 'just now' : s < 5400 ? Math.round(s / 60) + ' min ago' : s < 129600 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'; }
+  var STATE = { running: 'working', waiting: 'needs your OK', paused: 'stopped — needs you', done: 'finished', cancelled: 'cancelled' };
+  var ICON = { done: 'check-circle', now: 'hourglass', wait: 'bell', fail: 'warn', todo: 'dot' };
+
+  function loadList() {
+    return Promise.all([api('api/produce'), api('api/series').catch(function () { return { series: [] }; })]).then(function (r) {
+      var j = r[0]; LIST = j.productions || [];
+      var own = {}; LIST.forEach(function (p) { if (p.sid) own[p.sid] = 1; });
+      SER = (r[1].series || []).filter(function (x) { return !own[x.id]; });
+      if (!SEL && LIST.length) SEL = (LIST.find(function (p) { return p.state === 'running' || p.state === 'waiting' || p.state === 'paused'; }) || LIST[0]).id;
+      $('#list').innerHTML = LIST.length ? LIST.map(function (p) {
+        return '<div class="pj s-' + esc(p.state) + (p.id === SEL ? ' on' : '') + '" data-id="' + p.id + '"><b><span class="dot"></span>' + esc(p.title) + '</b>' +
+          '<small>' + esc(STATE[p.state] || p.state) + ' · ' + esc(p.label) + ' · ' + ago(p.updated || p.created) + '</small></div>';
+      }).join('') : '<div class="empty">No productions yet. Ask MirAI: “make a kids musical about …”</div>';
+      if (SER.length) $('#list').innerHTML += '<small style="color:var(--faint);letter-spacing:.12em;margin:8px 2px 0">SERIES BUILT BY HAND</small>' +
+        SER.map(function (x) { return '<div class="pj" data-ser="' + x.id + '"><button class="sb ic bad" data-delser="' + x.id + '" data-nm="' + esc(x.name) + '" title="Delete this series" style="float:right;width:26px;height:26px"><i class="mi" data-ic="trash"></i></button><b><i class="mi" data-ic="tv"></i> ' + esc(x.name) + '</b><small>Series studio · ' + ((x.characters || x.cast || 0) || '') + ' open to edit</small></div>'; }).join('');
+      Array.prototype.forEach.call(document.querySelectorAll('[data-ser]'), function (el) { el.onclick = function (e) { e.stopPropagation(); series(el.dataset.ser); }; });
+      Array.prototype.forEach.call(document.querySelectorAll('[data-delser]'), function (b) { b.onclick = function (e) {
+        e.stopPropagation(); if (!confirm('Delete the series “' + b.dataset.nm + '”? It goes to the lab trash; its pictures stay in your Library.')) return;
+        api('api/series/' + b.dataset.delser + '/delete', { method: 'POST', body: {} }).then(loadList).catch(function (x) { alert(x.message); }); }; });
+      Array.prototype.forEach.call(document.querySelectorAll('.pj'), function (el) { el.onclick = function () { SEL = el.dataset.id; loadList(); }; });
+      return SEL ? loadOne() : ($('#main').innerHTML = '<div class="empty">Nothing here yet.</div>');
+    }).catch(function (e) { $('#main').innerHTML = '<div class="alert">' + esc(e.message) + '</div>'; });
+  }
+
+  function media(it) {
+    var redo = it.redo ? JSON.stringify(it.redo).replace(/"/g, '&quot;') : null;
+    var ref = it.kind === 'ref', name = encodeURIComponent(it.name), video = /\.(mp4|webm|mov)$/i.test(it.name), audio = /\.(wav|mp3|flac|ogg|m4a)$/i.test(it.name);
+    var full = (ref ? 'refs/' : 'media/') + name, th = (ref ? 'refthumb/' : 'thumb/') + name;
+    if (audio) return '<div class="aud"><b>' + esc(it.label) + '</b><audio controls preload="none" src="' + full + '"></audio>' +
+      (redo ? '<button class="sb" style="margin-top:8px" data-redo="' + redo + '" data-lbl="the song"><i class="mi" data-ic="refresh"></i> Redo the song</button>' : '') + '</div>';
+    return '<div class="it" data-full="' + full + '" data-v="' + (video ? 1 : 0) + '"><img loading="lazy" src="' + th + '" onerror="this.src=\'' + full + '\'">' +
+      '<span>' + esc(it.label) + '</span>' + (redo ? '<button class="sb redo" data-redo="' + redo + '" data-lbl="' + esc(it.label) + '" title="Make this again, with your changes"><i class="mi" data-ic="refresh"></i> Redo</button>' : '') + '</div>';
+  }
+
+  function loadOne() {
+    return api('api/produce/' + SEL + '/project').then(function (p) {
+      CUR = p;
+      var acts = [];
+      if (p.state === 'waiting' && p.stage === 'approve_look') acts.push('<button class="sb ok" data-a="approve"><i class="mi" data-ic="check"></i> Approve the look</button>');
+      if (p.state === 'paused' || p.state === 'cancelled') acts.push('<button class="sb pri" data-a="retry"><i class="mi" data-ic="play"></i> Resume from here</button>');
+      if (p.state === 'running') acts.push('<button class="sb" data-a="pause"><i class="mi" data-ic="pause"></i> Pause</button>');
+      if (p.final) acts.push('<button class="sb" data-a="redo"><i class="mi" data-ic="scissors"></i> Redo final edit</button>');
+      if (p.sid) acts.push('<button class="sb" id="open-ser"><i class="mi" data-ic="tv"></i> Open in Series studio</button>');
+      if (p.state !== 'done' && p.state !== 'cancelled') acts.push('<button class="sb bad" data-a="cancel"><i class="mi" data-ic="stop"></i> Stop</button>');
+      acts.push('<button class="sb bad" id="del-proj" title="Delete this project"><i class="mi" data-ic="trash"></i> Delete project</button>');
+      var last = (p.log || []).slice().reverse();
+      var alert = p.state === 'paused' ? '<div class="alert"><b>Stopped:</b> ' + esc((last.find(function (e) { return e.lvl === 'error'; }) || {}).msg || p.error || 'paused') + '</div>' :
+        p.state === 'waiting' ? '<div class="alert need">' + esc((last.find(function (e) { return e.lvl === 'need'; }) || {}).msg || 'Waiting for you.') + '</div>' : '';
+      var run = p.run ? ' · ' + p.run.left + ' steps left, ~' + Math.round(p.run.eta / 60) + ' min' : '';
+      var groups = (p.groups || []).map(function (g) {
+        var shots = g.title === 'Shots';
+        return '<h3>' + esc(g.title) + ' <span style="color:var(--faint)">' + g.items.length + '</span></h3><div class="grid">' +
+          g.items.map(function (it) { return media(it); }).join('') + '</div>';
+      }).join('');
+      $('#main').innerHTML = '<h2>' + esc(p.title) + '</h2><div class="sub">' + esc(STATE[p.state] || p.state) + ' · ' + esc(p.label) + run +
+        (p.heals ? ' · MirAI fixed ' + p.heals + ' problem' + (p.heals > 1 ? 's' : '') + ' on her own' : '') + '</div>' + alert +
+        '<div class="bar">' + acts.join('') + '</div>' +
+        '<div class="tl">' + (p.steps || []).map(function (s) {
+          return '<div class="st ' + s.state + '"><b><i class="mi" data-ic="' + ICON[s.state] + '"></i>' + esc(s.label) + '</b><small>' + esc(s.detail || '') + '</small>' + stepBtns(s, p) + '</div>'; }).join('') + '</div>' +
+        '<h3>What MirAI is doing</h3><div class="log">' + last.map(function (e) {
+          return '<div class="ln ' + esc(e.lvl || 'info') + '"><time>' + hm(e.t) + '</time><div>' + esc(e.msg) + '</div></div>'; }).join('') + '</div>' +
+        (groups || '<h3>Media</h3><div class="empty">Nothing made yet.</div>');
+      Array.prototype.forEach.call(document.querySelectorAll('[data-a]'), function (b) { b.onclick = function () { act(b.dataset.a); }; });
+      if ($('#open-ser')) $('#open-ser').onclick = function () { series(p.sid); };
+      $('#del-proj').onclick = function () {
+        if (!confirm('Delete “' + p.title + '”? Its production and series (cast, world, song and shot plans) go to the lab trash. The pictures and videos it made stay in your Library.')) return;
+        api('api/produce/' + p.id + '/delete', { method: 'POST', body: { series: true } }).then(function () { SEL = null; loadList(); }).catch(function (e) { alert(e.message); });
+      };
+      Array.prototype.forEach.call(document.querySelectorAll('[data-redo]'), function (b) { b.onclick = function (e) {
+        e.stopPropagation(); var r = JSON.parse(b.dataset.redo); redo(r.step, r.target, b.dataset.lbl); }; });
+      Array.prototype.forEach.call(document.querySelectorAll('[data-sstep]'), function (b) { b.onclick = function (e) {
+        e.stopPropagation(); var k = b.dataset.sk;
+        if (k === 'redo') return redo(b.dataset.sstep, null, b.dataset.lbl);
+        act(k); }; });
+      Array.prototype.forEach.call(document.querySelectorAll('.it'), function (el) { el.onclick = function () { view(el.dataset.full, el.dataset.v === '1'); }; });
+    });
+  }
+
+  var REDO = { brief: 'brief', pictures: 'pictures', song: 'song', shots: 'shots', assemble: 'assemble', publish: 'publish' };
+  var HINT = { brief: 'e.g. “make it about friendship”, “5 characters”, “set it underwater”',
+               pictures: 'e.g. “brighter colours”, “Toby wears a red cap”, “rounder, cuter style”',
+               cast: 'e.g. “give her a yellow raincoat”, “make him smaller and rounder”',
+               world: 'e.g. “sunset light”, “add lily pads and frogs”',
+               song: 'e.g. “faster and bouncier”, “a counting song”, “Bella sings the chorus”',
+               shots: 'e.g. “more close-ups”, “slower camera”, “everyone dances at the end”',
+               shot: 'e.g. “Toby jumps into the water here”, “closer on Bella’s face”',
+               assemble: '', publish: 'e.g. “mention it teaches counting”, “shorter title”' };
+  function stepBtns(s, p) {
+    var b = [];
+    var btn = function (k, ic, t, step) { return '<button data-sstep="' + (step || s.key) + '" data-sk="' + k + '" data-lbl="' + esc(s.label) + '"><i class="mi" data-ic="' + ic + '"></i>' + t + '</button>'; };
+    if (s.key === 'approve_look' && p.state === 'waiting' && p.stage === 'approve_look') b.push(btn('approve', 'check', 'Approve'));
+    if (s.state === 'now') b.push(btn('pause', 'pause', 'Pause'));
+    if (s.state === 'fail') b.push(btn('retry', 'play', 'Resume'));
+    if (s.state === 'now' || s.state === 'fail') b.push(btn('cancel', 'stop', 'Stop'));
+    if (REDO[s.key] && (s.state === 'done' || s.state === 'fail' || s.state === 'now' || s.state === 'wait' && s.key !== 'approve_look'))
+      b.push(btn('redo', 'refresh', s.key === 'assemble' ? 'Redo' : 'Redo…'));
+    return b.length ? '<div class="sa">' + b.join('') + '</div>' : '';
+  }
+  function redo(step, target, label) {
+    if (step === 'assemble') { if (confirm('Make the final edit again?')) act('redo_step', { step: 'assemble' }); return; }
+    var what = step === 'shot' ? 'shot ' + (target + 1) : label || step;
+    var warn = { brief: 'This starts the project over from a new brief (the current one stays in the Series studio).',
+                 pictures: 'Redraws the cast and the world, then asks you to approve the look again.',
+                 cast: 'Redraws this picture (and the cast lineup), then asks you to approve the look again.',
+                 world: 'Redraws this picture, then asks you to approve the look again.',
+                 song: 'Writes and records a new song — every shot is then re-cut to it.',
+                 shots: 'Re-renders every shot, then makes a fresh final edit. This is the longest step.',
+                 shot: 'Re-renders this one shot (chained to its neighbours), then a fresh final edit.',
+                 publish: 'Rewrites the post\'s title, description and tags — it goes back to Social for your Approve.' }[step] || '';
+    var d = document.createElement('div'); d.className = 'dlg';
+    d.innerHTML = '<div class="bx"><b>Redo ' + esc(what) + '</b><small>' + esc(warn) + '</small>' +
+      '<textarea id="dlg-note" placeholder="What should change? (optional) — ' + esc(HINT[step] || '') + '"></textarea>' +
+      '<div class="row"><button class="sb" id="dlg-x">Cancel</button><button class="sb pri" id="dlg-go"><i class="mi" data-ic="refresh"></i> Redo it</button></div></div>';
+    document.body.appendChild(d); d.querySelector('textarea').focus();
+    d.onclick = function (e) { if (e.target === d) d.remove(); };
+    d.querySelector('#dlg-x').onclick = function () { d.remove(); };
+    d.querySelector('#dlg-go').onclick = function () {
+      var note = d.querySelector('textarea').value.trim(); d.remove();
+      act('redo_step', { step: step, target: target == null ? null : target, note: note }, true);
+    };
+  }
+
+  function act(a, body, asked) {
+    var msg = { cancel: 'Stop this production? Everything made so far stays here — Resume picks it up again.', redo: 'Make the final edit again?' }[a];
+    if (msg && !asked && !confirm(msg)) return;
+    api('api/produce/' + SEL + '/' + a, { method: 'POST', body: body || {} }).then(loadList).catch(function (e) { alert(e.message); });
+  }
+
+  /* viewer: any resolution fits the screen; touch = pinch / double-tap zoom (pictures), swipe left/right = next / previous
+     item of this project, swipe down = close; mouse = wheel zoom, arrows, Esc */
+  function view(src, video) {
+    var all = Array.prototype.map.call(document.querySelectorAll('.it'), function (el) { return { full: el.dataset.full, v: el.dataset.v === '1', lbl: (el.querySelector('span') || {}).textContent || '' }; });
+    var i = Math.max(0, all.findIndex(function (x) { return x.full === src; }));
+    var d = document.createElement('div'); d.className = 'lb'; document.body.appendChild(d);
+    var close = function () { d.remove(); document.removeEventListener('keydown', key); };
+    function show(k) {
+      i = (k + all.length) % all.length; var it = all[i] || { full: src, v: video, lbl: '' };
+      d.innerHTML = (it.v ? '<video src="' + it.full + '" controls autoplay playsinline></video>' : '<img src="' + it.full + '" draggable="false">') +
+        (all.length > 1 ? '<button class="nav l" aria-label="previous">‹</button><button class="nav r" aria-label="next">›</button>' : '') +
+        '<button class="x" aria-label="close">✕</button><div class="cap">' + esc(it.lbl) + (all.length > 1 ? ' · ' + (i + 1) + ' / ' + all.length : '') + '</div>';
+      var im = d.querySelector('img'); if (im) zoom(im);
+      var l = d.querySelector('.nav.l'), r = d.querySelector('.nav.r');
+      if (l) l.onclick = function (e) { e.stopPropagation(); show(i - 1); };
+      if (r) r.onclick = function (e) { e.stopPropagation(); show(i + 1); };
+      d.querySelector('.x').onclick = function (e) { e.stopPropagation(); close(); };
+    }
+    function key(e) { if (e.key === 'Escape') close(); else if (e.key === 'ArrowRight') show(i + 1); else if (e.key === 'ArrowLeft') show(i - 1); }
+    document.addEventListener('keydown', key);
+    d.onclick = function (e) { if (e.target === d) close(); };
+    var sx = null, sy = 0, multi = false;
+    d.addEventListener('touchstart', function (e) { multi = e.touches.length > 1; var im = d.querySelector('img');
+      if (multi || (im && im._z > 1)) { sx = null; return; } sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+    d.addEventListener('touchend', function (e) { if (sx == null || multi) return; var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
+      if (dy > 90 && Math.abs(dy) > Math.abs(dx)) return close();
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4 && all.length > 1) show(dx < 0 ? i + 1 : i - 1); }, { passive: true });
+    show(i);
+  }
+  function zoom(im) {
+    var s = 1, x = 0, y = 0, base = null, last = 0, P = new Map();
+    var apply = function () { im._z = s; im.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + s + ')'; };
+    var clamp = function () { if (s <= 1) { s = 1; x = 0; y = 0; } apply(); };
+    im.addEventListener('pointerdown', function (e) { e.stopPropagation(); try { im.setPointerCapture(e.pointerId); } catch (_) { }
+      P.set(e.pointerId, [e.clientX, e.clientY]); var now = Date.now();
+      if (P.size === 1 && now - last < 300) { var r = im.getBoundingClientRect();
+        if (s > 1) { s = 1; x = 0; y = 0; } else { s = 2.5; x = -(e.clientX - r.left) * 1.5; y = -(e.clientY - r.top) * 1.5; } apply(); last = 0; return; }
+      last = now; base = null; });
+    im.addEventListener('pointermove', function (e) { if (!P.has(e.pointerId)) return; var prev = P.get(e.pointerId); P.set(e.pointerId, [e.clientX, e.clientY]);
+      if (P.size === 2) { var v = Array.from(P.values()), dd = Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]); if (base) s = Math.min(6, Math.max(1, s * dd / base)); base = dd; apply(); }
+      else if (s > 1) { x += e.clientX - prev[0]; y += e.clientY - prev[1]; apply(); } });
+    var up = function (e) { P.delete(e.pointerId); if (P.size < 2) base = null; clamp(); };
+    im.addEventListener('pointerup', up); im.addEventListener('pointercancel', up);
+    im.addEventListener('click', function (e) { e.stopPropagation(); });
+    im.addEventListener('wheel', function (e) { e.preventDefault(); s = Math.min(6, Math.max(1, s * (e.deltaY < 0 ? 1.15 : 1 / 1.15))); clamp(); }, { passive: false });
+  }
+
+  function series(id) { if (window.parent !== window) window.parent.postMessage({ mml: 'prod-series', id: id || '' }, '*'); else location.href = 'series' + (id ? '?id=' + id : ''); }
+  $('#newser').onclick = function () { series(''); };
+  $('#refresh').onclick = loadList;
+  $('#close').onclick = function () {                       /* back to the Media Lab main screen, wherever this page lives */
+    if (window.parent !== window) return window.parent.postMessage({ mml: 'prod-close' }, '*');   // web lab: a layer over it
+    if (window.MMLApp && MMLApp.close) return MMLApp.close('');                                    // phone app: its own screen
+    location.href = './';                                                                          // a plain tab: the lab itself
+  };
+  loadList(); setInterval(function () { if (!document.hidden && !document.querySelector('.lb')) loadList(); }, 8000);
+})();
+</script>
+</body>
+</html>

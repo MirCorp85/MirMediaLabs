@@ -1,6 +1,6 @@
-"""MUSE Director — the thinking layer of MIR MEDIA LABS.
+"""MirAI Director — the thinking layer of MIR MEDIA LABS.
 
-People shouldn't have to know which engine does what. In Auto mode every chat message goes to MUSE (the lab's local
+People shouldn't have to know which engine does what. In Auto mode every chat message goes to MirAI (the lab's local
 Gemma 4) first; it reads the message, the attachments and the last few turns, and decides what happens:
 
     chat      answer it as a conversation (general knowledge, questions, advice, writing help)
@@ -49,14 +49,14 @@ def _catalog_text():
     return "\n".join(out)
 
 
-SYSTEM = """You are MUSE Director, the router inside MIR MEDIA LABS, a local AI media studio. You never answer the
+SYSTEM = """You are MirAI Director, the router inside MIR MEDIA LABS, a local AI media studio. You never answer the
 person yourself. You read their message and decide which tool handles it, then output ONE JSON object.
 
 {catalog}
 
 ACTIONS
 - "chat": conversation, questions, general knowledge, advice, explanations, how-to, opinions, greetings, AND any request
-  to WRITE text (lyrics, a story, a script, a poem, a caption, ideas, a plan). Text is written by MUSE in the chat.
+  to WRITE text (lyrics, a story, a script, a poem, a caption, ideas, a plan). Text is written by MirAI in the chat.
 - "render": the person wants an image, a video, a song or music MADE now. Pick the role.
 - "skill": like render, but one of the SKILLS above clearly matches (e.g. "product photo of ..." -> product,
   "make this photo move" with a picture attached -> animate, "lofi beat" -> lofi, "logo for ..." -> logo).
@@ -315,7 +315,7 @@ def decide(prompt, refs=None, history=None, model=None):
 
 
 def label(d):
-    """Short human line for the chat: 'MUSE → Video · Cinematic Shot'."""
+    """Short human line for the chat: 'MirAI → Video · Cinematic Shot'."""
     if d["action"] == "chat":
         return "Chat"
     if d["action"] == "pipeline":
@@ -334,7 +334,7 @@ _FAKE = {"audio": "x.wav", "image": "x.png", "video": "x.mp4", "text": "x.txt"}
 
 
 def preview(prompt, kinds):
-    """Quick-rules guess (no model, a few ms) for the composer's 'MUSE will likely…' line."""
+    """Quick-rules guess (no model, a few ms) for the composer's 'MirAI will likely…' line."""
     refs = [_FAKE[k] for k in kinds if k in _FAKE]
     if not (prompt or "").strip() or (prompt or "").lstrip().startswith("/"):
         return None
@@ -345,3 +345,16 @@ def preview(prompt, kinds):
     elif d["action"] == "skill":
         out["skill"] = d["skill"]
     return out
+
+
+# ── full productions (producer.py): a whole kids' musical / episode, cast → world → song → video → YouTube draft ──
+_PRODUCE = re.compile(
+    r"\b(kids?|children'?s|toddlers?|pre-?school|nursery)\b.{0,50}\b(musical|music video|series|episode|show|cartoon|"
+    r"sing-?along|song video)\b|\b(full|whole|complete) (production|episode|musical)\b|"
+    r"\bproduce (a|an|me a) (kids?'? )?(series|episode|musical|show)\b", re.I)
+
+
+def wants_production(prompt):
+    """A request for a whole multi-character musical / episode (not one picture or clip) → the producer."""
+    p = prompt or ""
+    return bool(_PRODUCE.search(p)) and bool(re.search(_MAKE, p, re.I) or re.search(r"\b(post|upload|youtube)\b", p, re.I))

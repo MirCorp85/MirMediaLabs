@@ -2,7 +2,7 @@
 
 <h1 align="center">MIR MEDIA LABS</h1>
 <p align="center"><b>An independent, open-source AI media studio that runs on your own GPU.</b><br>
-Describe what you want in plain language. MUSE, the lab's agent, picks the model, writes the prompt, sets the parameters and renders it on <b>your own PC</b>.<br>
+Describe what you want in plain language. MirAI, the lab's agent, picks the model, writes the prompt, sets the parameters and renders it on <b>your own PC</b>.<br>
 Video with sound, full songs, music, images and writing, plus a timeline editor, a kids-series studio, a downloader and a social-media desk. Control it from your PC, phone, tablet or Android TV.</p>
 
 <p align="center">
@@ -21,7 +21,7 @@ Video with sound, full songs, music, images and writing, plus a timeline editor,
 
 ## Contents
 - [What it can make](#what-it-can-make)
-- [Just say what you want: MUSE Director](#just-say-what-you-want-muse-director)
+- [Just say what you want: MirAI Director](#just-say-what-you-want-muse-director)
 - [The studios: Video editor · Series studio · Downloader](#the-studios)
 - [Social desk and the VIRAL-Ω agent](#social-desk-and-the-viral-ω-agent)
 - [Chat sessions, model picker and settings you can understand](#chat-sessions-model-picker-and-settings-you-can-understand)
@@ -37,7 +37,7 @@ Video with sound, full songs, music, images and writing, plus a timeline editor,
 | **Song** | MiniMax Music 3.0 | Full vocal songs **up to 5 minutes**, from your lyrics or auto-written ones, mood from an image or video reference |
 | **Image** | Qwen-Image 2.1 | Text-to-image, **multi-picture edit (up to 10 inputs)**, background removal and cutouts, HD/HQ modes |
 | **Music** | ACE-Step 1.5 XL | Fast tracks and beats, **remix, cover and voice swap**, plus BPM, key and strength control |
-| **Writing** | MUSE (local Gemma 4 12B) | MML's writer: chat, stories, lyrics, video scripts, poems, ad copy and prompts, written to feed straight into the other models |
+| **Writing** | MirAI (local Gemma 4 12B) | MML's writer: chat, stories, lyrics, video scripts, poems, ad copy and prompts, written to feed straight into the other models |
 
 Models are a **role**, not a hard-coded dependency. Skills, pipelines, the studios and the commands all ask for "image", "video", "song", "music" or "writing", so a better model can slot in behind the same front end.
 
@@ -46,7 +46,7 @@ Models are a **role**, not a hard-coded dependency. Skills, pipelines, the studi
 
 | | |
 |---|---|
-| <img src="docs/screenshots/web-studio.jpg" alt="Lab chat with H3 video renders and the library"><br><sub><b>Lab chat</b>: MUSE picks the model, H3 renders the clip · Claude Dark theme</sub> | <img src="docs/screenshots/web-commands.jpg" alt="Command book"><br><sub><b>Command book</b>: commands, skills and pipelines</sub> |
+| <img src="docs/screenshots/web-studio.jpg" alt="Lab chat with H3 video renders and the library"><br><sub><b>Lab chat</b>: MirAI picks the model, H3 renders the clip · Claude Dark theme</sub> | <img src="docs/screenshots/web-commands.jpg" alt="Command book"><br><sub><b>Command book</b>: commands, skills and pipelines</sub> |
 | <img src="docs/screenshots/10-sessions.jpg" alt="Chat sessions: one project per session"><br><sub><b>Chat sessions</b>: every project keeps its own chat and media</sub> | <img src="docs/screenshots/11-model-picker.jpg" alt="Model picker"><br><sub><b>Model picker</b>: Auto, or pick the engine yourself (Alt+M)</sub> |
 | <img src="docs/screenshots/web-params.jpg" alt="Per-model parameters"><br><sub><b>Per-model parameters</b> (MiniMax H3)</sub> | <img src="docs/screenshots/web-themes.jpg" alt="Theme picker"><br><sub><b>5 themes</b>: Claude Dark, Graphite, Obsidian Gold, Midnight Studio, Paper Light</sub> |
 
@@ -55,14 +55,14 @@ Models are a **role**, not a hard-coded dependency. Skills, pipelines, the studi
 <img src="docs/promo/4-everywhere.jpg" alt="PC, phone, tablet and TV" width="49%">
 </p>
 
-<sub>Every render shown was made locally by MML on an RTX 5070: the H3 video with audio, the Qwen images, the Music 3 song, the ACE-Step tracks and the MUSE lyrics.</sub>
+<sub>Every render shown was made locally by MML on an RTX 5070: the H3 video with audio, the Qwen images, the Music 3 song, the ACE-Step tracks and the MirAI lyrics.</sub>
 
 ---
 
-## Just say what you want: MUSE Director
-You don't need to know which model does what. In **Auto** mode (the default), every message goes to **MUSE**, MML's AI. MUSE reads the message, any attachments and the last few turns of the current session, then decides:
+## Just say what you want: MirAI Director
+You don't need to know which model does what. In **Auto** mode (the default), every message goes to **MirAI**, MML's AI. MirAI reads the message, any attachments and the last few turns of the current session, then decides:
 
-| You type | MUSE does |
+| You type | MirAI does |
 |---|---|
 | "what's the difference between a verse and a chorus?" | **answers** it (general knowledge, ideas, advice, writing) |
 | "a cozy cabin in snowy woods at night" | renders a **picture** |
@@ -71,15 +71,15 @@ You don't need to know which model does what. In **Auto** mode (the default), ev
 | "now animate it" | runs **Animate Photo** and **attaches your last result automatically** |
 | "a music video for a synthwave song about neon nights" | runs the **Music Video** pipeline |
 
-- The chat shows what MUSE chose and why. Flags like `--8s` are always kept.
-- Slash commands, or picking a model yourself, bypass MUSE whenever you want full control.
+- The chat shows what MirAI chose and why. Flags like `--8s` are always kept.
+- Slash commands, or picking a model yourself, bypass MirAI whenever you want full control.
 - If the AI model is unavailable, a built-in rule engine takes over, so Auto never blocks.
-- **Prompts written for you:** before rendering, MUSE rewrites your idea in each model's own prompt style (from the official prompting guides), and links attachments into the prompt ("the woman in picture 1") so references are actually used.
+- **Prompts written for you:** before rendering, MirAI rewrites your idea in each model's own prompt style (from the official prompting guides), and links attachments into the prompt ("the woman in picture 1") so references are actually used.
 - **Live status bubble:** every job shows a ring dial with a segment per step, one live line of what the engine is doing right now, and a step timeline. No guessing whether it's stuck.
-- **MUSE can talk:** replies can be read aloud by a natural local voice (Kokoro, runs on the CPU). It speaks on the device that asked, and **Listen** plays any reply.
-- **Optional cloud brain (owner only):** MUSE runs locally by default. The owner can plug in their *own* API key for Claude, GPT or GLM to power chat, the Director and the prompt writer, with a monthly spending cap. Renders always stay on your GPU, and invited users always stay on the local model.
+- **MirAI can talk:** replies can be read aloud by a natural local voice (Kokoro, runs on the CPU). It speaks on the device that asked, and **Listen** plays any reply.
+- **Optional cloud brain (owner only):** MirAI runs locally by default. The owner can plug in their *own* API key for Claude, GPT or GLM to power chat, the Director and the prompt writer, with a monthly spending cap. Renders always stay on your GPU, and invited users always stay on the local model.
 
-<p align="center"><img src="docs/screenshots/7-auto-muse.png" alt="Auto mode: MUSE answers a question, then routes a logo request to the Logo Mark skill" width="100%"></p>
+<p align="center"><img src="docs/screenshots/7-auto-muse.png" alt="Auto mode: MirAI answers a question, then routes a logo request to the Logo Mark skill" width="100%"></p>
 
 ## The studios
 Three bigger tools have their own labelled tabs in every version of the lab (desktop, web, phone and tablet).
@@ -182,7 +182,7 @@ Videos and songs play in MML's own themed player on desktop, web, phone and TV:
 <p align="center">
 <img src="docs/screenshots/8-player.png" alt="Audio player with live visualizer" width="62%">
 <img src="docs/screenshots/apk-8-player.png" alt="Android audio player" width="17%">
-<img src="docs/screenshots/apk-7-auto.png" alt="Android: Auto mode with MUSE's decision" width="17%">
+<img src="docs/screenshots/apk-7-auto.png" alt="Android: Auto mode with MirAI's decision" width="17%">
 </p>
 
 ## Why MIR MEDIA LABS
@@ -240,8 +240,8 @@ Videos and songs play in MML's own themed player on desktop, web, phone and TV:
   - **one-click model sets**: Recommended for your GPU (picked from your VRAM), Everything, or Light
   - finds AI models already on your PC and reuses them instead of downloading them again
   - **fast**: models download 3 at a time, *while* the PyTorch runtime installs
-  - installs a private Python/PyTorch runtime, the ComfyUI render engine, the MUSE voice and only the models you pick
-  - optionally installs **MUSE (Gemma 4 12B)** through Ollama. MUSE handles general conversation, builds the prompt for each render model, and picks the model for each request in Auto mode. It never renders: images, video and music always come from the render models.
+  - installs a private Python/PyTorch runtime, the ComfyUI render engine, the MirAI voice and only the models you pick
+  - optionally installs **MirAI (Gemma 4 12B)** through Ollama. MirAI handles general conversation, builds the prompt for each render model, and picks the model for each request in Auto mode. It never renders: images, video and music always come from the render models.
   - shows a gallery of real MML renders while it works, then a **QR code for the mobile companion**
   - downloads resume, and re-running it offers Modify and Repair
 - Every preview and sample ships inside the installer, so nothing is fetched at runtime
@@ -305,7 +305,7 @@ cd server
 pip install flask requests "yt-dlp[default]"
 python medialab.py        # http://127.0.0.1:5400
 ```
-Rendering needs a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with the models installed. MUSE (chat, prompt building and the Auto-mode model picker) needs [Ollama](https://ollama.com) with `gemma4:12b`. The video editor and downloader need [ffmpeg](https://ffmpeg.org).
+Rendering needs a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with the models installed. MirAI (chat, prompt building and the Auto-mode model picker) needs [Ollama](https://ollama.com) with `gemma4:12b`. The video editor and downloader need [ffmpeg](https://ffmpeg.org).
 Linux: `linux/install.sh`. Android: open `app/` in Android Studio, or run `powershell -File build_apk.ps1`.
 
 ## Support development

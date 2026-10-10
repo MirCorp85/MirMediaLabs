@@ -16,7 +16,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** MUSE voice — same as the web studio's: her replies are read aloud sentence by sentence as they stream in, in a
+/** MirAI voice — same as the web studio's: her replies are read aloud sentence by sentence as they stream in, in a
  *  natural voice made on the lab PC (Kokoro, /api/tts). Voice + speed + on/off sync through /api/miros-prefs {voice}. */
 final class MuseVoice {
     static final String[] IDS = {"af_bella", "af_heart", "af_nicole", "af_sky", "bf_emma", "am_michael", "am_fenrir", "bm_george"};
@@ -82,7 +82,7 @@ final class MuseVoice {
         if (!on) stop();
         persist(true);
         m.voiceIcon();
-        m.toast(on ? "MUSE will speak her replies" : "MUSE voice muted");
+        m.toast(on ? "MirAI will speak her replies" : "MirAI voice muted");
     }
 
     void stop() {
@@ -115,7 +115,7 @@ final class MuseVoice {
 
     private void idle() { m.runOnUiThread(() -> { if (m.create != null) m.create.paintListen(); }); }
 
-    /** New sentences from streaming MUSE replies. History (replies already finished when the app opened) is never re-read. */
+    /** New sentences from streaming MirAI replies. History (replies already finished when the app opened) is never re-read. */
     void jobs(JSONArray js) {
         for (int i = 0; i < js.length(); i++) {
             JSONObject j = js.optJSONObject(i);
@@ -223,18 +223,18 @@ final class MuseVoice {
         }
     }
 
-    /** Settings → Look → MUSE voice: pick a voice (plays a preview), then a speed. */
+    /** Settings → Look → MirAI voice: pick a voice (plays a preview), then a speed. */
     void pick() {
         int sel = java.util.Arrays.asList(IDS).indexOf(voice);
         new android.app.AlertDialog.Builder(m)
-                .setTitle("MUSE voice")
+                .setTitle("MirAI voice")
                 .setSingleChoiceItems(NAMES, sel, (d, k) -> {
                     voice = IDS[k];
                     on = true;
                     persist(true);
                     m.voiceIcon();
                     stop();
-                    say("Hi, I'm MUSE. This is how I'll sound when I answer you.", true);
+                    say("Hi, I'm MirAI. This is how I'll sound when I answer you.", true);
                 })
                 .setNeutralButton("Speed", (d, w) -> speedPick())
                 .setPositiveButton("Done", null)
@@ -246,7 +246,7 @@ final class MuseVoice {
         float[] v = {0.9f, 1f, 1.1f, 1.2f};
         int sel = 1;
         for (int i = 0; i < v.length; i++) if (Math.abs(v[i] - speed) < .01) sel = i;
-        new android.app.AlertDialog.Builder(m).setTitle("MUSE speed").setSingleChoiceItems(lbl, sel, (d, k) -> {
+        new android.app.AlertDialog.Builder(m).setTitle("MirAI speed").setSingleChoiceItems(lbl, sel, (d, k) -> {
             speed = v[k];
             persist(true);
             stop();

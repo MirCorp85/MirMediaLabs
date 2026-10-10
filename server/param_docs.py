@@ -97,7 +97,7 @@ DOCS = {
                  "opts": {"cut": {"label": "Seamless cut"}, "xfade": {"label": "Quick dissolve", "tech": "0.25 s crossfade"}}},
         # camera & motion
         "camera": {"label": "Camera movement", "tech": "camera move", "desc": "How the camera travels during the clip.",
-                   "opts": {"auto": {"label": "Let MUSE pick", "desc": "Chooses a move that fits the scene."},
+                   "opts": {"auto": {"label": "Let MirAI pick", "desc": "Chooses a move that fits the scene."},
                             "static": {"label": "Still camera", "tech": "locked-off", "desc": "Camera doesn't move; only the scene does."},
                             "dolly_in": {"label": "Push in", "tech": "dolly-in", "desc": "Glides toward the subject — builds focus or tension."},
                             "dolly_out": {"label": "Pull back", "tech": "dolly-out reveal", "desc": "Backs away to reveal the surroundings."},
@@ -228,8 +228,8 @@ DOCS = {
                      "opts": {"max": {"label": "Full detail"}, "match": {"label": "Match video size"}}},
         "ref_secs": {"label": "Reference clip length", "advanced": True, "desc": "How many seconds of a reference video to study."},
         # engine
-        "enhance": {"label": "MUSE writes the prompt", "tech": "prompt director", "group": "Basics",
-                    "desc": "On: MUSE expands your idea into a full shot plan. Off: your exact words.",
+        "enhance": {"label": "MirAI writes the prompt", "tech": "prompt director", "group": "Basics",
+                    "desc": "On: MirAI expands your idea into a full shot plan. Off: your exact words.",
                     "opts": {"on": {"label": "On (recommended)"}, "off": {"label": "Off — my exact words", "tech": "--raw"}}},
         "lora_strength": {"label": "Turbo strength", "tech": "turbo LoRA strength", "advanced": True,
                           "desc": "How strongly the speed-up add-on is applied. Keep at 1."},
@@ -242,8 +242,8 @@ DOCS = {
     },
     "music3": {
         "duration": {"label": "Song length", "desc": "Longest the song may run, in seconds (up to 5 minutes)."},
-        "lyrics": {"label": "Lyrics", "desc": "Let MUSE write lyrics, or make it instrumental.",
-                   "opts": {"auto": {"label": "MUSE writes them"}, "instrumental": {"label": "No vocals"}}},
+        "lyrics": {"label": "Lyrics", "desc": "Let MirAI write lyrics, or make it instrumental.",
+                   "opts": {"auto": {"label": "MirAI writes them"}, "instrumental": {"label": "No vocals"}}},
         "cfg": {"label": "Sound strictness", "tech": "diffusion CFG"},
         "lm_cfg": {"label": "Song-plan strictness", "tech": "composer CFG", "advanced": True,
                    "desc": "How closely the song structure follows your description."},
@@ -263,7 +263,7 @@ DOCS = {
                           "edit": {"label": "Edit my pictures", "desc": "Change or combine the attached pictures."},
                           "cutout": {"label": "Remove background"}}},
         "aspect": {"label": "Shape", "tech": "aspect ratio", "desc": "Wide, tall or square.",
-                   "opts": {"auto": {"label": "Automatic", "desc": "MUSE picks from your idea."}}},
+                   "opts": {"auto": {"label": "Automatic", "desc": "MirAI picks from your idea."}}},
         "size": {"label": "Size", "tech": "megapixels", "desc": "Bigger is sharper but slower.",
                  "opts": {"standard": {"label": "Standard", "tech": "~1 MP"}, "hd": {"label": "HD", "tech": "~2 MP"},
                           "max": {"label": "Maximum", "tech": "~4 MP", "desc": "Slow."}}},
@@ -318,11 +318,11 @@ DOCS = {
     "llama": {
         "mode": {"label": "Writing style", "desc": "Clear and concise, or vivid and creative.",
                  "opts": {"chat": {"label": "Clear answers"}, "creative": {"label": "Creative writing"}}},
-        "length": {"label": "Reply length", "desc": "How long MUSE's answers are.",
+        "length": {"label": "Reply length", "desc": "How long MirAI's answers are.",
                    "opts": {"short": {"label": "Short"}, "medium": {"label": "Medium"}, "long": {"label": "Long"}}},
         "temperature": {"label": "Creativity", "tech": "temperature", "advanced": False, "group": "Basics",
                         "desc": "Low = focused and factual, high = imaginative."},
-        "memory": {"label": "Remembers last", "tech": "turns", "desc": "How many earlier messages MUSE keeps in mind."},
+        "memory": {"label": "Remembers last", "tech": "turns", "desc": "How many earlier messages MirAI keeps in mind."},
         "seed": {"advanced": True},
     },
 }

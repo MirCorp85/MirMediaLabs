@@ -32,9 +32,9 @@ sys.path.insert(0, SERVER)
 import series_help  # noqa: E402
 import series_presets as P  # noqa: E402
 
-LAB = "http://127.0.0.1:5400"
+LAB = os.environ.get("MML_LAB") or "http://127.0.0.1:5400"   # MirOS rule: run via MML_LAB=http://127.0.0.1:5000/mlab
 OUT = os.path.join(SERVER, "static", "series", "samples")
-LIB = os.path.join(HERE, "..", "data", "library")
+LIB = os.environ.get("MML_LIB") or os.path.join(HERE, "..", "data", "library")
 MIRRORS = [p for p in os.environ.get("MML_SAMPLES_MIRROR", "").split(";") if p]   # optional local mirror copies (env var, never a hardcoded path)
 TEST = ("a small fox girl in a yellow raincoat and red rain boots, holding a ukulele, singing happily with her mouth open, "
         "standing on a puddle-dotted village street with colourful houses")
@@ -137,6 +137,9 @@ def mirror(path):
             shutil.copy2(path, os.path.join(m, os.path.basename(path)))
 
 
+FAST = {"qimg": {"steps": 14}, "music3": {"duration": 15, "steps": 16}, "ace": {"duration": 15, "steps": 6}}
+
+
 def render(prompt, aspect, name, size=None, model="qimg", refs=None, override=None, ext=".jpg"):
     dst = os.path.join(OUT, name + ext)
     if os.path.isfile(dst):
@@ -148,6 +151,7 @@ def render(prompt, aspect, name, size=None, model="qimg", refs=None, override=No
         try:
             ov = override if override is not None else dict({"mode": "generate", "aspect": aspect, "enhance": "off"},
                                                             **({"size": size} if size else {}))
+            ov = dict(FAST.get(model, {}), **ov)          # previews only need to show the idea: short + few steps
             j = api("/api/generate", {"model": model, "prompt": prompt, "refs": refs or [], "override": ov, "internal": True})
             break
         except urllib.error.HTTPError as e:
@@ -174,7 +178,7 @@ def render(prompt, aspect, name, size=None, model="qimg", refs=None, override=No
         ff("-i", src, "-an", "-vf", "scale=480:-2", "-c:v", "libx264", "-crf", "26", "-pix_fmt", "yuv420p",
            "-movflags", "+faststart", dst)
     elif ext == ".mp3":                                # a short example: first ~18 s, soft fade out, small file
-        ff("-i", src, "-t", "18", "-af", "afade=t=out:st=16:d=2", "-c:a", "libmp3lame", "-b:a", "96k", dst)
+        ff("-i", src, "-t", "12", "-af", "afade=t=out:st=10.5:d=1.5", "-c:a", "libmp3lame", "-b:a", "80k", dst)
     else:                                              # downsized jpeg for the tile
         ff("-i", src, "-vf", "scale=720:-2", "-q:v", "4", dst, timeout=60)
     if not os.path.isfile(dst):

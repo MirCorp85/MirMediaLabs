@@ -30,7 +30,8 @@ sys.path.insert(0, SERVER)
 import core          # noqa: E402
 import renderers     # noqa: E402
 
-LAB = "http://127.0.0.1:%d" % core.PORT          # loopback = the host, no key needed
+LAB = os.environ.get("MML_LAB") or "http://127.0.0.1:%d" % core.PORT   # MirOS rule: run via MML_LAB=http://127.0.0.1:5000/mlab
+LIBDIR = os.environ.get("MML_LIB") or core.LIB                         # where that lab keeps its renders
 FX = os.path.join(SERVER, "static", "fx")
 MIRRORS = [p for p in os.environ.get("MML_FX_MIRROR", "").split(";") if p]   # optional local mirror copies (env var, never a hardcoded path)
 SEED = 424242
@@ -41,7 +42,7 @@ H3_BASE = {"mode": "t2v", "aspect": "16:9", "res": "draft", "seconds": 4, "quali
            "lighting": "auto", "scene_fx": "none", "style": "none", "steady": "on", "speed": "1", "grade": "none",
            "grain": "off", "vignette": "off", "sharpen": "off", "fade": "none", "fps": "24", "upscale": "off",
            "loop": "off", "extend": 0, "workflow": "builtin"}
-QIMG_BASE = {"mode": "generate", "aspect": "16:9", "size": "standard", "enhance": "off", "seed": SEED,
+QIMG_BASE = {"mode": "generate", "aspect": "16:9", "size": "standard", "enhance": "off", "seed": SEED, "steps": 14,
              "upscale": "off", "workflow": "builtin"}
 H3_CLIPS = ("camera", "shot", "motion", "scene_fx", "style", "res")
 STILLS = {"look": renderers.H3_LOOK, "lighting": renderers.H3_LIGHT}
@@ -118,7 +119,7 @@ def render(model, params, prompt):
             break
     if j.get("status") != "done" or not j.get("files"):
         raise RuntimeError("%s: %s" % (j.get("status"), (j.get("output") or j.get("log") or "")[-300:]))
-    return os.path.join(core.LIB, j["files"][0])
+    return os.path.join(LIBDIR, j["files"][0])
 
 
 def write_manifest():

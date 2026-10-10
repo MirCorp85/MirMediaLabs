@@ -1,4 +1,4 @@
-"""MUSE — the writer-in-residence of MIR MEDIA LABS (standalone only; not in the MirOS copy).
+"""MirAI — the writer-in-residence of MIR MEDIA LABS (standalone only; not in the MirOS copy).
 
 General chat + creative writing on a local Ollama model (today: Gemma 4 12B). Runs as a normal lab job: it waits
 its turn in the one-at-a-time GPU queue, frees ComfyUI's VRAM first, and streams its reply into job['output'].
@@ -7,9 +7,9 @@ Its system prompt has three layers:
   1. SOUL       — muse_soul.md: identity, purpose, values, voice, boundaries (plain text, edit freely; re-read
                   every reply, no restart needed).
   2. KNOWLEDGE  — built live from the lab catalog (skills.ROLES / params.MODELS / skills / pipelines / commands),
-                  so swapping an engine updates what MUSE knows. Per-engine prompt craft lives in CRAFT, keyed by
-                  engine id (back end specific; MUSE talks about roles, not engine names).
-  3. SESSION    — who is talking (owner / guest name), today's date, the engine under MUSE, the mode.
+                  so swapping an engine updates what MirAI knows. Per-engine prompt craft lives in CRAFT, keyed by
+                  engine id (back end specific; MirAI talks about roles, not engine names).
+  3. SESSION    — who is talking (owner / guest name), today's date, the engine under MirAI, the mode.
 """
 import json
 import re
@@ -23,7 +23,7 @@ import params
 import skills
 
 MODEL_TAG = core.DEFAULT_ENGINE          # Gemma 4 12B (vision + tools); pinned in core.DEFAULT_ENGINE
-PERSONA = "MUSE"
+PERSONA = "MirAI"
 SOUL_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "muse_soul.md")
 NUM_CTX = 16384
 HISTORY_CHARS = 24000          # newest turns first, within the context budget
@@ -115,7 +115,7 @@ def sanitize_lyrics(text):
 
 
 def clean_for_ref(text):
-    """MUSE text attached with 'Use as text ref': lyrics → sanitized; anything else → minus the hand-off hint line."""
+    """MirAI text attached with 'Use as text ref': lyrics → sanitized; anything else → minus the hand-off hint line."""
     if any(_tag(l.strip()) for l in (text or "").split("\n")):
         return sanitize_lyrics(text)
     return "\n".join(l for l in (text or "").split("\n") if not re.search(r"use as text ref", l, re.I)).strip()
@@ -183,7 +183,7 @@ def session(job):
     else:
         person = "%s, a guest of the lab (their work is private to them)" % name
     eng = params.MODELS.get(skills.ROLES.get("text", {}).get("model", "llama"), {}).get("label", MODEL_TAG)
-    eng = eng.split(" · ", 1)[-1] if eng.startswith(PERSONA) else eng      # "MUSE · GEMMA 4 12B" → "GEMMA 4 12B"
+    eng = eng.split(" · ", 1)[-1] if eng.startswith(PERSONA) else eng      # "MirAI · GEMMA 4 12B" → "GEMMA 4 12B"
     mode = (job.get("params") or {}).get("mode")
     return "\n".join(["## This session",
                       "- You are talking with %s." % person,
@@ -239,7 +239,7 @@ def messages(job):
     if docs:
         user += "".join("\n\n--- attached text %d ---\n%s" % (i + 1, d) for i, d in enumerate(docs))
     if any(core.kind_of(n) in ("image", "video", "audio") for n in job.get("refs") or []):
-        user += "\n\n(Note from the lab: pictures, clips and songs were attached, but MUSE can only read attached text.)"
+        user += "\n\n(Note from the lab: pictures, clips and songs were attached, but MirAI can only read attached text.)"
     msgs.append({"role": "user", "content": user or "Hello"})
     return msgs
 
@@ -251,14 +251,14 @@ def run_llama(job):
     b = cloud.active()
     if b:                                        # owner's cloud brain: no GPU / Ollama needed
         return _run_cloud(job, b, msgs, c)
-    renderers.log(job, "freeing VRAM for MUSE …")
+    renderers.log(job, "freeing VRAM for MirAI …")
     if comfy.up():
         comfy.free()                             # ComfyUI keeps ~10 GB loaded between renders
     if not core.ollama_up():
         renderers.log(job, "starting Ollama …")
         if not core.ensure_ollama():
             raise RuntimeError("Ollama isn't running and could not be started")
-    renderers.log(job, "MUSE is writing …")
+    renderers.log(job, "MirAI is writing …")
     opts = {"temperature": float(c.get("temperature") or 0.7), "num_ctx": NUM_CTX,
             "num_predict": LENGTH.get(c.get("length"), 1200)}
     if c.get("seed") not in ("", None):
@@ -281,7 +281,7 @@ def run_llama(job):
             ntok += 1
             if time.time() - last > 1.0:
                 last = time.time()
-                console.emit("MUSE", "%s writing · %d tokens · %.0f tok/s" % (MODEL_TAG, ntok, ntok / max(.1, last - t0)), job)
+                console.emit("MirAI", "%s writing · %d tokens · %.0f tok/s" % (MODEL_TAG, ntok, ntok / max(.1, last - t0)), job)
             if d.get("done"):
                 break
     if job.get("skill") == "Song Lyrics":            # the lyrics skill's reply goes straight to the Song engine
@@ -297,7 +297,7 @@ def _run_cloud(job, b, msgs, c):
     import console
     import renderers
     name = cloud.label_of(b)
-    renderers.log(job, "MUSE is writing on %s …" % name)
+    renderers.log(job, "MirAI is writing on %s …" % name)
     job["output"] = ""
     st = {"t0": time.time(), "n": 0, "last": 0.0}
 
@@ -306,7 +306,7 @@ def _run_cloud(job, b, msgs, c):
         st["n"] += 1
         if time.time() - st["last"] > 1.0:
             st["last"] = time.time()
-            console.emit("MUSE", "%s writing · %d chunks" % (name, st["n"]), job)
+            console.emit("MirAI", "%s writing · %d chunks" % (name, st["n"]), job)
 
     try:
         cloud.chat_stream(b, msgs, on_text, lambda: bool(job.get("_cancel")), long=c.get("length") == "long",

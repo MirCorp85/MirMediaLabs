@@ -906,5 +906,5 @@
         });
     });
   }, 600);
-  loadList();
+  loadList(new URLSearchParams(location.search).get('id') || undefined);   /* ?id= opens one series (from Projects) */
 })();

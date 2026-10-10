@@ -41,7 +41,7 @@ final class Push {
         if (Build.VERSION.SDK_INT < 26) return;
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         NotificationChannel done = new NotificationChannel(CH_DONE, "Finished renders", NotificationManager.IMPORTANCE_HIGH);
-        done.setDescription("Your image, video, song or MUSE reply is ready (or failed)");
+        done.setDescription("Your image, video, song or MirAI reply is ready (or failed)");
         NotificationChannel prog = new NotificationChannel(CH_PROG, "Render in progress", NotificationManager.IMPORTANCE_LOW);
         prog.setDescription("Live status while the lab works on your request");
         prog.setShowBadge(false);
@@ -152,7 +152,7 @@ final class Push {
                 JSONArray f = j.optJSONArray("files");
                 String k = f != null && f.length() > 0 ? Ui.kindOf(f.optString(0)) : "";
                 String what = "llama".equals(j.optString("model")) ? null : "video".equals(k) ? "video" : "image".equals(k) ? "image" : "audio".equals(k) ? "track" : "result";
-                job(c, api, id, st, "done".equals(st) ? (what == null ? "MUSE replied" : "Your " + what + " is ready") : "Request failed",
+                job(c, api, id, st, "done".equals(st) ? (what == null ? "MirAI replied" : "Your " + what + " is ready") : "Request failed",
                         "done".equals(st) ? j.optString("input", j.optString("prompt")) : j.optString("error"), f, j.optString("model"), k);
             }
         }
@@ -217,7 +217,7 @@ final class Push {
             sh.row("bell", "Turn notifications on", "Android settings", () -> systemSettings(a));
         }
         sh.section("Tell me when");
-        sh.toggle("check-circle", "A render finishes", "image, video, song or MUSE reply — with a preview", on(a, "done"), v -> Prefs.put(a, "n_done", v));
+        sh.toggle("check-circle", "A render finishes", "image, video, song or MirAI reply — with a preview", on(a, "done"), v -> Prefs.put(a, "n_done", v));
         sh.toggle("mail", "The lab host sends a message", "maintenance, new features, invites", on(a, "notice"), v -> Prefs.put(a, "n_notice", v));
         sh.toggle("download", "An app update is out", "signed builds from GitHub or your lab", on(a, "update"), v -> Prefs.put(a, "n_update", v));
         sh.section("Delivery");

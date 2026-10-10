@@ -405,6 +405,7 @@ body.lcol-off .lrail{display:flex}
 .lb .view.zoom>img{position:static;display:block;max-width:none;max-height:none;margin:16px auto;cursor:zoom-out;border-radius:0}
 .lb .view>:not(img){position:absolute;inset:16px;margin:auto;max-width:calc(100% - 32px);max-height:calc(100% - 32px)}
 .lb .view>.audiocard{height:max-content}
+.lb .view>video{width:100%;height:100%;object-fit:contain;background:#000}/*fit-any*/
 .lb .bar{overflow-x:auto;scrollbar-width:none}.lb .bar::-webkit-scrollbar{display:none}.lb .bar>*{flex:none}.lb .bar .nm{flex:1 0 80px}
 .lb .view .zhint{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);inset:auto auto calc(14px + env(safe-area-inset-bottom)) 50%;max-width:none;max-height:none;height:auto;width:auto;margin:0;
   font:11px var(--mono,monospace);letter-spacing:.06em;color:var(--dim);background:color-mix(in srgb,var(--bg,#000) 80%,transparent);padding:5px 10px;border-radius:999px;pointer-events:none}
@@ -935,7 +936,7 @@ html[data-theme] #mascot .in{background:linear-gradient(135deg,color-mix(in srgb
 .mc-bar.det i{box-shadow:none!important;background:var(--mc)!important}
 </style>
 <style id="mml-musebub">
-/* MUSE bubble: ring dial + timeline inside each job's chat reply (replaces the floating mascot tile) */
+/* MirAI bubble: ring dial + timeline inside each job's chat reply (replaces the floating mascot tile) */
 #mascot{display:none!important}
 .chat .thread{padding-top:revert!important}
 .mb-h{display:flex;gap:12px;align-items:center;cursor:pointer;user-select:none}
@@ -1048,13 +1049,14 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 .wfrow{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:9px}
 .wfrow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wfrow small{color:var(--faint)}
 </style>
+<link rel="stylesheet" href="static/lab_c.css">
 </head>
 <body data-tab="create">
 <div class="app">
   <header class="top">
     <div class="brand"><img src="/static/icon-512.png" alt=""><b>MIR MEDIA LABS</b></div>
     <nav class="studios" aria-label="Studios"><button class="studio" id="b-editor" title="Video editor — cut, arrange and re-render on a timeline" onclick="mmlEditor()"><i class="mi" data-ic="film"></i><span>VIDEO EDITOR</span></button><button class="studio" id="b-series" title="SERIES studio — build an animated series: cast, world, episodes, songs" onclick="mmlSeries()"><i class="mi" data-ic="tv"></i><span>SERIES STUDIO</span></button><button class="studio" id="b-grab" title="Downloader — YouTube and other links to MP3 or MP4 in your library" onclick="mmlGrab()"><i class="mi" data-ic="download"></i><span>DOWNLOADER</span></button></nav>
-    <button class="iconbtn" id="b-theme" title="Theme" onclick="openThemes()"><i class="mi" data-ic="palette"></i></button><button class="iconbtn" id="b-voice" title="MUSE voice on / off"><i class="mi" data-ic="volume"></i></button>
+    <button class="iconbtn" id="b-theme" title="Theme" onclick="openThemes()"><i class="mi" data-ic="palette"></i></button><button class="iconbtn" id="b-voice" title="MirAI voice on / off"><i class="mi" data-ic="volume"></i></button>
     <button class="iconbtn" id="b-font" title="MIR FONTS — pick a typeface" onclick="window.MirFont&&MirFont.openPicker()"><i class="mi" data-ic="type"></i></button>
     <div class="pills">
       <div class="pill" id="p-comfy"><span class="d"></span><span class="lbl">GPU</span> <b id="p-comfy-v">…</b></div>
@@ -1158,7 +1160,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
     </section>
   </main>
 
-  <nav class="tabs"><button data-t="create" class="on"><i class="mi" data-ic="lab"></i>CHAT</button><button data-t="library"><i class="mi" data-ic="grid"></i>LIBRARY</button><button data-t="editor" class="st"><i class="mi" data-ic="film"></i>EDITOR</button><button data-t="series" class="st"><i class="mi" data-ic="tv"></i>SERIES</button><button data-t="grab" class="st"><i class="mi" data-ic="download"></i>DOWNLOAD</button><button data-t="social"><i class="mi" data-ic="globe"></i>SOCIAL</button></nav>
+  <nav class="tabs"><button data-t="create" class="on"><i class="mi" data-ic="lab"></i>CHAT</button><button data-t="library"><i class="mi" data-ic="grid"></i>LIBRARY</button><button data-t="editor" class="st"><i class="mi" data-ic="film"></i>EDITOR</button><button data-t="series" class="st"><i class="mi" data-ic="tv"></i>SERIES</button><button data-t="grab" class="st"><i class="mi" data-ic="download"></i>DOWNLOAD</button><button data-t="production" class="st"><i class="mi" data-ic="film"></i>PRODUCTION</button><button data-t="social"><i class="mi" data-ic="globe"></i>SOCIAL</button></nav>
 </div>
 
 <div class="lb" id="lb">
@@ -1180,8 +1182,8 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ICON={image:MI.html('image'),video:MI.html('video'),audio:MI.html('music'),text:MI.html('note')};
-const SHORT={auto:'AUTO',h3:'H3',music3:'MUSIC 3',qimg:'QWEN',ace:'ACE',llama:'MUSE'};
-/* MUSE hand-off: lines in a reply that start with a lab command get a Use button */
+const SHORT={auto:'AUTO',h3:'H3',music3:'MUSIC 3',qimg:'QWEN',ace:'ACE',llama:'MirAI'};
+/* MirAI hand-off: lines in a reply that start with a lab command get a Use button */
 const MUSE_SKIP=['/help','/skills','/clear','/commands'];
 function museLines(t){return (t||'').split('\n').map(l=>l.trim().replace(/^(?:[-*•]|\d+[.)])\s+/,'')).filter(l=>/^\/[a-z0-9]{2,20}\s+\S/i.test(l)&&!MUSE_SKIP.includes(l.split(/\s/)[0].toLowerCase()))}
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
@@ -1233,7 +1235,7 @@ function refLabel(r){const p=String(r).split('_');return p.length>2&&p[0]==='ref
   document.getElementById('lcol-open').onclick=()=>setL(false);
   document.getElementById('lcol-skills').onclick=()=>{setL(false);const c=document.querySelector('.card.skl');if(c&&c.classList.contains('shut'))c.querySelector('.h').click()};})();
 /* models rail */
-const PICK=['auto','h3','music3','qimg','ace'];   /* the generative models (MUSE still answers chat through Auto) */
+const PICK=['auto','h3','music3','qimg','ace'];   /* the generative models (MirAI still answers chat through Auto) */
 const PICKN={auto:'Picks the right model, skill or pipeline for you — and answers questions',h3:'Video',music3:'Song with vocals',qimg:'Image',ace:'Music / instrumental'};
 function renderModels(){
   const st=(status.comfy||{}).models||{},m=MODELS[cur]||MODELS.auto;if(!m)return;
@@ -1259,17 +1261,17 @@ $('#mmpick').addEventListener('keydown',e=>{const o=e.target.closest('[data-m]')
 document.addEventListener('click',e=>{if(!e.target.closest('#mmpick')&&$('#mmpick').classList.contains('on'))mmOpen(false)});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')mmOpen(false);if(e.altKey&&(e.key==='m'||e.key==='M')){e.preventDefault();mmOpen()}});
 function setModel(k){cur=k;if(typeof lSetRole==='function'&&LROLE[k]&&LROLE[k]!==lRole)setTimeout(()=>lSetRole(LROLE[k]),0);if(typeof renderLsel==='function')setTimeout(renderLsel,0);LS.set('mml.model2',k);(document.documentElement.dataset.theme||document.documentElement.style.setProperty('--acc',mcol(k)));renderModels();renderHint();renderAtts()}
-const PH={auto:'Just say what you want — MUSE picks the tool… e.g. a neon city at night, 8 s video · or ask anything',
+const PH={auto:'Just say what you want — MirAI picks the tool… e.g. a neon city at night, 8 s video · or ask anything',
   h3:'Ask H3 for a video… e.g. a lighthouse keeper climbs the stairs at dusk, slow crane up 8s',
   music3:'Ask Music 3 for a song… e.g. uplifting synth-pop anthem, bright female vocal --90s',
   qimg:'Ask Qwen for an image… e.g. neon jazz club poster, the sign reads "BLUE NOTE"',
   ace:'Ask ACE for a track… e.g. lo-fi beat, dusty drums, warm Rhodes --30s (attach audio to remix)',
-  llama:'Talk to MUSE — ideas, lyrics, scripts, prompts… e.g. write a song about a midnight train'};
+  llama:'Talk to MirAI — ideas, lyrics, scripts, prompts… e.g. write a song about a midnight train'};
 function renderHint(){
   const m=MODELS[cur];if(!m)return;
   $('#prompt').placeholder=PH[cur]||'Message the lab…';
   const v=m.values||{};let b='';
-  if(cur==='auto')b='MUSE picks the model, skill or pipeline';
+  if(cur==='auto')b='MirAI picks the model, skill or pipeline';
   if(cur==='h3')b=`<b>${esc(v.mode)}</b> · ${esc(v.aspect)} · ${esc(v.res)} · ${esc(v.seconds)}s · ${esc(v.quality)}`;
   if(cur==='music3')b=`≤${esc(v.duration)}s · lyrics ${esc(v.lyrics)} · ${esc(v.steps)} steps`;
   if(cur==='qimg')b=`<b>${esc(v.mode)}</b> · ${esc(v.aspect)} · ${esc(v.size)} · ${esc(v.steps)} steps`;
@@ -1332,7 +1334,7 @@ $('#prompt').addEventListener('input',acUpdate);
 const go_send=go;$('#b-go').onclick=go;
 
 /* mascot: the atom mirrors the lab live */
-/* mascot status card — model icon + colour, MUSE's pick, pipeline steps, live stage, and the tags the prompt is using */
+/* mascot status card — model icon + colour, MirAI's pick, pipeline steps, live stage, and the tags the prompt is using */
 const MICON={auto:'sparkle',h3:'film',music3:'mic',qimg:'image',ace:'drum',llama:'type'};
 const ROLE_IC={image:'image',video:'film',song:'mic',music:'drum',text:'type'};
 function mcTags(j){const p=j.params||{},m=j.model,t=[],seen=new Set();
@@ -1363,7 +1365,7 @@ function mcCard(j,state,title){const m=MODELS[j.model]||{},col=m.color||'var(--o
   const stage=state==='queued'?'waiting for the GPU':state==='done'?'saved to the library':state==='error'?(j.error||'render failed'):(j.stage||'rendering');
   return `<div class="mc-h"><span class="mc-ic" title="${esc(m.label||j.model)}">${MI.html(MICON[j.model]||'sparkle')}</span>
     <div class="mc-t"><b>${esc(m.label||j.model)}${plan.length?` · STEP ${esc(j.step||'')}`:''}</b><small>${esc(stage)}</small></div><em>${esc(title)}</em></div>
-    ${j.route?`<div class="mc-route">${MI.html('sparkle')}<span>MUSE chose <b>${esc(j.route.label)}</b>${j.route.why?' — '+esc(j.route.why):''}</span></div>`:''}
+    ${j.route?`<div class="mc-route">${MI.html('sparkle')}<span>MirAI chose <b>${esc(j.route.label)}</b>${j.route.why?' — '+esc(j.route.why):''}</span></div>`:''}
     ${steps?`<div class="mc-steps">${steps}</div>`:''}
     ${state==='render'?livePv(j):''}
     ${j.progress&&j.progress.max&&state==='render'?`<div class="mc-bar det"><i style="width:${j.progress.pct}%"></i></div><div class="mc-pg"><span>${esc(j.progress.what)}</span><b>${j.progress.value} / ${j.progress.max}</b></div>`:'<div class="mc-bar"><i></i></div>'}
@@ -1479,7 +1481,7 @@ function openBook(){
   $$('#s-body [data-ins]').forEach(r=>r.onclick=()=>{closeSheet();runOrInsert(r.dataset.ins)})}
 $('#b-book').onclick=openBook;$('#b-book2').onclick=openBook;
 /* recipes — the armed skill / manual inside the composer: its steps, which attachment feeds which step, its dials;
-   in Auto mode a quick-rules preview of what MUSE will most likely do (tap to lock it in) */
+   in Auto mode a quick-rules preview of what MirAI will most likely do (tap to lock it in) */
 var KNOBV={},PREVIEW=null,pvT=null,rcpMin=false;
 const SLOTN={audio:'Audio',image:'Picture',video:'Clip',text:'Text'};
 function rcpNeeds(o){return Object.entries(o.need||(o.needs&&typeof o.needs==='string'?{[o.needs]:1}:{})||{})}
@@ -1509,7 +1511,7 @@ function renderRecipe(){const R=$('#recipe');if(!R)return;
     const m=$('#rc-min');if(m)m.onclick=()=>{rcpMin=!rcpMin;renderRecipe()};$('#unarm').onclick=e=>{e.stopPropagation();disarm()};return}
   if(cur==='auto'&&PREVIEW&&PREVIEW.action&&PREVIEW.action!=='chat'){
     const lockable=PREVIEW.pipeline||PREVIEW.skill;
-    R.innerHTML=`<div class="rcp ghost"><div class="rc-h">${MI.html('sparkle','sm')} MUSE will likely: <b>${esc(PREVIEW.label)}</b>${PREVIEW.why?` <span>— ${esc(PREVIEW.why)}</span>`:''}
+    R.innerHTML=`<div class="rcp ghost"><div class="rc-h">${MI.html('sparkle','sm')} MirAI will likely: <b>${esc(PREVIEW.label)}</b>${PREVIEW.why?` <span>— ${esc(PREVIEW.why)}</span>`:''}
       ${lockable?`<button class="lock" id="rc-lock" title="Use exactly this — and show its dials">Use this</button>`:''}</div></div>`;
     const l=$('#rc-lock');if(l)l.onclick=()=>{const p=$('#prompt').value;arm(PREVIEW.pipeline?'pipeline':'skill',PREVIEW.pipeline||PREVIEW.skill);$('#prompt').value=p;autosize()};return}
   R.innerHTML=''}
@@ -1531,10 +1533,10 @@ $('#prompt').addEventListener('input',()=>{const v=$('#prompt').value,m=v.match(
   const s0=setModel;setModel=function(k){s0(k);renderRecipe();previewSoon()}})();
 function planHTML(j){if(!j.plan||!j.plan.length)return '';
   const mark={done:MI.html('check','sm'),running:MI.html('hourglass','sm'),error:MI.html('close','sm')};
-  return `<div class="plan"><div class="ph">${MI.html('chain','sm')} THE MANUAL MUSE IS FOLLOWING</div>${j.plan.map(r=>{const st=j.status==='cancelled'&&r.status!=='done'?'waiting':r.status;
+  return `<div class="plan"><div class="ph">${MI.html('chain','sm')} THE MANUAL MirAI IS FOLLOWING</div>${j.plan.map(r=>{const st=j.status==='cancelled'&&r.status!=='done'?'waiting':r.status;
     return `<div class="ps ${st}"><span class="st">${mark[st]||r.n}</span><span><b>${r.n}. ${esc(r.label)}</b> <span class="pd">— ${esc(r.does)}</span></span>
       ${r.inputs&&r.inputs.length?`<span class="pi">${MI.html('attach','sm')} ${r.inputs.map(x=>esc(refLabel(x))).join(' · ')}</span>`:''}
-      ${r.used||r.prompt?`<details data-id="${j.id}_p${r.n}"><summary>${r.used?'prompt used':'MUSE wrote'}</summary><pre>${esc(r.used||r.prompt)}</pre></details>`:''}</div>`}).join('')}</div>`}
+      ${r.used||r.prompt?`<details data-id="${j.id}_p${r.n}"><summary>${r.used?'prompt used':'MirAI wrote'}</summary><pre>${esc(r.used||r.prompt)}</pre></details>`:''}</div>`}).join('')}</div>`}
 
 let LAB_BUSY=false;
 async function go(){
@@ -1627,7 +1629,7 @@ document.addEventListener('keydown',e=>{if(e.code!=='Space'||/INPUT|TEXTAREA|SEL
   const m=document.querySelector('#lb.on .mp video,#lb.on .mp audio')||[...document.querySelectorAll('.mp video,.mp audio')].find(x=>!x.paused);
   if(m){e.preventDefault();m.paused?m.play().catch(()=>{}):m.pause()}});
 
-/* ── MUSE bubble: ring dial (one segment per step) + step timeline, rendered inside the job's chat reply ── */
+/* ── MirAI bubble: ring dial (one segment per step) + step timeline, rendered inside the job's chat reply ── */
 const MB_LINE={},MB_P={};
 const MB_FOLD=new Set((()=>{try{return JSON.parse(localStorage.getItem('mml.mbfold')||'[]')}catch(e){return[]}})());
 function mbSteps(j){const pl=j.plan&&j.plan.length?j.plan:null,m=MODELS[j.model]||{};
@@ -1667,7 +1669,7 @@ function museBlock(j){const live=j.status==='running'||j.status==='queued',S=mbS
   const tags=live&&typeof mcTags==='function'?`<div class="mb-tags">${mcTags(j).slice(0,8).map(([ic,v])=>`<span>${MI.html(ic)}${esc(v)}</span>`).join('')}</div>`:'';
   const ln=MB_LINE[j.id];
   const liveLine=live?`<div class="mb-live ${ln?ln.level:''}"><i class="d"></i><b class="mb-src">${esc(ln?ln.src:'LAB')}</b><span class="mb-ln">${esc(ln?ln.text:(j.status==='queued'?'waiting for the GPU':(j.stage||'starting')))}</span></div>`:'';
-  return `<div class="mb${live&&MB_FOLD.has(j.id)?' fold':''}" data-mb="${j.id}" style="--mbc:${c};--mbc2:${c2}"><div class="mb-h">${mbRing(j)}<div class="tx"><div class="mb-who"><span><span class="av">${MI.html('lab')}</span>MUSE${j.brain?`<small class="mb-brain">${esc(j.brain)}</small>`:''}</span><em class="mb-t">${t2}</em></div><div class="mb-tx">${mbText(j)}</div></div></div>${liveLine}${j.status==='running'&&typeof livePv==='function'?livePv(j):''}${steps}${tags}${live?'<div class="mb-hint">tap to expand</div>':''}</div>`}
+  return `<div class="mb${live&&MB_FOLD.has(j.id)?' fold':''}" data-mb="${j.id}" style="--mbc:${c};--mbc2:${c2}"><div class="mb-h">${mbRing(j)}<div class="tx"><div class="mb-who"><span><span class="av">${MI.html('lab')}</span>MirAI${j.brain?`<small class="mb-brain">${esc(j.brain)}</small>`:''}</span><em class="mb-t">${t2}</em></div><div class="mb-tx">${mbText(j)}</div></div></div>${liveLine}${j.status==='running'&&typeof livePv==='function'?livePv(j):''}${steps}${tags}${live?'<div class="mb-hint">tap to expand</div>':''}</div>`}
 /* live patch (no rebuild): timer, ring %, bar, step counter */
 function mbTick(jobs){jobs.forEach(j=>{MB_P[j.id]=j.status==='running'?(j.progress&&j.progress.max?j.progress.pct:null):null;if(j.status!=='running')return;const b=document.querySelector(`.mb[data-mb="${j.id}"]`);if(!b)return;
   const t=b.querySelector('.mb-t');if(t)t.textContent=dur(j.started);
@@ -1700,13 +1702,13 @@ document.addEventListener('click',e=>{const h=e.target.closest('.mb-h,.mb-hint')
   document.addEventListener('visibilitychange',()=>window.mbDNA());
   new MutationObserver(()=>window.mbDNA()).observe(document.getElementById('thread')||document.body,{childList:true,subtree:true});
 })();
-/* one live backend line per bubble: newest engine / MUSE / worker event for that job */
+/* one live backend line per bubble: newest engine / MirAI / worker event for that job */
 setInterval(async()=>{if(document.hidden)return;const ids=[...document.querySelectorAll('.mb[data-mb]')].filter(b=>b.querySelector('.mb-live')).map(b=>b.dataset.mb);
   if(!ids.length)return;let r;try{r=await api('/api/console?jobs='+ids.join(','))}catch(e){return}
   Object.entries(r.lines||{}).forEach(([id,ln])=>{MB_LINE[id]=ln;const b=document.querySelector(`.mb[data-mb="${id}"] .mb-live`);if(!b)return;
     b.className='mb-live '+(ln.level||'');b.querySelector('.mb-src').textContent=ln.src;const sp=b.querySelector('.mb-ln');if(sp.textContent!==ln.text)sp.textContent=ln.text})},1500);
 
-/* ── MUSE voice: natural local voice (Kokoro on the PC's CPU) reads her replies aloud, sentence by sentence ── */
+/* ── MirAI voice: natural local voice (Kokoro on the PC's CPU) reads her replies aloud, sentence by sentence ── */
 window.VOICE=(function(){
   const st={on:true,id:'af_bella',speed:1},TRACK={},Q=[];
   const MINE=new Set((()=>{try{return JSON.parse(sessionStorage.getItem('mml.voicemine')||'[]')}catch(e){return[]}})());
@@ -1715,7 +1717,7 @@ window.VOICE=(function(){
   const save=(push)=>{try{localStorage.setItem('mml.voice',JSON.stringify(st))}catch(e){}
     if(push)fetch('/api/miros-prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'voice',value:st})}).catch(()=>{})};
   fetch('/api/miros-prefs',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(d&&d.voice){Object.assign(st,d.voice);save();btn()}}).catch(()=>{});
-  function btn(){const b=document.getElementById('b-voice');if(b){b.innerHTML=MI.html(st.on?'volume':'mute');b.classList.toggle('off',!st.on);b.title=st.on?'MUSE voice on — tap to mute':'MUSE voice muted — tap to turn on'}}
+  function btn(){const b=document.getElementById('b-voice');if(b){b.innerHTML=MI.html(st.on?'volume':'mute');b.classList.toggle('off',!st.on);b.title=st.on?'MirAI voice on — tap to mute':'MirAI voice muted — tap to turn on'}}
   function url(t){return '/api/tts?text='+encodeURIComponent(t)+'&voice='+st.id+'&speed='+st.speed}
   let curId=null;
   /* Listen buttons are on/off: "Stop" while that reply is being read (queued or playing), "Listen" otherwise */
@@ -1745,25 +1747,25 @@ window.VOICE=(function(){
       if(j.status==='error'||j.status==='cancelled'){t.pos=1e9;return}
       ss.forEach(x=>say(x,false,j.id))})}
   document.addEventListener('click',e=>{if(!unlocked){unlocked=true;try{const a=new Audio();a.muted=true;a.play().catch(()=>{})}catch(_){}}
-    const b=e.target.closest('#b-voice');if(b){st.on=!st.on;if(!st.on)stop();save(true);btn();toast(st.on?'MUSE will speak her replies':'MUSE voice muted')}
+    const b=e.target.closest('#b-voice');if(b){st.on=!st.on;if(!st.on)stop();save(true);btn();toast(st.on?'MirAI will speak her replies':'MirAI voice muted')}
     const r=e.target.closest('[data-say]');if(r){e.preventDefault();e.stopPropagation();const id=r.dataset.say,was=speaking(id);stop();
       if(!was){const j=(window._lastJobs||[]).find(x=>x.id===id);if(j)take(j.output||'',0,true)[0].forEach(x=>say(x,true,id))}}},true);
   setTimeout(btn,0);
   return {st,say,stop,jobs,save,btn,url,mine}})();
-function openVoice(){head('volume','var(--panel2)','MUSE VOICE');
+function openVoice(){head('volume','var(--panel2)','MirAI VOICE');
   fetch('/api/tts/voices').then(r=>r.json()).then(d=>{const v=VOICE.st;
     $('#s-body').innerHTML=(d.available?'':'<p style="color:var(--yellow)">The voice engine isn\'t installed on this PC yet — run MirMediaLabs-Setup.exe → Repair.</p>')+
-      '<p style="color:var(--dim);margin:0 0 10px">A natural voice made on this PC (no cloud). MUSE reads her replies aloud as they arrive.</p><div class="vgrid">'+
+      '<p style="color:var(--dim);margin:0 0 10px">A natural voice made on this PC (no cloud). MirAI reads her replies aloud as they arrive.</p><div class="vgrid">'+
       d.voices.map(x=>`<button class="vc ${x.id===v.id?'on':''}" data-v="${x.id}">${MI.html(x.id===v.id?'check':'play')}<span><b>${esc(x.label.split(' · ')[0])}</b><small>${esc(x.label.split(' · ')[1]||'')}</small></span></button>`).join('')+
       `</div><label style="display:flex;gap:10px;align-items:center;margin-top:14px">Speed <input type="range" id="v-sp" min="0.8" max="1.2" step="0.05" value="${v.speed}" style="flex:1"><b id="v-spv">${(+v.speed).toFixed(2)}×</b></label>`;
     $('#s-ft').innerHTML='';
-    $$('#s-body [data-v]').forEach(b=>b.onclick=()=>{v.id=b.dataset.v;v.on=true;VOICE.save(true);VOICE.btn();VOICE.stop();VOICE.say('Hi, I\'m MUSE. This is how I\'ll sound when I answer you.',true);openVoice()});
+    $$('#s-body [data-v]').forEach(b=>b.onclick=()=>{v.id=b.dataset.v;v.on=true;VOICE.save(true);VOICE.btn();VOICE.stop();VOICE.say('Hi, I\'m MirAI. This is how I\'ll sound when I answer you.',true);openVoice()});
     $('#v-sp').oninput=e=>{v.speed=+e.target.value;$('#v-spv').textContent=v.speed.toFixed(2)+'×'};
     $('#v-sp').onchange=()=>{VOICE.save(true);VOICE.stop();VOICE.say('Is this a good speed?',true)};
     openSheet()})}
 function renderThread(jobs){
   const t=$('#thread');
-  if(!jobs.length){t.innerHTML=`<div class="welcome"><img src="/static/icon-512.png" alt=""><h3>MIR MEDIA LABS</h3>Just say what you want — <b>MUSE</b> picks the right model, skill or pipeline, or simply answers.<br>Prefer control? Pick a model yourself on the left. Attach pictures, clips, songs or text with ${MI.html('attach')}.</div>`;return}
+  if(!jobs.length){t.innerHTML=`<div class="welcome"><img src="/static/icon-512.png" alt=""><h3>MIR MEDIA LABS</h3>Just say what you want — <b>MirAI</b> picks the right model, skill or pipeline, or simply answers.<br>Prefer control? Pick a model yourself on the left. Attach pictures, clips, songs or text with ${MI.html('attach')}.</div>`;return}
   const open=new Set($$('#thread details[open]').map(d=>d.dataset.id));
   t.innerHTML=jobs.slice().reverse().map(j=>{const m=MODELS[j.model]||{};
     const live=j.status==='running'||j.status==='queued';
@@ -1781,7 +1783,7 @@ function renderThread(jobs){
     else body=museBlock(j)+`<div class="media">${(j.files||[]).map(mediaHTML).join('')}</div>
       <div class="acts">${(j.files||[]).map(fn=>`<button class="btn sm" data-open="${esc(fn)}">${MI.html('expand')} Open</button><button class="btn sm" data-use="${esc(fn)}">${MI.html('refresh')} Use as ref</button><a class="btn sm" href="/media/${encodeURIComponent(fn)}?dl=1" download="${esc(fn)}">${MI.html('download')} Download</a>`).join('')}<button class="btn sm" data-r="${j.id}">↺ Again</button></div>
       ${j.output?`<details data-id="${j.id}" ${open.has(j.id)?'open':''}><summary>details</summary><pre>${esc(j.output)}</pre></details>`:''}`;
-    const lab=`<div class="msg lab" data-job="${j.id}" data-model="${j.model}" style="--mc:${m.color||'#888'}"><div class="meta"><span class="chip">${esc(m.label||j.model)}</span>${j.pipeline&&j.step&&live?`<span class="pl-tag">step ${esc(j.step)}</span>`:''}<span class="st ${j.status}">${j.status.toUpperCase()}${t2?' · <span class="tm">'+t2+'</span>':''}</span>${j.finished?`<span>${stamp(j.finished)}</span>`:''}</div>${j.route?`<div class="route" title="${esc(String(j.route.by||'').startsWith('muse')?'decided by MUSE'+(j.route.by.includes(' · ')?' on '+j.route.by.split(' · ')[1]:''):'decided by the quick rules')}">${MI.html('sparkle','sm')} MUSE${(j.route.by||'').includes(' · ')?' · '+esc(j.route.by.split(' · ')[1]):''} chose <b>${esc(j.route.label)}</b>${j.route.why?` <span>— ${esc(j.route.why)}</span>`:''}</div>`:''}${loraLine(j)}${planHTML(j)}${body}</div>`;
+    const lab=`<div class="msg lab" data-job="${j.id}" data-model="${j.model}" style="--mc:${m.color||'#888'}"><div class="meta"><span class="chip">${esc(m.label||j.model)}</span>${j.pipeline&&j.step&&live?`<span class="pl-tag">step ${esc(j.step)}</span>`:''}<span class="st ${j.status}">${j.status.toUpperCase()}${t2?' · <span class="tm">'+t2+'</span>':''}</span>${j.finished?`<span>${stamp(j.finished)}</span>`:''}</div>${j.route?`<div class="route" title="${esc(String(j.route.by||'').startsWith('muse')?'decided by MirAI'+(j.route.by.includes(' · ')?' on '+j.route.by.split(' · ')[1]:''):'decided by the quick rules')}">${MI.html('sparkle','sm')} MirAI${(j.route.by||'').includes(' · ')?' · '+esc(j.route.by.split(' · ')[1]):''} chose <b>${esc(j.route.label)}</b>${j.route.why?` <span>— ${esc(j.route.why)}</span>`:''}</div>`:''}${loraLine(j)}${planHTML(j)}${body}</div>`;
     return me+lab}).join('');
   if(stick)t.scrollTop=t.scrollHeight;
   $$('#thread [data-c]').forEach(b=>b.onclick=()=>api('/api/jobs/'+b.dataset.c+'/cancel',{method:'POST'}).then(()=>{toast('Cancelling…');pollJobs(true)}).catch(e=>toast(e.message)));
@@ -1923,7 +1925,7 @@ function openThemes(){head('palette','var(--panel2)','THEME');
     <div class="pv"><i style="background:${t.sw[1]}"></i><div class="r"><i style="background:${t.sw[2]};height:22px"></i><i style="background:${t.sw[1]};flex:1"></i><i style="background:${t.sw[4]};height:10px;width:46%"></i></div></div>
     <div class="nm" style="border-top:1px solid rgba(128,128,128,.25)">${esc(t.name)}<small>${esc(t.d)}</small></div></button>`).join('')+'</div>';
 
-  $('#s-body').insertAdjacentHTML('beforeend','<button class="btn" style="margin-top:14px" onclick="openVoice()">'+MI.html('volume')+' MUSE voice…</button>');
+  $('#s-body').insertAdjacentHTML('beforeend','<button class="btn" style="margin-top:14px" onclick="openVoice()">'+MI.html('volume')+' MirAI voice…</button>');
   $('#s-ft').innerHTML='';
   $$('#s-body [data-th]').forEach(b=>b.onclick=()=>{mmlTheme.save(b.dataset.th);openThemes()});
   openSheet();}
@@ -1934,10 +1936,10 @@ addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();closeLB()}});
 function head(chip,color,title){$('#s-chip').innerHTML=MI.html(chip);$('#s-chip').style.background=color;$('#s-title').textContent=title}
 $('#b-params').onclick=()=>openParams(cur);
 function openParams(k){
-  if(k==='auto'){head('sparkle','#b48cff','AUTO · MUSE DIRECTOR');
-    $('#s-body').innerHTML=`<div class="kv"><div>MUSE reads every message and decides what happens: <b>answer it</b> (questions, ideas, lyrics, scripts), <b>render</b> it on the right model (image · video · song · music), use a <b>skill</b> preset, or run a <b>pipeline</b>.</div>
+  if(k==='auto'){head('sparkle','#b48cff','AUTO · MirAI DIRECTOR');
+    $('#s-body').innerHTML=`<div class="kv"><div>MirAI reads every message and decides what happens: <b>answer it</b> (questions, ideas, lyrics, scripts), <b>render</b> it on the right model (image · video · song · music), use a <b>skill</b> preset, or run a <b>pipeline</b>.</div>
       <div>Follow-ups work: "now animate it" or "make a song for that" reuse your last result automatically.</div>
-      <div>Flags you type (<code>--8s</code>, <code>--vertical</code>, <code>--bpm 120</code>…) are always kept. Slash commands (<code>/video</code>, <code>/skill product</code>…) and picking a model yourself skip MUSE.</div>
+      <div>Flags you type (<code>--8s</code>, <code>--vertical</code>, <code>--bpm 120</code>…) are always kept. Slash commands (<code>/video</code>, <code>/skill product</code>…) and picking a model yourself skip MirAI.</div>
       <div>Each model keeps its own settings — open its <span style="color:var(--dim)">sliders</span> to change them.</div></div>`;
     $('#s-ft').innerHTML='';openSheet();return}
   const m=MODELS[k];const v=m.values||{};
@@ -2022,11 +2024,11 @@ $('#b-settings').onclick=()=>{
   const st=$('#eng-start');if(st)st.onclick=()=>api('/api/engine/start',{method:'POST'}).then(()=>toast('Starting ComfyUI (~40 s)…'));
   openSheet();
 };
-/* CLOUD BRAIN (owner, host PC only) — Claude / GPT as MUSE, the Director and the prompt writer.
+/* CLOUD BRAIN (owner, host PC only) — Claude / GPT as MirAI, the Director and the prompt writer.
    Keys are saved on this PC only and never shown again; invited people always stay on the local engine. */
 async function cloudCard(){const slot=$('#cb-slot');if(!slot)return;let d;try{d=await api('/api/cloud')}catch(e){slot.innerHTML='';return}
   const cur=d.brain,u=d.usage||{},m=d.models.find(x=>x.id===cur.model);
-  slot.innerHTML=`<div class="cbx"><div class="cbh">${MI.html('sparkle')} <b>Model picker</b><span>MUSE, the Director and the prompt writer — local or cloud (Claude · GPT · GLM 5.2), billed to your key</span></div>
+  slot.innerHTML=`<div class="cbx"><div class="cbh">${MI.html('sparkle')} <b>Model picker</b><span>MirAI, the Director and the prompt writer — local or cloud (Claude · GPT · GLM 5.2), billed to your key</span></div>
     <div class="cbf"><span>Now: <b>${cur.provider==='local'?esc(d.local.label)+' (free)':esc(m?m.label:cur.model)}</b> · $${(u.usd||0).toFixed(2)} of $${d.cap} this month</span><span style="flex:1"></span><button class="btn sm pri" id="cb-open">Open model picker</button></div></div>`;
   $('#cb-open').onclick=()=>mpOpen()}
 /* MODEL PICKER (host PC) — same layout as MirOS: provider groups, model cards with ctx/price/vision badges,
@@ -2039,28 +2041,28 @@ async function mpOpen(id){if(!ME.host)return;let box=$('#mpk');if(!box){box=docu
   MP.sel=id||MP.sel||(MP.d.brain.provider==='local'?'local':MP.d.brain.model);box.classList.add('on');mpDraw()}
 function mpDraw(){const d=MP.d,box=$('#mpk'),cur=d.brain,nm={anthropic:'Anthropic · Claude',openai:'OpenAI · GPT',fireworks:'Fireworks · GLM'};
   const isCur=id=>id==='local'?cur.provider==='local':cur.provider!=='local'&&cur.model===id;
-  const card=(id,label,model,badges,ready)=>`<button class="mpc${MP.sel===id?' sel':''}${ready?'':' off'}" data-id="${esc(id)}"><span class="t">${esc(label)}<span class="sp"></span>${isCur(id)?'<span class="tag">MUSE</span>':''}</span><code>${esc(model)}</code><span class="bd">${badges.map(x=>'<i>'+x+'</i>').join('')}</span></button>`;
+  const card=(id,label,model,badges,ready)=>`<button class="mpc${MP.sel===id?' sel':''}${ready?'':' off'}" data-id="${esc(id)}"><span class="t">${esc(label)}<span class="sp"></span>${isCur(id)?'<span class="tag">MirAI</span>':''}</span><code>${esc(model)}</code><span class="bd">${badges.map(x=>'<i>'+x+'</i>').join('')}</span></button>`;
   let L=`<h4>LOCAL · OLLAMA</h4>`+card('local',d.local.label,d.local.model,['ctx '+mpK(d.local.ctx),'free · local','never makes media'],true);
   ['anthropic','fireworks','openai'].forEach(p=>{const ms=d.models.filter(m=>m.provider===p);
     L+=`<h4>${nm[p].toUpperCase()} <span class="k ${d.keys[p]?'ok':'no'}">${d.keys[p]?'KEY OK':'NO KEY'}</span></h4>`;
     if(!d.keys[p])L+=`<div class="mpn">Add a ${nm[p]} key below to list its models.</div>`;
     ms.forEach(m=>{L+=card(m.id,m.label,m.id,['ctx '+mpK(m.ctx),'$'+m.price[0]+' / $'+m.price[1]+' per 1M',m.vision?'vision':'text only'].concat(Object.keys(m.params||{}).length?['tuned']:[]),d.keys[p])})});
   const m=d.models.find(x=>x.id===MP.sel),loc=MP.sel==='local'||!m,pr=(m&&m.params)||{};
-  let R=loc?`<h3>${esc(d.local.label)}</h3><div class="sub">Local Ollama · free · runs on this PC</div><div class="mpn">The local MUSE handles chat, prompt writing and the Auto-mode model pick. It never generates media. Context is fixed by its Modelfile.</div>
-      <div class="row"><button class="btn pri" id="mp-use">Use local MUSE</button></div>`
+  let R=loc?`<h3>${esc(d.local.label)}</h3><div class="sub">Local Ollama · free · runs on this PC</div><div class="mpn">The local MirAI handles chat, prompt writing and the Auto-mode model pick. It never generates media. Context is fixed by its Modelfile.</div>
+      <div class="row"><button class="btn pri" id="mp-use">Use local MirAI</button></div>`
     :`<h3>${esc(m.label)}</h3><div class="sub">${nm[m.provider]} · $${m.price[0]} / $${m.price[1]} per 1M tokens${m.note?' · '+esc(m.note):''}</div>
       <label>MODEL ID</label><input type="text" value="${esc(m.id)}" disabled>
       <label>CONTEXT WINDOW <em>${mpK(m.ctx)}</em></label><input type="range" min="0" max="1" value="1" disabled>
       <label>MAX OUTPUT TOKENS <em>${pr.max_out||'auto'}</em></label><input type="number" id="mp-out" min="256" max="64000" step="256" placeholder="auto (per task)" value="${pr.max_out||''}">
       <label>TEMPERATURE <em id="mp-tv">${pr.temperature!=null?pr.temperature:'auto'}</em></label><input type="range" id="mp-temp" min="0" max="2" step="0.05" value="${pr.temperature!=null?pr.temperature:0.7}"${m.provider==='anthropic'?' disabled title="Claude uses reasoning effort instead"':''}>
       <label>REASONING EFFORT</label><div class="seg" id="mp-eff">${['auto','low','medium','high'].map(e=>`<button data-e="${e}" class="${(pr.effort||'auto')===e?'on':''}">${e.toUpperCase()}</button>`).join('')}</div>
-      <div class="row"><button class="btn pri" id="mp-use"${d.keys[m.provider]?'':' disabled'}>Use for MUSE</button><button class="btn" id="mp-save">Save params</button><button class="btn" id="mp-reset">Reset</button></div>
+      <div class="row"><button class="btn pri" id="mp-use"${d.keys[m.provider]?'':' disabled'}>Use for MirAI</button><button class="btn" id="mp-save">Save params</button><button class="btn" id="mp-reset">Reset</button></div>
       ${d.keys[m.provider]?'':'<div class="mpn">Save the '+nm[m.provider]+' key below first.</div>'}`;
   const u=d.usage||{},pct=Math.min(100,(u.usd||0)/Math.max(.01,d.cap)*100);
   R+=`<div class="keys"><h4>API KEYS</h4>${['anthropic','fireworks','openai'].map(p=>`<div class="kr"><span>${nm[p]}</span>${d.keys[p]?`<b class="ok">${MI.html('check')} saved</b><button data-del="${p}">Remove</button>`:`<input type="password" data-k="${p}" autocomplete="off" placeholder="${{anthropic:'sk-ant-…',openai:'sk-…',fireworks:'fw_…'}[p]}"><button data-save="${p}">Save</button>`}</div>`).join('')}
     <div class="mpn">Keys stay on this PC and are never shown again. Invited people always use the local engine.</div>
     <h4>MONTHLY CAP</h4><div class="cbbar"><i style="width:${pct.toFixed(1)}%"></i></div><div class="mpn">$${(u.usd||0).toFixed(2)} of $<input id="mp-cap" type="number" min="0" step="1" value="${d.cap}" style="width:70px"> · ${u.calls||0} calls${d.over_cap?' · <b style="color:var(--red)">cap reached, using local</b>':''}</div></div><div class="msg"></div>`;
-  box.innerHTML=`<div class="mp"><div class="mph">${MI.html('sparkle')}<b>MODEL PICKER</b><span class="sp"></span><span class="now">MUSE · <b>${cur.provider==='local'?esc(d.local.label):esc((d.models.find(x=>x.id===cur.model)||{}).label||cur.model)}</b></span><a id="mp-x">${MI.html('close')}</a></div><div class="mpb"><div class="mpl">${L}</div><div class="mpr">${R}</div></div></div>`;
+  box.innerHTML=`<div class="mp"><div class="mph">${MI.html('sparkle')}<b>MODEL PICKER</b><span class="sp"></span><span class="now">MirAI · <b>${cur.provider==='local'?esc(d.local.label):esc((d.models.find(x=>x.id===cur.model)||{}).label||cur.model)}</b></span><a id="mp-x">${MI.html('close')}</a></div><div class="mpb"><div class="mpl">${L}</div><div class="mpr">${R}</div></div></div>`;
   const post=(url,body)=>api(url,{method:'POST',body:JSON.stringify(body)}),say=(t,e)=>{const x=box.querySelector('.msg');x.textContent=t;x.className='msg'+(e?' e':'')};
   const done=r=>{MP.d=r;mpDraw();cloudCard()},fail=e=>say(e.message,1);
   $('#mp-x').onclick=()=>box.classList.remove('on');
@@ -2068,7 +2070,7 @@ function mpDraw(){const d=MP.d,box=$('#mpk'),cur=d.brain,nm={anthropic:'Anthropi
   const tp=$('#mp-temp');if(tp)tp.oninput=()=>{$('#mp-tv').textContent=tp.value;tp.dataset.set=1};
   $$('#mp-eff button').forEach(b=>b.onclick=()=>{$$('#mp-eff button').forEach(x=>x.classList.toggle('on',x===b))});
   const params=()=>({max_out:$('#mp-out').value,temperature:tp&&!tp.disabled&&(tp.dataset.set||(m.params||{}).temperature!=null)?tp.value:'',effort:($('#mp-eff button.on')||{}).dataset?.e||'auto'});
-  $('#mp-use').onclick=()=>{const go=()=>post('/api/cloud/brain',loc?{provider:'local'}:{provider:m.provider,model:m.id}).then(r=>{done(r);toast('MUSE now thinks with '+(loc?d.local.label:m.label))}).catch(fail);
+  $('#mp-use').onclick=()=>{const go=()=>post('/api/cloud/brain',loc?{provider:'local'}:{provider:m.provider,model:m.id}).then(r=>{done(r);toast('MirAI now thinks with '+(loc?d.local.label:m.label))}).catch(fail);
     if(loc)go();else post('/api/cloud/params',{model:m.id,params:params()}).then(go).catch(fail)};
   const sv=$('#mp-save');if(sv)sv.onclick=()=>post('/api/cloud/params',{model:m.id,params:params()}).then(r=>{done(r);say('saved')}).catch(fail);
   const rs=$('#mp-reset');if(rs)rs.onclick=()=>post('/api/cloud/params',{model:m.id,params:null}).then(r=>{done(r);say('reset')}).catch(fail);
@@ -2303,7 +2305,7 @@ async function pcUpdate(){
 }
 
 /* phone tabs */
-function setTab(t){if(t==='social')return mmlSocial();if(t==='editor')return mmlEditor();if(t==='series')return mmlSeries();if(t==='grab')return mmlGrab();document.body.dataset.tab=t;$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
+function setTab(t){if(t==='production')return mmlProduction();if(t==='social')return mmlSocial();if(t==='editor')return mmlEditor();if(t==='series')return mmlSeries();if(t==='grab')return mmlGrab();document.body.dataset.tab=t;$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
 $$('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
 
 (async function boot(){
@@ -2391,7 +2393,7 @@ function lToggle(file,strength){const i=loraSel.findIndex(s=>s.file===file);
   lSave();lRenderInst();renderLsel()}
 function renderLsel(){const box=$('#lsel');if(!box)return;const role=LCAN[cur],auto=cur==='auto';
   box.innerHTML=loraSel.map((s,i)=>{const meta=(typeof lInst!=='undefined'?lInst:[]).find(x=>x.file===s.file)||{},bad=meta.fits===false,off=bad||(!auto&&(!role||(s.role&&s.role!==role)));
-    return `<div class="att" style="${off?'opacity:.45':''}" title="${bad?'Made for a different version of this model — it can’t apply':off?(role?'Not used by this model':'This model can’t load LoRAs'):auto?'Applied when the model MUSE picks can use it':'LoRA applied at strength '+s.strength}"><span class="ic">${MI.html('layers')}</span><span class="n">${esc(s.name)} · ${(+s.strength).toFixed(2)}</span><button class="x" data-li="${i}">${MI.html('close')}</button></div>`}).join('');
+    return `<div class="att" style="${off?'opacity:.45':''}" title="${bad?'Made for a different version of this model — it can’t apply':off?(role?'Not used by this model':'This model can’t load LoRAs'):auto?'Applied when the model MirAI picks can use it':'LoRA applied at strength '+s.strength}"><span class="ic">${MI.html('layers')}</span><span class="n">${esc(s.name)} · ${(+s.strength).toFixed(2)}</span><button class="x" data-li="${i}">${MI.html('close')}</button></div>`}).join('');
   box.querySelectorAll('[data-li]').forEach(b=>b.onclick=()=>{loraSel.splice(+b.dataset.li,1);lSave();lRenderInst();renderLsel()})}
 function lSetRole(r){lRole=r;$$('#l-roles button,#lf-roles button').forEach(b=>b.classList.toggle('on',b.dataset.r===r));lItems=[];lNext=null;lLoad();lRenderInst()}
 function lOpen(){lFull=true;head('layers','var(--panel2)','LoRA LIBRARY');
@@ -2523,11 +2525,19 @@ window.addEventListener('message',function(e){var d=e.data||{};if(d.mml!=='edito
   try{loadLib()}catch(x){}
 });
 
-/* LIVE VOICE (MirOS MUSE) — show a voice-started render / download as it happens */
+/* LIVE VOICE (MirOS MirAI) — show a voice-started render / download as it happens */
 window.addEventListener('message',function(e){var d=e.data||{};if(d.mml!=='voice-show')return;
   try{if(typeof d.session==='string'&&d.session!==SESS.id)sessOpen(d.session);else pollJobs(true);}catch(x){}
   try{if(d.grab)mmlGrab();else setTab('create');}catch(x){}
 });/* DOWNLOADER (grab.py / static/grab.html) — link → MP3 / MP4 in the library → editor, Series, chat */
+/* PRODUCTION tab (producer.py / static/production.html) — MirAI productions as projects: timeline, resume, media */
+function mmlProduction(){
+  var f=document.getElementById('mml-pr');if(f)return;
+  f=document.createElement('iframe');f.id='mml-pr';f.src='production';f.allow='autoplay; fullscreen';
+  f.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9997;background:#000';document.body.appendChild(f);
+  try{closeLB()}catch(e){}
+}
+window.addEventListener('message',function(e){if((e.data||{}).mml!=='prod-close')return;var f=document.getElementById('mml-pr');if(f)f.remove();});
 function mmlGrab(){
   var f=document.getElementById('mml-gr');if(f)return;
   f=document.createElement('iframe');f.id='mml-gr';f.src='grab';f.allow='autoplay; fullscreen; clipboard-write; clipboard-read';
@@ -2543,5 +2553,6 @@ window.addEventListener('message',function(e){var d=e.data||{};
   try{loadLib()}catch(x){}
 });
 </script>
+<script src="static/lab_c.js"></script>
 </body>
 </html>

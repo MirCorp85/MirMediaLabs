@@ -23,7 +23,7 @@ final class CreatePage extends LinearLayout {
     private final java.util.Map<String, MuseBubble> bubbles = new java.util.HashMap<>();
     private final java.util.Map<String, TextView> listenBtns = new java.util.HashMap<>();
 
-    /** Listen buttons: "Stop" on the reply MUSE is reading, "Listen" on the rest. */
+    /** Listen buttons: "Stop" on the reply MirAI is reading, "Listen" on the rest. */
     void paintListen() {
         for (java.util.Map.Entry<String, TextView> e : listenBtns.entrySet()) {
             String t = m.voice.speaking(e.getKey()) ? "[[stop]] Stop" : "[[volume]] Listen";
@@ -302,12 +302,12 @@ final class CreatePage extends LinearLayout {
 
     static String placeholder(String k) {
         switch (k) {
-            case "auto": return "Just say what you want — MUSE picks the tool…";
+            case "auto": return "Just say what you want — MirAI picks the tool…";
             case "h3": return "Ask H3 for a video…";
             case "music3": return "Ask Music 3 for a song…";
             case "qimg": return "Ask Qwen for an image…";
             case "ace": return "Ask ACE for a track…";
-            case "llama": return "Talk to MUSE — ideas, lyrics, scripts…";
+            case "llama": return "Talk to MirAI — ideas, lyrics, scripts…";
             default: return "Message the lab…";
         }
     }
@@ -317,7 +317,7 @@ final class CreatePage extends LinearLayout {
     /** Tablet: the vertical model list for the left column. */
     View modelPane() { return modelRow; }
 
-    /** The generative models (MUSE still answers chat through Auto). */
+    /** The generative models (MirAI still answers chat through Auto). */
     static final String[] PICK = {"auto", "h3", "music3", "qimg", "ace"};
     static final String[] PICK_ICON = {"sparkle", "video", "music", "image", "drum"};
     static final String[] PICK_KIND = {"picks the right model for you", "video", "song with vocals", "image", "music / instrumental"};
@@ -417,7 +417,7 @@ final class CreatePage extends LinearLayout {
             LinearLayout chip = Ui.hbox(m);
             chip.setPadding(Ui.dp(8), Ui.dp(5), Ui.dp(4), Ui.dp(5));
             chip.setBackground(Ui.box(10, Ui.alpha(Ui.VIO, .14f), Ui.VIO));
-            String can = Loras.canOf(m.cur);              // Auto: MUSE's pick decides, so nothing is greyed out
+            String can = Loras.canOf(m.cur);              // Auto: MirAI's pick decides, so nothing is greyed out
             chip.setAlpha("auto".equals(m.cur) || (can != null && (l.optString("role").isEmpty() || can.equals(l.optString("role")))) ? 1f : .45f);
             chip.addView(Ui.text(m, "[[layers]]", 13, Ui.VIO));
             String nm = l.optString("name");
@@ -452,7 +452,7 @@ final class CreatePage extends LinearLayout {
 
     private static final java.util.regex.Pattern CMD_LINE = java.util.regex.Pattern.compile("^/[a-zA-Z0-9]{2,20}\\s+\\S.*");
 
-    /** Lines of a MUSE reply that are ready-to-send lab commands (/video …, /image …, /lyrics …). */
+    /** Lines of a MirAI reply that are ready-to-send lab commands (/video …, /image …, /lyrics …). */
     static java.util.List<String> museLines(String t) {
         java.util.List<String> out = new java.util.ArrayList<>();
         for (String raw : t.split("\n")) {
@@ -470,7 +470,7 @@ final class CreatePage extends LinearLayout {
         StringBuilder liveIds = new StringBuilder();
         for (int i = 0; i < jobs.length(); i++) {
             JSONObject j = jobs.optJSONObject(i);
-            // structure only (step / plan / files): live numbers are patched into the MUSE bubbles, no rebuild = no flicker
+            // structure only (step / plan / files): live numbers are patched into the MirAI bubbles, no rebuild = no flicker
             s.append(j.optString("id")).append(j.optString("status")).append(str(j, "step"));
             JSONArray pl = j.optJSONArray("plan");
             for (int k = 0; pl != null && k < pl.length(); k++) s.append(pl.optJSONObject(k).optString("status").charAt(0));
@@ -509,7 +509,7 @@ final class CreatePage extends LinearLayout {
         liveLines(liveIds.toString());
     }
 
-    /** The one live backend line in each running bubble (newest engine / MUSE / worker event for that job). */
+    /** The one live backend line in each running bubble (newest engine / MirAI / worker event for that job). */
     private void liveLines(String ids) {
         if (ids.isEmpty()) return;
         m.api.get("/api/console?jobs=" + ids, r -> {
@@ -663,17 +663,17 @@ final class CreatePage extends LinearLayout {
         // finish time on its own line: squeezed into the header row of a narrow card it wrapped into a vertical stack
         if (!j.isNull("finished") && j.has("finished"))
             b.addView(Ui.mono(m, stamp(j.optDouble("finished", 0)), 10, Ui.DIM), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 3, 0, 0));
-        JSONObject route = j.optJSONObject("route");          // Auto mode: what MUSE decided, and why
+        JSONObject route = j.optJSONObject("route");          // Auto mode: what MirAI decided, and why
         if (route != null) {
             String why = str(route, "why");
-            TextView rv = Ui.text(m, "[[sparkle]] MUSE chose " + str(route, "label") + (why.isEmpty() ? "" : " — " + why), 12, Ui.DIM);
-            Icons.set(rv, "[[sparkle]] MUSE chose " + str(route, "label") + (why.isEmpty() ? "" : " — " + why));
+            TextView rv = Ui.text(m, "[[sparkle]] MirAI chose " + str(route, "label") + (why.isEmpty() ? "" : " — " + why), 12, Ui.DIM);
+            Icons.set(rv, "[[sparkle]] MirAI chose " + str(route, "label") + (why.isEmpty() ? "" : " — " + why));
             b.addView(rv, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
         }
         android.view.View loraV = loraLine(j);
         if (loraV != null) b.addView(loraV, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
         final boolean museB = !"llama".equals(model) && ("running".equals(st) || "queued".equals(st) || "error".equals(st) || "done".equals(st));
-        if (museB) {                                            // MUSE bubble: ring · live line · DNA timeline
+        if (museB) {                                            // MirAI bubble: ring · live line · DNA timeline
             MuseBubble mb = new MuseBubble(m, j);
             bubbles.put(id, mb);
             b.addView(mb, Ui.margins(Ui.lp(Ui.MATCH, Ui.WRAP), 0, 9, 0, 0));
@@ -683,7 +683,7 @@ final class CreatePage extends LinearLayout {
             LinearLayout pv = Ui.vbox(m);
             pv.setPadding(Ui.dp(9), Ui.dp(6), Ui.dp(9), Ui.dp(7));
             pv.setBackground(Ui.box(10, Ui.CARD2, Ui.LINE2));
-            pv.addView(Ui.mono(m, "THE MANUAL MUSE IS FOLLOWING", 9.5f, Ui.FAINT));
+            pv.addView(Ui.mono(m, "THE MANUAL MirAI IS FOLLOWING", 9.5f, Ui.FAINT));
             for (int k = 0; k < plan.length(); k++) {
                 JSONObject r = plan.optJSONObject(k);
                 String s = r.optString("status");
@@ -706,7 +706,7 @@ final class CreatePage extends LinearLayout {
             b.addView(rt, Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 8, 0, 0));
         }
         if (text && "done".equals(st)) {
-            for (String ln : museLines(reply)) {        // MUSE hand-off: ready-to-send command lines → Use
+            for (String ln : museLines(reply)) {        // MirAI hand-off: ready-to-send command lines → Use
                 TextView u = small("[[arrow-right]] Use: " + (ln.length() > 60 ? ln.substring(0, 59) + "…" : ln), Ui.GRN, v -> {
                     setPrompt(ln);
                     m.toast("Loaded into the message box — press send when ready");

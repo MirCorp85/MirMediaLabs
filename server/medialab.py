@@ -367,7 +367,7 @@ def _run_pipeline(job):
 
 
 def _pipeline_steps(job, base):
-    """Each step gets its own ordered inputs (the person's attachments and/or earlier outputs), MUSE's prompt
+    """Each step gets its own ordered inputs (the person's attachments and/or earlier outputs), MirAI's prompt
     for that step (else the template), the knobs, and what earlier steps carry forward."""
     outs, files, texts = [], [], []
     owner = job.get("user") or "owner"
@@ -439,13 +439,16 @@ def worker():
         _persist()
         console.set_current(job["id"])
         console.emit("LAB", "worker picked up the job · GPU is yours", job)
-        brain = cloud.for_job(job)                   # owner only: Claude / GPT as MUSE, Director + prompt writer
+        if job.get("model") not in ("llama",) and not comfy.up():    # cold engine boot takes minutes: say so
+            job["stage"] = "starting the render engine (first render after a while takes a few minutes)"
+            _persist()
+        brain = cloud.for_job(job)                   # owner only: Claude / GPT as MirAI, Director + prompt writer
         cloud.activate(brain)
         if brain:
             job["brain"] = cloud.label_of(brain)
-            console.emit("MUSE", "cloud brain · %s" % job["brain"], job)
+            console.emit("MirAI", "cloud brain · %s" % job["brain"], job)
         elif (job.get("user") or "owner") == "owner" and cloud.brain()["provider"] != "local" and cloud.spent() >= cloud.cap():
-            console.emit("MUSE", "cloud brain paused — this month's $%.0f cap is reached; using the local engine" % cloud.cap(), job, "warn")
+            console.emit("MirAI", "cloud brain paused — this month's $%.0f cap is reached; using the local engine" % cloud.cap(), job, "warn")
         try:
             if job.get("model") == "auto":
                 _route(job)
@@ -478,8 +481,8 @@ def worker():
                 pass
 
 
-# ── MUSE Director: Auto mode decides the tool for each message ─────────────
-# If the LoRAs you picked can't load on the engine MUSE chose, use the sibling role whose engine can
+# ── MirAI Director: Auto mode decides the tool for each message ─────────────
+# If the LoRAs you picked can't load on the engine MirAI chose, use the sibling role whose engine can
 # (songs → music: the LoRA library's music LoRAs are for the music engine; the song engine takes none).
 _LORA_ALT = {"song": "music"}
 
@@ -515,11 +518,24 @@ def _attach_previous(job, recent, want_kind=None):
 
 def _route(job):
     owner = job.get("user") or "owner"
-    job["stage"] = "MUSE is deciding …"
-    renderers.log(job, "MUSE is reading your message …")
+    job["stage"] = "MirAI is deciding …"
+    renderers.log(job, "MirAI is reading your message …")
     recent = _recent(owner)
+    if router.wants_production(job.get("input")) and (owner in ("owner", None) or (users.by_id(owner) or {}).get("role") == "owner"):
+        prod = producer.start(owner, job.get("input"))       # the whole pipeline runs in the background
+        job["route"] = {"label": "Producer · full production", "why": "a whole musical: cast, world, song, video, YouTube",
+                        "by": "rules", "action": "produce"}
+        job["production"] = prod["id"]
+        renderers.log(job, "MirAI → Producer (production %s)" % prod["id"])
+        job.update(model="llama", params=params.get("llama", uid=owner), history=[], prompt=(
+            "You are MirAI. You just started a full production for this request: %r. In 3 short friendly sentences tell the "
+            "person what happens now: you write the brief and design up to 5 characters and their world, then (after they "
+            "approve the look) record the song with vocals and render the episode with seamless shots chained frame to "
+            "frame, and finally prepare the YouTube title, description and tags for them to approve in Social. They can "
+            "follow it in the Production card. Do not ask questions." % job.get("input")))
+        return
     d = router.decide(job.get("input") or "", job.get("refs"), recent, model=llm.MODEL_TAG)
-    console.emit("MUSE", "picked %s%s%s" % (d.get("pipeline") or d.get("skill") or d.get("role") or d.get("action"),
+    console.emit("MirAI", "picked %s%s%s" % (d.get("pipeline") or d.get("skill") or d.get("role") or d.get("action"),
                  " · " + d["why"] if d.get("why") else "", " (%d ms)" % d["ms"] if d.get("ms") else " (rules)"), job)
     alt = _LORA_ALT.get(d.get("role")) if d["action"] == "render" else None
     sel = job.get("lora_sel")
@@ -540,10 +556,10 @@ def _route(job):
         if not deny and d["action"] == "pipeline":
             deny = users.can(who, "pipelines")
         if deny:
-            raise RuntimeError("MUSE wanted %s, but %s" % (router.label(d), deny))
+            raise RuntimeError("MirAI wanted %s, but %s" % (router.label(d), deny))
     lbl = router.label(d)
     job["route"] = {"label": lbl, "why": d.get("why", ""), "by": d.get("by", "rules"), "action": d["action"]}
-    renderers.log(job, "MUSE → %s%s" % (lbl, (" — " + d["why"]) if d.get("why") else ""))
+    renderers.log(job, "MirAI → %s%s" % (lbl, (" — " + d["why"]) if d.get("why") else ""))
     prompt, refs = d.get("prompt") or job.get("input") or "", job.get("refs") or []
     if d["action"] == "chat" or (d["action"] == "skill" and d.get("role") == "text"):
         job["model"] = "llama"
@@ -562,7 +578,7 @@ def _route(job):
         return
     if d["action"] == "pipeline":
         pl = skills.pipeline(d["pipeline"])
-        kv = dict(skills.knob_values(pl, d.get("knobs")), **(job.get("knobs") or {}))   # the person's dials beat MUSE's
+        kv = dict(skills.knob_values(pl, d.get("knobs")), **(job.get("knobs") or {}))   # the person's dials beat MirAI's
         job.update(model=skills.model_for(pl["steps"][0]["role"]), pipeline=pl["name"], pipeline_id=pl["id"],
                    steps=pl["steps"], step="0/%d" % len(pl["steps"]), input=prompt,
                    plan=skills.plan_for(pl, d.get("steps")), knobs=kv)
@@ -782,7 +798,7 @@ def settings():
 # ── models + parameters ────────────────────────────────────────────────────
 @app.route("/api/models")
 def models():
-    out = {"auto": AUTO_MODEL}                     # first = the default: MUSE Director picks the engine per message
+    out = {"auto": AUTO_MODEL}                     # first = the default: MirAI Director picks the engine per message
     mine_ = users.allowed(g.user)
     locked = users.can(g.user, "advanced") is not None
     out.update({k: dict(params.schema(k, users.caps(g.user)), values=params.get(k, uid=uid()), locked=locked)
@@ -790,8 +806,8 @@ def models():
     return jsonify(out)
 
 
-AUTO_MODEL = {"label": "AUTO · MUSE", "kind": "auto", "color": "#b48cff", "params": [], "values": {},
-              "desc": "Just say what you want. MUSE reads it and picks the model, skill or pipeline, or simply answers.",
+AUTO_MODEL = {"label": "AUTO · MirAI", "kind": "auto", "color": "#b48cff", "params": [], "values": {},
+              "desc": "Just say what you want. MirAI reads it and picks the model, skill or pipeline, or simply answers.",
               "accepts": {"image": "pictures to edit or animate", "video": "motion reference", "audio": "tracks to remix",
                           "text": "lyrics, scripts, notes"}}
 
@@ -954,7 +970,7 @@ def upload_text():
     text = str(body.get("text") or "").strip()
     if not text:
         return jsonify({"error": "empty text"}), 400
-    if str(body.get("name") or "") == "llama_text":     # MUSE reply → "Use as text ref": only what the engine should get
+    if str(body.get("name") or "") == "llama_text":     # MirAI reply → "Use as text ref": only what the engine should get
         text = llm.clean_for_ref(text) or text
     name = _store_ref(str(body.get("name") or "note"), ".txt")
     with open(core.safe_path(os.path.join(core.REFS, name)), "w", encoding="utf-8") as f:
@@ -1007,7 +1023,7 @@ def generate():
         model = skills.model_for(sk["role"])
     elif pl:
         model = skills.model_for(pl["steps"][0]["role"])
-    if model not in renderers.RUNNERS and model != "auto":      # auto = MUSE Director decides in the worker
+    if model not in renderers.RUNNERS and model != "auto":      # auto = MirAI Director decides in the worker
         return jsonify({"error": "unknown model"}), 400
     asked = [os.path.basename(str(n)) for n in (body.get("refs") or [])]
     if len(asked) > 16:
@@ -1070,7 +1086,7 @@ def generate():
     elif pl:
         job.update(pipeline=pl["name"], pipeline_id=pl["id"], steps=pl["steps"], step="0/%d" % len(pl["steps"]),
                    plan=skills.plan_for(pl), knobs=skills.knob_values(pl, body.get("knobs")))
-    if sel and model != "auto" and not pl:          # direct request: LoRAs + trigger words go in now (Auto: after MUSE picks)
+    if sel and model != "auto" and not pl:          # direct request: LoRAs + trigger words go in now (Auto: after MirAI picks)
         _lora_apply(job, model, _what(model))
     if model == "auto":
         job["who"] = {"name": g.user.get("name", ""), "role": g.user.get("role", "")}
@@ -1099,7 +1115,7 @@ def font_prefs():
         if body.get("key") == "font":
             fid = str((body.get("value") or {}).get("id") or "")[:20]
             core.save_pref(key, {"id": fid})
-        elif body.get("key") == "voice":                # MUSE voice: {id, speed, on} - one pick for PC, phone and TV
+        elif body.get("key") == "voice":                # MirAI voice: {id, speed, on} - one pick for PC, phone and TV
             v = body.get("value") or {}
             core.save_pref("voice_" + uid(), {"id": v.get("id") if v.get("id") in tts.VOICES else tts.DEFAULT_VOICE,
                                               "speed": min(1.3, max(0.7, float(v.get("speed") or 1.0))), "on": v.get("on") is not False})
@@ -1150,7 +1166,7 @@ def loras_remove():
     return jsonify({"ok": True})
 
 
-# ── cloud brain (owner, host PC only): Claude / GPT as MUSE, Director + prompt writer ──
+# ── cloud brain (owner, host PC only): Claude / GPT as MirAI, Director + prompt writer ──
 @app.route("/api/cloud")
 def cloud_get():
     if (r := _host_only()):
@@ -1254,7 +1270,7 @@ def loras_token():
 
 @app.route("/api/plan/preview")
 def plan_preview():
-    """Composer hint: what MUSE will most likely do with this message (quick rules only, no model call)."""
+    """Composer hint: what MirAI will most likely do with this message (quick rules only, no model call)."""
     kinds = [k for k in (request.args.get("kinds") or "").split(",") if k][:16]
     return jsonify(router.preview(str(request.args.get("prompt") or "")[:2000], kinds) or {})
 
@@ -1266,7 +1282,7 @@ def skills_catalog():
 
 @app.route("/api/tts")
 def api_tts():
-    """MUSE's voice: one sentence -> WAV (natural local Kokoro voice, CPU only, cached)."""
+    """MirAI's voice: one sentence -> WAV (natural local Kokoro voice, CPU only, cached)."""
     v = core.prefs().get("voice_" + uid()) or {}
     try:
         path = tts.say(request.args.get("text") or "", request.args.get("voice") or v.get("id") or tts.DEFAULT_VOICE,
@@ -1288,7 +1304,7 @@ def api_tts_voices():
 
 @app.route("/api/console")
 def api_console():
-    """Newest live backend line per job for the MUSE bubble. The host PC also sees engine-wide lines."""
+    """Newest live backend line per job for the MirAI bubble. The host PC also sees engine-wide lines."""
     ids = [i for i in (request.args.get("jobs") or "").split(",")[:20] if i in JOBS and mine(JOBS[i].get("user"))]
     lines, seq = console.latest(ids, host=_host())
     return jsonify({"lines": {k: {"src": v["src"], "text": v["text"], "level": v["level"], "t": v["t"]} for k, v in lines.items()},
@@ -1837,6 +1853,28 @@ def _public_base():
 
 social.register(app, {"uid": uid, "is_owner": lambda: _loopback() or is_owner(), "my_file": _my_file,
                       "push": events.push, "public_base": _public_base, "static": _static})
+
+
+# ── PRODUCER: MirAI's one-sentence pipeline — brief → series cast/world → episode → YouTube draft (producer.py) ──
+import producer  # noqa: E402
+def _producer_post_rewrite(pid, note):
+    """Projects → Publish → Redo: rewrite the post's copy (with the owner's direction) and put it back for approval."""
+    p = social.get(pid)
+    if not p:
+        raise ValueError("the post is gone — redo the final edit to make a new one")
+    if note:
+        p["brief"] = (p.get("brief", "") + "\nOwner direction: " + note).strip()
+        social.update(pid, brief=p["brief"])
+    kw = social.draft_copy(p)
+    if p.get("status") in ("scheduled", "approved", "failed", "rejected"):
+        kw.update(status="draft", approved_at=None, error="")
+    social.update(pid, **kw)
+
+producer.register(app, {"uid": uid, "push": events.push, "job": _series_job, "cancel": _series_cancel, "static": _static,
+                        "can_produce": lambda: None if (_loopback() or is_owner()) else "only the owner can run a full production",
+                        "social_rewrite": _producer_post_rewrite,
+                        "social_draft": lambda name, plats, brief, owner, fit, kids: social.create_draft(
+                            name, plats, brief, owner=owner, fit=fit, kids=kids)})
 
 
 def main():

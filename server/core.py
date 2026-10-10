@@ -312,7 +312,7 @@ def new_name(prefix, ext):
 
 # ── prompt engine (local Ollama) — rewrites prompts only, never sees anything else ──
 OLLAMA = "http://127.0.0.1:11434"
-DEFAULT_ENGINE = "gemma4:12b"  # MUSE: chat, prompt building + Auto-mode model picker (never renders); falls back to any installed gemma4 / first model
+DEFAULT_ENGINE = "gemma4:12b"  # MirAI: chat, prompt building + Auto-mode model picker (never renders); falls back to any installed gemma4 / first model
 LEGACY_ENGINES = ("llama3.1:8b", "qwen3.5:9b")   # older installs pinned these → moved to DEFAULT_ENGINE
 
 
@@ -368,6 +368,9 @@ def ensure_ollama(wait=60):
     return False
 
 
+FALLBACK_ENGINE = "qwen3.5:9b"                  # used only when the chosen engine fails to load
+
+
 def engine_model():
     want = prefs().get("engine_model") or DEFAULT_ENGINE
     if want in LEGACY_ENGINES:
@@ -386,7 +389,7 @@ _CAPS = {}
 
 
 def engine_sees(model=None):
-    """True when the prompt engine can look at pictures (Ollama 'vision' capability). MUSE (Gemma 4 12B) sees
+    """True when the prompt engine can look at pictures (Ollama 'vision' capability). MirAI (Gemma 4 12B) sees
     pictures; a text-only engine: pictures are then left out of engine requests instead of failing them."""
     if model is None and _cloud_brain():
         import cloud
@@ -444,6 +447,13 @@ def ask(prompt, system, timeout=120, images=None, want_json=False, role="prompt"
             time.sleep(3)
         except Exception:
             pass
+        r = requests.post(OLLAMA + "/api/generate", json=body, timeout=timeout)
+    if r.status_code >= 500 and "llama-server" in r.text and model != FALLBACK_ENGINE:
+        # the engine itself won't start (e.g. an Ollama update broke it) — answer with the fallback engine instead
+        # of failing the whole step; the chosen engine stays chosen
+        _note("[engine] %s won't start (%s) — using %s for this step" % (model, r.text[:120], FALLBACK_ENGINE))
+        body.update(model=FALLBACK_ENGINE)
+        body.pop("images", None)
         r = requests.post(OLLAMA + "/api/generate", json=body, timeout=timeout)
     r.raise_for_status()
     d = r.json()

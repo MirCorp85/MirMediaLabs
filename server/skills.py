@@ -3,7 +3,7 @@
 Media Labs only — nothing here touches MirOS. A SKILL is one render with a tuned prompt template and
 parameter overrides. A PIPELINE is a MANUAL: ordered steps in ONE job (it still holds the single GPU slot, so the
 one-request-at-a-time rule covers the whole chain); each step names its inputs (the person's attachments and/or
-earlier steps' outputs, in order) and what it carries forward (lyrics, tempo, key, style). MUSE reads the manuals,
+earlier steps' outputs, in order) and what it carries forward (lyrics, tempo, key, style). MirAI reads the manuals,
 picks one and writes a prompt per step.
 "{input}" in a template is replaced by what the user typed.
 
@@ -125,9 +125,9 @@ SKILLS = [
 ]
 
 # ── PIPELINES = MANUALS ────────────────────────────────────────────────────────────────────────────────────────────
-# A pipeline is an instruction manual MUSE follows: ordered steps, each saying which ROLE renders, what the step DOES
-# (plain words MUSE and the person read), which INPUTS it gets and what it CARRIES forward from earlier steps.
-#   when     — when MUSE should pick this manual (read by the Director)
+# A pipeline is an instruction manual MirAI follows: ordered steps, each saying which ROLE renders, what the step DOES
+# (plain words MirAI and the person read), which INPUTS it gets and what it CARRIES forward from earlier steps.
+#   when     — when MirAI should pick this manual (read by the Director)
 #   needs    — attachments the manual requires, e.g. {"audio": 1}; checked before anything renders
 #   triggers — regex on the person's words that makes the quick rules pick this manual even if the model misses it
 #   knobs    — dials shown in the composer (see below)
@@ -141,7 +141,7 @@ SKILLS = [
 #   also     — (manual) extra regex the person's words must match for the quick rules to pick it (e.g. video words)
 # KNOBS: {"k", "label", "type": range|select, "def", min/max/step | opts, "to": {"step": n, "param": p} or {"step": n, "add": "..{v}.."}}
 #   "param" sets that step's engine parameter by its generic name (mapped per engine in PARAM_MAP, clamped by params);
-#   "add" appends text / flags to the step prompt. An empty value ("") = leave it to MUSE / the engine.
+#   "add" appends text / flags to the step prompt. An empty value ("") = leave it to MirAI / the engine.
 #   Skills take the same knobs without "step".
 _LEN = {"k": "len", "label": "Length", "type": "select", "def": "", "opts": [["", "auto"], ["30", "30 s"], ["60", "1 min"],
         ["90", "1.5 min"], ["120", "2 min"], ["180", "3 min"]], "to": {"step": 1, "add": "--{v}s"}}
@@ -206,7 +206,7 @@ PIPELINES = [
                 "tpl": "Music video scene for {input}. Rhythmic camera motion, atmospheric light.",
                 "params": {"h3": {"mode": "i2v", "soundtrack": "replace", "seconds": 15}}}]},
     {"id": "lyricsong", "name": "Write → Sing", "icon": "note",
-     "desc": "MUSE writes the lyrics first, then the song sings them word for word",
+     "desc": "MirAI writes the lyrics first, then the song sings them word for word",
      "when": "the person wants a song AND cares about the words (\"write lyrics and sing them\", a story told in a song)",
      "triggers": r"\b(write|pen)\b.{0,40}\blyrics\b.{0,60}\b(sing|sung|song|perform|record)\b|\bstory\b.{0,30}\b(as|in|into) a song\b",
      "knobs": [dict(_LEN, to={"step": 2, "add": "--{v}s"}), dict(_BPM, to={"step": 2, "add": "{v} BPM"})],
@@ -315,8 +315,8 @@ COMMANDS = [
     {"cmd": "/image", "args": "<idea>", "desc": "Make a picture  (alias /img)"},
     {"cmd": "/video", "args": "<idea>", "desc": "Make a video clip  (alias /vid)"},
     {"cmd": "/song", "args": "<idea>", "desc": "Make a full vocal song"},
-    {"cmd": "/chat", "args": "<message>", "desc": "Talk to MUSE, the lab's writer  (alias /ask)"},
-    {"cmd": "/write", "args": "<idea>", "desc": "MUSE writes it - stories, lyrics, scripts, poems"},
+    {"cmd": "/chat", "args": "<message>", "desc": "Talk to MirAI, the lab's writer  (alias /ask)"},
+    {"cmd": "/write", "args": "<idea>", "desc": "MirAI writes it - stories, lyrics, scripts, poems"},
     {"cmd": "/music", "args": "<idea>", "desc": "Make a music track / beat  (alias /track)"},
     {"cmd": "/skill", "args": "<name> <idea>", "desc": "Run a skill, e.g.  /skill product red sneaker"},
     {"cmd": "/pipe", "args": "<name> <idea>", "desc": "Run a pipeline, e.g.  /pipe musicvideo neon city synthwave"},
@@ -375,7 +375,7 @@ def parse(prompt):
 
 # ── manuals: reading, checking and wiring ──────────────────────────────────────────────────────────────────────────
 def manual_text(p):
-    """A manual as numbered plain-English steps (Director, MUSE and the UI all read this)."""
+    """A manual as numbered plain-English steps (Director, MirAI and the UI all read this)."""
     lines = []
     for i, st in enumerate(p["steps"], 1):
         lines.append("%d. %s: %s" % (i, step_label(st), st.get("does") or p.get("desc", "")))

@@ -42,7 +42,7 @@ SOUL_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "viral_soul
 
 AGENT = "VIRAL-Ω"
 PLATFORMS = ("instagram", "youtube")   # default targets of a new draft; TikTok is opt-in per post (needs its own settings)
-ALL_PLATFORMS = ("instagram", "youtube", "tiktok")
+ALL_PLATFORMS = ("instagram", "youtube", "tiktok", "facebook")
 GRAPH = "https://graph.facebook.com/v21.0"
 IG_GRAPH = "https://graph.instagram.com/v21.0"   # "Instagram API with Instagram Login" (Meta's current setup)
 IG_DAILY_CAP = 25                      # IG API allows 50/24h; stay well under it (account health)
@@ -106,7 +106,10 @@ def _secret():
 def public_accounts():
     a = accounts()
     ig, yt, tt = a.get("instagram") or {}, a.get("youtube") or {}, a.get("tiktok") or {}
+    fb = a.get("facebook") or {}
     return {"handle": a.get("handle", "@mirmedialabs"),
+            "facebook": {"connected": bool(fb.get("token") and fb.get("page_id")), "page": fb.get("page", ""),
+                         "pages": fb.get("pages") or []},
             "instagram": {"connected": bool(ig.get("token") and ig.get("user_id")), "username": ig.get("username", ""),
                           "expires": ig.get("expires", 0), "api": ig.get("api", "fb" if ig.get("token") else "")},
             "youtube": {"connected": bool(yt.get("refresh_token")), "channel": yt.get("channel", ""),
@@ -139,7 +142,9 @@ def format_vertical(src, pid, fit="crop"):
     cover = os.path.join(OUT, pid + ".jpg")
     info = probe(src)
     is_img = core.kind_of(os.path.basename(src)) == "image"
-    if fit == "crop":
+    if fit == "keep":       # long-form landscape (e.g. a series episode): 1920x1080, whole frame, no crop
+        vf = "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2"
+    elif fit == "crop":
         vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920"
     else:   # blurred backdrop, whole frame visible
         vf = ("split[a][b];[a]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30[bg];"
@@ -155,14 +160,14 @@ def format_vertical(src, pid, fit="crop"):
         args = ["-i", src, "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-filter_complex", "[0:v]" + vf + "[v]",
                 "-map", "[v]", "-map", "1:a", "-shortest"]
     args += ["-c:v", "libx264", "-preset", "medium", "-crf", "19", "-profile:v", "high", "-c:a", "aac", "-b:a", "192k",
-             "-movflags", "+faststart", "-t", "180", out]
+             "-movflags", "+faststart"] + ([] if fit == "keep" else ["-t", "180"]) + [out]
     r = _ff(args)
     if r.returncode or not os.path.isfile(out):
         raise RuntimeError("format failed: " + r.stderr[-400:])
     _ff(["-ss", "0.5", "-i", out, "-frames:v", "1", "-q:v", "2", cover], timeout=60)
     i = probe(out)
     return {"file": os.path.basename(out), "cover": os.path.basename(cover), "duration": round(i["duration"], 2),
-            "short": i["duration"] <= 60}
+            "short": fit != "keep" and i["duration"] <= 60}
 
 
 def set_cover(pid, at):
@@ -290,14 +295,14 @@ def next_slot(best="18:00"):
 
 
 # ── create / workflow ────────────────────────────────────────────────────────────────────────
-def create_draft(library_ref, platforms=PLATFORMS, brief="", owner="owner", fit="crop", auto_copy=True):
+def create_draft(library_ref, platforms=PLATFORMS, brief="", owner="owner", fit="crop", auto_copy=True, kids=False):
     src = core.in_dir(core.LIB, os.path.basename(library_ref))
     if not src or not os.path.isfile(src):
         raise ValueError("library item not found")
     pid = uuid.uuid4().hex[:12]
     p = {"id": pid, "owner": owner, "library_ref": os.path.basename(library_ref), "platforms": list(platforms),
          "brief": brief, "status": "preparing", "created": time.time(), "updated": time.time(),
-         "caption": "", "hashtags": [], "metrics": {}, "remote": {}, "log": []}
+         "caption": "", "hashtags": [], "metrics": {}, "remote": {}, "log": [], "kids": bool(kids)}
     with _LOCK:
         ps = posts()
         ps.append(p)
@@ -488,6 +493,76 @@ YT_SCOPES = "https://www.googleapis.com/auth/youtube.upload https://www.googleap
             "https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.force-ssl"
 
 
+
+# ── Facebook Page (Graph API). A Page token made from a long-lived user token never expires, and videos are uploaded
+# straight from this PC (no public address needed, unlike Instagram).
+FB_DAILY_CAP = 10
+
+
+def _fb():
+    fb = accounts().get("facebook") or {}
+    if not fb.get("token") or not fb.get("page_id"):
+        raise PubError("Facebook not connected")
+    return fb
+
+
+def fb_connect(token, app_id="", app_secret="", page=""):
+    """Facebook USER token (pages_show_list, pages_manage_posts, pages_read_engagement, publish_video) → the Page's
+    own token for the Page named `page` (or the first one)."""
+    if app_id and app_secret:
+        d = _g("GET", "/oauth/access_token", base=GRAPH, params={"grant_type": "fb_exchange_token", "client_id": app_id,
+                                                                  "client_secret": app_secret, "fb_exchange_token": token})
+        token = d["access_token"]
+    pages = _g("GET", "/me/accounts", base=GRAPH, params={"fields": "id,name,access_token,fan_count",
+                                                           "access_token": token}).get("data", [])
+    if not pages:
+        raise PubError("this token sees no Facebook Pages — give it pages_show_list + pages_manage_posts")
+    pick = next((p for p in pages if page and page.lower() in (p.get("name") or "").lower()), pages[0])
+    a = accounts()
+    a["facebook"] = {"token": pick["access_token"], "page_id": pick["id"], "page": pick.get("name", ""),
+                     "app_id": app_id, "app_secret": app_secret, "pages": [p.get("name", "") for p in pages][:20]}
+    save_accounts(a)
+    return public_accounts()
+
+
+def fb_publish(p):
+    fb = _fb()
+    path = os.path.join(OUT, p["media"]["file"])
+    desc = (p.get("caption") or p.get("yt_description") or "").strip()
+    if p.get("hashtags"):
+        desc += "\n\n" + " ".join("#" + h for h in p["hashtags"])
+    with open(path, "rb") as f:
+        r = requests.post("https://graph-video.facebook.com/v21.0/%s/videos" % fb["page_id"], timeout=1800,
+                          data={"access_token": fb["token"], "description": desc[:5000],
+                                "title": (p.get("yt_title") or p.get("hook") or "")[:250]},
+                          files={"source": (os.path.basename(path), f, "video/mp4")})
+    d = r.json() if r.content else {}
+    if r.status_code >= 400 or "error" in d:
+        e = d.get("error")
+        raise PubError("Facebook: " + ((e.get("message") if isinstance(e, dict) else str(e)) or r.text[:300]))
+    vid = d["id"]
+    return {"id": vid, "url": "https://www.facebook.com/%s/videos/%s" % (fb["page_id"], vid)}
+
+
+def fb_metrics(vid):
+    fb = _fb()
+    out = {}
+    try:
+        d = _g("GET", "/%s/video_insights" % vid, base=GRAPH,
+               params={"metric": "total_video_views,total_video_reactions_by_type_total", "access_token": fb["token"]})
+        for x in d.get("data", []):
+            v = (x.get("values") or [{}])[0].get("value", 0)
+            out["views" if x["name"] == "total_video_views" else "likes"] = sum(v.values()) if isinstance(v, dict) else v
+    except PubError:
+        pass
+    return out
+
+
+def fb_account():
+    fb = _fb()
+    d = _g("GET", "/" + fb["page_id"], base=GRAPH, params={"fields": "fan_count,followers_count,name", "access_token": fb["token"]})
+    return {"followers": d.get("followers_count") or d.get("fan_count") or 0, "page": d.get("name", fb.get("page", ""))}
+
 def yt_auth_url(redirect):
     yt = accounts().get("youtube") or {}
     if not yt.get("client_id"):
@@ -550,7 +625,7 @@ def yt_publish(p, privacy="public"):
         title = (title[:86] + " #Shorts")
     body = {"snippet": {"title": title, "description": (p.get("yt_description") or p.get("caption") or "")[:4900],
                         "tags": (p.get("yt_tags") or p.get("hashtags") or [])[:30], "categoryId": "24"},
-            "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": False,
+            "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": bool(p.get("kids")),
                        "containsSyntheticMedia": True}}
     size = os.path.getsize(path)
     init = requests.post("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status",
@@ -792,6 +867,10 @@ def publish(pid):
                 remote[plat] = ig_publish(p)
             elif plat == "youtube":
                 remote[plat] = yt_publish(p)
+            elif plat == "facebook":
+                if _today("facebook") >= FB_DAILY_CAP:
+                    raise PubError("daily Facebook cap reached")
+                remote[plat] = fb_publish(p)
             elif plat == "tiktok":
                 if _today("tiktok") >= TT_DAILY_CAP:
                     raise PubError("daily TikTok cap reached")
@@ -812,7 +891,7 @@ def pull_metrics(p):
     m = dict(p.get("metrics") or {})
     for plat, r in (p.get("remote") or {}).items():
         try:
-            row = {"instagram": ig_metrics, "youtube": yt_metrics, "tiktok": tt_metrics}[plat](r["id"])
+            row = {"instagram": ig_metrics, "youtube": yt_metrics, "tiktok": tt_metrics, "facebook": fb_metrics}[plat](r["id"])
             if not row:
                 continue
             row["t"] = time.time()
@@ -1209,6 +1288,16 @@ def register(app, hk):
             if b.get("tt_client_secret", "").strip():
                 tt["client_secret"] = b["tt_client_secret"].strip()
         save_accounts(a)
+        if b.get("fb_token"):
+            try:
+                return jsonify(fb_connect(b["fb_token"].strip(), b.get("fb_app_id", "").strip(),
+                                          b.get("fb_app_secret", "").strip(), b.get("fb_page", "").strip()))
+            except Exception as e:
+                return jsonify({"error": str(e)}), 400
+        if b.get("fb_off"):
+            a.pop("facebook", None)
+            save_accounts(a)
+            return jsonify(public_accounts())
         if b.get("ig_token"):
             try:
                 return jsonify(ig_connect(b["ig_token"].strip(), b.get("ig_app_id", "").strip(), b.get("ig_app_secret", "").strip()))
