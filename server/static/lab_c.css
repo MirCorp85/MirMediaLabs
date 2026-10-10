@@ -1,0 +1,69 @@
+/* MEDIA LAB · CREATE CENTER layout (picked Oct 10 2026, sample C) — a layer over the classic page: nothing is removed,
+   the same pieces are re-arranged. Left = this project's media · centre = MirAI chat · right = production timeline ·
+   bottom dock = Create / Projects / Library / Editor / Publish / Tools. Identical in both lab copies. */
+body.labc .top .studios, body.labc #b-theme, body.labc #b-font, body.labc #b-users, body.labc #b-patreon, body.labc #b-about,
+body.labc .col.left > .lrail, body.labc .col.left > .card:not(.lib), body.labc #b-panel, body.labc #b-book { display: none !important; }
+body.labc .top .lc-proj { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--panel2, rgba(255,255,255,.04)); cursor: pointer; font-weight: 600; max-width: 300px }
+body.labc .top .lc-proj b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+body.labc .top .lc-proj small { color: var(--dim); font-weight: 500 }
+body.labc .lc-state { font-size: 11px; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap }
+body.labc .lc-state.run { color: #7aa7ff; border-color: #7aa7ff } body.labc .lc-state.wait { color: #e3a949; border-color: #e3a949 }
+body.labc .lc-state.fail { color: #e5484d; border-color: #e5484d } body.labc .lc-state.ok { color: #5fd38d; border-color: #5fd38d }
+@media (min-width: 861px) {
+  body.labc .main { grid-template-columns: 250px minmax(0, 1fr) 320px !important; padding-bottom: 0 }
+  body.labc.lc-libwide .main { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 320px !important }
+  body.labc .col.left { display: flex !important; flex-direction: column; min-height: 0 }
+  body.labc .col.left > .card.lib { flex: 1; min-height: 0; display: flex !important; flex-direction: column }
+  body.labc .col.left > .card.lib .grid { flex: 1; overflow: auto }
+  body.labc .tabs { display: flex !important }
+}
+/* right column: the production timeline */
+.lc-prod { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: auto; padding: 14px; height: 100% }
+.lc-prod .h { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .14em; color: var(--dim); text-transform: uppercase; font-weight: 700 }
+.lc-prod .ttl { font-size: 15px; font-weight: 700; color: var(--ink) }
+.lc-step { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-bottom: 1px solid var(--line) }
+.lc-step .mi { width: 18px; height: 18px; flex: none; margin-top: 1px }
+.lc-step b { display: block; font-size: 13px } .lc-step small { color: var(--dim) }
+.lc-step.done { color: #5fd38d } .lc-step.now { color: #7aa7ff } .lc-step.wait { color: #e3a949 } .lc-step.fail { color: #e5484d } .lc-step.todo { color: var(--dim) }
+.lc-step.done small, .lc-step.now small, .lc-step.wait small, .lc-step.fail small { color: inherit; opacity: .8 }
+.lc-acts { display: flex; gap: 6px; flex-wrap: wrap }
+.lc-btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid var(--line);
+  background: transparent; color: var(--ink); cursor: pointer; font: inherit; font-size: 12px }
+.lc-btn:hover { border-color: var(--acc) } .lc-btn.ok { background: #5fd38d; color: #102016; border-color: transparent; font-weight: 700 }
+.lc-btn.pri { background: var(--acc); color: #fff; border-color: transparent; font-weight: 700 }
+.lc-log { font-size: 12px; color: var(--dim); display: flex; flex-direction: column; gap: 5px }
+.lc-log .warn { color: #e3a949 } .lc-log .error { color: #e5484d } .lc-log .done { color: #5fd38d } .lc-log .need { color: #e3a949; font-weight: 600 }
+.lc-empty { color: var(--dim); line-height: 1.6 }
+.lc-mini { display: flex; flex-direction: column; gap: 6px }
+.lc-mini a { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; color: var(--ink); text-decoration: none }
+.lc-mini a:hover { border-color: var(--acc) }
+/* bottom dock (desktop) — reuses the phone tab bar */
+@media (min-width: 861px) {
+  body.labc .tabs { justify-content: center; gap: 4px; border-top: 1px solid var(--line); background: var(--panel, rgba(13,8,6,.94)); padding: 4px 0 }
+  body.labc .tabs button { flex: none; min-width: 84px; display: flex; flex-direction: column; align-items: center; gap: 3px; border-radius: 12px;
+    padding: 6px 14px; font-size: 10px; letter-spacing: .1em; border: 0; background: none; color: var(--dim); cursor: pointer; font-weight: 700 }
+  body.labc .tabs button .mi { width: 20px; height: 20px }
+  body.labc .tabs button.on { color: var(--acc); background: color-mix(in srgb, var(--acc) 12%, transparent); box-shadow: none }
+}
+/* Tools sheet */
+.lc-tools { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9990; display: flex; align-items: flex-end; justify-content: center }
+.lc-tools .sh { background: var(--panel, #2a2927); border: 1px solid var(--line); border-radius: 18px 18px 0 0; width: min(760px, 100%); padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px }
+.lc-tools .sh h4 { grid-column: 1/-1; margin: 0 0 4px; font-size: 11px; letter-spacing: .14em; color: var(--dim) }
+.lc-tools .sh button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 6px; border-radius: 12px; border: 1px solid var(--line);
+  background: transparent; color: var(--ink); cursor: pointer; font: inherit; font-size: 12px }
+.lc-tools .sh button:hover { border-color: var(--acc) } .lc-tools .sh button .mi { width: 22px; height: 22px; color: var(--acc) }
+.lc-tools .sh button small { color: var(--dim); font-size: 10px }
+@media (max-width: 600px) { .lc-tools .sh { grid-template-columns: repeat(3, 1fr) } }
+/* phone: one compact header row, six equal dock buttons, nothing wider than the screen */
+@media (max-width: 860px) {
+  html, body.labc { overflow-x: hidden; max-width: 100vw }
+  body.labc .top { gap: 6px; padding-left: 8px; padding-right: 8px; overflow: hidden }
+  body.labc .top .pills, body.labc .top .brand b { display: none !important }
+  body.labc .top .lc-proj { max-width: 42vw; height: 32px; padding: 0 9px } body.labc .top .lc-proj small { display: none }
+  body.labc #lc-state { max-width: 34vw; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto }
+  body.labc .main, body.labc .col { max-width: 100vw; min-width: 0 }
+  body.labc .tabs button { flex: 1 1 0 !important; min-width: 0 !important; font-size: 9px !important; letter-spacing: .04em !important }
+  body.labc .col.right .lc-prod { padding: 12px }
+}

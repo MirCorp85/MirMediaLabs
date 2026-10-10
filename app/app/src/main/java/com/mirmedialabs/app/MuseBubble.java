@@ -16,8 +16,8 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-/** MUSE bubble — same as the web studio's: a ring dial (one segment per step), MUSE's status line, ONE live backend
- *  line (newest engine / MUSE / worker event), and the step timeline whose live step is a twisting DNA helix bar.
+/** MirAI bubble — same as the web studio's: a ring dial (one segment per step), MirAI's status line, ONE live backend
+ *  line (newest engine / MirAI / worker event), and the step timeline whose live step is a twisting DNA helix bar.
  *  Built once per job; update() patches the timer, ring, helix and step text in place (no rebuild, no flicker). */
 final class MuseBubble extends LinearLayout {
     static final int ORG = 0xFFFF5A1F, ORG_D = 0xFFC2410C, YEL = 0xFFFFC21A;
@@ -59,7 +59,7 @@ final class MuseBubble extends LinearLayout {
         av.setBackground(Ui.box(9, c, 0));
         who.addView(av, Ui.lp(Ui.dp(18), Ui.dp(18)));
         String brain = j.isNull("brain") ? "" : j.optString("brain");         // owner's cloud brain (Claude / GPT)
-        TextView nm = Ui.bold(a, brain.isEmpty() ? "MUSE" : "MUSE · " + brain, 12.5f, c);
+        TextView nm = Ui.bold(a, brain.isEmpty() ? "MirAI" : "MirAI · " + brain, 12.5f, c);
         who.addView(nm, Ui.margins(new LayoutParams(0, Ui.WRAP, 1), 6, 0, 6, 0));
         timer = Ui.mono(a, "", 11, "done".equals(st) ? Ui.GRN : "error".equals(st) ? Ui.RED : "queued".equals(st) ? YEL : ORG);
         who.addView(timer);
@@ -277,7 +277,7 @@ final class MuseBubble extends LinearLayout {
         return 0;
     }
 
-    /** One live backend line: src (COMFY · MUSE · LAB …), text, level (info · warn · error). */
+    /** One live backend line: src (COMFY · MirAI · LAB …), text, level (info · warn · error). */
     void setLine(String src, String text, String level) {
         if (liveText == null) return;
         int c = "error".equals(level) ? Ui.RED : "warn".equals(level) ? YEL : ORG;

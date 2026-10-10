@@ -240,8 +240,8 @@ MODELS = {
              "cap": "workflows", "dyn": "workflows", "opts": [["builtin", "built-in ACE-Step graph"]]},
         ]},
     "llama": {
-        "label": "MUSE · GEMMA 4 12B", "kind": "text", "color": "#5ee08a",
-        "desc": "MUSE, the lab's writer — chat, ideas, lyrics, scripts and prompts for the other engines",
+        "label": "MirAI · GEMMA 4 12B", "kind": "text", "color": "#5ee08a",
+        "desc": "MirAI, the lab's writer — chat, ideas, lyrics, scripts and prompts for the other engines",
         "accepts": {"text": "notes, drafts or lyrics to work from"},
         "fields": [
             {"k": "mode", "group": "Basics", "label": "Mode", "type": "select", "def": "chat",

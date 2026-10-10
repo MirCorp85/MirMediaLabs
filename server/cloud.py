@@ -1,10 +1,10 @@
-"""Cloud brains — Claude (Anthropic), GPT (OpenAI) or GLM (Fireworks) as MUSE, the Director and the prompt writer.
+"""Cloud brains — Claude (Anthropic), GPT (OpenAI) or GLM (Fireworks) as MirAI, the Director and the prompt writer.
 
 OWNER ONLY: every call is billed to the owner's own API key (stored in data/prefs.json, never sent to any
 client, never committed). Invited people always stay on the free local engine. A monthly $ cap switches the
 owner back to local when reached. Both SDKs are imported lazily — a build without them simply has no cloud.
 
-The worker thread activates the brain for the job it runs (activate / active), so core.ask, MUSE chat and
+The worker thread activates the brain for the job it runs (activate / active), so core.ask, MirAI chat and
 the Director all follow the same per-job choice without extra plumbing.
 """
 import json
@@ -312,7 +312,7 @@ def ask(b, prompt, system, images=None, want_json=False, role="prompt", timeout=
     return (r.choices[0].message.content or "").strip()
 
 
-# ── streamed chat (MUSE) ─────────────────────────────────────────────────────
+# ── streamed chat (MirAI) ─────────────────────────────────────────────────────
 def chat_stream(b, msgs, on_text, cancelled, long=False, max_tokens=16000):
     """msgs: OpenAI-style [{"role": "system"|"user"|"assistant", "content": str}]. Calls on_text(chunk)."""
     system = "\n\n".join(m["content"] for m in msgs if m["role"] == "system")
@@ -425,5 +425,5 @@ def summary():
     _refresh_fireworks()
     k = keys()
     return {"keys": {p: bool(v) for p, v in k.items()}, "brain": brain(), "models": models(),
-            "local": {"label": "MUSE · Gemma 4 12B", "model": getattr(core, "DEFAULT_ENGINE", "gemma4:12b"), "ctx": 16384},
+            "local": {"label": "MirAI · Gemma 4 12B", "model": getattr(core, "DEFAULT_ENGINE", "gemma4:12b"), "ctx": 16384},
             "usage": usage(), "cap": cap(), "over_cap": spent() >= cap()}

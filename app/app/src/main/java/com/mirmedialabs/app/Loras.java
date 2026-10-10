@@ -30,7 +30,7 @@ final class Loras {
 
     Loras(MainActivity m) { this.m = m; }
 
-    /** Models that can load LoRAs, and which kind (Music 3 and MUSE can't load any). */
+    /** Models that can load LoRAs, and which kind (Music 3 and MirAI can't load any). */
     static String canOf(String model) {
         if ("h3".equals(model)) return "video";
         if ("qimg".equals(model)) return "image";
