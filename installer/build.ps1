@@ -50,11 +50,12 @@ $src = Join-Path $build 'src'
 if ($LASTEXITCODE) { throw 'stage failed' }
 
 # 2. compile the app (standalone folder, no console)
-$appOut = Join-Path $build 'appout'
+# short output path: deep SDK modules (anthropic.types.beta...) overflow Windows' 260-char path limit under installeruild
+$appOut = if ($env:MML_APPOUT) { $env:MML_APPOUT } else { 'C:\mmb' }
 Remove-Item $appOut -Recurse -Force -ErrorAction SilentlyContinue
 $ico  = Join-Path $root 'MirMediaLabs.ico'
 # plain string arrays: PowerShell 5.1 splits "--opt=(expr)" into two arguments
-$common = @("-m", "nuitka", "--assume-yes-for-downloads", "--windows-console-mode=disable", "--python-flag=no_docstrings", "--python-flag=no_asserts", "--lto=yes", "--deployment",
+$common = @("-m", "nuitka", "--low-memory", "--nofollow-import-to=yt_dlp.extractor.lazy_extractors", "--assume-yes-for-downloads", "--windows-console-mode=disable", "--python-flag=no_docstrings", "--python-flag=no_asserts", "--lto=yes", "--deployment",
             "--windows-icon-from-ico=$ico", "--company-name=MirCorp", "--product-name=MIR MEDIA LABS",
             "--file-version=$ver.0", "--product-version=$ver.0", "--copyright=(c) 2026 MirCorp. GPL-3.0")
 $appArgs = $common + @("--standalone", "--include-package=openai", "--include-package=anthropic", "--include-package=yt_dlp", "--nofollow-import-to=imageio_ffmpeg", "--nofollow-import-to=tkinter", "--nofollow-import-to=PIL",

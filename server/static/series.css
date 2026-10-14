@@ -203,3 +203,12 @@ code{font-size:11.5px;color:var(--ink);background:var(--bg);padding:1px 5px;bord
   .lp-box{width:100%;max-height:94vh;border-radius:12px}.lp-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));padding:8px}
   .zoom.lp{padding:6px}
 }
+
+.pics2c{display:grid;grid-template-columns:1fr 1.9fr;gap:6px;margin:8px 0}@media (max-width:700px){.pics2c{grid-template-columns:1fr 1.6fr;gap:4px}}
+
+/* MirAI bar: do this step yourself, or let MirAI do it / take over from here */
+.ai-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-6px 0 14px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03)}
+.ai-bar .lbl{color:var(--dim);font-size:13px;margin-right:auto}
+.ai-bar .lbl b{color:var(--ink)}
+.ai-bar button{font:inherit;font-size:13px}
+@media (max-width:640px){.ai-bar .lbl{width:100%}}

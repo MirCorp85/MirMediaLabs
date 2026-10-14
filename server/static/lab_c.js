@@ -100,7 +100,7 @@
     var T = [['download', 'Downloader', 'links → MP3 / MP4', function () { mmlGrab(); }],
              ['tv', 'Series studio', 'build a series by hand', function () { mmlSeries(); }],
              ['layers', 'LoRA library', 'styles & characters', function () { lOpen(); }],
-             ['sparkle', 'Skills & pipelines', 'presets, multi-step', function () { var c = $('.col.left .card.skl'); if (c) { c.style.display = 'block'; openBook && openBook(); } }],
+             ['sparkle', 'Skills & pipelines', 'presets, multi-step', function () { window.openSkills && openSkills(); }],
              ['book', 'Command book', '/commands', function () { openBook(); }],
              ['palette', 'Theme', '', function () { openThemes(); }],
              ['type', 'Fonts', 'MIR typefaces', function () { window.MirFont && MirFont.openPicker(); }],
@@ -147,6 +147,8 @@
       '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(it.label) + '</span>' +
       '<button data-use="' + esc(it.name) + '" data-ref="' + (ref ? 1 : 0) + '" data-lbl="' + esc(it.label) + '" title="Use in your next message" ' +
       'style="border:0;border-radius:6px;background:var(--acc);color:#fff;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer">USE</button></div>' +
+      (it.redo ? '<button data-redo="' + esc(JSON.stringify(it.redo)) + '" data-lbl="' + esc(it.label) + '" title="Make this again, with your changes" ' +
+        'style="position:absolute;top:6px;right:6px;z-index:2;border:0;border-radius:6px;background:#000c;color:#fff;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer">' + mi('refresh') + ' REDO</button>' : '') +
       '<a href="' + (ref ? 'refs/' : 'media/') + n + '" target="_blank" style="position:absolute;inset:0 0 26px 0" title="Open"></a></div>';
   }
   function useIt(name, isRef, label) {
@@ -202,6 +204,17 @@
           : '<div style="grid-column:1/-1;color:var(--faint);padding:8px 2px">Nothing made in this project yet.</div>');
       $('#lc-pback').onclick = libProjects;
       grid.querySelectorAll('[data-use]').forEach(function (b) { b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); useIt(b.dataset.use, b.dataset.ref === '1', b.dataset.lbl); }; });
+      grid.querySelectorAll('[data-redo]').forEach(function (b) { b.onclick = function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var r = JSON.parse(b.dataset.redo), what = r.step === 'shot' ? 'shot ' + (r.target + 1) : b.dataset.lbl;
+        var note = prompt('Redo ' + what + ' — what should change? (optional, e.g. "clean edges, no black spikes around the characters")', '');
+        if (note === null) return;
+        fetch('api/produce/' + id + '/redo_step', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({ step: r.step, target: r.target == null ? null : r.target, note: note.trim() }) })
+          .then(function (x) { return x.json(); })
+          .then(function (j) { if (j && j.error) return toast(j.error, 1); toast('Redoing ' + what + ' — then a fresh final edit'); libProject(key, title); })
+          .catch(function (er) { toast(String(er), 1); });
+      }; });
       window.MI && MI.fill && MI.fill(grid);
     });
   }

@@ -276,7 +276,7 @@ Q = queue.Queue()
 _JLOCK = threading.Lock()
 PUBLIC = ("id", "model", "prompt", "refs", "loras", "status", "stage", "log", "output", "files", "created", "started",
           "finished", "error", "social", "params", "user", "input", "skill", "pipeline", "steps", "step", "route", "lora_sel",
-          "loras_skipped", "plan", "pipeline_id", "knobs", "progress", "comfy_pid", "brain", "internal", "session")
+          "loras_skipped", "plan", "pipeline_id", "knobs", "progress", "comfy_pid", "brain", "internal", "session", "open_session")
 
 
 def _persist():
@@ -383,7 +383,10 @@ def _pipeline_steps(job, base):
         mdl = skills.model_for(st["role"])        # role → today's engine for that role
         refs = skills.resolve_inputs(st, base, outs, core.kind_of, _ref_seconds)
         has_img = i == 1 and any(core.kind_of(r) == "image" for r in refs)
-        prompt = (row.get("prompt") or "").strip() or skills.fill(st["tpl"], job.get("input"), has_img)
+        if job.get("literal") and job.get("input"):   # My words: every step that takes a prompt gets yours, as written
+            prompt = job["input"] if st.get("tpl") else ""
+        else:
+            prompt = (row.get("prompt") or "").strip() or skills.fill(st["tpl"], job.get("input"), has_img)
         over, add = skills.knob_effects(man, knobs, i, mdl)
         pre, post = skills.carry_text(st, meta, mdl)
         prompt = core.clean_ws(" ".join(x for x in (pre + ("." if pre and prompt else ""), prompt, add, st.get("add", "")) if x)) + post
@@ -447,7 +450,9 @@ def worker():
         if brain:
             job["brain"] = cloud.label_of(brain)
             console.emit("MirAI", "cloud brain · %s" % job["brain"], job)
-        elif (job.get("user") or "owner") == "owner" and cloud.brain()["provider"] != "local" and cloud.spent() >= cloud.cap():
+        elif job.get("model") in ("auto", "llama"):   # the local brain the owner picked (Gemma 4 12B / Llama 3.1 8B)
+            job["brain"] = core.engine_label().split(" · ", 1)[-1]
+        if not brain and (job.get("user") or "owner") == "owner" and cloud.brain()["provider"] != "local" and cloud.spent() >= cloud.cap():
             console.emit("MirAI", "cloud brain paused — this month's $%.0f cap is reached; using the local engine" % cloud.cap(), job, "warn")
         try:
             if job.get("model") == "auto":
@@ -468,6 +473,7 @@ def worker():
             job["status"], job["error"] = "error", str(e)[:1500]
         finally:
             cloud.activate(None)
+            core.render_unlock()                     # GPU is free again for MirAI chat / Director / Social
             job["finished"] = time.time()
             console.emit("LAB", {"done": "finished · saved to the library", "cancelled": "cancelled"}.get(job["status"], "stopped · " + str(job.get("error", ""))[:90]), job)
             console.set_current(None)
@@ -526,6 +532,7 @@ def _route(job):
         job["route"] = {"label": "Producer · full production", "why": "a whole musical: cast, world, song, video, YouTube",
                         "by": "rules", "action": "produce"}
         job["production"] = prod["id"]
+        job["open_session"] = prod.get("session") or ""
         renderers.log(job, "MirAI → Producer (production %s)" % prod["id"])
         job.update(model="llama", params=params.get("llama", uid=owner), history=[], prompt=(
             "You are MirAI. You just started a full production for this request: %r. In 3 short friendly sentences tell the "
@@ -534,7 +541,7 @@ def _route(job):
             "frame, and finally prepare the YouTube title, description and tags for them to approve in Social. They can "
             "follow it in the Production card. Do not ask questions." % job.get("input")))
         return
-    d = router.decide(job.get("input") or "", job.get("refs"), recent, model=llm.MODEL_TAG)
+    d = router.decide(job.get("input") or "", job.get("refs"), recent, model=core.engine_model())
     console.emit("MirAI", "picked %s%s%s" % (d.get("pipeline") or d.get("skill") or d.get("role") or d.get("action"),
                  " · " + d["why"] if d.get("why") else "", " (%d ms)" % d["ms"] if d.get("ms") else " (rules)"), job)
     alt = _LORA_ALT.get(d.get("role")) if d["action"] == "render" else None
@@ -561,6 +568,8 @@ def _route(job):
     job["route"] = {"label": lbl, "why": d.get("why", ""), "by": d.get("by", "rules"), "action": d["action"]}
     renderers.log(job, "MirAI → %s%s" % (lbl, (" — " + d["why"]) if d.get("why") else ""))
     prompt, refs = d.get("prompt") or job.get("input") or "", job.get("refs") or []
+    if job.get("literal") and job.get("input"):      # My words: MirAI only picks the tool, never rewrites the request
+        prompt = job["input"]
     if d["action"] == "chat" or (d["action"] == "skill" and d.get("role") == "text"):
         job["model"] = "llama"
         job["params"] = params.get("llama", uid=owner)
@@ -591,7 +600,7 @@ def _route(job):
         model = skills.model_for(sk["role"])
         kv = skills.knob_values(sk, d.get("knobs"))
         over, add = skills.knob_effects(sk, kv, None, model)
-        filled = skills.fill(sk["tpl"], prompt, has_img)
+        filled = prompt if job.get("literal") and prompt else skills.fill(sk["tpl"], prompt, has_img)
         job.update(model=model, skill=sk["name"], prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
                    params=params.get(model, override=dict(skills.overrides(sk, model), **over), uid=owner))
     else:
@@ -803,6 +812,8 @@ def models():
     locked = users.can(g.user, "advanced") is not None
     out.update({k: dict(params.schema(k, users.caps(g.user)), values=params.get(k, uid=uid()), locked=locked)
                 for k in params.MODELS if k in mine_})
+    if "llama" in out:                             # the writer's card names the local brain the owner picked
+        out["llama"]["label"] = "MirAI · " + core.engine_label().split(" · ", 1)[-1].upper()
     return jsonify(out)
 
 
@@ -1059,15 +1070,23 @@ def generate():
         return jsonify({"error": "the lab is still working on your previous request — wait for it to finish",
                         "busy": busy["id"]}), 409
     sel = [] if model == "llama" or users.can(g.user, "loras") else loras.selection(body.get("loras"))  # media engines only
-    if body.get("params") and model != "auto":
+    if body.get("params") and model != "auto" and not body.get("series"):
         params.save(model, body["params"], uid())
     jid = "j%d" % int(time.time() * 1000)
     job = {"id": jid, "model": model, "prompt": prompt, "refs": refs, "status": "queued", "stage": "queued",
            "log": "", "output": "", "files": [], "created": time.time(),
            "params": {} if model == "auto" else params.get(model, uid=uid(),
-                                                            override=body.get("override") if isinstance(body.get("override"), dict) else None),
+                                                            override=body.get("override") if isinstance(body.get("override"), dict) else None,
+                                                            saved_ok=not (body.get("series") or getattr(g, "series_runner", False))),
            "user": uid(), "input": prompt, "loras": [], "lora_sel": sel, "caps": users.caps(g.user),
-           "session": sessions.valid(uid(), body.get("session"))}
+           # no session given (MirAI voice / chat tools, the series runner) → the session the person has open, not General
+           "session": sessions.valid(uid(), body["session"] if "session" in body else sessions.load(uid()).get("last"))}
+    if body.get("maskcheck") and model == "h3":       # quick SAM3 mask preview, queued like any render
+        job["maskcheck"] = True
+        if isinstance(body.get("override"), dict):
+            job["params"] = params.get("h3", override=body["override"], uid=uid(), saved_ok=False)
+    if body.get("literal"):                           # "My words": engines take the prompt as written, no rewriting
+        job["literal"] = True
     if body.get("series"):                            # SERIES studio renders keep an unmarked reference copy
         job["keep_clean"] = True
     if body.get("internal") and _loopback() and is_owner():   # a lab tool on this PC (preview generators): not a chat request
@@ -1080,9 +1099,13 @@ def generate():
         kv = skills.knob_values(sk, body.get("knobs"))
         over, add = skills.knob_effects(sk, kv, None, model)
         po = dict(skills.overrides(sk, model), **over)
-        filled = skills.fill(sk["tpl"], prompt, sk["role"] != "text" and any(core.kind_of(r) == "image" for r in refs))
+        if isinstance(body.get("mask_what"), str) and body["mask_what"].strip() and "mask_what" in po:
+            po["mask_what"] = body["mask_what"].strip()[:120]      # "Who gets replaced" from the recipe card
+        filled = prompt if job.get("literal") and prompt else skills.fill(sk["tpl"], prompt, sk["role"] == "image" and any(core.kind_of(r) == "image" for r in refs))
+        mine = params.get(model, uid=uid())
+        keep = {k: mine[k] for k in ("res", "quality", "seed", "swap_quality", "face_pass") if k in mine}
         job.update(skill=sk["name"], prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
-                   params=params.get(model, override=po, uid=uid()))
+                   params=params.get(model, override=dict(keep, **po), uid=uid(), saved_ok=False))
     elif pl:
         job.update(pipeline=pl["name"], pipeline_id=pl["id"], steps=pl["steps"], step="0/%d" % len(pl["steps"]),
                    plan=skills.plan_for(pl), knobs=skills.knob_values(pl, body.get("knobs")))
@@ -1207,6 +1230,30 @@ def cloud_key():
     return jsonify(cloud.summary())
 
 
+_PULLING = set()
+
+
+def _pull_engine(tag):
+    """Picked a local brain that isn't installed yet → `ollama pull` it in the background (MirAI says so meanwhile)."""
+    try:
+        have = [m["name"] for m in core.requests.get(core.OLLAMA + "/api/tags", timeout=3).json().get("models", [])]
+    except Exception:
+        have = []
+    if tag in have or tag in _PULLING:
+        return
+
+    def run():
+        _PULLING.add(tag)
+        try:
+            core.ensure_ollama()
+            core.requests.post(core.OLLAMA + "/api/pull", json={"model": tag, "stream": False}, timeout=3600)
+        except Exception as e:
+            print("pull %s failed: %s" % (tag, e))
+        finally:
+            _PULLING.discard(tag)
+    threading.Thread(target=run, daemon=True, name="mml-pull").start()
+
+
 @app.route("/api/cloud/brain", methods=["POST"])
 def cloud_brain():
     if (r := _host_only()):
@@ -1220,6 +1267,12 @@ def cloud_brain():
             return jsonify({"error": "the monthly cap must be a number"}), 400
     if prov == "local":
         core.save_pref("brain", {"provider": "local", "model": ""})
+        if model:                                   # a local brain from the picker (Gemma 4 12B / Llama 3.1 8B)
+            if not any(e["model"] == model for e in core.LOCAL_ENGINES):
+                return jsonify({"error": "unknown local model"}), 400
+            core.save_pref("engine_model", model)
+            _pull_engine(model)
+            _refresh_status()
     elif prov in cloud.PROVIDERS:
         if not cloud.keys()[prov]:
             return jsonify({"error": "save the %s API key first" % cloud.NAMES[prov]}), 400
@@ -1792,7 +1845,7 @@ def _series_submit(user_id, req):
     u = users.by_id(user_id) or (users.owner() if user_id in (None, "", "owner") else None)
     if not u:
         return None, "that person no longer has an account here", False
-    body = {k: req.get(k) for k in ("model", "prompt", "refs", "override")}
+    body = {k: req.get(k) for k in ("model", "prompt", "refs", "override", "session")}
     body["series"] = True
     with app.test_request_context("/api/generate", method="POST", json=body):
         g.user = u
@@ -1883,6 +1936,11 @@ def main():
         sys.exit(0)
     _load_jobs()
     threading.Thread(target=worker, daemon=True, name="mml-gpu-worker").start()
+    core.render_unlock()                            # a lock left by a crash mid-render must not stall MirAI
+    try:
+        sessions.start_folders()                    # data/library/Sessions/<session>/ — every item filed by its session
+    except Exception:
+        pass
     threading.Thread(target=_status_loop, daemon=True, name="mml-status").start()
     threading.Thread(target=pcupdate.loop, daemon=True, name="mml-pc-update").start()
     pcupdate.cleanup()

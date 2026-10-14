@@ -61,6 +61,19 @@ def _clean_name(n):
     return re.sub(r"\s+", " ", str(n or "")).strip()[:60]
 
 
+def create(uid, name):
+    """A new session that also becomes the open one ("last") — a new project starts its own chat + media shelf."""
+    with _LOCK:
+        d = load(uid)
+        if len(d["sessions"]) >= MAX:
+            d["sessions"] = d["sessions"][-(MAX - 1):]
+        s = {"id": uuid.uuid4().hex[:12], "name": _clean_name(name) or time.strftime("Project %b %d"), "created": time.time()}
+        d["sessions"].append(s)
+        d["last"] = s["id"]
+        _save(uid, d)
+    return s
+
+
 def register(app, hk):
     from flask import request, jsonify
 
@@ -115,3 +128,69 @@ def register(app, hk):
             _save(uid, d)
         moved = hk["move"](uid, sid, "")              # its chats + media go to General — nothing is deleted
         return jsonify(dict(d, moved=moved))
+
+
+# ── library folders: data/library/Sessions/<session name>/ ───────────────────────────────────────────────
+# Every library item also appears inside a folder named after its session (hardlinks: same file, no extra disk,
+# nothing in the app changes — it still reads the flat library). Kept in step every 30 s: new items, moves
+# between sessions, renames and deletions all show up. "General" holds items with no session.
+FOLDERS = os.path.join(core.LIB, "Sessions")
+
+
+def _fname(n):
+    return re.sub(r'[<>:"/\|?*\x00-\x1f]', "_", str(n or "General")).strip(" .")[:80] or "General"
+
+
+def sync_folders():
+    import json as _j
+    names = {}
+    for f in (os.listdir(SD) if os.path.isdir(SD) else []):
+        if f.endswith(".json"):
+            try:
+                for s in _j.load(open(os.path.join(SD, f), encoding="utf-8")).get("sessions", []):
+                    names[s["id"]] = s.get("name") or s["id"]
+            except Exception:
+                pass
+    want = {}
+    for name, meta in core.index().items():
+        src = os.path.join(core.LIB, name)
+        if os.path.isfile(src):
+            sid = (meta or {}).get("session") if isinstance(meta, dict) else None
+            want[os.path.join(FOLDERS, _fname(names.get(sid, "General") if sid else "General"), name)] = src
+    for dst, src in want.items():
+        try:
+            if os.path.exists(dst) and os.path.samefile(dst, src):
+                continue
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if os.path.exists(dst):
+                os.remove(dst)
+            os.link(src, dst)
+        except OSError:
+            pass
+    if os.path.isdir(FOLDERS):                       # drop links for deleted / moved items, then empty folders
+        for root, dirs, files in os.walk(FOLDERS, topdown=False):
+            for f in files:
+                p = os.path.join(root, f)
+                if p not in want:
+                    try:
+                        os.remove(p)
+                    except OSError:
+                        pass
+            if root != FOLDERS and not os.listdir(root):
+                try:
+                    os.rmdir(root)
+                except OSError:
+                    pass
+
+
+def start_folders():
+    import threading
+
+    def loop():
+        while True:
+            try:
+                sync_folders()
+            except Exception:
+                pass
+            time.sleep(30)
+    threading.Thread(target=loop, daemon=True, name="lib-folders").start()

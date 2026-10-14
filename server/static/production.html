@@ -42,7 +42,7 @@ h2{margin:0 0 2px;font-size:18px}h3{margin:22px 0 10px;font-size:12px;letter-spa
 .st.done{border-color:color-mix(in srgb,var(--ok) 50%,transparent)}.st.done b{color:var(--ok)}
 .st.now{border-color:var(--info)}.st.now b{color:var(--info)}.st.wait{border-color:var(--warn)}.st.wait b{color:var(--warn)}
 .st.fail{border-color:var(--bad)}.st.fail b{color:var(--bad)}
-.st .sa{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px}.st .sa button{height:24px;padding:0 8px;border-radius:7px;border:1px solid var(--line2);background:transparent;color:var(--ink);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}.st .sa button:hover{border-color:var(--acc)}.st .sa .mi{width:13px;height:13px}.dlg{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:20;padding:16px}.dlg .bx{background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:16px;width:min(520px,100%);display:flex;flex-direction:column;gap:10px}.dlg textarea{width:100%;min-height:96px;background:var(--bg);border:1px solid var(--line2);border-radius:10px;color:var(--ink);padding:10px;resize:vertical}.dlg small{color:var(--dim)}.dlg .row{display:flex;gap:8px;justify-content:flex-end}
+.st .sa{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px}.st .sa button{height:24px;padding:0 8px;border-radius:7px;border:1px solid var(--line2);background:transparent;color:var(--ink);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}.st .sa button:hover{border-color:var(--acc)}.st .sa .mi{width:13px;height:13px}.st .shl button.done{border-color:var(--ok)}.st .shl button.stale{border-color:var(--warn);color:var(--warn)}.st .shl button.now{border-color:var(--info);color:var(--info)}.st .shl button.todo{opacity:.45;cursor:default}.dlg{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:20;padding:16px}.dlg .bx{background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:16px;width:min(520px,100%);display:flex;flex-direction:column;gap:10px}.dlg textarea{width:100%;min-height:96px;background:var(--bg);border:1px solid var(--line2);border-radius:10px;color:var(--ink);padding:10px;resize:vertical}.dlg small{color:var(--dim)}.np{display:grid;grid-template-columns:1fr 1fr;gap:10px}.np label{display:flex;flex-direction:column;gap:4px;font-size:11px;letter-spacing:.08em;color:var(--dim);text-transform:uppercase}.np select,.np input[type=number]{height:32px;background:var(--bg);border:1px solid var(--line2);border-radius:8px;color:var(--ink);padding:0 8px;text-transform:none;letter-spacing:0;font-size:13px}.np .w{grid-column:1/-1}.np input[type=range]{width:100%}.np .ck{flex-direction:row;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink)}.dlg .row{display:flex;gap:8px;justify-content:flex-end}
 .alert{border:1px solid var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent);border-radius:10px;padding:10px 12px;margin:10px 0}
 .need{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}
 .log{border:1px solid var(--line);border-radius:12px;background:var(--panel);max-height:260px;overflow:auto;padding:6px 0}
@@ -65,13 +65,44 @@ h2{margin:0 0 2px;font-size:18px}h3{margin:22px 0 10px;font-size:12px;letter-spa
 @media (hover:none){.lb .nav{display:none}}
 @media(max-width:760px){.wrap{grid-template-columns:1fr}.list{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}
   .pj{min-width:200px}.tl{grid-template-columns:repeat(2,1fr)}.wrap{height:auto}}
+.dlg .bx.wz{width:min(860px,100%);max-height:calc(100vh - 32px);padding:14px}.wz-hd{display:flex;align-items:center;gap:8px}.wz .sp{flex:1}
+.wz-steps{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;flex:none}.wz-steps button{display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:15px;border:1px solid var(--line);background:transparent;color:var(--dim);cursor:pointer;white-space:nowrap;font-size:12px}.wz-steps button i{font-style:normal;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--panel2);font-size:11px}.wz-steps .on{border-color:var(--acc);color:var(--ink)}.wz-steps .on i{background:var(--acc);color:#fff}.wz-steps .done i{background:var(--ok);color:#102016}.wz-steps button:disabled{opacity:.4;cursor:default}
+.wz-body{overflow:auto;min-height:260px;flex:1;display:flex;flex-direction:column;gap:6px;padding-right:4px}.wz-l{font-size:11px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;margin-top:8px}.wz-h{margin:2px 0 4px;color:var(--dim);font-size:12px}.wz-h b{color:var(--ink);font-weight:500}
+.wz-chips{display:flex;flex-wrap:wrap;gap:6px}.wz-chips button{display:inline-flex;flex-direction:column;align-items:center;gap:4px;padding:6px 10px;border-radius:9px;border:1px solid var(--line2);background:var(--bg);color:var(--ink);cursor:pointer;font-size:12px;position:relative}.wz-chips button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 18%,var(--bg))}.wz-pv{width:84px;height:56px;object-fit:cover;border-radius:6px}
+.wz-chips button:has(.wz-au){padding-right:28px}.wz-au{position:absolute;top:50%;margin-top:-9px;right:5px;width:18px;height:18px;border-radius:50%;background:var(--panel2);display:grid;place-items:center}.wz-au .mi{width:10px;height:10px}
+.wz-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}.wz-tile{display:flex;flex-direction:column;gap:4px;text-align:left;padding:10px;border-radius:11px;border:1px solid var(--line2);background:var(--bg);color:var(--ink);cursor:pointer}.wz-tile.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}.wz-tile b{font-size:13px}.wz-tile span{font-size:11px;color:var(--dim)}
+.wz-th{aspect-ratio:16/10;border-radius:7px;overflow:hidden;background:var(--panel2)}.wz-tv{width:100%;height:100%;object-fit:cover;display:block}.wz-beats{display:flex;gap:2px;height:6px;border-radius:3px;overflow:hidden}.wz-beats i{display:block}
+.wz-est{margin-top:10px;padding:8px 10px;border-radius:9px;background:var(--panel2);font-size:12px;display:flex;align-items:center;gap:6px}.wz-est .mi{width:14px;height:14px}
+.wz-cn{height:30px;background:var(--bg);border:1px solid var(--line2);border-radius:8px;color:var(--ink);caret-color:var(--acc);padding:0 8px;font:inherit;font-size:13px}.wz-cn:focus{outline:none;border-color:var(--acc)}.wz-cn::placeholder{color:var(--faint)}
+.wz-rg{display:flex;align-items:center;gap:12px}.wz-rg input[type=range]{flex:1}.wz-ck{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:8px}
+.wz-sum{display:grid;gap:4px;margin-top:10px;padding:10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}.wz-sum div{display:flex;gap:10px;font-size:12px}.wz-sum span{width:90px;flex:none;color:var(--dim)}.wz-sum b{font-weight:500}
+.wz textarea{width:100%;min-height:110px}.wz .row{align-items:center}
+@media (max-width:600px){.wz-tiles{grid-template-columns:1fr 1fr}.wz-steps span{display:none}.wz-steps .on span{display:inline}}
+</style>
+
+<style>
+#swapdlg{position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#swapdlg .sw-card{width:min(560px,100%);max-height:92vh;overflow:auto;background:var(--panel,#15161a);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px 18px;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+#swapdlg .sw-h{display:flex;align-items:center;gap:8px;font-size:15px;margin-bottom:6px}
+#swapdlg .sp{flex:1}
+#swapdlg .sw-note{font-size:12.5px;opacity:.75;margin:4px 0 12px;line-height:1.45}
+#swapdlg .sw-row{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;align-items:center;margin:8px 0;font-size:13px}
+#swapdlg .sw-row em{grid-column:2;font-style:normal;font-size:11.5px;opacity:.65;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#swapdlg input:not([type=file]),#swapdlg select{width:100%;padding:7px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.3);color:inherit}
+#swapdlg .sw-foot{display:flex;align-items:center;gap:10px;margin-top:14px}
+#swapdlg .sw-foot small{opacity:.6}
+@media (max-width:520px){#swapdlg .sw-row{grid-template-columns:1fr}#swapdlg .sw-row em{grid-column:1}}
+.it .swp{position:absolute;left:6px;top:6px;font-size:11px;padding:4px 8px}
+.sw-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99999;background:#222;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
 <header class="top">
   <button class="sb ic" id="close" title="Back to the lab"><i class="mi" data-ic="arrow-left"></i></button>
   <div class="brand"><i class="mi" data-ic="layers"></i><b>PROJECTS</b></div><span class="sp"></span>
-  <button class="sb" id="newser" title="Build a series by hand in the Series studio"><i class="mi" data-ic="tv"></i> New series</button>
+  <button class="sb pri" id="newprj" title="Start a new MirAI production with your own settings"><i class="mi" data-ic="plus"></i> New project</button>
+  <button class="sb" id="newser" title="Build it yourself step by step — MirAI can do any step or take over whenever you want"><i class="mi" data-ic="tv"></i> Build it myself</button>
+  <button class="sb" id="swapbtn" title="Put yourself (or anyone) into a clip — whole body + clothes, the rest of the clip stays"><i class="mi" data-ic="user"></i> Put me in a clip</button>
   <button class="sb" id="refresh"><i class="mi" data-ic="refresh"></i></button>
 </header>
 <div class="wrap"><nav class="list" id="list"></nav><main class="main" id="main"><div class="empty">Loading…</div></main></div>
@@ -80,7 +111,8 @@ h2{margin:0 0 2px;font-size:18px}h3{margin:22px 0 10px;font-size:12px;letter-spa
   var $ = function (s) { return document.querySelector(s); }, SEL = new URLSearchParams(location.search).get('id'), LIST = [], CUR = null, SER = [];
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   function api(u, o) { o = o || {}; if (o.body && typeof o.body !== 'string') { o.body = JSON.stringify(o.body); o.headers = { 'Content-Type': 'application/json' }; }
-    return fetch(u, o).then(function (r) { return r.json().then(function (j) { if (!r.ok || j.error) throw new Error(j.error || r.status); return j; }); }); }
+    return fetch(u, o).then(function (r) { return r.json().then(function (j) { /* a paused production carries its own error text — that's data to show, not a failed request */
+      if (!r.ok || (j.error && Object.keys(j).length <= 2)) throw new Error(j.error || r.status); return j; }); }); }
   function hm(t) { var d = new Date(t * 1000); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
   function ago(t) { var s = Date.now() / 1000 - t; return s < 90 ? 'just now' : s < 5400 ? Math.round(s / 60) + ' min ago' : s < 129600 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'; }
   var STATE = { running: 'working', waiting: 'needs your OK', paused: 'stopped — needs you', done: 'finished', cancelled: 'cancelled' };
@@ -97,8 +129,11 @@ h2{margin:0 0 2px;font-size:18px}h3{margin:22px 0 10px;font-size:12px;letter-spa
           '<small>' + esc(STATE[p.state] || p.state) + ' · ' + esc(p.label) + ' · ' + ago(p.updated || p.created) + '</small></div>';
       }).join('') : '<div class="empty">No productions yet. Ask MirAI: “make a kids musical about …”</div>';
       if (SER.length) $('#list').innerHTML += '<small style="color:var(--faint);letter-spacing:.12em;margin:8px 2px 0">SERIES BUILT BY HAND</small>' +
-        SER.map(function (x) { return '<div class="pj" data-ser="' + x.id + '"><button class="sb ic bad" data-delser="' + x.id + '" data-nm="' + esc(x.name) + '" title="Delete this series" style="float:right;width:26px;height:26px"><i class="mi" data-ic="trash"></i></button><b><i class="mi" data-ic="tv"></i> ' + esc(x.name) + '</b><small>Series studio · ' + ((x.characters || x.cast || 0) || '') + ' open to edit</small></div>'; }).join('');
+        SER.map(function (x) { return '<div class="pj" data-ser="' + x.id + '"><button class="sb ic bad" data-delser="' + x.id + '" data-nm="' + esc(x.name) + '" title="Delete this series" style="float:right;width:26px;height:26px"><i class="mi" data-ic="trash"></i></button><b><i class="mi" data-ic="tv"></i> ' + esc(x.name) + '</b><small>built by hand · open to keep going</small><button class="sb pri" data-adopt="' + x.id + '" data-nm="' + esc(x.name) + '" style="margin-top:6px"><i class="mi" data-ic="play"></i> MirAI: take over from here</button></div>'; }).join('');
       Array.prototype.forEach.call(document.querySelectorAll('[data-ser]'), function (el) { el.onclick = function (e) { e.stopPropagation(); series(el.dataset.ser); }; });
+      Array.prototype.forEach.call(document.querySelectorAll('[data-adopt]'), function (b) { b.onclick = function (e) {
+        e.stopPropagation(); if (!confirm('Let MirAI take over “' + b.dataset.nm + '”? Everything you made stays — MirAI only does what is still missing.')) return;
+        api('api/produce/adopt', { method: 'POST', body: { sid: b.dataset.adopt } }).then(function (p) { SEL = p.id; loadList(); }).catch(function (x) { alert(x.message); }); }; });
       Array.prototype.forEach.call(document.querySelectorAll('[data-delser]'), function (b) { b.onclick = function (e) {
         e.stopPropagation(); if (!confirm('Delete the series “' + b.dataset.nm + '”? It goes to the lab trash; its pictures stay in your Library.')) return;
         api('api/series/' + b.dataset.delser + '/delete', { method: 'POST', body: {} }).then(loadList).catch(function (x) { alert(x.message); }); }; });
@@ -114,8 +149,52 @@ h2{margin:0 0 2px;font-size:18px}h3{margin:22px 0 10px;font-size:12px;letter-spa
     if (audio) return '<div class="aud"><b>' + esc(it.label) + '</b><audio controls preload="none" src="' + full + '"></audio>' +
       (redo ? '<button class="sb" style="margin-top:8px" data-redo="' + redo + '" data-lbl="the song"><i class="mi" data-ic="refresh"></i> Redo the song</button>' : '') + '</div>';
     return '<div class="it" data-full="' + full + '" data-v="' + (video ? 1 : 0) + '"><img loading="lazy" src="' + th + '" onerror="this.src=\'' + full + '\'">' +
-      '<span>' + esc(it.label) + '</span>' + (redo ? '<button class="sb redo" data-redo="' + redo + '" data-lbl="' + esc(it.label) + '" title="Make this again, with your changes"><i class="mi" data-ic="refresh"></i> Redo</button>' : '') + '</div>';
+      '<span>' + esc(it.label) + '</span>' + (video ? '<button class="sb swp" data-swap="' + esc(it.name) + '" data-isref="' + (ref ? 1 : 0) + '" title="Put yourself into this clip"><i class="mi" data-ic="user"></i> Put me in</button>' : '') + (redo ? '<button class="sb redo" data-redo="' + redo + '" data-lbl="' + esc(it.label) + '" title="Make this again, with your changes"><i class="mi" data-ic="refresh"></i> Redo</button>' : '') + '</div>';
   }
+
+  /* ── Put me in this clip: the lab's swap skill, from a project ─────────────────────────────────────────── */
+  var SW = null;
+  function upl(file) {
+    var fd = new FormData(); fd.append('file', file);
+    return fetch('api/upload', { method: 'POST', body: fd }).then(function (r) { return r.json().then(function (j) { if (!r.ok || !j.name) throw new Error(j.error || r.status); return j; }); });
+  }
+  function asRef(name, isRef) {
+    return isRef ? Promise.resolve({ name: name, label: name.split('_').slice(2).join('_') || name })
+      : api('api/library/' + encodeURIComponent(name) + '/use', { method: 'POST' });
+  }
+  function swapDialog(clipName, isRef) {
+    SW = { clip: null, pic: null };
+    var d = document.createElement('div'); d.id = 'swapdlg';
+    d.innerHTML = '<div class="sw-card"><div class="sw-h"><i class="mi" data-ic="user"></i><b>Put me in this clip</b><span class="sp"></span><button class="sb ic" id="sw-x"><i class="mi" data-ic="close"></i></button></div>' +
+      '<p class="sw-note">The person in the clip is replaced by the person in your picture — whole body and clothes. Everything else in the clip stays exactly as it is. A clear, front-facing full-body photo works best.</p>' +
+      '<label class="sw-row"><span>Your picture</span><input type="file" id="sw-pic" accept="image/*"><em id="sw-picn">none yet</em></label>' +
+      '<label class="sw-row"><span>The clip</span><input type="file" id="sw-clip" accept="video/*"' + (clipName ? ' style="display:none"' : '') + '><em id="sw-clipn">' + (clipName ? esc(clipName) : 'none yet') + '</em></label>' +
+      '<label class="sw-row"><span>Duration</span><select id="sw-dur"><option value="5">5 s</option><option value="8">8 s</option><option value="10">10 s</option><option value="15">15 s</option>' +
+      '<option value="20">20 s</option><option value="30">30 s</option><option value="45">45 s</option><option value="60">1 min</option><option value="0">whole clip (max 1 min)</option></select></label>' +
+      '<label class="sw-row"><span>Who gets replaced</span><input id="sw-who" value="person" placeholder="person · man in red shorts · woman on the left"></label>' +
+      '<label class="sw-row"><span>Extra notes</span><input id="sw-note" placeholder="optional — e.g. keep my glasses"></label>' +
+      '<div class="sw-foot"><small>~4 min per 5 s · longer clips are swapped in sections</small><span class="sp"></span><button class="sb pri" id="sw-go"><i class="mi" data-ic="play"></i> Put me in</button></div></div>';
+    document.body.appendChild(d); window.MI && MI.fill && MI.fill(d);
+    var close = function () { d.remove(); };
+    d.onclick = function (e) { if (e.target === d) close(); };
+    $('#sw-x').onclick = close;
+    if (clipName) asRef(clipName, isRef).then(function (j) { SW.clip = j; }).catch(function (e) { $('#sw-clipn').textContent = e.message; });
+    $('#sw-pic').onchange = function () { var f = this.files[0]; if (!f) return; $('#sw-picn').textContent = 'uploading…';
+      upl(f).then(function (j) { SW.pic = j; $('#sw-picn').textContent = f.name; }).catch(function (e) { $('#sw-picn').textContent = e.message; }); };
+    $('#sw-clip').onchange = function () { var f = this.files[0]; if (!f) return; $('#sw-clipn').textContent = 'uploading…';
+      upl(f).then(function (j) { SW.clip = j; $('#sw-clipn').textContent = f.name; }).catch(function (e) { $('#sw-clipn').textContent = e.message; }); };
+    $('#sw-go').onclick = function () {
+      if (!SW.pic) return alert('Add your picture first');
+      if (!SW.clip) return alert('Add the clip first');
+      var b = this; b.disabled = true;
+      api('api/generate', { method: 'POST', body: { skill: 'swapin', prompt: $('#sw-note').value.trim(), refs: [SW.pic.name, SW.clip.name],
+        knobs: { secs: $('#sw-dur').value }, mask_what: $('#sw-who').value.trim() || 'person', session: (CUR && CUR.session) || undefined } })
+        .then(function () { close(); toast2('Putting you in the clip — it lands in the Library (and this project) when it is done'); })
+        .catch(function (e) { b.disabled = false; alert(e.message); });
+    };
+  }
+  function toast2(m) { var t = document.createElement('div'); t.className = 'sw-toast'; t.textContent = m; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 5000); }
+  window.swapDialog = swapDialog;
 
   function loadOne() {
     return api('api/produce/' + SEL + '/project').then(function (p) {
@@ -125,6 +204,7 @@ h2{margin:0 0 2px;font-size:18px}h3{margin:22px 0 10px;font-size:12px;letter-spa
       if (p.state === 'paused' || p.state === 'cancelled') acts.push('<button class="sb pri" data-a="retry"><i class="mi" data-ic="play"></i> Resume from here</button>');
       if (p.state === 'running') acts.push('<button class="sb" data-a="pause"><i class="mi" data-ic="pause"></i> Pause</button>');
       if (p.final) acts.push('<button class="sb" data-a="redo"><i class="mi" data-ic="scissors"></i> Redo final edit</button>');
+      acts.push('<button class="sb" id="edit-setup" title="Reopen the setup wizard for this same project"><i class="mi" data-ic="sliders"></i> Edit settings</button>');
       if (p.sid) acts.push('<button class="sb" id="open-ser"><i class="mi" data-ic="tv"></i> Open in Series studio</button>');
       if (p.state !== 'done' && p.state !== 'cancelled') acts.push('<button class="sb bad" data-a="cancel"><i class="mi" data-ic="stop"></i> Stop</button>');
       acts.push('<button class="sb bad" id="del-proj" title="Delete this project"><i class="mi" data-ic="trash"></i> Delete project</button>');
@@ -132,9 +212,13 @@ h2{margin:0 0 2px;font-size:18px}h3{margin:22px 0 10px;font-size:12px;letter-spa
       var alert = p.state === 'paused' ? '<div class="alert"><b>Stopped:</b> ' + esc((last.find(function (e) { return e.lvl === 'error'; }) || {}).msg || p.error || 'paused') + '</div>' :
         p.state === 'waiting' ? '<div class="alert need">' + esc((last.find(function (e) { return e.lvl === 'need'; }) || {}).msg || 'Waiting for you.') + '</div>' : '';
       var run = p.run ? ' · ' + p.run.left + ' steps left, ~' + Math.round(p.run.eta / 60) + ' min' : '';
-      var groups = (p.groups || []).map(function (g) {
+      var groups = (p.groups || []).slice().sort(function (x, y) { return (y.title === 'Shots') - (x.title === 'Shots'); }).map(function (g) {
         var shots = g.title === 'Shots';
-        return '<h3>' + esc(g.title) + ' <span style="color:var(--faint)">' + g.items.length + '</span></h3><div class="grid">' +
+        return '<h3>' + esc(g.title) + ' <span style="color:var(--faint)">' + g.items.length + '</span></h3>' +
+          ((g.who || []).length ? '<div class="who" style="display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px">' + g.who.map(function (w) {
+            return '<button class="sb" data-redo="' + JSON.stringify(w.redo).replace(/"/g, '&quot;') + '" data-lbl="' + esc(w.name) + '" title="Redraw ' + esc(w.name) +
+              (g.title === 'Cast' ? ' design + turnaround' : ' pictures') + (w.own ? ' (your upload: say what to change)' : '') + '"><i class="mi" data-ic="refresh"></i> Redo ' + esc(w.name) + '</button>'; }).join('') + '</div>' : '') +
+          '<div class="grid">' +
           g.items.map(function (it) { return media(it); }).join('') + '</div>';
       }).join('');
       $('#main').innerHTML = '<h2>' + esc(p.title) + '</h2><div class="sub">' + esc(STATE[p.state] || p.state) + ' · ' + esc(p.label) + run +
@@ -146,7 +230,9 @@ h2{margin:0 0 2px;font-size:18px}h3{margin:22px 0 10px;font-size:12px;letter-spa
           return '<div class="ln ' + esc(e.lvl || 'info') + '"><time>' + hm(e.t) + '</time><div>' + esc(e.msg) + '</div></div>'; }).join('') + '</div>' +
         (groups || '<h3>Media</h3><div class="empty">Nothing made yet.</div>');
       Array.prototype.forEach.call(document.querySelectorAll('[data-a]'), function (b) { b.onclick = function () { act(b.dataset.a); }; });
+      Array.prototype.forEach.call(document.querySelectorAll('[data-swap]'), function (b) { b.onclick = function (e) { e.stopPropagation(); swapDialog(b.dataset.swap, b.dataset.isref === '1'); }; });
       if ($('#open-ser')) $('#open-ser').onclick = function () { series(p.sid); };
+      if ($('#edit-setup')) $('#edit-setup').onclick = function () { api('api/produce/' + SEL).then(newProject).catch(function (e) { alert(e.message); }); };
       $('#del-proj').onclick = function () {
         if (!confirm('Delete “' + p.title + '”? Its production and series (cast, world, song and shot plans) go to the lab trash. The pictures and videos it made stay in your Library.')) return;
         api('api/produce/' + p.id + '/delete', { method: 'POST', body: { series: true } }).then(function () { SEL = null; loadList(); }).catch(function (e) { alert(e.message); });
@@ -178,15 +264,21 @@ h2{margin:0 0 2px;font-size:18px}h3{margin:22px 0 10px;font-size:12px;letter-spa
     if (s.state === 'fail') b.push(btn('retry', 'play', 'Resume'));
     if (s.state === 'now' || s.state === 'fail') b.push(btn('cancel', 'stop', 'Stop'));
     if (REDO[s.key] && (s.state === 'done' || s.state === 'fail' || s.state === 'now' || s.state === 'wait' && s.key !== 'approve_look'))
-      b.push(btn('redo', 'refresh', s.key === 'assemble' ? 'Redo' : 'Redo…'));
-    return b.length ? '<div class="sa">' + b.join('') + '</div>' : '';
+      b.push(btn('redo', 'refresh', s.key === 'assemble' ? 'Redo' : s.key === 'shots' ? 'Redo all…' : 'Redo…'));
+    var sh = '';
+    if (s.key === 'shots' && (p.chunks || []).length) sh = '<div class="sa shl">' + p.chunks.map(function (c) {   // every shot, its own chip
+      var cls = c.now ? 'now' : c.stale ? 'stale' : c.has ? 'done' : 'todo';
+      var tip = c.now ? 'Rendering now' : c.stale ? 'Waiting to re-render' : c.has ? 'Done — click to redo only this shot' : 'Not rendered yet';
+      return c.has || c.stale ? '<button class="' + cls + '" data-redo="' + JSON.stringify({ step: 'shot', target: c.i }).replace(/"/g, '&quot;') + '" data-lbl="shot ' + (c.i + 1) + '" title="' + tip + '"><i class="mi" data-ic="refresh"></i>Shot ' + (c.i + 1) + '</button>'
+        : '<button class="' + cls + '" disabled title="' + tip + '">Shot ' + (c.i + 1) + '</button>'; }).join('') + '</div>';
+    return (b.length ? '<div class="sa">' + b.join('') + '</div>' : '') + sh;
   }
   function redo(step, target, label) {
     if (step === 'assemble') { if (confirm('Make the final edit again?')) act('redo_step', { step: 'assemble' }); return; }
     var what = step === 'shot' ? 'shot ' + (target + 1) : label || step;
     var warn = { brief: 'This starts the project over from a new brief (the current one stays in the Series studio).',
                  pictures: 'Redraws the cast and the world, then asks you to approve the look again.',
-                 cast: 'Redraws this picture (and the cast lineup), then asks you to approve the look again.',
+                 cast: 'Redraws this character (and the cast lineup), then asks you to approve the look again. Your own uploaded pictures are only redrawn when you say what to change.',
                  world: 'Redraws this picture, then asks you to approve the look again.',
                  song: 'Writes and records a new song — every shot is then re-cut to it.',
                  shots: 'Re-renders every shot, then makes a fresh final edit. This is the longest step.',
@@ -259,8 +351,221 @@ h2{margin:0 0 2px;font-size:18px}h3{margin:22px 0 10px;font-size:12px;letter-spa
   }
 
   function series(id) { if (window.parent !== window) window.parent.postMessage({ mml: 'prod-series', id: id || '' }, '*'); else location.href = 'series' + (id ? '?id=' + id : ''); }
+  // ── New project: a step-by-step settings wizard (same pickers, previews + help as the Series Setup tab) ────────────
+  var OPT = null, SP = null;
+  function newProject(EP) {
+    EP = EP && EP.id ? EP : null;                          /* EP = an existing project: the wizard edits it in place */
+    Promise.all([OPT ? OPT : api('api/produce/options').then(function (o) { return (OPT = o); }),
+                 SP ? SP : api('api/series/presets').then(function (o) { return (SP = o); })]).then(function (r) {
+      var o = r[0], P = r[1], AUTO = '';
+      var W = { prompt: '', cast: o.cast_max, structure: AUTO, style: AUTO, length: AUTO, aspect: AUTO, clip: AUTO, join: 'soft', flow: 'seamless',
+        res: 'standard', song: { genre: AUTO, bpm: AUTO, mood: AUTO, vocal: AUTO, lang: AUTO }, plat: 'youtube', chk: true,
+        mycast: [], myworld: [], audio: { mode: 'make', file: '', secs: 0, title: '', enhance: false, speech: true }, busy: false };
+      var AMODES = [['make', 'MirAI writes a song', 'The lab writes the lyrics and records an original song.'],
+        ['own', 'Use my audio as-is', 'Your recording IS the soundtrack - a voice-over, promo read or your own song. Nothing is added.'],
+        ['voice_music', 'My voice + music', 'Your voice stays on top; the lab composes a music bed and mixes it under you (ducked when you talk).'],
+        ['remix', 'Turn my audio into a song', 'The lab listens to your words and sings them as a song in the style you pick.'],
+        ['remix_me', 'Song in MY voice', 'Your words become a song, then ACE-Step re-sings it in your own voice and tone - it sounds like you (or whoever is in the audio you add). Best with 10-30 s of clean voice.']];
+      var DF = o.defaults || {}, ds = DF.setup || {};          /* open with the last choices (MirAI chat projects use them too) */
+      ['structure', 'style', 'length', 'aspect', 'clip', 'join', 'flow', 'res'].forEach(function (k) { if (ds[k] != null && ds[k] !== '') W[k] = ds[k]; });
+      Object.keys(ds.song || {}).forEach(function (k) { W.song[k] = ds.song[k]; });
+      if (DF.cast_max) W.cast = Math.min(o.cast_max, DF.cast_max);
+      if (DF.platforms && DF.platforms.length) W.plat = DF.platforms.join(',');
+      if (DF.checkpoints != null) W.chk = !!DF.checkpoints;
+      if (EP) {                                              /* reopen with THIS project's own choices */
+        var es = EP.setup || {};
+        W.prompt = EP.prompt || '';
+        ['structure', 'style', 'length', 'aspect', 'clip', 'join', 'flow', 'res'].forEach(function (k) { W[k] = es[k] != null ? es[k] : AUTO; });
+        Object.keys(W.song).forEach(function (k) { W.song[k] = (es.song || {})[k] != null ? es.song[k] : AUTO; });
+        W.mycast = (es.cast || []).map(function (c) { return { name: c.name || '', ref: c.ref || '', sheet: c.sheet || '', desc: c.desc || '' }; });
+        W.myworld = (es.world || []).map(function (c) { return { name: c.name || '', ref: c.ref || '', sheet: c.sheet || '', desc: c.desc || '' }; });
+        if (es.audio) { W.audio.mode = es.audio.mode; W.audio.file = es.audio.file; W.audio.secs = es.audio.secs; W.audio.speech = !!es.audio.speech; }
+        if (EP.cast_max) W.cast = Math.min(o.cast_max, Math.max(EP.cast_max, W.mycast.length));
+        if (EP.platforms && EP.platforms.length) W.plat = EP.platforms.join(',');
+        if (EP.checkpoints != null) W.chk = !!EP.checkpoints;
+      }
+      var STEPS = ['Idea', 'Format', 'Look', 'Length & shape', 'Audio', 'Publish'], at = 0;
+      var H = function (k) { return (P.help || {})[k] || { desc: '', opts: {} }; };
+      var od = function (k, v) { return (H(k).opts || {})[String(v)] || ''; };
+      var slug = function (v) { return String(v).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); };
+      var pv = function (key, cls) {
+        var f = (P.previews || {})[key]; if (!f) return ''; var u = 'static/series/samples/' + f;
+        if (/\.(mp3|m4a|ogg|wav)$/.test(u)) return '<span class="wz-au" data-au="' + u + '" title="Listen to an example"><i class="mi" data-ic="play"></i></span>';
+        return /\.mp4$/.test(u) ? '<video class="' + (cls || 'wz-pv') + '" src="' + u + '" muted loop playsinline autoplay></video>' : '<img class="' + (cls || 'wz-pv') + '" src="' + u + '" loading="lazy">';
+      };
+      var help = function (k, cur) { var d = H(k).desc, c = cur === AUTO ? 'MirAI decides this from your idea.' : od(k, cur); return (d || c) ? '<p class="wz-h">' + esc(d) + (c ? ' <b>' + esc(c) + '</b>' : '') + '</p>' : ''; };
+      var chips = function (k, opts, cur, fmt, path, auto) {
+        return '<div class="wz-chips">' + (auto ? '<button data-k="' + k + '" data-p="' + (path || '') + '" data-v="" class="' + (cur === AUTO ? 'on' : '') + '"><span>Let MirAI choose</span></button>' : '') +
+          opts.map(function (v) { return '<button data-k="' + k + '" data-p="' + (path || '') + '" data-v="' + esc(v) + '" class="' + (String(v) === String(cur) ? 'on' : '') + '" title="' + esc(od(k, v)) + '">' + pv(k + '__' + slug(v)) + '<span>' + esc(fmt ? fmt(v) : v) + '</span></button>'; }).join('') + '</div>' + help(k, cur);
+      };
+      var beatBar = function (beats) { var col = { sing: 'var(--acc)', dialogue: '#5aa9ff' };
+        return '<div class="wz-beats">' + (beats || []).map(function (b) { return '<i style="flex:' + b[1] + ';background:' + (col[b[2]] || 'var(--line2)') + '"></i>'; }).join('') + '</div>'; };
+      var tile = function (k, id, name, blurb, extra, on) { return '<button class="wz-tile' + (on ? ' on' : '') + '" data-k="' + k + '" data-v="' + esc(id) + '">' + (extra || '') + '<b>' + esc(name) + '</b><span>' + esc(blurb) + '</span></button>'; };
+      var mmss = function (v) { return v < 60 ? v + ' s' : Math.floor(v / 60) + ' min' + (v % 60 ? ' ' + v % 60 + ' s' : ''); };
+      var RESN = { draft: 'draft (fast test)', standard: 'standard', high: 'high', max: 'max 768p (slow)' };
+      var nm = function (list, id) { var x = (list || []).find(function (s) { return s.id === id; }); return x ? x.name : id; };
+      var show = function (v, f) { return v === AUTO || v == null ? '<i>MirAI chooses</i>' : esc(f ? f(v) : v); };
+
+      function cells(G) {                          /* c = characters, w = world places: each a name + picture + turnaround */
+        var list = G === 'c' ? W.mycast : W.myworld, lbl = G === 'c' ? ['Character', 'Turnaround', 'character'] : ['Place', 'Turnaround / cutout', 'place'];
+        return '<div class="wz-cast" style="display:flex;flex-wrap:wrap;gap:12px">' + list.map(function (c, i) {
+          var slot = function (k, t, hint) { var r = c[k], id = G + ':' + i + ':' + k, up = W.busy === id;
+            return '<button class="wz-slot" data-slot="' + id + '" title="' + hint + '" style="width:104px;height:104px;padding:0;border:1px dashed var(--line2);border-radius:10px;background:#0006;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--ink)">' +
+              (r ? '<img src="api/produce/castpic/' + esc(r) + '" style="width:100%;height:100%;object-fit:' + (k === 'sheet' ? 'contain' : 'cover') + '">' : up ? '<span style="color:var(--dim)">uploading…</span><b style="color:var(--bad)">Cancel</b>' : '<i class="mi" data-ic="upload"></i>' + t) + '</button>'; };
+          return '<div class="wz-cell" style="border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px">' +
+            '<div style="display:flex;gap:6px;align-items:center"><input class="wz-cn" data-n="' + G + ':' + i + '" value="' + esc(c.name || '') + '" placeholder="Name" style="flex:1;min-width:0">' +
+            '<button class="sb ic" data-cdel="' + G + ':' + i + '" title="Remove"><i class="mi" data-ic="close"></i></button></div>' +
+            '<div style="display:flex;gap:6px">' + slot('ref', lbl[0], 'The ' + lbl[2] + ' picture') + slot('sheet', lbl[1], 'Optional. Skip it and the lab uses / draws one from the picture.') + '</div>' +
+            '<small style="color:var(--faint)">' + (c.sheet ? lbl[1].toLowerCase() + ' attached' : lbl[1].toLowerCase() + ' optional') + '</small></div>'; }).join('') +
+          '<button class="sb" data-cadd="' + G + '" style="width:110px;min-height:150px"><i class="mi" data-ic="plus"></i><br>Add ' + lbl[2] + '</button></div>';
+      }
+      function body() {
+        if (at === 0) return '<label class="wz-l">What should MirAI make?</label><textarea id="wz-p" placeholder="e.g. a kids musical about a brave little turtle who learns to share">' + esc(W.prompt) + '</textarea>' +
+          '<label class="wz-l">Max characters · <b id="wz-cv">' + W.cast + '</b></label><input type="range" id="wz-cast" min="1" max="' + o.cast_max + '" value="' + W.cast + '">' +
+          '<p class="wz-h">MirAI writes a cast of up to this many characters, plus the places they visit.</p>' +
+          '<label class="wz-l">Your characters <span class="wz-h">(optional - attach their pictures; they become the exact designs)</span></label>' + cells('c') +
+          '<label class="wz-l">Your world <span class="wz-h">(optional - places: a picture + a turnaround / cutout; the story is set in them)</span></label>' + cells('w') +
+          '<input type="file" id="wz-cf" accept="image/*" hidden>';
+        if (at === 1) return '<div class="wz-tiles">' + tile('structure', AUTO, 'Let MirAI choose', 'Picks the best format for your idea.', '', W.structure === AUTO) +
+          P.structures.filter(function (s) { return s.id !== 'custom'; }).map(function (s) { return tile('structure', s.id, s.name, s.blurb, beatBar(s.beats), W.structure === s.id); }).join('') + '</div>';
+        if (at === 2) return '<div class="wz-tiles st">' + tile('style', AUTO, 'Let MirAI choose', 'Matches the look to the story.', '<div class="wz-th"></div>', W.style === AUTO) +
+          P.styles.map(function (s) { return tile('style', s.id, s.name, s.blurb, '<div class="wz-th">' + pv('style_' + s.id, 'wz-tv') + '</div>', W.style === s.id); }).join('') + '</div>';
+        if (at === 3) {
+          var L = W.length || 90, shots = Math.round(L / (W.clip || 10)), song = Math.round(L / 120 * 25), cuts = Math.ceil(shots / 2.5),
+            per = { draft: 2.5, standard: 4.5, high: 10, max: 16 }[W.res];
+          return '<label class="wz-l">Duration</label>' + chips('length', P.lengths, W.length, mmss, '', 1) +
+            '<label class="wz-l">Shape</label>' + chips('aspect', P.aspects, W.aspect, null, '', 1) +
+            '<label class="wz-l">Shot length</label>' + chips('clip', [6, 8, 10, 12], W.clip, function (v) { return '~' + v + ' s'; }, '', 1) +
+            '<label class="wz-l">Flow</label>' + chips('flow', ['seamless', 'cuts'], W.flow, function (v) { return { seamless: 'one seamless take', cuts: 'scene cuts' }[v]; }) +
+            '<label class="wz-l">Shot joins</label>' + chips('join', ['soft', 'cut'], W.join, function (v) { return { soft: 'soft dissolve on cuts', cut: 'hard cuts' }[v]; }) +
+            '<label class="wz-l">Resolution</label>' + chips('res', ['draft', 'standard', 'high', 'max'], W.res, function (v) { return RESN[v]; }) +
+            '<p class="wz-est"><i class="mi" data-ic="hourglass"></i> ' + (W.length ? '' : 'If MirAI picks ~90 s: ') + 'about <b>' + shots + ' shots</b> · <b>≈ ' + Math.round((song + cuts * 0.6 + shots * per) / 6) / 10 + ' h</b> of render time on this PC.</p>';
+        }
+        if (at === 4) {
+          var A = W.audio, up = A.mode !== 'make';
+          var head = '<label class="wz-l">Soundtrack</label><div class="wz-tiles">' + AMODES.map(function (m) { return tile('amode', m[0], m[1], m[2], '', A.mode === m[0]); }).join('') + '</div>';
+          if (up) head += '<label class="wz-l">Your audio</label><div class="wz-up"><input type="file" id="wz-af" accept="audio/*,video/*" hidden>' +
+            '<button class="sb" id="wz-afb"><i class="mi" data-ic="upload"></i> ' + (A.file ? 'Replace file' : 'Upload audio') + '</button> ' +
+            (W.busy ? '<span class="wz-h">uploading' + (A.enhance ? ' + enhancing' : '') + '…</span>' : A.file ? '<b>' + esc(A.title || A.file) + '</b> · ' + mmss(Math.round(A.secs)) + (A.enhanced ? ' · enhanced' : '') +
+              ' <span class="wz-au" data-au="media/' + esc(A.file) + '" title="Listen"><i class="mi" data-ic="play"></i></span>' : '<span class="wz-h">mp3, wav, m4a, flac - or a video (its sound is used)</span>') + '</div>' +
+            '<label class="wz-ck"><input type="checkbox" id="wz-aen"' + (A.enhance ? ' checked' : '') + '> Enhance my audio - remove noise and hum, clear up the voice, studio level</label>' +
+            (A.mode === 'own' ? '<label class="wz-ck"><input type="checkbox" id="wz-asp"' + (A.speech ? ' checked' : '') + '> It\'s a person talking (voice-over / promo), not a song</label>' : '') +
+            '<p class="wz-h">The video length follows your audio' + (A.secs ? ' (' + mmss(Math.round(A.secs)) + ')' : '') + '.</p>';
+          if (A.mode === 'own') return head;
+          return head + '<label class="wz-l" style="margin-top:14px">' + (A.mode === 'voice_music' ? 'Music under your voice' : 'Song style') + '</label>' +
+            (o.song || P.song || []).filter(function (f) { return A.mode !== 'voice_music' || /genre|mood|bpm/.test(f.k); }).map(function (f) {
+          var v = W.song[f.k];
+          if (f.type === 'range') return '<label class="wz-l">' + esc(f.label) + ' · <b id="wz-bv">' + (v === AUTO ? 'MirAI chooses' : v) + '</b></label>' +
+            '<div class="wz-rg"><label class="wz-ck"><input type="checkbox" id="wz-bauto"' + (v === AUTO ? ' checked' : '') + '> Let MirAI choose</label><input type="range" id="wz-bpm" min="' + f.range[0] + '" max="' + f.range[1] + '" value="' + (v || f.range[2]) + '"' + (v === AUTO ? ' disabled' : '') + '></div>' + help(f.k, v);
+          return '<label class="wz-l">' + esc(f.label) + '</label>' + chips(f.k, f.opts, v, null, 'song', 1);
+        }).join('');
+        }
+        var sum = [['Idea', esc(W.prompt.slice(0, 140)) + (W.prompt.length > 140 ? '…' : '')], ['Characters', 'up to ' + W.cast], ['Format', show(W.structure, function (v) { return nm(P.structures, v); })],
+          ['Look', show(W.style, function (v) { return nm(P.styles, v); })], ['Duration', show(W.length, mmss)], ['Shape', show(W.aspect)],
+          ['Shots', show(W.clip, function (v) { return '~' + v + ' s'; }) + ' · ' + esc(W.join === 'soft' ? 'soft dissolves' : 'hard cuts') + ' · ' + esc(RESN[W.res])],
+          ['Your world', W.myworld.length ? esc(W.myworld.map(function (c) { return c.name; }).join(', ')) : '<i>MirAI designs it</i>'],
+          ['Your cast', W.mycast.length ? esc(W.mycast.map(function (c) { return c.name; }).join(', ')) : '<i>MirAI designs them</i>'],
+          ['Audio', esc(AMODES.find(function (m) { return m[0] === W.audio.mode; })[1]) + (W.audio.file ? ' · ' + esc(W.audio.title || W.audio.file) + (W.audio.enhanced ? ' (enhanced)' : '') : '')],
+          ['Music', ['genre', 'mood', 'vocal', 'lang', 'bpm'].map(function (k) { return W.song[k] === AUTO ? '' : esc(W.song[k] + (k === 'bpm' ? ' BPM' : '')); }).filter(Boolean).join(' · ') || '<i>MirAI chooses</i>']];
+        return '<label class="wz-l">Publish to</label><div class="wz-chips">' + [['youtube', 'YouTube'], ['instagram', 'Instagram'], ['tiktok', 'TikTok'], ['youtube,instagram', 'YouTube + Instagram']].map(function (x) {
+            return '<button data-k="plat" data-v="' + x[0] + '" class="' + (W.plat === x[0] ? 'on' : '') + '"><span>' + x[1] + '</span></button>'; }).join('') + '</div>' +
+          '<label class="wz-ck"><input type="checkbox" id="wz-chk"' + (W.chk ? ' checked' : '') + '> Stop for my OK after the cast &amp; world are drawn</label>' +
+          '<div class="wz-sum">' + sum.map(function (x) { return '<div><span>' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('') + '</div>' +
+          '<p class="wz-h">These choices are remembered — projects you start by asking MirAI in chat use them too (unless your message says otherwise, e.g. "2 minutes" or "vertical").</p>';
+      }
+      var d = document.createElement('div'); d.className = 'dlg';
+      document.body.appendChild(d);
+      var AU = null;
+      function close() { if (AU) AU.pause(); d.remove(); }
+      function draw() {
+        d.innerHTML = '<div class="bx wz"><div class="wz-hd"><b>New MirAI project</b><span class="sp"></span><button class="sb ic" data-x="1" title="Close"><i class="mi" data-ic="close"></i></button></div>' +
+          '<div class="wz-steps">' + STEPS.map(function (s, i) { return '<button data-go="' + i + '" class="' + (i === at ? 'on' : i < at ? 'done' : '') + '"' + (i > 0 && !W.prompt ? ' disabled' : '') + '><i>' + (i + 1) + '</i><span>' + s + '</span></button>'; }).join('') + '</div>' +
+          '<div class="wz-body">' + body() + '</div>' +
+          '<div class="row"><button class="sb" data-x="1">Cancel</button><span class="sp"></span>' + (at ? '<button class="sb" data-nav="-1"><i class="mi" data-ic="back"></i> Back</button>' : '') +
+          (at < STEPS.length - 1 ? '<button class="sb pri" data-nav="1">Next <i class="mi" data-ic="forward"></i></button>' : (EP ? '<button class="sb pri" id="wz-go"><i class="mi" data-ic="check"></i> Save changes</button>' : '<button class="sb pri" id="wz-go"><i class="mi" data-ic="play"></i> Start</button>')) + '</div></div>';
+        window.MI && MI.fill && MI.fill(d);
+        var g = function (i) { return d.querySelector('#' + i); };
+        if (g('wz-p')) { g('wz-p').oninput = function () { W.prompt = this.value.trim(); d.querySelectorAll('[data-go]').forEach(function (b, i) { b.disabled = i > 0 && !W.prompt; }); }; g('wz-p').focus(); }
+        var LST = function (G) { return G === 'c' ? W.mycast : W.myworld; };
+        d.querySelectorAll('[data-cadd]').forEach(function (x) { x.onclick = function () { var G = x.dataset.cadd, l = LST(G);
+          if (l.length >= (G === 'c' ? o.cast_max : 3)) return alert(G === 'c' ? 'That is the most characters a project can have.' : 'A project can have up to 3 places.');
+          l.push({ name: '', ref: '', sheet: '', desc: '' }); if (G === 'c' && W.mycast.length > W.cast) W.cast = W.mycast.length; draw(); }; });
+        d.querySelectorAll('[data-slot]').forEach(function (x) { x.onclick = function (e) { e.stopPropagation(); if (W.busy === x.dataset.slot && CTL) { CTL.abort(); return; } if (W.busy) return; PICK = x.dataset.slot; g('wz-cf').click(); }; });
+        if (g('wz-cf')) g('wz-cf').onchange = function () { if (this.files[0] && PICK) upCast(PICK, this.files[0]); this.value = ''; };
+        d.querySelectorAll('.wz-cn').forEach(function (x) { x.oninput = function () { var q = x.dataset.n.split(':'); LST(q[0])[+q[1]].name = x.value.trim(); }; });
+        d.querySelectorAll('[data-cdel]').forEach(function (x) { x.onclick = function (e) { e.stopPropagation(); var q = x.dataset.cdel.split(':');
+          if (W.busy && String(W.busy).indexOf(x.dataset.cdel + ':') === 0 && CTL) CTL.abort(); LST(q[0]).splice(+q[1], 1); draw(); }; });
+        if (g('wz-cast')) g('wz-cast').oninput = function () { W.cast = +this.value; g('wz-cv').textContent = this.value; };
+        if (g('wz-bpm')) { g('wz-bpm').oninput = function () { W.song.bpm = +this.value; g('wz-bv').textContent = this.value; };
+          g('wz-bauto').onchange = function () { W.song.bpm = this.checked ? AUTO : +g('wz-bpm').value; draw(); }; }
+        if (g('wz-chk')) g('wz-chk').onchange = function () { W.chk = this.checked; };
+        if (g('wz-afb')) g('wz-afb').onclick = function () { g('wz-af').click(); };
+        if (g('wz-af')) g('wz-af').onchange = function () { if (this.files[0]) { W.audio.raw = this.files[0]; upAudio(); } };
+        if (g('wz-aen')) g('wz-aen').onchange = function () { W.audio.enhance = this.checked; if (W.audio.raw) upAudio(); };
+        if (g('wz-asp')) g('wz-asp').onchange = function () { W.audio.speech = this.checked; };
+        if (g('wz-go')) g('wz-go').onclick = start;
+      }
+      var PICK = null, CTL = null;
+      function upCast(slot, f) {
+        var q = slot.split(':'), k = q[2], c = (q[0] === 'c' ? W.mycast : W.myworld)[+q[1]];
+        var fd = new FormData(); fd.append('file', f); fd.append('kind', k); fd.append('what', q[0] === 'w' ? 'world' : 'cast');
+        fd.append('name', c.name || f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '));
+        W.busy = slot; CTL = new AbortController(); draw();
+        fetch('api/produce/cast', { method: 'POST', body: fd, signal: CTL.signal }).then(function (r) { return r.json().then(function (j) { if (!r.ok || j.error) throw new Error(j.error || r.status); return j; }); })
+          .then(function (j) { c[k] = j.ref; if (!c.name) c.name = j.name; if (j.desc) c.desc = j.desc; })
+          .catch(function (e) { if (e.name !== 'AbortError') alert(e.message); })
+          .then(function () { W.busy = false; CTL = null; draw(); });
+      }
+      function upAudio() {
+        var fd = new FormData(); fd.append('file', W.audio.raw); fd.append('enhance', W.audio.enhance ? '1' : '0');
+        W.busy = true; draw();
+        fetch('api/produce/audio', { method: 'POST', body: fd }).then(function (r) { return r.json().then(function (j) { if (!r.ok || j.error) throw new Error(j.error || r.status); return j; }); })
+          .then(function (j) { W.audio.file = j.name; W.audio.secs = j.secs; W.audio.title = j.title; W.audio.enhanced = j.enhanced; })
+          .catch(function (e) { alert(e.message); })
+          .then(function () { W.busy = false; draw(); });
+      }
+      function go(i) { at = (i > 0 && !W.prompt) ? 0 : Math.max(0, Math.min(STEPS.length - 1, i)); draw(); }
+      d.addEventListener('click', function (e) {
+        var a = e.target.closest('[data-au]'); if (a) { e.stopPropagation(); if (AU) AU.pause(); AU = new Audio(a.dataset.au); AU.play(); return; }
+        var b = e.target.closest('button'); if (!b || b.disabled) return;
+        if (b.dataset.x) return close();
+        if (b.dataset.nav) return go(at + +b.dataset.nav);
+        if (b.dataset.go != null) return go(+b.dataset.go);
+        if (b.dataset.k) {
+          var k = b.dataset.k, v = b.dataset.v;
+          if (k === 'amode') { W.audio.mode = v; return draw(); }
+          v = v === '' ? AUTO : (k === 'length' || k === 'clip') ? +v : v;
+          if (b.dataset.p === 'song') W.song[k] = v; else W[k] = v;
+          draw();
+        }
+      });
+      d.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+      function start() {
+        var b = d.querySelector('#wz-go'); if (!W.prompt) return go(0);
+        var song = {}; Object.keys(W.song).forEach(function (k) { if (W.song[k] !== AUTO) song[k] = W.song[k]; });
+        var setup = { style: W.style, structure: W.structure, aspect: W.aspect, res: W.res, join: W.join, flow: W.flow, clip: W.clip, song: song };
+        if (W.length) setup.length = W.length;
+        var mine = W.mycast.filter(function (c) { return c.ref || c.sheet; });
+        if (mine.length) setup.cast = mine.map(function (c) { return { ref: c.ref || c.sheet, sheet: c.sheet, name: c.name, desc: c.desc }; });
+        var places = W.myworld.filter(function (c) { return c.ref || c.sheet; });
+        if (places.length) setup.world = places.map(function (c) { return { ref: c.ref || c.sheet, sheet: c.sheet, name: c.name, desc: c.desc }; });
+        if (W.audio.mode !== 'make') {
+          if (!W.audio.file) { alert(W.busy ? 'Your audio is still uploading.' : 'Upload your audio first (step 5 · Audio).'); return go(4); }
+          setup.audio = { mode: W.audio.mode, file: W.audio.file, secs: W.audio.secs, speech: !!W.audio.speech };
+        }
+        b.disabled = true;
+        api(EP ? 'api/produce/' + EP.id + '/edit_setup' : 'api/produce', { method: 'POST', body: { prompt: W.prompt, setup: setup, cast_max: W.cast, checkpoints: W.chk, platforms: W.plat.split(',') } })
+          .then(function (p) { close(); SEL = p.id; loadList(); })
+          .catch(function (e) { b.disabled = false; alert(e.message); });
+      }
+      draw();
+    }).catch(function (e) { alert(e.message); });
+  }
+  $('#newprj').onclick = newProject;
+  if (new URLSearchParams(location.search).get('new')) newProject();
   $('#newser').onclick = function () { series(''); };
   $('#refresh').onclick = loadList;
+  $('#swapbtn').onclick = function () { swapDialog(); };
   $('#close').onclick = function () {                       /* back to the Media Lab main screen, wherever this page lives */
     if (window.parent !== window) return window.parent.postMessage({ mml: 'prod-close' }, '*');   // web lab: a layer over it
     if (window.MMLApp && MMLApp.close) return MMLApp.close('');                                    // phone app: its own screen

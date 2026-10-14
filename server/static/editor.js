@@ -499,6 +499,7 @@
     // AI tools — role words only, never engine names
     h += '<div class="grp"><b>AI tools</b><textarea id="ai-cp" placeholder="What should change? (optional for some tools)">' + esc(c.prompt || '') + '</textarea><div class="ai" style="margin-top:6px">';
     if (c.type === 'video') h += '<button class="eb" data-ai="extend">' + mi('forward') + ' Extend this shot</button><button class="eb" data-ai="regen">' + mi('refresh') + ' Regenerate this shot</button>' +
+      '<button class="eb" data-ai="fuse" title="Blend this shot into the next one with one smooth, continuous move — the timing on the timeline stays the same">' + mi('link') + ' Fuse with next shot</button>' +
       '<button class="eb" data-ai="restyle">' + mi('wand') + ' Restyle this shot</button><button class="eb" data-ai="still">' + mi('camera') + ' Freeze frame at playhead</button>';
     if (c.type === 'image') h += '<button class="eb" data-ai="animate">' + mi('video') + ' Animate this picture</button><button class="eb" data-ai="editimg">' + mi('wand') + ' Edit this picture</button>';
     if (c.type === 'audio') h += '<button class="eb" data-ai="remix">' + mi('music') + ' Remix / cover this audio</button>';
@@ -603,6 +604,20 @@
     if (kind === 'asref') {
       var p = c.type === 'video' ? (T >= c.start && T <= end(c) ? frameRef(c, srcT) : frameRef(c, num(c.in, 0))) : c.type === 'image' ? frameRef(c, 0) : cutRef(c);
       p.then(function (r) { AIREFS.push({ name: r.name, kind: r.kind, label: (r.label || r.name).slice(0, 18) }); binTab('ai'); drawRoles(); ED.classList.add('bin-on'); toast('Attached — write a prompt in the AI panel'); }).catch(fail); return; }
+    if (kind === 'fuse') {
+      var tk = find(c.id).t, nx = tk.clips.filter(function (x) { return x.type === 'video' && x.id !== c.id && x.start >= end(c) - 0.1; })
+        .sort(function (a, b) { return a.start - b.start; })[0];
+      if (!nx) { toast('No shot after this one on the same track'); return; }
+      var h = Math.min(1.5, len(c) * 0.4, len(nx) * 0.4);
+      if (h < 0.4) { toast('These shots are too short to fuse'); return; }
+      BUSY[c.id] = BUSY[nx.id] = 1; drawTracks();
+      var fa = num(c.in, 0) + (len(c) - h) * num(c.speed, 1), fb = num(nx.in, 0) + h * num(nx.speed, 1);
+      Promise.all([frameRef(c, fa), frameRef(nx, fb)]).then(function (r) {
+        gen({ role: 'video', prompt: prompt || 'One smooth continuous camera move that flows from the first picture into the second: same characters, same place, same light, no cut, natural motion.',
+          refs: [r[0].name, r[1].name], override: { mode: 'flf2v', seconds: Math.max(2, Math.round(2 * h * 10) / 10), audio: 'off' },
+          label: 'Fuse · ' + (c.name || '') + ' → ' + (nx.name || ''), place: { mode: 'fuse', clip: c.id, next: nx.id, h: h }, busy: c.id });
+      }).catch(function (e) { delete BUSY[nx.id]; fail(e); }); return;
+    }
     BUSY[c.id] = 1; drawTracks();
     if (kind === 'extend') frameRef(c, num(c.out, 1) - 0.05).then(function (r) {
       gen({ role: 'video', prompt: prompt || c.prompt || 'continue the shot naturally, same scene, same camera', refs: [r.name], label: 'Extend · ' + (c.name || ''),
@@ -667,7 +682,7 @@
   function gen(o) {
     var role = ROLES[o.role] || ROLES.video;
     var tmp = 'p' + uid(); JOBS[tmp] = { label: o.label, status: 'starting', pct: 0 }; drawJobs(); binTab('ai');
-    api('/api/generate', { model: role.model, prompt: o.prompt, refs: o.refs || [] }).then(function (j) {
+    api('/api/generate', { model: role.model, prompt: o.prompt, refs: o.refs || [], override: o.override || undefined }).then(function (j) {
       delete JOBS[tmp];
       if (j.error) { toast(j.error, 1); if (o.busy) { delete BUSY[o.busy]; drawTracks(); } drawJobs(); return; }
       JOBS[j.id] = { label: o.label, status: j.status, pct: 0, place: o.place, busy: o.busy }; drawJobs(); poll(j.id);
@@ -698,6 +713,16 @@
         if (type === 'image') { c.dur = keep || c.dur || 4; delete c.in; delete c.out; }
         else { c.in = 0; c.out = keep ? Math.min(m.dur || keep, keep * num(c.speed, 1)) : (m.dur || 4); delete c.dur; }
         delete META[src]; commit(); drawAll(); toast('Replaced on the timeline');
+      }); return;
+    }
+    if (pl.mode === 'fuse' && tgt && find(pl.next)) {
+      var A = tgt.c, N = find(pl.next).c, h = pl.h, at = A.start + len(A) - h; delete BUSY[N.id];
+      probe(src).then(function (m) {
+        A.out = num(A.in, 0) + (len(A) - h) * num(A.speed, 1);              /* A ends, the bridge plays, B picks up h later */
+        N.in = num(N.in, 0) + h * num(N.speed, 1); N.start = N.start + h;
+        var bc = { id: uid(), type: 'video', src: src, name: 'Fuse ' + (A.name || '') + ' → ' + (N.name || ''), start: at, in: 0,
+          out: Math.min(m.dur || 2 * h, 2 * h), sw: m.w, sh: m.h, sdur: m.dur, audio: m.audio, muted: true, volume: 0, prompt: prompt };
+        tgt.t.clips.push(bc); delete META[src]; commit(); drawAll(); toast('Shots fused — one continuous move');
       }); return;
     }
     if (pl.mode === 'after' && tgt) { addMedia(src, { at: end(tgt.c), track: tgt.t.id, ripple: true, prompt: prompt }).then(function () { toast('Added after the shot'); }); return; }

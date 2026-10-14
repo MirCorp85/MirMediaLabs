@@ -577,6 +577,8 @@ public class MainActivity extends Activity {
             if (fresh != null) {
                 toast(shortName(fresh.optString("model")) + " finished");
                 library.reload();
+                final String ns = fresh.optString("open_session", "");   // a new project opened its own session
+                if (!ns.isEmpty() && !ns.equals(Sessions.id)) Sessions.load(this, () -> Sessions.open(this, ns));
             }
             create.renderThread(jobs, false);
             Tv.focusify(create);

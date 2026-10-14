@@ -28,7 +28,10 @@ MODELS = {
                       ["flf2v", "first + last frame (2 pictures)"], ["r2v", "reference → video"],
                       ["story", "storyboard — pictures are keyframes (1→2→3…)"],
                       ["extend", "extend the attached clip"],
-                      ["sing", "sing / lip-sync to the attached audio (picture or previous clip)"]]},
+                      ["sing", "sing / lip-sync to the attached audio (picture or previous clip)"],
+                      ["keyframes", "keyframes — pictures pinned at moments along ONE clip (official multiframe r2v)"],
+                      ["control", "motion control — follow the attached clip's edges / pose / depth (Fun ControlNet)"],
+                      ["swap", "swap — replace the masked person with the one in your picture (Wan VACE, rest of clip untouched)"]]},
             {"k": "aspect", "label": "Aspect", "type": "select", "def": "auto", "group": "Basics",
              "opts": [["auto", "auto (picture shape or 16:9)"], "16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]},
             {"k": "res", "label": "Resolution", "type": "select", "def": "standard", "group": "Basics",
@@ -113,10 +116,18 @@ MODELS = {
             {"k": "audio", "label": "Native audio", "type": "select", "def": "auto", "group": "Audio",
              "opts": [["auto", "auto (fitting sound + music)"], ["off", "off (silent)"], ["custom", "custom → text below"]]},
             {"k": "audio_text", "label": "Custom audio description", "type": "text", "def": "", "group": "Audio"},
-            {"k": "soundtrack", "label": "Attached audio", "type": "select", "def": "replace", "group": "Audio",
-             "opts": [["replace", "replace the clip's audio"], ["mix", "mix with native audio"], ["ignore", "ignore"]]},
+            {"k": "soundtrack", "label": "Attached audio", "type": "select", "def": "auto", "group": "Audio",
+             "opts": [["auto", "auto (reference modes: H3 hears it as <Audio N>; else replace)"],
+                      ["reference", "reference — H3 uses it as <Audio N> (voice, sound, music to match)"],
+                      ["replace", "replace the clip's audio"], ["mix", "mix with native audio"], ["ignore", "ignore"]]},
             {"k": "track_vol", "label": "Attached audio volume (mix)", "type": "number", "def": 1.0, "min": 0.0, "max": 2.0,
              "step": 0.05, "group": "Audio"},
+            {"k": "lip", "label": "Sing mode: who moves their lips", "type": "select", "def": "auto", "group": "Audio",
+             "opts": [["auto", "auto (only a named singer: Name sings: \"...\")"], ["lead", "the person in the picture sings"],
+                      ["all", "everyone in the picture sings"], ["speak", "the person in the picture talks (speech)"],
+                      ["none", "nobody (instrumental, mouths closed)"]]},
+            {"k": "sing_max", "label": "Sing mode: max length (s)", "type": "number", "def": 60, "min": 5, "max": 240,
+             "group": "Audio", "help": "Songs longer than 15 s are rendered in ~10 s pieces that continue each other, then joined."},
             # ── references
             {"k": "ref_role", "label": "Pictures are used as", "type": "select", "def": "identity", "group": "References",
              "opts": [["identity", "identity (faces, people, products)"], ["style", "style / look"],
@@ -125,6 +136,30 @@ MODELS = {
              "group": "References"},
             {"k": "ref_secs", "label": "Reference clip length (s)", "type": "number", "def": 10, "min": 2, "max": 15,
              "group": "References"},
+            {"k": "key_times", "label": "Keyframes: seconds for each picture (e.g. 0, 2.5, 5)", "type": "text", "def": "",
+             "group": "References", "help": "Blank = spread evenly from the first to the last frame."},
+            {"k": "control", "label": "Motion control: what to follow", "type": "select", "def": "canny", "group": "References",
+             "opts": [["pose", "body pose of the people in the clip (SDPose) — best for putting someone in"],
+                      ["canny", "edges of the attached clip (canny) — keeps the layout, new look"],
+                      ["as_is", "the attached clip IS the control (pose / depth / edge video)"]]},
+            {"k": "replace", "label": "Motion control: what changes", "type": "select", "def": "whole", "group": "References",
+             "opts": [["whole", "the whole frame (new scene)"], ["masked", "only the masked subject — the rest of the clip stays"]]},
+            {"k": "mask_what", "label": "Masked subject (SAM3 words, e.g. person · man in red shorts)", "type": "text",
+             "def": "person", "group": "References"},
+            {"k": "mask_grow", "label": "Mask grow (px)", "type": "number", "def": 14, "min": 0, "max": 64, "group": "References"},
+            {"k": "mask_feather", "label": "Mask feather (px)", "type": "number", "def": 8, "min": 0, "max": 48, "group": "References"},
+            {"k": "swap_secs", "label": "Duration", "type": "select", "def": "5", "group": "Swap · Wan VACE",
+             "help": "How much of your clip gets the swap. Over 10 s is done in sections and joined (~4 min per 5 s).",
+             "opts": [["5", "5 s"], ["8", "8 s"], ["10", "10 s"], ["15", "15 s"], ["20", "20 s"], ["30", "30 s"], ["45", "45 s"],
+                      ["60", "1 min"], ["0", "whole clip (max 1 min)"]]},
+            {"k": "swap_quality", "label": "Swap quality", "type": "select", "def": "turbo", "group": "Swap · Wan VACE",
+             "opts": [["turbo", "turbo — 8 steps (~4 min / 5 s)"], ["full", "full — 20 steps, finer detail (~2.5x slower)"]]},
+            {"k": "control_people", "label": "Motion control: people to track (pose)", "type": "number", "def": 2, "min": 1,
+             "max": 6, "group": "References"},
+            {"k": "control_audio", "label": "Motion control: sound", "type": "select", "def": "clip", "group": "References",
+             "opts": [["clip", "keep the clip's own sound"], ["h3", "new sound from H3"]]},
+            {"k": "control_strength", "label": "Motion control strength", "type": "number", "def": 1.0, "min": 0.0, "max": 3.0,
+             "step": 0.05, "group": "References"},
             # ── engine & sampler
             {"k": "enhance", "label": "Prompt director", "type": "select", "def": "on", "group": "Engine & sampler",
              "opts": [["on", "on — engine writes SCENE/SHOTS/CAMERA/SOUND (sees your pictures)"], ["off", "off — my words (= --raw)"]]},
@@ -173,6 +208,26 @@ MODELS = {
             {"k": "workflow", "label": "ComfyUI workflow", "type": "select", "def": "builtin", "group": "Workflow",
              "cap": "workflows", "dyn": "workflows", "opts": [["builtin", "built-in Music 3 graph"]]},
         ]},
+    "vace": {
+        "label": "WAN VACE SWAP", "kind": "video", "color": "#8a5cff",
+        "desc": "Put a person into a clip — whole body + clothes replaced, the rest of the clip stays exactly as it is",
+        "accepts": {"image": "the person to put in (a clear, front-facing full-body photo works best)",
+                    "video": "the clip — its person is replaced, everything else is kept"},
+        "fields": [
+            {"k": "swap_secs", "label": "Duration", "type": "select", "def": "5", "group": "Basics",
+             "help": "How much of your clip gets the swap. Over 10 s is done in sections and joined (~4 min per 5 s).",
+             "opts": [["5", "5 s"], ["8", "8 s"], ["10", "10 s"], ["15", "15 s"], ["20", "20 s"], ["30", "30 s"], ["45", "45 s"],
+                      ["60", "1 min"], ["0", "whole clip (max 1 min)"]]},
+            {"k": "swap_quality", "label": "Quality", "type": "select", "def": "turbo", "group": "Basics",
+             "opts": [["turbo", "turbo — 8 steps (~4 min / 5 s)"], ["full", "full — 20 steps, finer detail (~2.5x slower)"]]},
+            {"k": "res", "label": "Resolution of the person", "type": "select", "def": "standard", "group": "Basics",
+             "opts": [["draft", "draft 0.25 MP"], ["standard", "standard 0.4 MP"], ["high", "high 0.5 MP"], ["max", "max 0.6 MP"]]},
+            {"k": "mask_what", "label": "Who gets replaced", "type": "text", "def": "person", "group": "Who",
+             "help": "Words SAM3 finds: person · man in red shorts · woman on the left"},
+            {"k": "mask_grow", "label": "Mask grow (px)", "type": "number", "def": 20, "min": 8, "max": 64, "group": "Who"},
+            {"k": "seed", "label": "Seed (blank = random)", "type": "number", "def": "", "min": 0, "group": "Basics"},
+        ],
+    },
     "qimg": {
         "label": "QWEN IMAGE 2.1", "kind": "image", "color": "#1fc8dc",
         "desc": "Text → image · multi-picture edit · background removal",
@@ -307,9 +362,11 @@ def _store_key(uid):
     return "params" if uid in (None, "owner") else "params_" + uid      # each user has their own ⚙ values
 
 
-def get(model, override=None, uid="owner"):
-    """Saved panel values (this user's) merged over defaults, plus an optional one-run override."""
-    saved = dict((core.prefs().get(_store_key(uid)) or {}).get(model) or {})
+def get(model, override=None, uid="owner", saved_ok=True):
+    """Saved panel values (this user's) merged over defaults, plus an optional one-run override.
+    saved_ok=False: defaults + override only — SERIES / PROJECT renders use their own locked profile, never whatever
+    the person last left in the lab's ⚙ panel (that leaked a different look into shot 2 on resume)."""
+    saved = dict((core.prefs().get(_store_key(uid)) or {}).get(model) or {}) if saved_ok else {}
     if LOCK and LOCK(uid):
         saved = {}                          # no "Custom parameters" right: the defaults, whatever was saved before
     if override:

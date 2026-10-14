@@ -420,10 +420,22 @@ def _refresh_fireworks():
     threading.Thread(target=run, daemon=True, name="mml-fw-recheck").start()
 
 
+def local_engines():
+    """The pickable local Ollama brains, with whether each is installed (an uninstalled one is pulled on pick)."""
+    try:
+        tags = [m["name"] for m in core.requests.get(core.OLLAMA + "/api/tags", timeout=3).json().get("models", [])]
+    except Exception:
+        tags = None
+    cur = core.engine_model()
+    return [dict(e, ctx=16384, installed=None if tags is None else any(t == e["model"] or t.startswith(e["model"] + "-") for t in tags),
+                 current=cur == e["model"] or cur.startswith(e["model"] + "-")) for e in core.LOCAL_ENGINES]
+
+
 def summary():
     """Settings view — never contains a key."""
     _refresh_fireworks()
     k = keys()
     return {"keys": {p: bool(v) for p, v in k.items()}, "brain": brain(), "models": models(),
-            "local": {"label": "MirAI · Gemma 4 12B", "model": getattr(core, "DEFAULT_ENGINE", "gemma4:12b"), "ctx": 16384},
+            "local": {"label": core.engine_label(), "model": core.engine_model(), "ctx": 16384},
+            "locals": local_engines(),
             "usage": usage(), "cap": cap(), "over_cap": spent() >= cap()}

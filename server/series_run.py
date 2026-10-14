@@ -35,7 +35,7 @@ TRANSIENT = re.compile(r"memory|out of memory|oom|timed out|timeout|connection|r
                        r"lost|unreachable|cuda", re.I)
 GPU_KINDS = ("song", "keyframe", "chunk")
 CPU_KINDS = ("write", "transcribe", "shots", "assemble")
-LABEL = {"write": "write the song", "song": "record the song", "transcribe": "recognise the lyrics",
+LABEL = {"myvoice": "re-sing the song in your voice", "bed": "compose music under your voice", "write": "write the song", "song": "record the song", "transcribe": "recognise the lyrics",
          "shots": "write the shots", "keyframe": "first frame", "chunk": "shot", "assemble": "assemble the episode"}
 
 _ACTIVE = set()                                        # (uid, sid) with a run worth ticking
@@ -91,14 +91,20 @@ def _say(uid, sid, ev, **kw):
 def next_step(d, ep, run):
     skipped = set(run.get("skipped") or [])
     chunks = ep.get("chunks") or []
+    au = ep.get("audio_in") or {}
+    if au.get("mode") == "voice_music" and ep.get("song") and not ep.get("bed") and "bed:None" not in skipped:
+        return "bed", None                            # compose the music bed and mix it under my voice
+    if au.get("mode") == "remix_me" and ep.get("song") and not ep.get("voiced") and "myvoice:None" not in skipped:
+        return "myvoice", None                        # ACE-Step voice swap: the song re-sung in my voice
     if not ep.get("song"):
         if ep.get("song_source") == "upload":
             return "blocked", "the uploaded song file is missing"
         if not ((ep.get("song_text") or {}).get("lyrics")):
             return ("write", None) if (ep.get("idea") or ep.get("title")) else ("blocked", "give the episode an idea first")
         return "song", None
-    if ep.get("song_source") == "upload" and not ep.get("words") and "transcribe:None" not in skipped:
-        return "transcribe", None
+    if not ep.get("words") and not ep.get("heard") and "transcribe:None" not in skipped and \
+            (ep.get("song_source") == "upload" or not any(c.get("clip") for c in chunks)):
+        return "transcribe", None                     # made songs too: real word times put every cut between words
     if not chunks:
         return "blocked", "the song has no shots — re-cut the song into shots"
     if any(not (c.get("shot") or "").strip() for c in chunks) and "shots:None" not in skipped:
@@ -107,7 +113,7 @@ def next_step(d, ep, run):
         if "chunk:%d" % c["i"] in skipped or (c.get("clip") and not c.get("stale")):
             continue
         prev = chunks[c["i"] - 1] if c["i"] else None
-        needs_key = c.get("link") == "cut" or c["i"] == 0 or not (prev and prev.get("clipref"))
+        needs_key = c.get("link") in ("cut", "refresh") or c["i"] == 0 or not (prev and prev.get("clipref"))
         if needs_key and not c.get("key"):
             return "keyframe", c["i"]
         return "chunk", c["i"]
@@ -124,7 +130,7 @@ def _remaining(ep):
         if c.get("clip") and not c.get("stale"):
             continue
         n += 1
-        if (c.get("link") == "cut" or c["i"] == 0) and not c.get("key"):
+        if (c.get("link") in ("cut", "refresh") or c["i"] == 0) and not c.get("key"):
             n += 1
     if not ep.get("song"):
         n += 2
@@ -134,7 +140,11 @@ def _remaining(ep):
 
 
 # ── control (the page's buttons) ──────────────────────────────────────────────────────────────────────────────────
-def control(uid, sid, action, eid=None):
+PHASE = {"myvoice": 1, "bed": 1, "write": 1, "song": 1, "transcribe": 1, "shots": 2, "keyframe": 2, "chunk": 2, "assemble": 3}
+UNTIL = {"song": 1, "shots": 2, "final": 3}            # "AI do this step": the run stops once that phase is done
+
+
+def control(uid, sid, action, eid=None, until=None):
     with series.locked(uid, sid):
         run = load_run(uid, sid)
         if action == "start":
@@ -146,7 +156,7 @@ def control(uid, sid, action, eid=None):
             keep = run if (run and run.get("ep") == eid) else {}
             run = {"sid": sid, "uid": uid, "ep": eid, "state": "running", "step": keep.get("step"), "attempts": {},
                    "skipped": [], "done": keep.get("done") or [], "error": None,
-                   "started": keep.get("started") or time.time()}
+                   "started": keep.get("started") or time.time(), "until": until if until in UNTIL else None}
             _say(uid, sid, "run-start", ep=eid)
         elif not run:
             raise ValueError("nothing is running")
@@ -367,6 +377,7 @@ def _qtick(uid, sid):
     if req.get("error"):
         nxt.update(state="error", error=str(req["error"])[:300], done_t=time.time())
     else:
+        req.setdefault("session", (series.load(uid, sid) or {}).get("session") or "")
         job, err, busy = HK["submit"](uid, req)
         if busy:
             return                                     # the person (or the episode runner) has the lab — wait our turn
@@ -488,6 +499,11 @@ def _tick(uid, sid):
             save_run(uid, sid, run)
             _say(uid, sid, "run-pause", why=i)
             return
+        if run.get("until") and PHASE.get(kind, 0) > UNTIL.get(run["until"], 9):
+            run.update(state="done", error=None)         # the asked-for step is finished: hand back to the person
+            save_run(uid, sid, run)
+            _say(uid, sid, "run-done", ep=run["ep"], step=run["until"])
+            return
         st = {"key": "%s:%s" % (kind, i), "kind": kind, "i": i, "t0": time.time()}
         if kind in CPU_KINDS:
             st["cpu"] = True
@@ -505,6 +521,7 @@ def _tick(uid, sid):
         with series.locked(uid, sid):
             save_run(uid, sid, run)
         return
+    req.setdefault("session", (series.load(uid, sid) or {}).get("session") or "")
     job, err, busy = HK["submit"](uid, req)
     if busy:
         return                                         # the person (or another run) has the lab right now — wait
@@ -580,7 +597,16 @@ def _start_cpu(uid, sid, eid, kind):
     def go():
         try:
             if kind == "transcribe":
-                series.transcribe(uid, sid, eid, _store(uid))
+                try:
+                    series.transcribe(uid, sid, eid, _store(uid))
+                except Exception:
+                    with series.locked(uid, sid):      # our own song: hearing it is a bonus, the beat map still works
+                        d = series.load(uid, sid)
+                        ep = series._find(d, "episodes", eid)
+                        if not ep or ep.get("song_source") == "upload":
+                            raise
+                        ep["heard"] = True
+                        series.save(uid, d)
             else:
                 with series.locked(uid, sid):
                     d = series.load(uid, sid)
@@ -592,6 +618,15 @@ def _start_cpu(uid, sid, eid, kind):
                 else:                                  # the writers take minutes: work on a copy, merge at the end
                     if kind == "write":
                         series.write_musical(d, ep)
+                        au = ep.get("audio_in") or {}
+                        if au.get("mode") in ("remix", "remix_me"):     # sing MY words: the lyrics are what my recording says
+                            try:
+                                from . import audio_in as _ai
+                            except ImportError:
+                                import audio_in as _ai
+                            words = _ai.transcript(au["file"])
+                            if words:
+                                ep.setdefault("song_text", {})["lyrics"] = words
                     else:
                         series.write_chunks(d, ep)
                     with series.locked(uid, sid):

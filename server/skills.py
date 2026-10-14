@@ -122,6 +122,70 @@ SKILLS = [
      "desc": "A clip that travels from picture 1 to picture 2",
      "tpl": "Smooth continuous transformation from the first picture into the last picture: {input}",
      "params": {"h3": {"mode": "flf2v"}}},
+    # ── H3 workflows: your pictures / clips / songs in, one finished clip out
+    {"id": "swapin", "name": "Put Me In This Clip", "icon": "user", "role": "video", "needs": {"image": 1, "video": 1},
+     "slotnames": {"image": ["Person (face close-ups work best)"], "video": ["Your clip"]},
+     "desc": "The person from your picture(s) takes the place of the person in your clip",
+     "tpl": "{input}",
+     "params": {"h3": {"mode": "swap", "mask_what": "person", "mask_grow": 20, "swap_secs": 5}}},
+    {"id": "cameracopy", "name": "Copy This Camera Move", "icon": "camera", "role": "video", "needs": {"image": 1, "video": 1},
+     "slotnames": {"image": ["Subject"], "video": ["Camera move to copy"]},
+     "desc": "Your subject in a new scene, filmed with exactly the camera move of your clip",
+     "tpl": "The subject from the pictures in this scene: {input}. The camera moves exactly like the reference clip (same path, speed "
+            "and framing); only the camera motion is taken from the clip, not its people or place.",
+     "params": {"h3": {"mode": "r2v", "ref_role": "identity", "seconds": 8}}},
+    {"id": "reimagine", "name": "Re-imagine My Clip", "icon": "palette", "role": "video", "needs": "video",
+     "slotnames": {"video": ["Your clip"]},
+     "desc": "Same motion and timing as your clip, a whole new look (anime, clay, neon…)",
+     "tpl": "The same scene, action, motion, camera move and timing as the control video, in a new look: {input}",
+     "params": {"h3": {"mode": "control", "control": "canny", "control_audio": "clip", "seconds": 8}}},
+    {"id": "productin", "name": "Product In My Clip", "icon": "box", "role": "video", "needs": {"image": 1, "video": 1},
+     "slotnames": {"image": ["Product"], "video": ["Your clip"]},
+     "desc": "Place your product naturally into your clip",
+     "tpl": "Place the exact product from the pictures naturally into the reference clip (same shape, colours, logo and text), "
+            "keeping the clip's action, camera and light. {input}",
+     "params": {"h3": {"mode": "r2v", "ref_role": "identity", "seconds": 8}}},
+    {"id": "sceneswap", "name": "Me In This Place", "icon": "globe", "role": "video", "needs": {"image": 2},
+     "slotnames": {"image": ["Person", "Location"]},
+     "desc": "Picture 1 = you, picture 2 = a place → a clip of you there",
+     "tpl": "The person from the first picture (exact face and look) in the location of the second picture: {input}",
+     "params": {"h3": {"mode": "r2v", "ref_role": "all", "seconds": 8}}},
+    {"id": "together", "name": "Bring Them Together", "icon": "users", "role": "video", "needs": {"image": 2},
+     "slotnames": {"image": ["Person / pet 1", "Person / pet 2"]},
+     "desc": "Everyone from your pictures (2-9) together in one scene",
+     "tpl": "Everyone from the pictures together in one scene, each keeping their exact face and look: {input}",
+     "params": {"h3": {"mode": "r2v", "ref_role": "identity", "seconds": 8}}},
+    {"id": "makesing", "name": "Make It Sing", "icon": "mic", "role": "video", "needs": {"image": 1, "audio": 1},
+     "slotnames": {"image": ["Singer"], "audio": ["Song"]},
+     "desc": "The subject of your picture sings your song, lips on the words (long songs too)",
+     "tpl": "The subject of the picture sings this song with feeling. {input}",
+     "params": {"h3": {"mode": "sing", "lip": "lead"}}},
+    {"id": "talk", "name": "Talking Photo", "icon": "user", "role": "video", "needs": {"image": 1, "audio": 1},
+     "slotnames": {"image": ["Face"], "audio": ["Voice / speech"]},
+     "desc": "The person in your picture says your recording, lip-synced",
+     "tpl": "Realistic talking portrait: the person speaks naturally to the camera, no music. {input}",
+     "params": {"h3": {"mode": "sing", "lip": "speak"}}},
+    {"id": "dance", "name": "Dance To My Track", "icon": "music", "role": "video", "needs": {"image": 1, "audio": 1},
+     "slotnames": {"image": ["Dancer"], "audio": ["Track"]},
+     "desc": "The subject of your picture dances on the beat of your track",
+     "tpl": "The subject of the picture dances energetically on the beat, mouth closed, full body in frame: {input}",
+     "params": {"h3": {"mode": "i2v", "soundtrack": "replace", "motion": "dynamic", "seconds": 10}}},
+    {"id": "storyboard", "name": "Photo Story", "icon": "layers", "role": "video", "needs": {"image": 2},
+     "slotnames": {"image": ["Keyframe 1", "Keyframe 2"]},
+     "desc": "Your pictures (2-9) as keyframes: the clip travels 1 → 2 → 3 …",
+     "tpl": "{input}", "params": {"h3": {"mode": "story", "join": "xfade"}}},
+    {"id": "extendclip", "name": "Continue My Clip", "icon": "forward", "role": "video", "needs": "video",
+     "slotnames": {"video": ["Your clip"]},
+     "desc": "Make your clip longer — say what happens next (split beats with ||)",
+     "tpl": "{input}", "params": {"h3": {"mode": "extend", "extend": 2, "extend_anchor": "22"}}},
+    {"id": "cinemagraph", "name": "Living Photo Loop", "icon": "refresh", "role": "video", "needs": "image",
+     "slotnames": {"image": ["Photo"]},
+     "desc": "Subtle seamless motion loop of your photo (cinemagraph)",
+     "tpl": "Only subtle natural motion in the photo, everything else still: {input}",
+     "params": {"h3": {"mode": "i2v", "motion": "subtle", "camera": "static", "loop": "boomerang", "seconds": 5}}},
+    {"id": "stylepack", "name": "H3 Effect Shot", "icon": "sparkle", "role": "video",
+     "desc": "A clip with one of H3's built-in effect styles (attach a picture to start from it)",
+     "tpl": "{input}", "params": {"h3": {"mode": "auto"}}},
 ]
 
 # ── PIPELINES = MANUALS ────────────────────────────────────────────────────────────────────────────────────────────
@@ -149,12 +213,28 @@ _BPM = {"k": "bpm", "label": "Tempo", "type": "select", "def": "", "opts": [["",
         ["100", "100"], ["120", "120"], ["140", "140 fast"], ["170", "170"]], "to": {"step": 1, "add": "{v} BPM"}}
 _MATCH = {"k": "match", "label": "Voice match", "type": "range", "def": 0.65, "min": 0.3, "max": 0.95, "step": 0.05,
           "to": {"step": 2, "param": "voice_strength"}}
+try:
+    from . import params as _params
+except ImportError:
+    import params as _params
+_STYLE = {"k": "style", "label": "Effect", "type": "select", "def": "",
+          "opts": [["", "pick one"]] + [o if isinstance(o, list) else [o, o] for o in getattr(_params, "H3_STYLES", [])],
+          "to": {"step": 1, "param": "style"}}
+_EXTRA = {"k": "extra", "label": "Extra clips", "type": "select", "def": "", "opts": [["", "2"], ["1", "1"], ["3", "3"],
+          ["4", "4"], ["6", "6"]], "to": {"step": 1, "param": "extend"}}
+_SINGMAX = {"k": "singmax", "label": "Max length", "type": "select", "def": "", "opts": [["", "1 min"], ["15", "15 s"],
+            ["30", "30 s"], ["90", "1.5 min"], ["120", "2 min"], ["180", "3 min"]], "to": {"step": 1, "param": "sing_max"}}
 _SECS = {"k": "secs", "label": "Clip length", "type": "select", "def": "", "opts": [["", "auto"], ["5", "5 s"], ["8", "8 s"],
          ["10", "10 s"], ["15", "15 s"]], "to": {"step": 2, "add": "--{v}s"}}
 
+_SWAPLEN = {"k": "secs", "label": "Duration", "type": "select", "def": "5", "opts": [["5", "5 s"], ["8", "8 s"], ["10", "10 s"],
+            ["15", "15 s"], ["20", "20 s"], ["30", "30 s"], ["45", "45 s"], ["60", "1 min"], ["0", "whole clip (max 1 min)"]],
+            "to": {"param": "swap_secs"}}
+
 # generic knob param → engine param (front-ends never see engine names; swapping an engine = add its row here)
 PARAM_MAP = {"voice_strength": {"ace": "voice"}, "remix_strength": {"ace": "remix"}, "cover_strength": {"ace": "cover"},
-             "aspect": {"qimg": "aspect", "h3": "aspect"}}
+             "aspect": {"qimg": "aspect", "h3": "aspect"}, "style": {"h3": "style"}, "extend": {"h3": "extend"},
+             "sing_max": {"h3": "sing_max"}, "motion": {"h3": "motion"}}
 _VIDEO_WORDS = r"\b(video|clip|visuali[sz]er|music video|animate|footage|reel)\b"
 
 PIPELINES = [
@@ -251,7 +331,54 @@ PIPELINES = [
                 "tpl": "{input}", "add": "--15s", "params": {"music3": {"lyrics": "auto"}}},
                {"role": "video", "does": "The character performs, scored with the step 2 song.", "inputs": ["step1:image", "step2:audio"],
                 "tpl": "The character sings and performs with emotion: {input}. Expressive face, subtle body movement, stage light.",
-                "params": {"h3": {"mode": "i2v", "soundtrack": "replace", "seconds": 15}}}]},
+                "params": {"h3": {"mode": "sing", "lip": "lead"}}}]},
+    {"id": "photosings", "name": "My Photo Sings A New Song", "icon": "mic",
+     "desc": "Write and sing an original song on your topic, then your photo performs it lip-synced",
+     "when": "a picture of a person / pet / character is attached and the person wants it to sing a NEW song (none attached)",
+     "needs": {"image": 1}, "slotnames": {"image": ["Singer"]},
+     "triggers": r"\b(make|have|let)\b.{0,30}\b(sing|singing)\b.{0,40}\b(song|about)\b",
+     "knobs": [dict(_LEN, opts=[["", "20 s"], ["30", "30 s"], ["60", "1 min"]]), _BPM],
+     "steps": [{"role": "song", "does": "Compose and sing the song: topic, genre, rhythm, mood and lyrics.",
+                "tpl": "{input}", "add": "--20s", "inputs": ["user:text"], "params": {"music3": {"lyrics": "auto"}}},
+               {"role": "video", "does": "Your photo sings the step 1 song, lips on every word.", "inputs": ["user:image", "step1:audio"],
+                "tpl": "The subject of the picture sings this song with feeling: {input}",
+                "params": {"h3": {"mode": "sing", "lip": "lead"}}}]},
+    {"id": "photomyvoice", "name": "Me Singing In My Voice", "icon": "mic",
+     "desc": "A new song re-sung in your recorded voice, performed lip-synced by your photo",
+     "when": "a picture AND a voice recording are attached and the person wants a song in that voice performed by the picture",
+     "needs": {"image": 1, "audio": 1}, "slotnames": {"image": ["You"], "audio": ["Your voice"]},
+     "triggers": r"\b(my|this|the|attached)\s+(own\s+)?(voice|recording)\b", "also": r"\b(photo|picture|me|selfie|sing)\b",
+     "knobs": [dict(_LEN, opts=[["", "20 s"], ["30", "30 s"], ["60", "1 min"]]), _BPM, _MATCH],
+     "steps": [{"role": "song", "does": "Compose and sing the song.", "tpl": "{input}", "add": "--20s", "inputs": ["user:text"],
+                "params": {"music3": {"lyrics": "auto"}}},
+               {"role": "music", "mode": "voice", "does": "Re-sing it with your voice.", "tpl": "",
+                "inputs": ["step1:audio", "user:audio"], "carry": ["style", "bpm", "key", "lyrics"], "params": {"ace": {"mode": "voice"}}},
+               {"role": "video", "does": "Your photo sings it, lips on every word.", "inputs": ["user:image", "step2:audio"],
+                "tpl": "The person in the picture sings this song with feeling: {input}",
+                "params": {"h3": {"mode": "sing", "lip": "lead"}}}]},
+    {"id": "duet", "name": "Duet", "icon": "users",
+     "desc": "Two people from two pictures side by side, singing your song together",
+     "when": "two pictures of people AND a song are attached and they should sing it together",
+     "needs": {"image": 2, "audio": 1}, "slotnames": {"image": ["Singer 1", "Singer 2"], "audio": ["Song"]},
+     "triggers": r"\bduet\b|\b(both|together|two of (us|them))\b.{0,30}\bsing", "knobs": [dict(_SINGMAX, to={"step": 2, "param": "sing_max"})],
+     "steps": [{"role": "image", "does": "Put both people side by side on a stage.", "inputs": ["user:image"],
+                "tpl": "Both people from the pictures standing side by side on a stage, facing the camera, microphones, "
+                       "keep each face exactly. {input}", "params": {"qimg": {"mode": "edit", "aspect": "16:9"}}},
+               {"role": "video", "does": "They sing your song together.", "inputs": ["step1:image", "user:audio"],
+                "tpl": "Both singers perform this song together as a duet: {input}", "params": {"h3": {"mode": "sing", "lip": "all"}}}]},
+    {"id": "swapclean", "name": "Face-Prep Swap", "icon": "scissors",
+     "desc": "Crops a clean face reference from your photo first, then puts you into your clip (best identity)",
+     "when": "a photo of a person AND a clip are attached and they want that person in the clip, from a full / busy photo",
+     "needs": {"image": 1, "video": 1}, "slotnames": {"image": ["Person"], "video": ["Your clip"]},
+     "triggers": r"\b(put|swap|replace|insert)\b.{0,30}\b(me|him|her|them|person|face|my face)\b.{0,40}\b(video|clip|footage)\b",
+     "knobs": [dict(_SECS, to={"step": 2, "add": "--{v}s"})],
+     "steps": [{"role": "image", "does": "Make a clean head-and-shoulders face reference.", "inputs": ["user:image"],
+                "tpl": "Tight head-and-shoulders portrait of this exact person, facing the camera, plain light grey background, "
+                       "even soft light, keep the face, hair and features exactly.", "params": {"qimg": {"mode": "edit", "aspect": "1:1"}}},
+               {"role": "video", "does": "Put that person into your clip.", "inputs": ["step1:image", "user:video"],
+                "tpl": "Replace the person in the reference clip with the person from the first picture, keeping their exact face, hair and "
+                       "features. Keep the clip's action, body movement, camera move, timing and place. {input}",
+                "params": {"h3": {"mode": "r2v", "ref_role": "identity", "seconds": 10, "ref_secs": 10, "trim": 24}}}]},
     {"id": "poster2motion", "name": "Poster → Motion", "icon": "layers",
      "desc": "Design a key image, then animate it into a video",
      "when": "the person wants a still key visual AND that same visual moving",
@@ -300,7 +427,10 @@ def _nostep(k):
 
 
 _SKILL_KNOBS = {"song": [_LEN, _BPM], "beat": [_LEN, _BPM], "lofi": [_LEN, _BPM], "jingle": [_BPM],
-                "cinematic": [_SECS], "animate": [_SECS], "reel": [_SECS], "spin": [_SECS]}
+                "cinematic": [_SECS], "animate": [_SECS], "reel": [_SECS], "spin": [_SECS],
+                "swapin": [_SWAPLEN], "cameracopy": [_SECS], "reimagine": [_SECS], "productin": [_SECS], "sceneswap": [_SECS],
+                "together": [_SECS], "dance": [_SECS], "cinemagraph": [_SECS], "stylepack": [_STYLE, _SECS],
+                "extendclip": [_EXTRA], "makesing": [_SINGMAX], "talk": [_SINGMAX]}
 for _s in SKILLS:
     if _s["id"] in _SKILL_KNOBS:
         _s["knobs"] = [_nostep(k) for k in _SKILL_KNOBS[_s["id"]]]
@@ -346,7 +476,7 @@ REF_HINT = " Use the attached picture(s) as the reference: keep the exact logo /
 
 
 def fill(tpl, text, has_image=False):
-    if has_image and "{input}" in tpl:   # a picture is attached: make the rewrite honour it, not invent a new one
+    if has_image is True and "{input}" in tpl:   # a picture is attached: make the rewrite honour it, not invent a new one
         tpl += REF_HINT
     text = (text or "").strip()
     return tpl.replace("{input}", text) if text else tpl.replace("{input}", "").strip(" .:")

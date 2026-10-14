@@ -208,8 +208,12 @@ def still(src, dst, max_side=None, at=None):
     if dst.lower().endswith(".jpg"):
         args += ["-q:v", "3"]
     r = subprocess.run(args + [dst], capture_output=True, text=True, timeout=60, creationflags=NO_WINDOW)
+    if at is not None and r.returncode == 0 and not os.path.isfile(dst):
+        # a seek at/after the clip's last frame writes nothing (and says nothing): take the final frame instead
+        args = [FFMPEG, "-y", "-v", "error", "-sseof", "-0.5", "-i", src, "-update", "1"] + (["-vf", ",".join(vf)] if vf else [])
+        r = subprocess.run(args + [dst], capture_output=True, text=True, timeout=60, creationflags=NO_WINDOW)
     if r.returncode != 0 or not os.path.isfile(dst):
-        raise RuntimeError("ffmpeg: %s" % (r.stderr or "")[-300:])
+        raise RuntimeError("ffmpeg: %s" % ((r.stderr or "")[-300:] or "no frame at %s s in %s" % (at, os.path.basename(src))))
     return dst
 
 
@@ -313,7 +317,18 @@ def new_name(prefix, ext):
 # ── prompt engine (local Ollama) — rewrites prompts only, never sees anything else ──
 OLLAMA = "http://127.0.0.1:11434"
 DEFAULT_ENGINE = "gemma4:12b"  # MirAI: chat, prompt building + Auto-mode model picker (never renders); falls back to any installed gemma4 / first model
-LEGACY_ENGINES = ("llama3.1:8b", "qwen3.5:9b")   # older installs pinned these → moved to DEFAULT_ENGINE
+LEGACY_ENGINES = ("qwen3.5:9b",)   # older installs pinned this → moved to DEFAULT_ENGINE
+# Local brains the owner can pick in the model picker (MUSE chat + Director + prompt writer). Any other installed
+# Ollama tag still works from Settings → Prompt engine; these are the tested ones.
+LOCAL_ENGINES = [
+    {"model": "gemma4:12b", "label": "MirAI · Gemma 4 12B", "note": "recommended · sees pictures", "vision": True, "gb": 8.0},
+    {"model": "llama3.1:8b", "label": "MUSE · Llama 3.1 8B", "note": "lighter + faster · text only", "vision": False, "gb": 4.9},
+]
+
+
+def engine_label(model=None):
+    m = model or engine_model()
+    return next((e["label"] for e in LOCAL_ENGINES if e["model"] == m or m.startswith(e["model"] + "-")), m)
 
 
 _OLLAMA_LOCK = threading.Lock()
@@ -371,6 +386,43 @@ def ensure_ollama(wait=60):
 FALLBACK_ENGINE = "qwen3.5:9b"                  # used only when the chosen engine fails to load
 
 
+ENGINE_BROKEN = set()                           # engines Ollama failed to start this run (llama-server exit) → skipped
+
+
+def engine_twin(m, tags):
+    """A working stand-in for an engine that won't load: its -hermes build (same weights, no bundled draft model —
+    gemma4:12b's MTP draft crashes newer Ollama with 'Gemma4Assistant requires ctx_other'), else the fallback."""
+    for t in (m + "-hermes", m.split(":")[0] + ":" + m.split(":")[-1] + "-hermes"):
+        if t in tags and t not in ENGINE_BROKEN:
+            return t
+    return FALLBACK_ENGINE
+
+
+def engine_failed(r):
+    return r is not None and r.status_code >= 500 and ("llama-server" in r.text or "loading model" in r.text)
+
+
+def engine_post(path, body, **kw):
+    """POST to Ollama with the engine in body['model']; an engine that can't start is marked broken and the request is
+    retried on its stand-in (vision kept when the stand-in is the same family)."""
+    r = None
+    for _ in range(3):
+        r = requests.post(OLLAMA + path, json=body, **kw)
+        if not engine_failed(r) or body.get("model") == FALLBACK_ENGINE:
+            return r
+        ENGINE_BROKEN.add(body["model"])
+        try:
+            tags = [m["name"] for m in requests.get(OLLAMA + "/api/tags", timeout=3).json().get("models", [])]
+        except Exception:
+            tags = []
+        nxt = engine_twin(body["model"], tags)
+        print("[engine] %s won't start — using %s" % (body["model"], nxt))
+        body = dict(body, model=nxt)
+        if body.get("images") and not engine_sees(nxt):
+            body.pop("images", None)
+    return r
+
+
 def engine_model():
     want = prefs().get("engine_model") or DEFAULT_ENGINE
     if want in LEGACY_ENGINES:
@@ -379,6 +431,8 @@ def engine_model():
         tags = [m["name"] for m in requests.get(OLLAMA + "/api/tags", timeout=3).json().get("models", [])]
     except Exception:
         return want
+    if want in ENGINE_BROKEN:
+        return engine_twin(want, tags)
     if want in tags or not tags:
         return want
     pick = next((t for t in tags if t.startswith(DEFAULT_ENGINE.split(":")[0])), None) or tags[0]
@@ -419,6 +473,28 @@ def _cloud_brain():
         return None
 
 
+VISION_PREF = ("qwen3.5:9b", "gemma4:12b-hermes", "gemma4:12b")   # qwen3.5:9b: verified reading pictures (Gemma 4 + images crashes Ollama)
+
+
+def vision_model():
+    """A picture-reading engine: the chosen one if it has vision, else the first installed vision model that loads."""
+    m = engine_model()
+    if engine_sees(m) and not m.startswith("gemma4"):
+        return m
+    try:
+        tags = [t["name"] for t in requests.get(OLLAMA + "/api/tags", timeout=3).json().get("models", [])]
+    except Exception:
+        return None
+    for t in list(VISION_PREF) + tags:
+        if t in tags and t not in ENGINE_BROKEN and engine_sees(t):
+            return t
+    return None
+
+
+def can_see():
+    return bool(vision_model())
+
+
 def ask(prompt, system, timeout=120, images=None, want_json=False, role="prompt"):
     b = _cloud_brain()                               # the owner's cloud brain for this job (else local)
     if b:
@@ -428,12 +504,16 @@ def ask(prompt, system, timeout=120, images=None, want_json=False, role="prompt"
                              timeout=max(timeout, 180))
         except cloud.CloudError as e:
             _note("[cloud] %s — using the local engine for this step" % e)
+    gpu_wait("engine")
     ensure_ollama()
     model = engine_model()
     body = {"model": model, "prompt": prompt, "system": system, "stream": False, "think": False}
-    if images and engine_sees(model):
-        body["images"] = images
-    r = requests.post(OLLAMA + "/api/generate", json=body, timeout=timeout)
+    if images:
+        vm = vision_model()
+        if vm:
+            body["model"] = model = vm       # pictures go to an engine that can actually see them
+            body["images"] = images
+    r = engine_post("/api/generate", body, timeout=timeout)
     if r.status_code >= 500 and ("loading model" in r.text or "llama-server" in r.text):
         # the engine couldn't load: ComfyUI still holds the GPU from the last render. Free it and try once more —
         # before, this failed silently and the director / picture-reading rewriter fell back to the raw words
@@ -483,3 +563,65 @@ def read_text(path, limit=20000):
 
 def clean_ws(t):
     return re.sub(r"\s{2,}", " ", t or "").strip(" ,.-")
+
+
+# ── RENDER PRIORITY: while a render holds the GPU, nothing else loads a model ───────────────────────────────────────
+# prepare_gpu() takes the lock (after unloading Ollama) and the GPU worker releases it when the job ends. Every AI call
+# (MUSE chat, the Director, Social, series writers) checks it first and WAITS — they must never pull a model back into
+# VRAM/RAM mid-render. The worker thread itself is exempt (a render's own steps).
+RENDER_LOCK = os.path.join(DATA, "rendering.lock")
+RENDER_LOCK_MAX_S = 3 * 3600                    # a lock older than this is stale (crash) and ignored
+
+
+def render_lock(job_id=""):
+    try:
+        with open(RENDER_LOCK, "w", encoding="utf-8") as f:
+            json.dump({"job": job_id, "t": time.time(), "pid": os.getpid()}, f)
+    except OSError:
+        pass
+
+
+def render_unlock():
+    try:
+        os.remove(RENDER_LOCK)
+    except OSError:
+        pass
+
+
+def _pid_alive(pid):
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return True                                # old lock without a pid: trust the age limit
+    if pid == os.getpid():
+        return True
+    try:
+        import psutil
+        return psutil.pid_exists(pid)
+    except Exception:
+        return True
+
+
+def rendering():
+    """→ the lock info while a render owns the GPU, else None."""
+    try:
+        with open(RENDER_LOCK, encoding="utf-8") as f:
+            d = json.load(f)
+        if time.time() - float(d.get("t") or 0) < RENDER_LOCK_MAX_S:
+            if not _pid_alive(d.get("pid")):       # owner died (restart/crash mid-render) → stale; free the GPU for AI calls
+                render_unlock()
+                return None
+            return d
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def gpu_wait(who="", max_wait=RENDER_LOCK_MAX_S):
+    """Block an AI call until the render finishes (the GPU worker never waits on itself)."""
+    if threading.current_thread().name == "mml-gpu-worker" or not rendering():
+        return
+    print("[gpu] %s waiting — a render has priority" % (who or "AI call"))
+    t0 = time.time()
+    while rendering() and time.time() - t0 < max_wait:
+        time.sleep(3)

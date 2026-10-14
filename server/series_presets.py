@@ -87,7 +87,7 @@ STRUCTURES = [
     {"id": "custom", "name": "Custom", "blurb": "Build your own beat list.", "song_led": True, "beats": []},
 ]
 
-LENGTHS = [30, 60, 90, 120, 150, 180]
+LENGTHS = [30, 60, 90, 120, 150, 180, 240, 300]
 ASPECTS = ["16:9", "9:16", "1:1", "21:9"]
 CLIP_SECS = 10                                      # one performance clip ≈ one musical phrase
 

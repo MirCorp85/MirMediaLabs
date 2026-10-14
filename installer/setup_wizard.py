@@ -63,6 +63,8 @@ HF = "https://huggingface.co/"
 H3, M3, QI, ACE = (HF + "Comfy-Org/MiniMax-H3/resolve/main/", HF + "Comfy-Org/MiniMax-Music-3/resolve/main/",
                    HF + "Comfy-Org/Qwen-Image-2.1/resolve/main/",
                    HF + "Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/")
+WAN, SAM = HF + "Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/", HF + "Comfy-Org/SAM3/resolve/main/"
+CAUSVID = HF + "Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors"   # full URL
 STYLES = ["art_is_explosion", "blooming_flowers", "bullet_time", "dark_magic", "fire_breath", "four_seasons",
           "kiss_camera", "spiral_ascent", "storm_magic", "truman_show"]
 
@@ -79,6 +81,17 @@ COMPONENTS = {
     "video_ref": ("Video add-on — reference→video", "keeps faces/identity from your pictures (needs Video)", [
         ("diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors", H3, 20970379616),
         ("loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors", H3, 1956193000),
+    ]),
+    "video_ctl": ("Video add-on — control + keyframes", "follow a clip's motion, mask who gets replaced (needs Video)", [
+        ("model_patches/minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors", H3, 2296635360),
+        ("checkpoints/sam3.1_multiplex_fp16.safetensors", SAM, 1745546848),
+    ]),
+    "swap": ("Put Me In This Clip — Wan VACE", "put a person from your picture into any clip", [
+        ("diffusion_models/wan2.1_vace_1.3B_fp16.safetensors", WAN, 4309519800),
+        ("text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors", WAN, 6735906897),
+        ("vae/wan_2.1_vae.safetensors", WAN, 253815318),
+        ("loras/Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors", CAUSVID, 91233416),
+        ("checkpoints/sam3.1_multiplex_fp16.safetensors", SAM, 1745546848),
     ]),
     "music": ("Songs — MiniMax Music 3", "full songs with vocals, up to 5 min", [
         ("diffusion_models/minimax_music3_dit_fp16.safetensors", M3, 4914197682),
@@ -102,6 +115,7 @@ COMPONENTS = {
 # The server pins the tag (llm.MODEL_TAG / core.DEFAULT_ENGINE) — change all three together.
 MUSE_TAG = "gemma4:12b"
 ENGINES = {MUSE_TAG: ("MirAI · Gemma 4 12B (recommended · sees pictures)", 8.0),
+           "llama3.1:8b": ("MUSE · Llama 3.1 8B (lighter + faster · text only)", 4.9),
            "": ("None — no MirAI: no chat or Auto mode, prompts used exactly as typed", 0)}
 RUNTIME_GB = 9.0      # python + torch CUDA + ComfyUI deps (+ download cache, removed afterwards)
 PARALLEL_DOWNLOADS = 3   # model files fetched at once (a single HTTPS stream rarely fills a fast line)
@@ -124,7 +138,7 @@ def preset_components(name, vram_gb):
     if vram_gb >= 24:
         return set(COMPONENTS)
     if vram_gb >= 11.5:
-        return {"video", "music", "image", "ace"}
+        return {"video", "swap", "music", "image", "ace"}
     return {"music", "image", "ace"}                   # the video model needs 12 GB+
 
 
@@ -583,7 +597,7 @@ class Installer:
         """Download the chosen models PARALLEL_DOWNLOADS files at a time (one stream rarely fills a fast line),
         reporting one combined progress: ("dl", (done_bytes, total_bytes, bytes_per_s, files_done, files_total))."""
         from concurrent.futures import ThreadPoolExecutor
-        files = [f for k in self.o["components"] for f in COMPONENTS[k][2]]
+        files = list({f[0]: f for k in self.o["components"] for f in COMPONENTS[k][2]}.values())   # shared files once
         reuse = self.o.get("reuse") or ""
         todo = []
         for rel, base, size in files:
@@ -613,7 +627,8 @@ class Installer:
             rel, base, size = item
             self.check()
             name = rel.split("/")[-1]
-            self.download(base + rel, os.path.join(self.models, rel.replace("/", os.sep)), size, name, progress=prog)
+            url = base if base.endswith(".safetensors") else base + rel   # a few files live at a repo's root
+            self.download(url, os.path.join(self.models, rel.replace("/", os.sep)), size, name, progress=prog)
             with lock:
                 state["files"] += 1
             prog(name, size or have.get(name, 0), size)
@@ -722,7 +737,7 @@ class Installer:
                  ("Python runtime", self.step_python, 3),
                  ("ComfyUI engine", self.step_comfy, 3), ("PyTorch + engine packages", self.step_packages, 18)]
         if self.o["engine"]:
-            steps.append(("MirAI · Gemma 4 12B (Ollama)", self.step_ollama, 10))
+            steps.append(("%s (Ollama)" % ENGINES.get(self.o["engine"], (self.o["engine"],))[0].split(" (")[0], self.step_ollama, 10))
             steps.append(("MirAI voice (Kokoro)", self.step_voice, 3))
         self._dl_thread, self._dl_error = None, None
         if self.o["components"]:
@@ -908,10 +923,10 @@ class Wizard(tk.Tk):
         cfg = read_config(d) if (update_dir or registry_install_dir()) else {}
         prev = cfg.get("components")
         self.v_dir = tk.StringVar(value=d)
-        self.v_comp = {k: tk.BooleanVar(value=(k in prev) if prev is not None else (k != "video_ref")) for k in COMPONENTS}
+        self.v_comp = {k: tk.BooleanVar(value=(k in prev) if prev is not None else (k not in ("video_ref", "video_ctl"))) for k in COMPONENTS}
         self.v_preset = tk.StringVar(value="custom" if prev is not None else "recommended")
         old = cfg.get("engine", MUSE_TAG) if cfg else MUSE_TAG
-        self.v_engine = tk.StringVar(value=old if old in ENGINES else MUSE_TAG)   # older installs had Qwen 3.5 / Llama 3.1 → Gemma 4
+        self.v_engine = tk.StringVar(value=old if old in ENGINES else MUSE_TAG)   # older installs had Qwen 3.5 → Gemma 4; Llama 3.1 8B kept
         self.v_desktop = tk.BooleanVar(value=os.path.exists(LNK_DESKTOP) if cfg else True)
         self.v_auto = tk.BooleanVar(value=os.path.exists(LNK_STARTUP))
         self.v_lan = tk.BooleanVar(value=not cfg)          # firewall rule already added on first install
