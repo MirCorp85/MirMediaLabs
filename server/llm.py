@@ -1,6 +1,6 @@
 """MirAI — the writer-in-residence of MIR MEDIA LABS (standalone only; not in the package copy).
 
-General chat + creative writing on a local Ollama model (today: Gemma 4 12B). Runs as a normal lab job: it waits
+General chat + creative writing on a local Ollama model (Gemma 4 12B or Llama 3.1 8B — the owner picks). Runs as a normal lab job: it waits
 its turn in the one-at-a-time GPU queue, frees ComfyUI's VRAM first, and streams its reply into job['output'].
 
 Its system prompt has three layers:
@@ -22,7 +22,7 @@ import core
 import params
 import skills
 
-MODEL_TAG = core.DEFAULT_ENGINE          # Gemma 4 12B (vision + tools); pinned in core.DEFAULT_ENGINE
+MODEL_TAG = core.DEFAULT_ENGINE          # default only — the live engine is core.engine_model() (model picker / Settings)
 PERSONA = "MirAI"
 SOUL_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "muse_soul.md")
 NUM_CTX = 16384
@@ -122,7 +122,8 @@ def clean_for_ref(text):
 
 
 def ready(tags):
-    return any(t == MODEL_TAG or t.startswith(MODEL_TAG + "-") for t in tags or [])
+    m = core.engine_model()
+    return any(t == m or t.startswith(m + "-") for t in tags or [])
 
 
 # ── system prompt ──────────────────────────────────────────────────────────
@@ -183,7 +184,7 @@ def session(job):
     else:
         person = "%s, a guest of the lab (their work is private to them)" % name
     eng = params.MODELS.get(skills.ROLES.get("text", {}).get("model", "llama"), {}).get("label", MODEL_TAG)
-    eng = eng.split(" · ", 1)[-1] if eng.startswith(PERSONA) else eng      # "MirAI · GEMMA 4 12B" → "GEMMA 4 12B"
+    eng = core.engine_label().split(" · ", 1)[-1]                       # "MUSE · Llama 3.1 8B" → "Llama 3.1 8B"
     mode = (job.get("params") or {}).get("mode")
     return "\n".join(["## This session",
                       "- You are talking with %s." % person,
@@ -251,6 +252,7 @@ def run_llama(job):
     b = cloud.active()
     if b:                                        # owner's cloud brain: no GPU / Ollama needed
         return _run_cloud(job, b, msgs, c)
+    core.gpu_wait("MUSE")
     renderers.log(job, "freeing VRAM for MirAI …")
     if comfy.up():
         comfy.free()                             # ComfyUI keeps ~10 GB loaded between renders
@@ -263,13 +265,20 @@ def run_llama(job):
             "num_predict": LENGTH.get(c.get("length"), 1200)}
     if c.get("seed") not in ("", None):
         opts["seed"] = int(c["seed"])
-    body = {"model": MODEL_TAG, "messages": msgs, "stream": True, "think": False, "options": opts, "keep_alive": "5m"}
+    tag = core.engine_model()
+    body = {"model": tag, "messages": msgs, "stream": True, "think": False, "options": opts, "keep_alive": "5m"}
     job["output"] = ""
     import console
     t0, ntok, last = time.time(), 0, 0.0
+    pre = core.requests.post(core.OLLAMA + "/api/generate", json={"model": tag, "keep_alive": "5m"}, timeout=(10, 300))
+    if core.engine_failed(pre):                  # load first: an engine that can't start falls back before streaming
+        core.ENGINE_BROKEN.add(tag)
+        tag = core.engine_model()
+        body["model"] = tag
+        renderers.log(job, "engine fallback → %s" % tag)
     with core.requests.post(core.OLLAMA + "/api/chat", json=body, stream=True, timeout=(10, 600)) as r:
         if r.status_code == 404:
-            raise RuntimeError("Gemma 4 12B isn't installed in Ollama — run:  ollama pull " + MODEL_TAG)
+            raise RuntimeError("%s isn't installed in Ollama — run:  ollama pull %s" % (core.engine_label(tag), tag))
         r.raise_for_status()
         for line in r.iter_lines():
             if job.get("_cancel"):
@@ -281,7 +290,7 @@ def run_llama(job):
             ntok += 1
             if time.time() - last > 1.0:
                 last = time.time()
-                console.emit("MirAI", "%s writing · %d tokens · %.0f tok/s" % (MODEL_TAG, ntok, ntok / max(.1, last - t0)), job)
+                console.emit("MirAI", "%s writing · %d tokens · %.0f tok/s" % (tag, ntok, ntok / max(.1, last - t0)), job)
             if d.get("done"):
                 break
     if job.get("skill") == "Song Lyrics":            # the lyrics skill's reply goes straight to the Song engine

@@ -44,7 +44,7 @@
     else if (p.status === 'published') a = '<button class="sb" data-a="metrics">' + mi('refresh') + ' Refresh stats</button>';
     a += '<span class="sp"></span><button class="sb ic bad" data-a="delete" title="Delete">' + mi('trash') + '</button>';
     return '<div class="card" data-id="' + p.id + '"><div class="media">' +
-      (p.video_url ? '<video src="' + esc(p.video_url) + '" poster="' + esc(p.cover_url) + '" muted loop playsinline preload="none" onmouseenter="this.play().catch(function(){})" onmouseleave="this.pause()" onclick="this.paused?this.play().catch(function(){}):this.pause()"></video>' : '<img class="cv" alt="">') +
+      (p.video_url ? '<div class="pvw" data-pv="' + p.id + '" title="Preview"><img class="cv" src="' + esc(p.cover_url) + '" alt=""><span class="play">' + mi('play') + '</span></div>' : '<img class="cv" alt="">') +
       '<div class="meta"><span class="st ' + p.status + '">' + esc(p.status) + (p.schedule_at && p.status === 'scheduled' ? ' · ' + when(p.schedule_at) : '') + '</span>' +
       (p.status === 'preparing' ? '<div class="why">VIRAL-Ω is formatting to 9:16 and writing the copy…</div>' : '') +
       '<div class="hook">' + esc(p.hook || p.yt_title || '') + '</div><div class="cap">' + esc(p.caption || '') + '</div>' +
@@ -59,7 +59,7 @@
     var v = $('#view'), h = '';
     if (VIEW === 'queue') {
       var q = POSTS.filter(function (p) { return /draft|preparing|failed/.test(p.status); });
-      h = '<div class="row" style="margin-bottom:12px"><button class="sb pri" id="new">' + mi('plus') + ' New post from library</button><span class="dim" style="color:var(--faint)">Drafts wait here for your approval. In the lab chat, add “post it” to send a creation straight here.</span></div>' +
+      h = '<div class="row" style="margin-bottom:12px"><button class="sb pri" id="new">' + mi('plus') + ' New post from library</button><button class="sb" id="attach">' + mi('upload') + ' Attach file</button><input type="file" id="attach-f" accept="video/*,image/*" hidden><span class="dim" style="color:var(--faint)">Drafts wait here for your approval. In the lab chat, add “post it” to send a creation straight here.</span></div>' +
         (q.length ? '<div class="grid">' + q.map(card).join('') + '</div>' : '<div class="empty">No drafts. Make something in the lab, then send it to Social.</div>');
     } else if (VIEW === 'calendar') {
       var s = POSTS.filter(function (p) { return /scheduled|publishing|published/.test(p.status); }).sort(function (a, b) { return (b.schedule_at || b.published_at || 0) - (a.schedule_at || a.published_at || 0); });
@@ -248,6 +248,21 @@
     if (a === 'edit') return editor(p);
   }
 
+  function preview(p) {
+    if (!p) return;
+    var m = $('#modal'), tab = function (u, r, l) { return '<button class="sb" data-pvs="' + esc(u) + '" data-r="' + r + '">' + l + '</button>'; };
+    m.innerHTML = '<div class="in" style="text-align:center"><div class="row"><b style="flex:1;text-align:left">Preview — ' + esc(p.hook || p.yt_title || '') + '</b><button class="sb ic" id="mx">' + mi('close') + '</button></div>' +
+      '<div class="row" style="justify-content:center;margin:8px 0">' + tab(p.video_url, '9/16', '9:16 Reels / TikTok / Short') + (p.yt_video_url ? tab(p.yt_video_url, '16/9', 'YouTube 16:9') : '') + '</div>' +
+      '<video id="pvx" src="' + esc(p.video_url) + '" controls autoplay playsinline style="max-width:100%;max-height:70vh;aspect-ratio:9/16;border-radius:12px;background:#000"></video>' +
+      '<div class="row" style="justify-content:center;margin-top:10px">' + (p.status === 'draft' ? '<button class="sb ok" id="pv-ap">' + mi('check') + ' Approve</button>' : '') + '<button class="sb" id="pv-ed">' + mi('edit') + ' Edit</button></div></div>';
+    m.hidden = false; if (window.MI && MI.fill) MI.fill(m);
+    var v = $('#pvx'), close = function () { v.pause(); m.hidden = true; };
+    $('#mx').onclick = close;
+    m.querySelectorAll('[data-pvs]').forEach(function (b) { b.onclick = function () { v.src = b.dataset.pvs; v.style.aspectRatio = b.dataset.r; v.play().catch(function () {}); }; });
+    var ap = $('#pv-ap'); if (ap) ap.onclick = function () { close(); act(p.id, 'approve'); };
+    $('#pv-ed').onclick = function () { v.pause(); editor(p); };
+  }
+
   function editor(p) {
     var m = $('#modal'), dt = p.schedule_at ? new Date(p.schedule_at * 1000) : null;
     var loc = dt ? new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
@@ -256,7 +271,13 @@
       '<div style="flex:1;min-width:220px"><label class="f">Hook (on-screen, first second)</label><input class="t" id="e-hook" value="' + esc(p.hook || '') + '">' +
       '<label class="f">Instagram caption</label><textarea class="t" id="e-cap">' + esc(p.caption || '') + '</textarea>' +
       '<label class="f">Hashtags (space separated, no #)</label><input class="t" id="e-tags" value="' + esc((p.hashtags || []).join(' ')) + '"></div></div>' +
+      (p.yt_video_url ? '<label class="f">YouTube 16:9 preview</label><video src="' + esc(p.yt_video_url) + '" controls playsinline preload="metadata" style="width:100%;max-width:420px;aspect-ratio:16/9;border-radius:10px;background:#000"></video>' : '') +
+      '<label class="f">YouTube format</label><select class="t" id="e-ytf">' + [['video', 'Normal video (16:9)'], ['short', 'Short (9:16)'], ['both', 'Both — normal video + Short']].map(function (o) {
+        return '<option value="' + o[0] + '"' + ((p.yt_format || 'video') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<label class="f">YouTube title</label><input class="t" id="e-yt" value="' + esc(p.yt_title || '') + '">' +
+      '<label class="f">TikTok caption</label><textarea class="t" id="e-ttc">' + esc(p.tt_caption || '') + '</textarea>' +
+      '<label class="f">Facebook caption</label><textarea class="t" id="e-fbc">' + esc(p.fb_caption || '') + '</textarea>' +
+      '<label class="f">Pinned first comment</label><input class="t" id="e-pin" value="' + esc(p.pinned_comment || '') + '">' +
       '<label class="f">YouTube description</label><textarea class="t" id="e-ytd">' + esc(p.yt_description || '') + '</textarea>' +
       '<div class="row"><label class="row" style="font-size:12px"><input type="checkbox" id="e-ig"' + ((p.platforms || []).indexOf('instagram') > -1 ? ' checked' : '') + '> Instagram</label>' +
       '<label class="row" style="font-size:12px"><input type="checkbox" id="e-ytb"' + ((p.platforms || []).indexOf('youtube') > -1 ? ' checked' : '') + '> YouTube</label>' +
@@ -300,7 +321,8 @@
     $('#e-save').onclick = function () {
       var pl = []; if ($('#e-ig').checked) pl.push('instagram'); if ($('#e-ytb').checked) pl.push('youtube'); if ($('#e-tt').checked) pl.push('tiktok'); if ($('#e-fb') && $('#e-fb').checked) pl.push('facebook');
       var b = { hook: $('#e-hook').value, caption: $('#e-cap').value, hashtags: $('#e-tags').value.split(/[\s,#]+/).filter(Boolean),
-        yt_title: $('#e-yt').value, yt_description: $('#e-ytd').value, platforms: pl };
+        yt_title: $('#e-yt').value, yt_description: $('#e-ytd').value, platforms: pl,
+        tt_caption: $('#e-ttc').value, fb_caption: $('#e-fbc').value, pinned_comment: $('#e-pin').value, yt_format: $('#e-ytf').value };
       if ($('#tt-priv')) b.tiktok = { privacy_level: $('#tt-priv').value, allow_comment: $('#tt-cm').checked, allow_duet: $('#tt-du').checked, allow_stitch: $('#tt-st').checked,
         disclose: $('#tt-dis').checked, brand_organic: $('#tt-dis').checked && $('#tt-org').checked, brand_content: $('#tt-dis').checked && $('#tt-bc').checked, consent: $('#tt-ok').checked };
       if ($('#e-at').value) b.schedule_at = new Date($('#e-at').value).getTime() / 1000;
@@ -330,6 +352,21 @@
   function bind() {
     document.querySelectorAll('.card[data-id] [data-a]').forEach(function (b) { b.onclick = function () { act(b.closest('.card').dataset.id, b.dataset.a); }; });
     var n = $('#new'); if (n) n.onclick = pickLibrary;
+    document.querySelectorAll('[data-pv]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); preview(POSTS.filter(function (x) { return x.id === b.dataset.pv; })[0]); }; });
+    var at = $('#attach'), af = $('#attach-f');
+    if (at && af) {
+      at.onclick = function () { af.click(); };
+      af.onchange = function () {
+        var f = af.files[0]; if (!f) return;
+        var brief = prompt('Brief for VIRAL-Ω (optional): angle, series, call to action…', '') || '';
+        var plats = prompt('Platforms (comma list: instagram,youtube,tiktok,facebook)', 'instagram,youtube,tiktok,facebook') || '';
+        var fd = new FormData(); fd.append('file', f); fd.append('brief', brief); fd.append('platforms', plats.replace(/\s+/g, ''));
+        toast('Uploading ' + f.name + '…');
+        fetch('api/social/upload', { method: 'POST', body: fd }).then(function (r) { return r.json().then(function (j) { if (!r.ok || j.error) throw new Error(j.error || r.status); return j; }); })
+          .then(function () { af.value = ''; toast('VIRAL-Ω is writing the best title, caption + hashtags per platform…'); load(); })
+          .catch(function (e) { af.value = ''; toast(e.message); });
+      };
+    }
     document.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function (e) { e.preventDefault(); VIEW = b.dataset.go; render(); }; });
     document.querySelectorAll('[data-ap]').forEach(function (b) { b.onclick = function () { act(b.dataset.ap, 'approve'); }; });
     document.querySelectorAll('[data-sk]').forEach(function (b) {

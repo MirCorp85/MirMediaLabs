@@ -38,6 +38,7 @@
       <button data-t="assets"><i class="mi" data-ic="folder"></i> Assets</button>
       <button data-t="hist"><i class="mi" data-ic="clock"></i> History <span id="se-runbadge" class="badge" hidden></span></button>
     </nav>
+    <div class="ai-bar" id="se-ai"></div>
 
     <section data-p="setup">
       <label>Series name <input id="se-name" spellcheck="false"></label>
@@ -58,9 +59,15 @@
         <div class="row"><span class="lbl">Shape</span><div class="chips" id="su-aspect"></div></div>
         <div class="row"><span class="lbl">Shot length</span><div class="chips" id="su-clip"></div></div>
         <div class="row"><span class="lbl">Picture quality</span><div class="chips" id="su-res"></div></div>
+        <div class="row"><span class="lbl">Flow</span><div class="chips" id="su-flow"></div></div>
         <div class="row"><span class="lbl">Shot joins</span><div class="chips" id="su-join"></div></div>
         <p class="dim">“Continue” shots always join frame-exact. On a cut, a soft dissolve blends the two shots for a moment — every shot still lands on its beat.</p>
         <div class="est" id="su-est"></div>
+      </div>
+      <div class="card">
+        <h3><i class="mi" data-ic="link"></i> Consistency</h3>
+        <p class="dim">Keep every character, object, place and shot looking like one show.</p>
+        <div id="su-cons"></div>
       </div>
       <div class="card">
         <h3><i class="mi" data-ic="music"></i> 4 · Song</h3>

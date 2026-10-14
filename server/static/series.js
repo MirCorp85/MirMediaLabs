@@ -101,6 +101,7 @@
   function fixup() {
     S.setup = S.setup || { structure: 'musical', style: 'animated3d', length: 120, aspect: '16:9', clip: 10, song: { genre: 'nursery rhyme', bpm: 100, mood: 'happy', vocal: 'solo lead', lang: 'English' } };
     S.setup.song = S.setup.song || {};
+    S.setup.cons = Object.assign({ master: '', master_ref: true, seed: true, anchor: true, strict: false }, S.setup.cons || {});
     S.objects = S.objects || [];
     (S.characters || []).concat(S.objects).forEach(function (c) { c.traits = c.traits || {}; });
   }
@@ -134,6 +135,7 @@
     $('#se-style-refs').innerHTML = STYLE_REFS.map(function (r) { return '<img src="' + ref(r) + '">'; }).join('');
     drawSetup(); drawCast(); drawLocs(); drawObjs(); drawEps(); drawRunBits(); if (TAB === 'hist') drawHist(); if (TAB === 'assets') drawAssets();
     $$('#se-tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === TAB); });
+    drawAI();
     $$('section[data-p]').forEach(function (p) { p.hidden = p.dataset.p !== TAB; });
     if (window.MI && MI.fill) MI.fill(document);
   }
@@ -184,11 +186,13 @@
     chips('#su-len', P.lengths, su.length, function (v) { return v < 60 ? v + ' s' : (v / 60) + (v % 60 ? '' : '') + ' min'; });
     chips('#su-aspect', P.aspects, su.aspect);
     chips('#su-clip', [6, 8, 10, 12], su.clip || 10, function (v) { return '~' + v + ' s'; });
+    chips('#su-flow', ['seamless', 'cuts'], su.flow || 'seamless', function (v) { return { seamless: 'one seamless take', cuts: 'scene cuts' }[v]; });
     chips('#su-join', ['soft', 'cut'], su.join || 'soft', function (v) { return { soft: 'soft dissolve on cuts', cut: 'hard cuts' }[v]; });
     chips('#su-res', ['draft', 'standard', 'high', 'max'], su.res || 'standard', function (v) { return { draft: 'draft (fast test)', standard: 'standard', high: 'high', max: 'max 768p (slow)' }[v]; });
     var shots = Math.round(su.length / (su.clip || 10)), song = Math.round(su.length / 120 * 25), cuts = Math.ceil(shots / 2.5),
       per = { draft: 2.5, standard: 4.5, high: 10, max: 16 }[su.res || 'standard'];
     $('#su-est').innerHTML = mi('hourglass') + ' About <b>' + shots + ' shots</b> · song ≈ ' + song + ' min · first frames ≈ ' + Math.round(cuts * 0.6) + ' min · shots ≈ ' + Math.round(shots * per) + ' min — <b>≈ ' + Math.round((song + cuts * 0.6 + shots * per) / 6) / 10 + ' h</b> of render time on this PC.';
+    drawCons();
     $('#su-song').innerHTML = P.song.map(function (f) {
       var v = su.song[f.k];
       if (f.type === 'range') return '<div class="row"><span class="lbl">' + esc(f.label) + '</span><input type="range" data-ss="' + f.k + '" min="' + f.range[0] + '" max="' + f.range[1] + '" value="' + (v || f.range[2]) + '"><b class="rv">' + (v || f.range[2]) + '</b></div><div class="suhelp">' + helpLine(f.k, null) + '</div>';
@@ -196,6 +200,24 @@
         return '<button data-a="song" data-k="' + f.k + '" data-v="' + esc(o) + '" class="' + (o === v ? 'on' : '') + '" title="' + esc(odesc(f.k, o)) + '"><span>' + esc(o) + '</span>' + pvTag(f.k + '__' + slug(o)) + '</button>';
       }).join('') + '</div></div><div class="suhelp">' + helpLine(f.k, v) + '</div>';
     }).join('');
+  }
+
+  /* Consistency: one look for every character, object, place and shot (series.py CONS_DEFAULTS) */
+  var CONS = [
+    ['master_ref', 'Copy the style master', 'Every new character, object and place is drawn with the style-master picture as its style reference.'],
+    ['seed', 'Same seed for new designs', 'Characters, places and objects drawn from scratch share the series’ one locked seed. Sheets and views built from a picture get a fresh try on every Redraw.'],
+    ['anchor', 'Match each new angle to the shot before', 'A new-angle shot is drawn with a frame of the previous shot as a look reference.'],
+    ['strict', 'Strict identity', 'Adds firm “draw it identically” wording to every picture and shot. Slightly less variety in poses.']];
+  function drawCons() {
+    var el = $('#su-cons'); if (!el) return;
+    var cs = S.setup.cons, withPic = (S.characters || []).filter(function (c) { return c.hero || c.sheet; });
+    el.innerHTML = '<div class="row"><span class="lbl">Style master</span><div class="chips">' +
+      '<button data-a="cons-m" data-v="" class="' + (!cs.master ? 'on' : '') + '" title="The first character with a picture"><span>First character</span></button>' +
+      withPic.map(function (c) { return '<button data-a="cons-m" data-v="' + c.id + '" class="' + (cs.master === c.id ? 'on' : '') + '"><span>' + esc(c.name || 'unnamed') + '</span></button>'; }).join('') +
+      '</div></div><p class="fhelp">The picture every other design copies its look from.' + (withPic.length ? '' : ' Draw a character first.') + '</p>' +
+      CONS.map(function (x) {
+        return '<div class="row"><span class="lbl">' + esc(x[1]) + '</span><div class="chips"><button data-a="cons" data-k="' + x[0] + '" data-v="1" class="' + (cs[x[0]] ? 'on' : '') + '"><span>On</span></button><button data-a="cons" data-k="' + x[0] + '" data-v="0" class="' + (cs[x[0]] ? '' : 'on') + '"><span>Off</span></button></div></div><p class="fhelp">' + esc(x[2]) + '</p>';
+      }).join('');
   }
 
   /* Cast: the character builder */
@@ -230,13 +252,14 @@
       return '<div class="card char" data-c="' + c.id + '">' +
         '<div class="row"><input data-f="name" value="' + esc(c.name) + '" placeholder="Name"><button class="eb ic sm" data-a="dup-char" title="Duplicate as a variant">' + mi('copy') + '</button><button class="eb ic sm" data-a="rand-char" title="Randomize">' + mi('sparkle') + '</button><button class="eb ic sm" data-a="del-char" title="Remove">' + mi('trash') + '</button></div>' +
         '<div class="built">' + esc(c.built || 'Pick options below — the description writes itself.') + '</div>' +
-        '<div class="pics3">' + pic(ref(c.hero), 'Hero') + pic(ref(c.sheet), 'Turnaround', true) + pic(ref(c.expr), 'Expressions', false, false, true) + '</div>' +
+        '<div class="pics2c">' + pic(ref(c.hero), 'Hero') + pic(ref(c.sheet), 'Turnaround + expressions', true) + '</div>' +
         '<div class="row">' +
         '<button class="eb sm pri" data-a="hero">' + mi('image') + (c.hero ? ' Redraw character' : lead && !first ? ' Build in series style' : ' Build character') + '</button>' +
         '<button class="eb sm" data-a="hero-photo" title="' + (lead && !first ? 'Turn a photo into this character, drawn in the lead’s series style' : 'Turn a photo into this character') + ' — only use photos of people who agreed to this">' + mi('camera') + ' From a photo</button>' + '<button class="eb sm" data-a="hero-lib" title="A picture already in your library (only of people who agreed to this)">' + mi('folder') + ' From library</button>' +
-        '<button class="eb sm" data-a="sheet"' + (c.hero ? '' : ' disabled') + '>' + mi('layers') + ' Turnaround</button>' +
-        '<button class="eb sm" data-a="expr"' + (c.hero ? '' : ' disabled') + '>' + mi('user') + ' Expressions</button>' +
-        '<button class="eb sm" data-a="asset-save" data-k="characters"' + (c.hero || c.sheet ? '' : ' disabled') + ' title="Keep this character for any series">' + mi('folder') + ' Save to assets</button></div>' +
+        '<button class="eb sm" data-a="sheet"' + (c.hero ? '' : ' disabled') + ' title="One sheet: front, side and back views plus a row of facial expressions">' + mi('layers') + ' Turnaround + expressions</button>' +
+        '<button class="eb sm" data-a="asset-save" data-k="characters"' + (c.hero || c.sheet ? '' : ' disabled') + ' title="Keep this character for any series">' + mi('folder') + ' Save to assets</button>' +
+        (c.hero ? '<button class="eb sm" data-a="more-style" title="New characters drawn in exactly this character’s art style">' + mi('plus') + ' More in this style</button>' : '') + '</div>' +
+        (c.style_from ? '<p class="dim">Drawn in ' + esc(((S.characters || []).find(function (x) { return x.id === c.style_from; }) || {}).name || 'another character') + '’s style.</p>' : '') +
         '<button class="eb sm ghost" data-a="toggle-build">' + mi(op ? 'chevron-down' : 'chevron-right') + ' Character builder</button>' +
         (op ? builder(c) +
           '<label>Extra details (your words win) <textarea data-f="desc" rows="2" placeholder="anything the options miss — a patch on the knee, a missing tooth…">' + esc(c.desc) + '</textarea></label>' +
@@ -461,6 +484,57 @@
     }).join('') || '<p class="dim">Nothing yet.</p>';
   }
 
+  /* ── MirAI bar: every step can be done by hand, by MirAI (this step only), or MirAI takes over from here ── */
+  function aiEp() { var es = S.episodes || []; return es.find(function (e) { return !e.final; }) || es[0] || null; }
+  function missingPics(what) {
+    var st = [];
+    if (what === 'cast') {
+      (S.characters || []).forEach(function (c) {
+        if (!c.hero) st.push({ kind: 'hero', target: c.id, label: (c.name || 'character') + ' · design' });
+        else if (!c.sheet) st.push({ kind: 'sheet', target: c.id, label: (c.name || 'character') + ' · turnaround + expressions' });
+      });
+      if ((S.characters || []).length >= 2 && !S.lineup && !st.length) st.push({ kind: 'lineup', label: 'cast lineup' });
+    } else {
+      (S.locations || []).forEach(function (l) {
+        if (!l.image) st.push({ kind: 'location', target: l.id, label: l.name || 'place' });
+        else if (!l.sheet) st.push({ kind: 'locsheet', target: l.id, label: (l.name || 'place') + ' · layout cutaway, all sides' });
+      });
+    }
+    return st;
+  }
+  function drawAI() {
+    var el = $('#se-ai'); if (!el || !S) return;
+    var ep = aiEp(), b = [], lbl = 'Doing it yourself — or let <b>MirAI</b> help';
+    var B = function (v, ic, t, pri) { return '<button class="eb' + (pri ? ' pri' : '') + '" data-a="ai" data-v="' + v + '"><i class="mi" data-ic="' + ic + '"></i> ' + t + '</button>'; };
+    if (TAB === 'cast') { var mc = missingPics('cast').length; b.push(B('cast', 'sparkle', mc ? 'MirAI: draw the cast' : 'MirAI: cast is drawn')); }
+    if (TAB === 'world') { var mw = missingPics('world').length; b.push(B('world', 'sparkle', mw ? 'MirAI: draw the places' : 'MirAI: places are drawn')); }
+    if (TAB === 'eps' && ep) {
+      lbl = 'Episode <b>' + esc(ep.title || 'Episode') + '</b> — MirAI can do one step';
+      b.push(B('song', 'music', ep.song ? 'MirAI: song is ready' : 'MirAI: write + record the song'));
+      b.push(B('shots', 'film', 'MirAI: render the shots'));
+      b.push(B('final', 'scissors', 'MirAI: finish the episode'));
+    }
+    b.push(B('takeover', 'play', 'MirAI: take over from here', 1));
+    el.innerHTML = '<span class="lbl">' + lbl + '</span>' + b.join('');
+  }
+  function aiDo(v) {
+    if (v === 'cast' || v === 'world') {
+      var st = missingPics(v);
+      if (!st.length) return toast(v === 'cast' ? 'every character already has its pictures' : 'every place already has its pictures');
+      return enqueue(st.slice(0, 6));
+    }
+    var ep = aiEp();
+    if (v === 'takeover') {
+      if (!confirm('Let MirAI take over “' + (S.name || 'this series') + '”? Everything you made stays — MirAI only does what is still missing, then the final edit and a draft post.')) return;
+      return save(true).then(function () { return api('/api/produce/adopt', { sid: S.id, episode: ep && ep.id }); })
+        .then(function (p) { if (p.error) return toast(p.error, 1); location.href = 'production?id=' + encodeURIComponent(p.id); });
+    }
+    if (!ep) return toast('add an episode first', 1);
+    if (!ep.song && !(ep.idea || ep.title)) return toast('give the episode an idea first', 1);
+    return save(true).then(function () { return api('/api/series/' + S.id + '/run', { action: 'start', episode: ep.id, until: v }); })
+      .then(function (r) { if (r.error) return toast(r.error, 1); RUN = r; drawRunBits(); toast('MirAI is on it — it stops when this step is done (safe to close the page)'); });
+  }
+
   /* ── rendering through the lab ── */
   /* one-off pictures go through the server's queue: it renders them in order and files each one back into the series
      itself, so they still land if this page is closed (or the phone sleeps) mid-render */
@@ -651,8 +725,7 @@
   function heroFromPhoto(cid, photo) {
     var ch = S.characters.find(function (c) { return c.id === cid; }), nm = (ch && ch.name) || 'Character';
     enqueue([{ kind: 'hero', target: cid, extra: { photo: photo }, label: nm + ' — hero from photo' },
-             { kind: 'sheet', target: cid, label: nm + ' — turnaround' },
-             { kind: 'expr', target: cid, label: nm + ' — expressions' }]);
+             { kind: 'sheet', target: cid, label: nm + ' — turnaround + expressions' }]);
   }
   /* ── "From library": anything already in the library (renders, downloads, stills) → a reference here ── */
   function libPick(kind, multi, title, done) {
@@ -735,7 +808,9 @@
       S.setup.style = b.dataset.v; S.style_prompt = ps.style_prompt; if (ps.aspect && S.setup.aspect === '16:9') S.setup.aspect = ps.aspect === '21:9' ? '21:9' : S.setup.aspect;
       $('#se-style').value = S.style_prompt; drawSetup(); return save();
     }
-    if (a === 'su') { var k = b.dataset.k, v = b.dataset.v; S.setup[k === 'len' ? 'length' : k] = (k === 'aspect' || k === 'res' || k === 'join') ? v : +v; drawSetup(); return save(); }
+    if (a === 'cons-m') { S.setup.cons.master = b.dataset.v; drawCons(); return save(); }
+    if (a === 'cons') { S.setup.cons[b.dataset.k] = b.dataset.v === '1'; drawCons(); return save(); }
+    if (a === 'su') { var k = b.dataset.k, v = b.dataset.v; S.setup[k === 'len' ? 'length' : k] = (k === 'aspect' || k === 'res' || k === 'join' || k === 'flow') ? v : +v; drawSetup(); return save(); }
     if (a === 'song') { S.setup.song[b.dataset.k] = b.dataset.v; drawSetup(); return save(); }
     if (a === 'style-attach') { filePurpose = 'style'; $('#se-file').multiple = true; return $('#se-file').click(); }
     if (a === 'style-lib') return libPick('image', true, 'Style frames from your library (up to 8)', function (refs) { STYLE_REFS = STYLE_REFS.concat(refs).slice(-8); draw(); });
@@ -789,11 +864,22 @@
       if (!confirm('Remove this?')) return;
       o.list.splice(o.list.indexOf(it), 1); save(true).then(draw); return;
     }
+    if (a === 'more-style') {   /* N new characters (random designs you can edit) drawn in this character's art style */
+      var room = 12 - (S.characters || []).length;     /* series.py MAX_CAST */
+      if (room < 1) return toast('the cast is full (12 characters)', 1);
+      var n = parseInt(prompt('How many new characters in ' + (it.name || 'this character') + '’s style? (1-' + Math.min(5, room) + ')\nThey start with random designs — change them in each builder, then press Build.', '1'), 10);
+      if (!n || n < 1) return; n = Math.min(5, room, n);
+      var made = [];
+      for (var q = 0; q < n; q++) { var ncs = { id: rid(), name: pick(NAMES), desc: '', traits: randomTraits(), style_from: it.id }; S.characters.push(ncs); OPEN[ncs.id] = true; made.push(ncs); }
+      return save(true).then(function () { drawCast(); MI && MI.fill && MI.fill($('#se-cast'));
+        if (confirm('Draw ' + (n > 1 ? 'all ' + n : 'it') + ' now? (Cancel to edit the designs first, then press Build on each.)'))
+          enqueue([].concat.apply([], made.map(function (m) { return [{ kind: 'character', target: m.id, label: m.name + ' — hero' }, { kind: 'sheet', target: m.id, label: m.name + ' — turnaround + expressions' }]; })));
+      });
+    }
     if (a === 'hero') {     /* build the whole character: hero, then the turnaround + expressions drawn from that hero */
       var lead = S.characters.find(function (c) { return c.hero && c.id !== it.id; }), nm = it.name || 'Character';
       return enqueue([{ kind: lead ? 'character' : 'hero', target: it.id, label: nm + ' — hero' },
-                      { kind: 'sheet', target: it.id, label: nm + ' — turnaround' },
-                      { kind: 'expr', target: it.id, label: nm + ' — expressions' }]);
+                      { kind: 'sheet', target: it.id, label: nm + ' — turnaround + expressions' }]);
     }
     if (a === 'hero-photo') { filePurpose = { hero: it.id }; $('#se-file').multiple = false; return $('#se-file').click(); }
     if (a === 'hero-lib') { var hid = it.id; return libPick('image', false, 'Hero photo from your library', function (refs) { heroFromPhoto(hid, refs[0]); }); }
@@ -836,6 +922,7 @@
       return save(true).then(function () { return api('/api/series/' + S.id + '/run', { action: act, episode: eid }); })
         .then(function (r) { if (r.error) return toast(r.error, 1); RUN = r; drawRunBits(); toast({ start: 'Running in the background — safe to close this page', pause: 'Pausing after the current step', resume: 'Resumed', retry: 'Retrying', skip: 'Skipped', cancel: 'Step cancelled — Resume to redo it, or Skip', stop: 'Run stopped' }[act] || 'ok'); });
     }
+    if (a === 'ai') return aiDo(b.dataset.v);
     if (a === 'tab-hist') { TAB = 'hist'; draw(); return loadHist(); }
     if (a === 'akind') { AKIND = b.dataset.v; return drawAssets(); }
     if (a === 'asset-save') return saveAsset(b.dataset.k, b.dataset.k === 'styles' ? null : (b.dataset.k === 'songs' ? it.id : it.id));

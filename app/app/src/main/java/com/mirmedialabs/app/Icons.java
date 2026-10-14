@@ -126,6 +126,25 @@ public final class Icons {
         D.put("cc", new String[]{"p:M3 6H21V18H3Z", "p:M10.5 10C9.8 9.4 8.9 9.2 8.2 9.6C7.2 10.1 7 11.4 7.2 12.3C7.5 13.6 9 14.4 10.5 13.8", "p:M17 10C16.3 9.4 15.4 9.2 14.7 9.6C13.7 10.1 13.5 11.4 13.7 12.3C14 13.6 15.5 14.4 17 13.8"});
         D.put("pip", new String[]{"p:M3 5H21V19H3Z", "p:M12 12H19V17H12Z"});
         D.put("compass", new String[]{"c:12,12,9", "p:M15.5 8.5L13.5 13.5L8.5 15.5L10.5 10.5Z"});
+        D.put("gamepad", new String[]{"p:M7 8H17C19.8 8 21.5 10 21.5 13L21 17C20.7 19 18.5 19.5 17.2 18L15 15.5H9L6.8 18C5.5 19.5 3.3 19 3 17L2.5 13C2.5 10 4.2 8 7 8Z", "p:M7 11V14", "p:M5.5 12.5H8.5", "f:15.5,11.5,1", "f:17.5,13.5,1"});
+        D.put("pencil", new String[]{"p:M4 20L5 15L16 4L20 8L9 19Z", "p:M14 6L18 10"});
+        D.put("eraser", new String[]{"p:M3 16L12 7L18 13L11 20H7Z", "p:M8 11L14 17", "p:M11 20H21"});
+        D.put("bucket", new String[]{"p:M5 11L12 4L19 11L12 18Z", "p:M5 11H19", "p:M20 14C20 14 22 16.8 22 18C22 19.1 21.1 20 20 20C18.9 20 18 19.1 18 18C18 16.8 20 14 20 14Z"});
+        D.put("eyedrop", new String[]{"p:M15 3.5L20.5 9L18 11.5L12.5 6Z", "p:M14 8L5.5 16.5L5 19L7.5 18.5L16 10"});
+        D.put("rect", new String[]{"p:M4 6H20V18H4Z"});
+        D.put("ellipse", new String[]{"p:M12 5C17 5 21 8 21 12C21 16 17 19 12 19C7 19 3 16 3 12C3 8 7 5 12 5Z"});
+        D.put("line", new String[]{"p:M5 19L19 5"});
+        D.put("select", new String[]{"p:M4 4H8", "p:M11 4H13", "p:M16 4H20V8", "p:M20 11V13", "p:M20 16V20H16", "p:M13 20H11", "p:M8 20H4V16", "p:M4 13V11", "p:M4 8V4"});
+        D.put("move", new String[]{"p:M12 3V21", "p:M3 12H21", "p:M9 6L12 3L15 6", "p:M9 18L12 21L15 18", "p:M6 9L3 12L6 15", "p:M18 9L21 12L18 15"});
+        D.put("undo", new String[]{"p:M9 7L4 12L9 17", "p:M4 12H14C17.3 12 20 14.7 20 18V19"});
+        D.put("redo", new String[]{"p:M15 7L20 12L15 17", "p:M20 12H10C6.7 12 4 14.7 4 18V19"});
+        D.put("zoom-in", new String[]{"c:11,11,6.5", "p:M16 16L20.5 20.5", "p:M11 8V14", "p:M8 11H14"});
+        D.put("zoom-out", new String[]{"c:11,11,6.5", "p:M16 16L20.5 20.5", "p:M8 11H14"});
+        D.put("mirror", new String[]{"p:M12 3V21", "p:M9 6L4 12L9 18Z", "p:M15 6L20 12L15 18Z"});
+        D.put("dither", new String[]{"f:6,6,1.3", "f:12,6,1.3", "f:18,6,1.3", "f:9,10,1.3", "f:15,10,1.3", "f:6,14,1.3", "f:12,14,1.3", "f:18,14,1.3", "f:9,18,1.3", "f:15,18,1.3"});
+        D.put("hand", new String[]{"p:M8 13V6.5C8 5.7 8.7 5 9.5 5C10.3 5 11 5.7 11 6.5V11", "p:M11 11V4.5C11 3.7 11.7 3 12.5 3C13.3 3 14 3.7 14 4.5V11", "p:M14 11V5.5C14 4.7 14.7 4 15.5 4C16.3 4 17 4.7 17 5.5V12", "p:M17 9.5C17 8.7 17.7 8 18.5 8C19.3 8 20 8.7 20 9.5V15C20 18.3 17.3 21 14 21H12.5C10.5 21 8.8 20 7.8 18.4L4.5 13.2C4 12.4 4.3 11.4 5.1 11C5.8 10.6 6.7 10.8 7.2 11.5L8 13"});
+        D.put("flag", new String[]{"p:M5 21V4", "p:M5 4H17L14.5 8L17 12H5"});
+        D.put("tiles", new String[]{"p:M4 4H10V10H4Z", "p:M14 4H20V10H14Z", "p:M4 14H10V20H4Z", "p:M14 14H20V20H14Z"});
     }
     private static final Pattern TOKEN = Pattern.compile("\\[\\[([a-zA-Z0-9-]+)\\]\\]");
 

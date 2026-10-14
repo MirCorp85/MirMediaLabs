@@ -1,7 +1,7 @@
 """MirAI Director — the thinking layer of MIR MEDIA LABS.
 
 People shouldn't have to know which engine does what. In Auto mode every chat message goes to MirAI (the lab's local
-Gemma 4) first; it reads the message, the attachments and the last few turns, and decides what happens:
+Gemma 4 or Llama 3.1, whichever the owner picked) first; it reads the message, the attachments and the last few turns, and decides what happens:
 
     chat      answer it as a conversation (general knowledge, questions, advice, writing help)
     render    one render on a role's engine (image · video · song · music) with a prompt written for that engine
@@ -286,11 +286,14 @@ def decide(prompt, refs=None, history=None, model=None):
             except Exception as e:
                 core._note("[cloud] director: %s — local Director instead" % e)
         if raw is None:
+            core.gpu_wait("router")
             core.ensure_ollama()
             body = {"model": model, "stream": False, "format": "json", "think": False, "keep_alive": KEEP_ALIVE,
                     "options": {"temperature": 0.1, "num_ctx": ROUTER_CTX, "num_predict": 900},
                     "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
-            r = core.requests.post(core.OLLAMA + "/api/chat", json=body, timeout=TIMEOUT)
+            if body.get("model") in core.ENGINE_BROKEN:
+                body["model"] = core.engine_model()
+            r = core.engine_post("/api/chat", body, timeout=TIMEOUT)
             r.raise_for_status()
             raw = json.loads((r.json().get("message") or {}).get("content", ""))
             b = None
