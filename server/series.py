@@ -45,8 +45,10 @@ SHEET_TPL = ("Character turnaround reference sheet of {who}: {desc}. One single 
 HERO_TPL = "Full-body character design of {who}: {desc}. Friendly, appealing, standing in a neutral pose on a plain background. {style}"
 CHAR_TPL = ("In exactly the same art style as the reference picture, design a new character: {who} - {desc}. "
             "Full body, standing, neutral pose, plain background, no clothes or accessories unless described. {style}")
-LINEUP_TPL = ("Cast lineup: all of these characters standing side by side in one row, at their correct relative heights, "
-              "one of each, facing camera, plain light background, no text. Characters from left to right: {names}. {style}")
+LINEUP_TPL = ("Cast lineup of EXACTLY {n} characters - no more, no fewer: {names}, standing side by side in one row from "
+              "left to right, at their correct relative heights, facing camera, plain light background, no text. Each "
+              "reference picture shows ONE character: draw each of them exactly once. No duplicates, no extra copies, no "
+              "extra views or poses, no other characters. {style}")
 # Objects (props, vehicles, animals, plants …): one design, then a turnaround and a detail sheet drawn FROM it
 OBJ_TPL = ("Prop design of {who}: {desc}. One single object shown whole and centred in a clear three-quarter view, "
            "standing on a plain light background with a soft ground shadow, even lighting. No people or characters, "
@@ -66,32 +68,39 @@ LOC_TPL = ("Empty environment design (no characters): {who} - {desc}. Wide estab
 
 # Architectural views of a location, all redrawn from its picture (Qwen edit) so the layout, furniture and colours match.
 # Order = the index stored with each render (attach i); the World tab shows them in this order.
-LOC_SHEET_TPL = ("Location turnaround reference sheet of {who}: {desc}. The SAME place as in the picture, shown on one clean "
-                 "sheet as a 3D cutaway miniature (roof and ceiling removed, walls cut at waist height) in a clean row of four "
-                 "views: front view, right side view, back view, left side view, plus a small top-down floor plan in the "
-                 "corner. Same layout, same furniture in the same places, same colours and materials in every view. Plain "
-                 "light-grey background, even lighting, no characters or people, no text labels. {style}")
+LOC_SHEET_TPL = ("Architectural model reference sheet of {who}: {desc}. A NEW drawing, not the original picture: the place "
+                 "built as a physical miniature dollhouse-style scale model with the roof and ceiling taken off and the walls "
+                 "cut down to waist height, standing on a plain light-grey studio table. The sheet shows the SAME model from "
+                 "all sides in a clean grid: front view, right side view, back view, left side view, each seen from above at "
+                 "a 45-degree angle looking down into the open rooms, plus a top-down floor plan in the corner. Same layout "
+                 "and the same furniture in the same places in every view; colours and materials taken from the picture. "
+                 "Soft even daylight studio lighting, natural colours. Empty: no characters, people or animals. No text or "
+                 "labels. Not a photo of the room from inside, not a filtered or recoloured copy of the picture, no red and "
+                 "blue stereo effect, no colour fringing, no HDR glow. {style}")
 LOC_VIEWS = [
-    ("cutaway", "3D cutaway", "16:9",
-     "Turn the place in the picture into a 3D architectural cutaway model, seen from high above at a 45-degree isometric "
-     "angle from the front-left corner: the roof and ceiling removed and the walls cut at waist height, so every room, "
-     "doorway and piece of furniture is visible at once, like a detailed dollhouse miniature of the whole layout. If the "
-     "place is outdoors, show the whole area as a miniature diorama block. Soft even studio lighting, clean light-grey "
-     "background around the model."),
+    ("cutaway", "Layout cutaway", "16:9",
+     "A NEW picture, not the original: the place in the picture built as a physical miniature dollhouse-style scale model, "
+     "seen from OUTSIDE and high above at a 45-degree angle from the front-left corner, with the roof and ceiling taken off "
+     "and the walls cut down to waist height, so the whole floor layout, every doorway and every piece of furniture is "
+     "visible at once. The model stands alone on a plain light-grey studio table with empty space around it. If the place "
+     "is outdoors, show the whole area as a square miniature diorama block. Not a view from inside the room, not a filtered "
+     "or recoloured copy of the picture, no red and blue stereo effect, no colour fringing, no HDR glow."),
     ("cutaway2", "Opposite corner", "16:9",
-     "Picture 1 is a 3D cutaway model of a place, picture 2 shows how the place really looks. Show the SAME cutaway model "
+     "Picture 1 is a miniature cutaway scale model of a place, picture 2 shows how the place really looks. Show the SAME cutaway model "
      "turned around 180 degrees, seen from high above at a 45-degree isometric angle from the opposite (back-right) corner: "
      "roof and ceiling removed, walls cut at waist height, so the walls and furniture that were at the back of picture 1 "
      "are now nearest the viewer. Every piece of furniture keeps its place in the room. Same miniature model look, soft "
      "even studio lighting and clean light-grey background as picture 1, the colours and materials of picture 2."),
     ("top", "Top view", "1:1",
-     "Picture 1 is a 3D cutaway model of a place, picture 2 shows how the place really looks. Draw the same place from "
+     "Picture 1 is a miniature cutaway scale model of a place, picture 2 shows how the place really looks. Draw the same place from "
      "directly overhead, the camera pointing straight down at 90 degrees with the roof and ceiling removed: a clear top-down "
      "floor-plan view of the whole layout, every wall, doorway and piece of furniture in exactly the position it has in "
      "picture 1, in the colours, materials and art style of picture 2."),
 ]
-LOC_VIEW_RULES = (" Keep the exact same layout, furniture, objects, colours, materials, lighting and art style as the picture; "
-                  "do not add or remove anything. No characters or people, no text, labels or measurements. {style}")
+LOC_VIEW_RULES = (" Use a completely new camera position (do not reuse the picture's framing). Keep the same layout, furniture, "
+                  "objects, colours and materials as the place in the picture; do not add or remove anything. Soft even "
+                  "studio lighting, natural colours. Empty: no characters, people or animals. No text, labels or "
+                  "measurements. {style}")
 
 SCENE_SYS = """You write shot lists for MiniMax H3 reference-to-video, a model that animates characters from reference pictures.
 Write ONE continuous scene of {secs} seconds for a pre-school animated series. Rules:
@@ -111,9 +120,15 @@ NO_MUSIC = " Audio: character dialogue and natural sound effects only - no backg
 EXPR_TPL = ("Facial expression sheet of {who}: {desc}. A 3 by 3 grid of head-and-shoulders portraits of the SAME character: "
             "happy, laughing, singing with mouth wide open, singing 'oo' with rounded lips, surprised, sad, pouting, sleepy, "
             "winking. Identical face, colours and proportions in every panel. Plain light background, no text. {style}")
-KEY_TPL = ("First frame of one shot from a children's musical video. {legend}. {shot} Every character and object looks "
+KEY_TPL = ("Shot {n} — {shot} (First frame of this shot from a children's musical video. {legend}.) Every character and object looks "
            "exactly as in its reference picture (same face, colours, outfit, shape, proportions). Clear readable staging, faces visible, "
-           "{aspect} framing, no text, no logos. {style}")
+           "{aspect} framing, no text, no logos. Each character appears exactly ONCE - never duplicate or repeat a character. "
+           "When a place picture is given, the scene is set in THAT place: keep its architecture, colours and layout. {style}")
+
+REFRESH_TPL = ("Redraw picture 1 EXACTLY: the same frame, same composition, camera angle, framing, poses, positions, "
+               "background and lighting. Only correct each character and object so it matches its reference picture exactly "
+               "(face, colours, outfit, proportions). ({legend}.) {aspect} framing, no text, no logos. {style}")
+LASTFRAME = "@lastframe"                               # placeholder: prepare() swaps in the previous shot's final frame
 
 MUSICAL_SYS = """You write original songs for children's musical videos and plan their structure.
 The song follows these sections in this order: {beats}.
@@ -121,7 +136,9 @@ Total length about {secs} seconds at {bpm} BPM. Music style: {genre}. Who sings:
 Rules:
 - Simple words, lots of repetition, a chorus a child can sing back after one listen, one gentle lesson.
 - Sections whose kind is "action" or "establish" are instrumental: give them an empty "lines" list.
-- Each sung section has 2-6 short lines (about one line per two bars). Repeat the chorus words exactly each time.
+- Each sung section has EXACTLY the number of short lines given for it (one line = two bars) so the song lasts the
+  full {secs} seconds and ends cleanly. Repeat the chorus words exactly each time.
+Line counts per section: {budget}.
 - Give every sung section a singer: one cast name, or "all".
 - Give every section a one-sentence visual idea: where we are and what the characters do.
 - Never name existing shows, songs, brands or characters.
@@ -132,8 +149,7 @@ length; the picture is generated to the real song audio, so mouths follow the vo
 For each chunk write:
 - "shot": one compact paragraph - framing, camera move, what each character does ON THE BEAT. For sung chunks say who
   sings and to whom (camera, each other); for instrumental chunks say they dance or act with mouths closed.
-- "link": "continue" when the camera keeps rolling from the previous chunk (same place, same moment) or "cut" for a
-  new angle or place. Cut at most section changes and at least every 3 chunks; the first chunk is always "cut".
+- "link": {linkrule}
 - "singer": who sings in this chunk ("" if nobody).
 The picture must illustrate what the words in that chunk say (literally or playfully), and the shots together must tell
 the story of the whole song from first line to last.
@@ -141,6 +157,12 @@ Camera grammar for this style: {camera}.
 Describe characters by NAME only (their pictures carry the look). Locations available: {locs}.
 Never name existing shows or characters. Return JSON only: {{"chunks": [{{"i": 0, "shot": "...", "link": "cut", "singer": "..."}}]}}"""
 
+LINK_CUTS = ('''"continue" when the camera keeps rolling from the previous chunk (same place, same moment) or "cut" for a
+  new angle or place. Cut at most section changes and at least every 3 chunks; the first chunk is always "cut".''')
+LINK_SEAMLESS = ('''"continue" almost always: the whole song is ONE unbroken, flowing camera take - the camera glides, orbits
+  and pushes in to reframe instead of cutting, and characters move between spots on screen. Write "cut" (and start the
+  shot with "Cut to") only when the story truly jumps to another place; the first chunk is always "cut".''')
+REFRESH_EVERY = 4                                      # continue shots before an invisible re-anchor on the sheets
 ANCHOR = 22                                            # frames of the previous clip a "continue" chunk starts on
 MAX_CHUNK = 13.0                                       # longest single performance clip (s)
 
@@ -177,6 +199,19 @@ def save(uid, d):
     return d
 
 
+def _new_session(uid, name, given=None):
+    """The chat session a new project files into: the one given, else a fresh one named after the project."""
+    try:
+        try:
+            from . import sessions as _S
+        except ImportError:
+            import sessions as _S
+        return _S.valid(uid, given) or _S.create(uid, name)["id"]
+    except Exception as e:
+        print("[series] session for new project failed:", e)
+        return ""
+
+
 def new_id():
     return uuid.uuid4().hex[:12]
 
@@ -196,6 +231,77 @@ def _item(src, keep, fields):
     return it
 
 
+# ── consistency: one look across every character, object, place and shot ──────────────────────────────────────
+CONS_DEFAULTS = {"master_ref": True,   # every new character / object / place copies the style-master picture's look
+                 "seed": True,         # every picture uses the series' one locked seed
+                 "anchor": True,       # every new-angle shot matches a frame of the shot before it
+                 "strict": False}      # extra-firm "identical design" wording in every picture and shot prompt
+SEED_KINDS = ("hero", "character", "location", "object")   # drawn from scratch / a new design
+STRICT_TXT = (" CONSISTENCY IS CRITICAL: every character, object and place must be drawn identically to its reference picture"
+              " — same face, proportions, colours, outfit, materials and details; same art style, line weight, shading,"
+              " palette and lighting as the rest of the series. Do not redesign, restyle or add anything.")
+
+
+def cons(d):
+    c = dict(CONS_DEFAULTS, master="")
+    c.update(((d.get("setup") or {}).get("cons") or {}))
+    return c
+
+
+def _master(d, not_id=None, prefer=None):
+    """The style-master picture: a chosen character (prefer → setup.cons.master → first with a picture)."""
+    chars = [x for x in d.get("characters") or [] if x.get("id") != not_id]
+    for cid in (prefer, cons(d).get("master")):
+        x = next((c for c in chars if cid and c.get("id") == cid and _ref(c.get("hero") or c.get("sheet"))), None)
+        if x:
+            return _ref(x.get("hero") or x.get("sheet"))
+    return next((_ref(c.get("hero")) for c in chars if _ref(c.get("hero"))), None)
+
+
+def _shot_refs(d, cast, props, loc, room, tag, single=False):
+    """The reference pictures for one shot, fullest first: every character's combined sheet (turnaround + expressions)
+    → each object → the place → then, while there is room, each character's full-body hero and the place's 3D
+    cutaway layout. → (refs, legend) — the legend names every picture so the model knows who/what each one is."""
+    have = {}                                          # key → [picture numbers]
+    refs, order = [], []
+
+    def add(key, name):
+        r = _ref(name)
+        if r and len(refs) < room and r not in refs:
+            refs.append(r)
+            if key not in have:
+                order.append(key)
+            have.setdefault(key, []).append(len(refs))
+
+    who = {}
+    for c in cast:
+        who[("c", c["id"])] = (c.get("name") or "a character") + (" (the owner's own design - copy it exactly)" if c.get("owner_art") else "")
+        # single=True (Qwen first frames): ONE full-body picture per character — a turnaround / expression sheet shows
+        # the character many times and Qwen copied every pose into the frame (duplicate characters)
+        add(("c", c["id"]), (c.get("hero") or c.get("sheet")) if single else (c.get("sheet") or c.get("hero")))
+    for o in props:
+        who[("o", o["id"])] = "the " + (o.get("name") or "object")
+        add(("o", o["id"]), o.get("hero") or o.get("sheet"))
+    if loc:
+        who[("l", loc["id"])] = "the place (%s)%s" % (loc.get("name") or "setting",
+                                                        " - the owner's own design, keep it exactly" if loc.get("owner_art") else "")
+        add(("l", loc["id"]), loc.get("image"))
+    for c in cast:                                     # second pictures: more data per character / place
+        if c.get("sheet") and not single:
+            add(("c", c["id"]), c.get("hero"))
+    # (the place's layout cutaway is NOT sent to shots: a dollhouse model as a reference turned scenes into dioramas)
+    legend = []
+    for k in order:
+        nums = have[k]
+        if len(nums) == 1:
+            legend.append("%s is %s" % (who[k], tag % nums[0]))
+        else:
+            what = ("the design sheet + full-body picture" if k[0] == "c" else "the view + 3D layout cutaway")
+            legend.append("%s is %s and %s (%s, same %s)" % (who[k], tag % nums[0], tag % nums[1], what,
+                                                            "character" if k[0] == "c" else "place"))
+    return refs, legend
+
+
 def merge(old, body):
     """Validated update from the client. Pictures / renders are only set by attach(), never by the client."""
     d = dict(old or {"id": new_id(), "created": time.time(), "characters": [], "locations": [], "episodes": [], "objects": []})
@@ -206,7 +312,7 @@ def merge(old, body):
         d["setup"] = _setup(body["setup"])
     owned = {"characters": ("hero", "sheet", "expr"), "locations": ("image", "sheet", "views"), "objects": ("hero", "sheet", "detail"),
              "episodes": ("scenes", "song", "project", "shots", "song_text", "sections", "chunks", "final", "song_secs")}
-    shapes = {"characters": {"name": 60, "desc": 1200, "voice": 40},
+    shapes = {"characters": {"name": 60, "desc": 1200, "voice": 40, "style_from": 40},
               "locations": {"name": 60, "desc": 1200},
               "objects": {"name": 60, "desc": 1200},
               "episodes": {"title": 120, "idea": 3000, "location": 40, "lesson": 300}}
@@ -248,11 +354,14 @@ def _setup(b):
     """The configuration menu's choices (structure, style, length, aspect, song), validated against the presets."""
     st = b.get("structure") if presets.structure(b.get("structure")) else "musical"
     out = {"structure": st, "style": b.get("style") if presets.style(b.get("style")) else "animated3d",
-           "length": max(20, min(180, int(b.get("length") or 120))),
+           "length": max(20, min(300, int(b.get("length") or 120))),
            "aspect": b.get("aspect") if b.get("aspect") in presets.ASPECTS else "16:9",
            "clip": max(6, min(12, int(b.get("clip") or presets.CLIP_SECS))), "song": {},
            "res": b.get("res") if b.get("res") in ("draft", "standard", "high", "max") else "standard",
-           "join": b.get("join") if b.get("join") in ("cut", "soft") else "soft"}
+           "join": b.get("join") if b.get("join") in ("cut", "soft") else "soft",
+           "flow": b.get("flow") if b.get("flow") in ("seamless", "cuts") else "seamless"}
+    cb = b.get("cons") if isinstance(b.get("cons"), dict) else {}
+    out["cons"] = {"master": _clean(cb.get("master"), 40), **{k: bool(cb.get(k, dv)) for k, dv in CONS_DEFAULTS.items()}}
     sg = b.get("song") if isinstance(b.get("song"), dict) else {}
     for f in presets.SONG:
         v = sg.get(f["k"])
@@ -362,6 +471,35 @@ def _ref(r):
     return r if r and os.path.isfile(os.path.join(core.REFS, r)) else None
 
 
+def lock(d):
+    """The project's frozen render profile — decided once, used by EVERY picture and shot so the look can't change
+    between shots (a resume, a redo, or whatever is left in the lab's ⚙ panel never touches it). Back-filled for
+    older series the first time they render. → dict (stored in d["lock"])"""
+    su = d.get("setup") or {}
+    ps = presets.style(su.get("style")) or {}
+    lk = d.get("lock") if isinstance(d.get("lock"), dict) else {}
+    if not lk.get("seed"):
+        lk = {"seed": int(time.time()) % 900000 + 1000, "style": su.get("style") or "animated3d",
+              "look": ps.get("look") or "auto", "res": su.get("res") or "standard", "aspect": _aspect(d),
+              "quality": "turbo8", "t": round(time.time())}
+        d["lock"] = lk
+    return lk
+
+
+def lock_drift(d):
+    """What changed in the series setup since the look was locked (empty = consistent)."""
+    lk, su = d.get("lock") or {}, d.get("setup") or {}
+    if not lk:
+        return []
+    now = {"style": su.get("style") or "animated3d", "res": su.get("res") or "standard", "aspect": _aspect(d)}
+    return ["%s %s → %s" % (k, lk.get(k), v) for k, v in now.items() if lk.get(k) and lk.get(k) != v]
+
+
+H3_LOCKED = {"style": "none", "grade": "none", "grain": "off", "vignette": "off", "sharpen": "off", "fade": "none",
+             "fps": "24", "speed": "1", "upscale": "off", "loop": "off", "scene_fx": "none", "lighting": "auto",
+             "fx_text": "", "steady": "on", "lora_strength": 1.0, "workflow": "builtin", "enhance": "on"}
+
+
 def plan(d, kind, target=None, extra=None):
     """→ {"model", "prompt", "refs", "override", "attach": {"kind", "target"}} or {"error"}."""
     extra = extra or {}
@@ -383,17 +521,16 @@ def plan(d, kind, target=None, extra=None):
                     p = ("Turn the person in the picture into a %s character, keeping their face shape, hair, skin tone and "
                          "likeness recognisable. " % (ps.get("name") or "cartoon").lower()) + p
             refs = [photo] if photo else []
-            if photo:                                  # any cast member, not just the lead: match the lead's drawn style
-                lead = next((_ref(x.get("hero")) for x in d.get("characters") or []
-                             if x["id"] != c["id"] and _ref(x.get("hero"))), None)
+            if photo:                                  # any cast member, not just the lead: match the series' drawn style
+                lead = _master(d, c["id"], c.get("style_from"))
                 if lead:
                     refs.append(lead)
                     p += (" Draw them in exactly the same art style, rendering, proportions and colour treatment as the "
                           "character in picture 2 (only the style — not that character's look).")
             return {"model": "qimg", "prompt": p, "refs": refs,
                     "override": {"mode": "edit" if photo else "auto", "aspect": "3:4"}, "attach": {"kind": "hero", "target": c["id"]}}
-        if kind == "character":                        # new character drawn in the art style of the lead's hero
-            lead = next((_ref(x.get("hero") or x.get("sheet")) for x in d.get("characters") or []
+        if kind == "character":                        # new character drawn in the art style of its source / the style master
+            lead = _master(d, c["id"], c.get("style_from")) or next((_ref(x.get("hero") or x.get("sheet")) for x in d.get("characters") or []
                          if x["id"] != c["id"] and (x.get("hero") or x.get("sheet"))), None)
             if not lead:
                 return {"error": "make the first character's hero picture first — new characters copy its style"}
@@ -420,7 +557,7 @@ def plan(d, kind, target=None, extra=None):
                     p = ("Turn the object in the picture into a %s prop, keeping its shape, details and colours recognisable. "
                          % (ps.get("name") or "cartoon").lower()) + OBJ_TPL.format(who=who, desc=desc, style=st)
                 refs = [photo]
-                sref = next((_ref(c.get("hero")) for c in d.get("characters") or [] if _ref(c.get("hero"))), None) or \
+                sref = (cons(d)["master_ref"] and _master(d)) or next((_ref(c.get("hero")) for c in d.get("characters") or [] if _ref(c.get("hero"))), None) or \
                     next((_ref(x.get("hero")) for x in d.get("objects") or [] if x["id"] != o["id"] and _ref(x.get("hero"))), None)
                 if sref:                               # keep every object in the series' drawn style
                     refs.append(sref)
@@ -428,7 +565,7 @@ def plan(d, kind, target=None, extra=None):
                           "(only the style — not what is in it).")
                 return {"model": "qimg", "prompt": p, "refs": refs, "override": {"mode": "edit", "aspect": "1:1"},
                         "attach": {"kind": "object", "target": o["id"]}}
-            style_ref = next((_ref(c.get("hero")) for c in d.get("characters") or [] if _ref(c.get("hero"))), None) or \
+            style_ref = (cons(d)["master_ref"] and _master(d)) or next((_ref(c.get("hero")) for c in d.get("characters") or [] if _ref(c.get("hero"))), None) or \
                 next((_ref(x.get("hero")) for x in d.get("objects") or [] if x["id"] != o["id"] and _ref(x.get("hero"))), None)
             return {"model": "qimg", "prompt": (OBJ_STYLED_TPL if style_ref else OBJ_TPL).format(who=who, desc=desc, style=st),
                     "refs": [style_ref] if style_ref else [], "override": {"mode": "edit" if style_ref else "auto", "aspect": "1:1"},
@@ -447,21 +584,22 @@ def plan(d, kind, target=None, extra=None):
         cast = [c for c in d.get("characters") or [] if _ref(c.get("sheet") or c.get("hero"))]
         if len(cast) < 2:
             return {"error": "the lineup needs at least two characters with pictures"}
-        refs = [_ref(c.get("sheet") or c.get("hero")) for c in cast][:prompts.QWEN_MAX_REFS]
+        # the single-pose HERO picture, not the turnaround: a sheet shows each character 3-4 times and the model
+        # copies those views as extra characters (3 characters came out as 5)
+        refs = [_ref(c.get("hero") or c.get("sheet")) for c in cast][:prompts.QWEN_MAX_REFS]
         names = ", ".join("%s (picture %d)" % (c.get("name"), i + 1) for i, c in enumerate(cast[:len(refs)]))
-        return {"model": "qimg", "prompt": LINEUP_TPL.format(names=names, style=st), "refs": refs,
+        return {"model": "qimg", "prompt": LINEUP_TPL.format(n=len(refs), names=names, style=st), "refs": refs,
                 "override": {"mode": "edit", "aspect": "16:9"}, "attach": {"kind": "lineup", "target": None}}
     if kind == "location":
         loc = _find(d, "locations", target)
         if not loc:
             return {"error": "pick a location"}
-        style_ref = _ref(d.get("lineup")) or next((_ref(c.get("hero")) for c in d.get("characters") or [] if c.get("hero")), None)
+        # drawn FROM SCRATCH (text → image) in the series style + the locked seed. It used to be an "edit" of a character
+        # picture told to remove the character: the edit model can't change that much and returned noisy mush, which the
+        # turnaround / layout views then copied.
         p = LOC_TPL.format(who=loc.get("name") or "a place", desc=loc.get("desc") or "", style=st)
-        if style_ref:
-            p = ("Copy ONLY the art style, colours and rendering of the reference picture. The reference shows a character - "
-                 "do NOT draw that character or anyone else: this is an EMPTY place with no characters, people or animals. ") + p
-        return {"model": "qimg", "prompt": p, "refs": [style_ref] if style_ref else [],
-                "override": {"mode": "edit" if style_ref else "auto", "aspect": "16:9"},
+        return {"model": "qimg", "prompt": p, "refs": [],
+                "override": {"mode": "auto", "aspect": "16:9"},
                 "attach": {"kind": "location", "target": loc["id"]}}
     if kind == "locsheet":
         loc = _find(d, "locations", target)
@@ -471,25 +609,26 @@ def plan(d, kind, target=None, extra=None):
         if not base:
             return {"error": "draw %s first — the turnaround is built from it" % (loc.get("name") or "the location")}
         return {"model": "qimg", "prompt": LOC_SHEET_TPL.format(who=loc.get("name") or "the place", desc=loc.get("desc") or "", style=st),
-                "refs": [base], "override": {"mode": "edit", "aspect": "16:9"}, "attach": {"kind": "locsheet", "target": loc["id"]}}
+                "refs": [base], "override": {"mode": "edit", "aspect": "16:9", "enhance": "off"},   # sent as written: the engine rewrite turned it into "redraw this picture"
+                "attach": {"kind": "locsheet", "target": loc["id"]}}
     if kind == "locview":
         loc = _find(d, "locations", target)
         if not loc:
             return {"error": "pick a location"}
         base = _ref(loc.get("image"))
         if not base:
-            return {"error": "draw %s first — the 3D views are built from it" % (loc.get("name") or "the location")}
+            return {"error": "draw %s first — the layout views are built from it" % (loc.get("name") or "the location")}
         i = extra.get("i")
         if not isinstance(i, int) or not 0 <= i < len(LOC_VIEWS):
             return {"error": "unknown view"}
         key, label, aspect, view = LOC_VIEWS[i]
         cut = _ref((loc.get("views") or {}).get("cutaway")) if i else None
         if i and not cut:                              # no model yet: work from the picture alone
-            view = re.sub(r"^Picture 1 is a 3D cutaway model of a place, picture 2 shows how the place really looks\. ", "", view)
+            view = re.sub(r"^Picture 1 is a miniature cutaway scale model of a place, picture 2 shows how the place really looks\. ", "", view)
             view = view.replace("of the model in picture 1", "of the place in the picture").replace("picture 1", "the picture") \
                        .replace("picture 2", "the picture")
         p = view + LOC_VIEW_RULES.format(style=st) + (" The place: %s - %s." % (loc.get("name") or "", loc.get("desc") or "")).rstrip(" -.") + "."
-        return {"model": "qimg", "prompt": p, "refs": [cut, base] if cut else [base], "override": {"mode": "edit", "aspect": aspect},
+        return {"model": "qimg", "prompt": p, "refs": [cut, base] if cut else [base], "override": {"mode": "edit", "aspect": aspect, "enhance": "off"},
                 "attach": {"kind": "locview", "target": loc["id"], "i": i}}
     if kind == "scene":
         ep = _find(d, "episodes", target)
@@ -499,22 +638,14 @@ def plan(d, kind, target=None, extra=None):
             return {"error": "write the shot list first"}
         cast = [c for c in (_find(d, "characters", cid) for cid in ep.get("cast") or []) if c and _ref(c.get("sheet") or c.get("hero"))]
         loc = _find(d, "locations", ep.get("location"))
-        refs, legend = [], []
-        for c in cast[:H3_MAX_IMAGES - 1]:
-            refs.append(_ref(c.get("sheet") or c.get("hero")))
-            legend.append("%s is <Picture %d>" % (c.get("name"), len(refs)))
-        for o in _props_of(d, ep)[:max(0, H3_MAX_IMAGES - 1 - len(refs))]:
-            refs.append(_ref(o.get("hero") or o.get("sheet")))
-            legend.append("the %s is <Picture %d>" % (o.get("name") or "object", len(refs)))
-        if loc and _ref(loc.get("image")):
-            refs.append(_ref(loc["image"]))
-            legend.append("the setting is <Picture %d> (%s)" % (len(refs), loc.get("name")))
+        refs, legend = _shot_refs(d, cast, _props_of(d, ep), loc, H3_MAX_IMAGES, "<Picture %d>")
         if not refs:
             return {"error": "the episode's cast needs character pictures first"}
         p = ("Animated children's series scene. " + "; ".join(legend) + ". Keep every character and object exactly as in its picture. "
              + _clean(ep["shots"], 3000) + " Style: " + st[:600] + NO_MUSIC)
         return {"model": "h3", "prompt": p, "refs": refs,
-                "override": {"mode": "r2v", "aspect": "16:9", "ref_role": "identity", "seconds": ep.get("seconds") or 10,
+                "override": {**H3_LOCKED, "look": lock(d)["look"], "res": lock(d)["res"], "quality": lock(d)["quality"],
+                             "mode": "r2v", "aspect": lock(d)["aspect"], "ref_role": "identity", "seconds": ep.get("seconds") or 10,
                              "audio": "custom", "audio_text": "character dialogue and natural sound effects only, no music"},
                 "attach": {"kind": "scene", "target": ep["id"]}}
     if kind == "song":
@@ -527,6 +658,18 @@ def plan(d, kind, target=None, extra=None):
                     s.get("caption") or "children's nursery rhyme, bright, 100 BPM", (" --%ds" % secs) if secs else "",
                     s.get("lyrics") or ""),
                 "refs": [], "override": {}, "attach": {"kind": "song", "target": ep["id"]}}
+    if kind == "bed":
+        ep = _find(d, "episodes", target)
+        if not ep:
+            return {"error": "pick an episode"}
+        try:
+            from . import audio_in as _ai
+        except ImportError:
+            import audio_in as _ai
+        secs = int(round(float(ep.get("song_secs") or 60)))
+        return {"model": "music3", "prompt": "%s --%ds\n| lyrics:\n[Instrumental]" % (
+                    _ai.bed_caption((d.get("setup") or {}).get("song")), secs),
+                "refs": [], "override": {}, "attach": {"kind": "bed", "target": ep["id"]}}
     if kind == "expr":
         c = _find(d, "characters", target)
         if not c or not _ref(c.get("hero")):
@@ -540,30 +683,34 @@ def plan(d, kind, target=None, extra=None):
         if not ch:
             return {"error": "map the song into shots first"}
         aspect = _aspect(d)
+        prev_ = _chunk(ep, ch["i"] - 1)
+        if kind == "keyframe" and ch.get("link") == "refresh" and prev_ and _ref(prev_.get("clipref")):
+            refs, legend = _shot_refs(d, _cast_of(d, ep, ch), _props_of(d, ep)[:MAX_PROPS], None,
+                                      prompts.QWEN_MAX_REFS - 1, "picture %d", single=True)
+            legend = [re.sub(r"picture (\d+)", lambda m: "picture %d" % (int(m.group(1)) + 1), x) for x in legend]
+            return {"model": "qimg", "prompt": REFRESH_TPL.format(legend="; ".join(["picture 1 is the current frame"] + legend),
+                                                               aspect=aspect, style=st),
+                    "refs": [LASTFRAME] + refs, "override": {"mode": "edit", "aspect": aspect, "enhance": "off", "workflow": "builtin"},
+                    "attach": {"kind": "keyframe", "target": ep["id"], "i": ch["i"]}}
         if kind == "keyframe":
-            refs, legend = [], []
-            props = _props_of(d, ep)[:MAX_PROPS]
-            for c in _cast_of(d, ep, ch)[:prompts.QWEN_MAX_REFS - 1 - len(props)]:
-                refs.append(_ref(c.get("sheet") or c.get("hero")))
-                legend.append("%s is picture %d" % (c.get("name"), len(refs)))
-            for o in props:
-                refs.append(_ref(o.get("hero") or o.get("sheet")))
-                legend.append("the %s is picture %d" % (o.get("name") or "object", len(refs)))
             loc = _find(d, "locations", ep.get("location")) or next((l for l in d.get("locations") or [] if _ref(l.get("image"))), None)
-            if loc and _ref(loc.get("image")):
-                refs.append(_ref(loc["image"]))
-                legend.append("the place is picture %d (%s)" % (len(refs), loc.get("name")))
+            refs, legend = _shot_refs(d, _cast_of(d, ep, ch), _props_of(d, ep)[:MAX_PROPS], loc,
+                                      prompts.QWEN_MAX_REFS - (1 if cons(d)["anchor"] else 0), "picture %d", single=True)
             if not refs:
                 return {"error": "draw the cast first (hero or turnaround pictures)"}
-            return {"model": "qimg", "prompt": KEY_TPL.format(legend="; ".join(legend), shot=_clean(ch.get("shot") or ch.get("idea"), 1200),
+            return {"model": "qimg", "prompt": KEY_TPL.format(n=ch["i"] + 1, legend="; ".join(legend), shot=_clean(ch.get("shot") or ch.get("idea"), 1200),
                                                                aspect=aspect, style=st),
-                    "refs": refs, "override": {"mode": "edit", "aspect": aspect},
+                    # sent as written (the engine rewrite scrambled the "picture N is …" legend) and a fresh seed per
+                    # draw: the fixed lock seed brought a bad first frame back identical on every Redraw
+                    "refs": refs, "override": {"mode": "edit", "aspect": aspect, "enhance": "off", "workflow": "builtin"},
                     "attach": {"kind": "keyframe", "target": ep["id"], "i": ch["i"]}}
         if not _ref(ch.get("audio")):
             return {"error": "the song chunk isn't cut yet"}
         prev = _chunk(ep, ch["i"] - 1)
         if ch.get("link") == "continue" and prev and _ref(prev.get("clipref")):
-            start = _ref(prev["clipref"])
+            start = LASTFRAME                          # prepare() swaps in the previous shot's exact final frame
+        elif ch.get("link") == "refresh" and not _ref(ch.get("key")) and prev and _ref(prev.get("clipref")):
+            start = LASTFRAME                          # no redrawn frame (yet): just keep rolling
         elif _ref(ch.get("key")):
             start = _ref(ch["key"])
         else:
@@ -576,9 +723,10 @@ def plan(d, kind, target=None, extra=None):
             p += ' %s sings: "%s".' % (who, line[:400])
         p += " Style: " + st[:500]
         return {"model": "h3", "prompt": p, "refs": [start, _ref(ch["audio"])],
-                "override": {"mode": "sing", "aspect": aspect, "extend_anchor": str(ANCHOR), "look": ps.get("look") or "auto",
-                             "res": (d.get("setup") or {}).get("res") or "standard",
-                             "camera": "auto", "trim": 0, "extend": 0},
+                "override": dict(H3_LOCKED, mode="sing", aspect=lock(d)["aspect"], extend_anchor=str(ANCHOR),
+                                 look=lock(d)["look"], res=lock(d)["res"], quality=lock(d)["quality"],
+                                 seed=lock(d)["seed"] + 101 * ch["i"] + len(ch.get("takes") or []),
+                                 camera="auto", trim=0, extend=0),
                 "attach": {"kind": "chunk", "target": ep["id"], "i": ch["i"]}}
     return {"error": "unknown step"}
 
@@ -662,13 +810,29 @@ def _beats(d):
     return beats or presets.structure("musical")["beats"]
 
 
+def song_budget(beats, secs, bpm):
+    """Sung lines per section so the lyrics fill the target length: one line ≈ two 4/4 bars at the song's tempo."""
+    secs, bpm = float(secs or 120), float(bpm or 100)
+    tot = sum(float(b[1]) for b in beats) or 1.0
+    out = []
+    for b in beats:
+        if b[2] not in ("sing", "dialogue"):
+            out.append(0)
+            continue
+        bars = secs * float(b[1]) / tot * bpm / 60.0 / 4.0
+        out.append(max(1, min(24, int(bars / 2.0))))    # round DOWN: a line over budget overruns the song
+    return out
+
+
 def write_musical(d, ep):
     """Lyrics laid out on the structure's beats + who sings each section + a visual idea per section."""
     setup = d.get("setup") or {}
     sg = setup.get("song") or {}
     beats = _beats(d)
     cast = [c for c in (_find(d, "characters", cid) for cid in ep.get("cast") or []) if c] or (d.get("characters") or [])[:3]
+    budget = song_budget(beats, setup.get("length") or 120, sg.get("bpm") or 100)
     sys_ = MUSICAL_SYS.format(beats="; ".join("%s (%s)" % (b[0], b[2]) for b in beats), secs=setup.get("length") or 120,
+                              budget="; ".join("%s: %s" % (b[0], ("%d lines" % n) if n else "instrumental") for b, n in zip(beats, budget)),
                               bpm=sg.get("bpm") or 100, genre=sg.get("genre") or "nursery rhyme",
                               vocal=sg.get("vocal") or "solo lead", lang=sg.get("lang") or "English")
     ask = ("Series: %s\nEpisode idea: %s\nLesson: %s\nCast: %s"
@@ -680,7 +844,8 @@ def write_musical(d, ep):
         if not isinstance(x, dict):
             continue
         k = x.get("kind") if x.get("kind") in ("sing", "action", "establish") else (beats[i][2] if i < len(beats) else "sing")
-        lines = [_clean(l, 160) for l in (x.get("lines") or []) if str(l).strip()][:8] if k == "sing" else []
+        cap = budget[i] if i < len(budget) and budget[i] else 4     # never more than the time allows (or it gets cut off)
+        lines = [_clean(l, 160) for l in (x.get("lines") or []) if str(l).strip()][:cap] if k == "sing" else []
         secs.append({"tag": _clean(x.get("tag") or (beats[i][0] if i < len(beats) else "Verse"), 40), "kind": k,
                      "singer": _clean(x.get("singer"), 60), "lines": lines, "idea": _clean(x.get("idea"), 400)})
     if not any(s_["lines"] for s_ in secs):
@@ -729,7 +894,7 @@ def _word_map(d, ep, secs):
     chunks = []
     for x in ep.get("sections") or []:
         a, b = float(x["start"]), float(x["end"])
-        if b - a < 1.0:
+        if b - a < 0.05:
             continue
         n = max(1, int(round((b - a) / target)))
         while (b - a) / n > MAX_CHUNK:
@@ -737,14 +902,40 @@ def _word_map(d, ep, secs):
         edges = [a] + [_gap_edge(a + (b - a) * k / n, words, a, b) for k in range(1, n)] + [b]
         for k in range(n):
             s0, s1 = edges[k], edges[k + 1]
-            if s1 - s0 < 1.0:
+            if s1 - s0 < 0.05:
                 continue
             inside = [w["w"] for w in words if s0 <= (w["s"] + w["e"]) / 2.0 < s1]
             chunks.append({"i": len(chunks), "start": round(s0, 3), "end": round(s1, 3), "section": x.get("tag"),
                            "kind": "sing" if inside else "action", "singer": (x.get("singer") or "") if inside else "",
                            "lines": [" ".join(inside)] if inside else [], "idea": x.get("idea") or "",
                            "link": "cut" if (k == 0 or not chunks) else "continue", "shot": ""})
-    return chunks
+    return _contiguous(chunks, secs)
+
+
+def _contiguous(chunks, secs, floor=1.5):
+    """Shots tile the song with no holes: a sliver is folded into its neighbour instead of dropped (a dropped piece
+    shifted every later shot against the master song), the first starts at 0, the last ends at the song's end."""
+    out = []
+    for c in sorted(chunks, key=lambda c: float(c["start"])):
+        if out and float(c["end"]) - float(c["start"]) < floor:
+            out[-1]["end"] = c["end"]
+            out[-1]["lines"] = (out[-1].get("lines") or []) + (c.get("lines") or [])
+            continue
+        if out and float(out[-1]["end"]) - float(out[-1]["start"]) < floor:
+            c["start"] = out[-1]["start"]
+            c["lines"] = (out[-1].get("lines") or []) + (c.get("lines") or [])
+            out.pop()
+        out.append(c)
+    for k, c in enumerate(out):
+        c["i"] = k
+        c["start"] = 0.0 if k == 0 else out[k - 1]["end"]
+        if k == len(out) - 1 and secs:
+            c["end"] = round(float(secs), 3)
+        if c.get("lines") and c.get("kind") != "sing":
+            c["kind"] = "sing"
+    if out:
+        out[0]["link"] = "cut"
+    return out
 
 
 def song_map(d, ep, secs):
@@ -773,7 +964,7 @@ def song_map(d, ep, secs):
     chunks = []
     for si, x in enumerate(sections):
         a, b = bounds[si], bounds[si + 1]
-        if b - a < 1.0:
+        if b - a < 0.05:
             continue
         n = max(1, int(round((b - a) / target)))
         while (b - a) / n > MAX_CHUNK:
@@ -782,13 +973,13 @@ def song_map(d, ep, secs):
         lines = x.get("lines") or []
         for k in range(n):
             s0, s1 = edges[k], edges[k + 1]
-            if s1 - s0 < 1.0:
+            if s1 - s0 < 0.05:
                 continue
             part = lines[len(lines) * k // n: len(lines) * (k + 1) // n] if lines else []
             chunks.append({"i": len(chunks), "start": round(s0, 3), "end": round(s1, 3), "section": x.get("tag"),
                            "kind": x.get("kind") or "sing", "singer": x.get("singer") or "", "lines": part,
                            "idea": x.get("idea") or "", "link": "cut" if (k == 0 or not chunks) else "continue", "shot": ""})
-    return chunks
+    return _contiguous(chunks, secs)
 
 
 def write_chunks(d, ep):
@@ -807,7 +998,9 @@ def write_chunks(d, ep):
         "\n".join("%d. [%.1f-%.1fs, %s, %s%s] idea: %s | lyrics: %s" % (
             c["i"], c["start"], c["end"], c["section"], c["kind"], (", singer " + c["singer"]) if c.get("singer") else "",
             c.get("idea") or "-", " / ".join(c.get("lines") or []) or "(instrumental)") for c in chunks))
-    sys_ = CHUNKS_SYS.format(camera=ps.get("camera") or "gentle, readable children's TV framing",
+    seamless = (d.get("setup") or {}).get("flow", "seamless") == "seamless"
+    sys_ = CHUNKS_SYS.format(linkrule=LINK_SEAMLESS if seamless else LINK_CUTS,
+                             camera=ps.get("camera") or "gentle, readable children's TV framing",
                              locs=", ".join(l.get("name") or "" for l in d.get("locations") or []) or "one cosy set")
     got = {}
     try:
@@ -830,12 +1023,14 @@ def write_chunks(d, ep):
             c["singer"] = cast[0].get("name") or ""
         if re.match(r"\s*(cut to|new angle|meanwhile|later)\b", c["shot"], re.I):
             c["link"] = "cut"                          # the writer asked for a new angle: honour it
+        elif seamless and c["link"] == "cut":
+            c["link"] = "continue"                     # one unbroken take: only an explicit "Cut to" breaks it
     chunks[0]["link"] = "cut"
-    run = 0
-    for c in chunks:                                   # never more than 3 "continue" shots in a row: a cut re-anchors
-        run = run + 1 if c["link"] == "continue" else 0 # the character on its sheets, so it can't slowly drift
-        if run > 3:
-            c["link"], run = "cut", 0
+    run, cap = 0, (REFRESH_EVERY if seamless else 3)
+    for c in chunks:                                   # a long "continue" chain slowly drifts off the character sheets.
+        run = run + 1 if c["link"] in ("continue", "refresh") else 0    # Re-anchor it: seamless mode redraws the SAME
+        if run > cap:                                  # last frame on the sheets ("refresh" — no visible cut), cut mode cuts
+            c["link"], run = ("refresh" if seamless else "cut"), 0
     return ep
 
 
@@ -850,7 +1045,8 @@ def _ff(args, timeout=300):
 def cut_chunk_audio(ep, ch, store_ref):
     """This chunk's slice of the song (a wav ref). A "continue" chunk also gets the ANCHOR frames before it, because
     the clip it is generated as starts on the previous clip's last frames — those are trimmed off after rendering."""
-    pre = (ANCHOR / 24.0) if (ch.get("link") == "continue" and ch["i"] > 0) else 0.0
+    pre = 0.0          # every shot now starts from a PICTURE (continue = the previous shot's final frame): a video-tail
+                       # anchor made H3 ignore the song guide, so mouths drifted off the vocal
     if _ref(ch.get("audio")) and abs(float(ch.get("pre") or 0) - pre) < 1e-3:
         return ch["audio"]
     src = core.in_dir(core.LIB, ep.get("song") or "")
@@ -895,30 +1091,35 @@ def assemble(d, ep, uid):
     xd = 0.3                                           # dissolve length on a cut (s)
     args, fc = [], []
     for k, c in enumerate(chunks):
-        ln = c["end"] - c["start"]
         nxt = chunks[k + 1] if k + 1 < len(chunks) else None
+        ln = (float(nxt["start"]) if nxt else float(c["end"])) - float(c["start"])   # to the next shot's beat: no drift
+        if k == 0 and float(c["start"]) > 0:
+            ln += float(c["start"])
         # a dissolve borrows xd s of this clip's own overrun (or a held last frame), so every shot still starts
         # exactly on its beat and the picture never drifts from the song
-        ext = xd if (soft and nxt and nxt.get("link") != "continue") else 0.0
+        ext = xd if (soft and nxt and nxt.get("link") == "cut") else 0.0
         args += ["-i", _lib(c["clip"])]
         fc.append("[%d:v]fps=24,scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,setsar=1,format=yuv420p,"
                   "tpad=stop_mode=clone:stop_duration=2,trim=duration=%.4f,setpts=PTS-STARTPTS,settb=1/24[v%d]"
                   % (k, w, h, w, h, ln + ext, k))
-    cur, acc = "v0", chunks[0]["end"] - chunks[0]["start"]
+    slot = lambda k: (float(chunks[k + 1]["start"]) if k + 1 < len(chunks) else float(chunks[k]["end"])) - \
+        (0.0 if k == 0 else float(chunks[k]["start"]))
+    cur, acc = "v0", slot(0)
     for k in range(1, len(chunks)):
         out = "j%d" % k if k < len(chunks) - 1 else "vout"
-        if soft and chunks[k].get("link") != "continue":
+        if soft and chunks[k].get("link") == "cut":
             fc.append("[%s][v%d]xfade=transition=fade:duration=%.2f:offset=%.4f[%s]" % (cur, k, xd, acc, out))
         else:
             fc.append("[%s][v%d]concat=n=2:v=1:a=0,settb=1/24[%s]" % (cur, k, out))   # concat resets the timebase
-        cur, acc = out, acc + chunks[k]["end"] - chunks[k]["start"]
+        cur, acc = out, acc + slot(k)
     if len(chunks) == 1:
         fc[-1] = fc[-1][:fc[-1].rindex("[")] + "[vout]"
+    secs = float(ep.get("song_secs") or chunks[-1]["end"])
     args += ["-i", song]
     name = core.new_name("series", ".mp4")
     out = os.path.join(core.LIB, name)
     _ff(args + ["-filter_complex", ";".join(fc), "-map", "[vout]", "-map", "%d:a" % len(chunks), "-c:v", "libx264",
-                "-crf", "17", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest",
+                "-crf", "17", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-t", "%.3f" % secs,
                 "-movflags", "+faststart", out], 1800)
     core.index_add(name, {"model": "series", "prompt": "%s — %s" % (d.get("name") or "Series", ep.get("title") or "Episode"),
                           "created": time.time(), "user": uid or "owner", "mode": "musical", "clips": len(chunks)})
@@ -928,10 +1129,13 @@ def assemble(d, ep, uid):
 def musical_project(d, ep):
     """Editor project for a musical: every chunk on V1 at its song position (trimmed to its slot), master song on A1."""
     clips = []
-    for c in ep.get("chunks") or []:
+    chs = ep.get("chunks") or []
+    for k, c in enumerate(chs):
         if c.get("clip"):
+            end = float(chs[k + 1]["start"]) if k + 1 < len(chs) else float(c["end"])
             clips.append({"id": uuid.uuid4().hex[:8], "type": "video", "src": "lib:" + c["clip"], "start": c["start"], "in": 0,
-                          "out": round(c["end"] - c["start"], 3), "volume": 0.0, "fade_in": 0, "fade_out": 0})
+                          "name": "Shot %d%s" % (c["i"] + 1, (" · " + c["section"]) if c.get("section") else ""),
+                          "out": round(end - float(c["start"]), 3), "volume": 0.0, "fade_in": 0, "fade_out": 0})
     tracks = [{"id": "t1", "kind": "text", "name": "Titles", "clips": []}, {"id": "v1", "kind": "video", "name": "Shots", "clips": clips}]
     if ep.get("song"):
         tracks.append({"id": "a1", "kind": "audio", "name": "Song", "clips": [{"id": uuid.uuid4().hex[:8], "type": "audio",
@@ -949,6 +1153,7 @@ def episode_project(d, ep, seconds_of):
     for name in ep.get("scenes") or []:
         ln = seconds_of("lib:" + name) or float(ep.get("seconds") or 10)
         clips.append({"id": uuid.uuid4().hex[:8], "type": "video", "src": "lib:" + name, "start": round(t, 3), "in": 0, "out": round(ln, 3),
+                      "name": "Scene %d" % (len(clips) + 1),
                       "volume": 1.0, "fade_in": 0, "fade_out": 0})
         t += ln
     tracks = [{"id": "t1", "kind": "text", "name": "Titles", "clips": []}, {"id": "v1", "kind": "video", "name": "Scenes", "clips": clips}]
@@ -1073,18 +1278,91 @@ def prepare(uid, d, kind, target, extra, store_ref):
         if ch:
             cut_chunk_audio(ep, ch, store_ref)
             save(uid, d)
+    if kind == "myvoice":                              # ACE-Step 1.5 voice swap: audio 1 = the song, audio 2 = my voice
+        ep = _find(d, "episodes", target)
+        voice = ((ep or {}).get("audio_in") or {}).get("file")
+        song, sample = _lib((ep or {}).get("song")), _lib(voice)
+        if not song or not sample:
+            return {"error": "the song or your voice recording is missing"}
+        refs = []
+        for stem, src in (("song_" + ep["id"], song), ("myvoice_" + ep["id"], sample)):
+            if stem.startswith("myvoice_"):            # ACE matches a voice best from a clean 10-30 s sample
+                try:
+                    from . import audio_in as _ai
+                except ImportError:
+                    import audio_in as _ai
+                n = store_ref(stem, ".wav")
+                _ai._ff(["-i", src, "-t", "30", "-ac", "2", "-ar", "48000", os.path.join(core.REFS, n)])
+            else:
+                n = store_ref(stem, os.path.splitext(src)[1].lower())
+                shutil.copy2(src, os.path.join(core.REFS, n))
+            refs.append(n)
+        secs = int(round(float(ep.get("song_secs") or 60)))
+        tags = ((ep.get("song_text") or {}).get("caption") or "polished studio vocal, same song")[:400]
+        return {"model": "ace", "prompt": "%s --%ds\n| lyrics:\n%s" % (tags, secs, (ep.get("song_text") or {}).get("lyrics") or ""),
+                "refs": refs, "override": {"mode": "voice"}, "attach": {"kind": "myvoice", "target": ep["id"]}}
+    had = bool((d.get("lock") or {}).get("seed"))
+    lock(d)
+    if not had:
+        save(uid, d)
     r = plan(d, kind, target, extra)
+    cs = cons(d)
+    if kind == "keyframe" and not r.get("error") and r.get("refs") and r["refs"][0] == LASTFRAME:
+        ep = _find(d, "episodes", target)
+        ch = _chunk(ep, extra.get("i"))
+        prev = _chunk(ep, ch["i"] - 1)
+        name = store_ref("last%02d" % prev["i"], ".png")
+        core.still(os.path.join(core.REFS, slot_copy(prev, store_ref)), os.path.join(core.REFS, name),
+                   at=max(0.0, float(prev["end"]) - float(prev["start"]) - 2.5 / 24))   # 1/24 seeked past the last frame → no file
+        r["refs"][0] = name
+    elif kind == "keyframe" and not r.get("error") and cs["anchor"]:
+        _style_anchor(d, target, extra.get("i"), r, store_ref)
+    if not r.get("error") and kind != "song":
+        # the locked seed only for pictures drawn from scratch. Sheets / views built FROM a picture already match it, and a
+        # fixed seed made a bad result come back identical on every Redraw (seed 687373 copied the room instead of a cutaway).
+        if cs["seed"] and r.get("model") == "qimg" and "seed" not in (r.get("override") or {}) and kind in SEED_KINDS:
+            r.setdefault("override", {})["seed"] = lock(d)["seed"]       # one seed → one look for every picture
+        if cs["strict"]:
+            r["prompt"] = (r.get("prompt") or "") + STRICT_TXT
     if kind == "chunk" and not r.get("error"):
         ep = _find(d, "episodes", target)
         ch = _chunk(ep, extra.get("i"))
         prev = _chunk(ep, ch["i"] - 1) if ch else None
-        if ch and ch.get("link") == "continue" and prev and r["refs"] and r["refs"][0] == _ref(prev.get("clipref")):
-            r["refs"][0] = slot_copy(prev, store_ref)
+        if ch and prev and r["refs"] and r["refs"][0] == LASTFRAME:
+            name = store_ref("last%02d" % prev["i"], ".png")
+            core.still(os.path.join(core.REFS, slot_copy(prev, store_ref)), os.path.join(core.REFS, name),
+                       at=max(0.0, float(prev["end"]) - float(prev["start"]) - 1.0 / 24))
+            r["refs"][0] = name
     if not r.get("error"):
         r["series"] = True                             # the lab keeps an unmarked copy for the next shot to build on
         if extra.get("i") is not None:
             r["attach"]["i"] = extra["i"]
     return r
+
+
+def _style_anchor(d, eid, i, r, store_ref):
+    """A "cut" shot gets a NEW first frame — drawn with the last frame of the nearest shot already rendered as a
+    style reference, so the new angle keeps exactly the same rendering, palette and lighting as what came before."""
+    ep = _find(d, "episodes", eid)
+    prev = None
+    for c in reversed([c for c in (ep or {}).get("chunks") or [] if c["i"] < (i or 0)]):
+        if _ref(c.get("clipref")) and not c.get("stale"):
+            prev = c
+            break
+    if not prev or len(r["refs"]) >= prompts.QWEN_MAX_REFS:
+        return
+    try:
+        name = store_ref("style%02d" % prev["i"], ".png")
+        src = os.path.join(core.REFS, prev["clipref"])
+        core.still(src, os.path.join(core.REFS, name), at=max(0.0, float(prev["end"]) - float(prev["start"]) - 0.1))
+    except Exception:
+        return
+    if not _ref(name):
+        return
+    r["refs"].append(name)
+    r["prompt"] += (" Picture %d is a frame from the previous shot of this same video: match its art style, rendering, "
+                    "colour palette, lighting and character proportions exactly (only the look — a new angle and moment)."
+                    % len(r["refs"]))
 
 
 def attach_file(uid, d, name, kind, target, i=None, store_ref=None, seconds_of=None, my_ref=None):
@@ -1103,9 +1381,18 @@ def attach_file(uid, d, name, kind, target, i=None, store_ref=None, seconds_of=N
         if kind == "chunk":
             ch["clip"], ch["clipref"] = name, clean
             ch.setdefault("takes", [])
+            sc = sync_score(src, os.path.join(core.REFS, ch.get("audio") or ""))
             if not any(t.get("clip") == name for t in ch["takes"]):
-                ch["takes"].append({"clip": name, "clipref": clean, "t": round(time.time())})
+                ch["takes"].append({"clip": name, "clipref": clean, "t": round(time.time()), "sync": sc})
+            ch["sync"] = sc
+            ch["stale"] = False                        # this take IS the fresh render (stale left on = endless re-render loop)
             _stale_after(ep, ch)
+            if sc is not None and sc < SYNC_OK:        # H3 sometimes ignores the song guide → mouths off the vocal
+                if len(ch["takes"]) < SYNC_TRIES:
+                    ch["stale"] = True                 # the runner re-renders it (new seed per take)
+                else:                                  # out of tries: keep the take that follows the song best
+                    best = max(ch["takes"], key=lambda t: t.get("sync") if t.get("sync") is not None else -1)
+                    ch["clip"], ch["clipref"], ch["sync"] = best["clip"], best.get("clipref"), best.get("sync")
         else:
             if not clean:
                 stem, ext = os.path.splitext(name)
@@ -1120,6 +1407,30 @@ def attach_file(uid, d, name, kind, target, i=None, store_ref=None, seconds_of=N
         if not ep:
             raise ValueError("pick an episode")
         use_song(d, ep, name, seconds_of, source="made")
+    elif kind == "myvoice":
+        ep = _find(d, "episodes", target)
+        if not ep:
+            raise ValueError("pick an episode")
+        ep["song_lab_voice"], ep["voiced"], ep["song"] = ep.get("song"), name, name
+        for k in ("heard", "words", "vocal"):          # hear the new vocal for the cut points
+            ep.pop(k, None)
+        for c in ep.get("chunks") or []:
+            c.pop("audio", None)
+        ep.pop("final", None)
+    elif kind == "bed":
+        ep = _find(d, "episodes", target)
+        if not ep:
+            raise ValueError("pick an episode")
+        try:
+            from . import audio_in as _ai
+        except ImportError:
+            import audio_in as _ai
+        voice = (ep.get("audio_in") or {}).get("file") or ep.get("song")
+        ep["bed"] = name
+        ep["song"] = _ai.mix_bed(voice, name, uid, d.get("session") or "")
+        for c in ep.get("chunks") or []:               # slices were cut from the voice-only track: cut again from the mix
+            c.pop("audio", None)
+        ep.pop("final", None)
     elif kind == "scene":
         ep = _find(d, "episodes", target)
         if not ep:
@@ -1174,12 +1485,39 @@ def attach_file(uid, d, name, kind, target, i=None, store_ref=None, seconds_of=N
     return d
 
 
+SYNC_OK, SYNC_TRIES = 0.5, 1   # auto-retakes off: the sync scorer reads ~0 on every H3 clip, so each shot rendered 3x (looked stuck)
+
+
+def sync_score(video, wav):
+    """How closely a rendered shot's own soundtrack follows its slice of the song (H3 regenerates the audio from the
+    guide; when it ignores the guide the mouths ignore it too). Median of 1 s windows, 0..1. None = can't tell."""
+    try:
+        import subprocess
+        import numpy as np
+        if not (video and wav and os.path.isfile(video) and os.path.isfile(wav)):
+            return None
+        rd = lambda f: np.frombuffer(subprocess.run([core.FFMPEG, "-v", "error", "-i", f, "-ac", "1", "-ar", "4000", "-f", "f32le", "-"],
+                                                    capture_output=True, timeout=120, creationflags=getattr(core, "NO_WINDOW", 0)).stdout, np.float32)
+        a, v = rd(wav), rd(video)
+        n = min(len(a), len(v)) // 4000
+        rs = []
+        for k in range(n):
+            x, y = a[k * 4000:(k + 1) * 4000], v[k * 4000:(k + 1) * 4000]
+            if x.std() > 1e-3 and y.std() > 1e-3:
+                rs.append(float(np.corrcoef(x, y)[0, 1]))
+        return round(float(np.median(rs)), 3) if rs else None
+    except Exception:
+        return None
+
+
 def _stale_after(ep, ch):
     """A new picture for shot N breaks the "continue" chain that grew out of it."""
     for later in ep.get("chunks") or []:
-        if later["i"] > ch["i"] and later.get("link") == "continue":
+        if later["i"] > ch["i"] and later.get("link") in ("continue", "refresh"):
             if later.get("clip"):
                 later["stale"] = True
+            if later.get("link") == "refresh":
+                later.pop("key", None)                 # its redrawn frame came from the old ending
         elif later["i"] > ch["i"]:
             break
     ch.pop("stale", None)
@@ -1199,6 +1537,8 @@ def use_song(d, ep, name, seconds_of, source="upload"):
     """The episode's master song (made here or uploaded). Re-cuts the shot map; uploaded songs get recognised later."""
     ep["song"] = name
     ep["song_source"] = source
+    for k in ("heard", "words", "vocal"):              # a NEW song must be listened to again (a stale "heard" made
+        ep.pop(k, None)                                # redone songs keep guessed cut points)
     ep["song_secs"] = round((seconds_of("lib:" + name) if seconds_of else 0) or float((d.get("setup") or {}).get("length") or 60), 3)
     if source == "upload":
         for k in ("words", "vocal", "sections"):
@@ -1248,16 +1588,30 @@ def transcribe(uid, sid, eid, store_ref, progress=None):
     with locked(uid, sid):
         d = load(uid, sid)
         ep = _find(d, "episodes", eid)
-        ep["vocal"], ep["words"], ep["lang"] = vocal, got["words"], got.get("lang")
+        if any(c.get("clip") for c in ep.get("chunks") or []):
+            ep["heard"] = True                         # shots already rendered on the old map: never re-cut under them
+            save(uid, d)
+            return d
+        written = [x for x in ep.get("sections") or [] if x.get("kind") == "sing"]
+        ep["vocal"], ep["words"], ep["lang"], ep["heard"] = vocal, got["words"], got.get("lang"), True
         ep["sections"] = sa.sections_of(got["words"], float(ep.get("song_secs") or 60))
+        if ep.get("song_source") != "upload":          # a song we wrote: keep its singers + visual ideas, in order
+            sung = [x for x in ep["sections"] if x["kind"] == "sing"]
+            for k, x in enumerate(sung):
+                w = written[min(k, len(written) - 1)] if written else {}
+                x["singer"], x["idea"] = w.get("singer") or "", w.get("idea") or ""
+            for x in ep["sections"]:
+                if x["kind"] != "sing":
+                    x["idea"] = x.get("idea") or ep.get("idea") or ""
         lead = next((c.get("name") for c in (_find(d, "characters", cid) for cid in ep.get("cast") or []) if c), "") or \
             next((c.get("name") for c in d.get("characters") or []), "")
         for s_ in ep["sections"]:
             if s_["kind"] == "sing" and not s_.get("singer"):
                 s_["singer"] = lead
         st = ep.get("song_text") or {}
-        ep["song_text"] = {"title": st.get("title") or ep.get("title") or "My song", "caption": st.get("caption") or "",
-                           "lyrics": sa.lyrics_text(ep["sections"])[:4000]}
+        if ep.get("song_source") == "upload" or not st.get("lyrics"):
+            ep["song_text"] = {"title": st.get("title") or ep.get("title") or "My song", "caption": st.get("caption") or "",
+                               "lyrics": sa.lyrics_text(ep["sections"])[:4000]}
         ep["chunks"] = song_map(d, ep, float(ep.get("song_secs") or 60))
         save(uid, d)
         checkpoint(uid, d, "lyrics recognised")
@@ -1315,7 +1669,9 @@ def register(app, hk):
     def se_save():
         b = body()
         if not b.get("id"):
-            d = save(U(), merge(None, b))
+            d = merge(None, b)
+            d["session"] = _new_session(U(), d.get("name"), b.get("session"))
+            d = save(U(), d)
             log_event(U(), d["id"], "created", name=d.get("name"))
             return jsonify(d)
         with locked(U(), b["id"]):
@@ -1577,7 +1933,7 @@ def register(app, hk):
     def se_run(sid):
         d, b = need(sid), body()
         try:
-            r = runner.control(U(), sid, b.get("action"), b.get("episode"))
+            r = runner.control(U(), sid, b.get("action"), b.get("episode"), b.get("until"))
         except Exception as e:
             return oops(e)
         return jsonify(r)

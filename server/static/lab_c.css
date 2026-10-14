@@ -67,3 +67,14 @@ body.labc .lc-state.fail { color: #e5484d; border-color: #e5484d } body.labc .lc
   body.labc .tabs button { flex: 1 1 0 !important; min-width: 0 !important; font-size: 9px !important; letter-spacing: .04em !important }
   body.labc .col.right .lc-prod { padding: 12px }
 }
+
+/* Skills & pipelines as a floating sheet (the left column is hidden in this layout) */
+body .col.left > .card.skl.sk-float { display: flex !important; flex-direction: column; position: fixed; z-index: 9991;
+  left: 50%; top: 7vh; transform: translateX(-50%); width: min(600px, 94vw); max-height: 82vh; overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,.65); }
+body .col.left > .card.skl.sk-float #sklist { overflow-y: auto; max-height: calc(82vh - 96px); display: block !important; }
+body .col.left > .card.skl.sk-float .seg { display: flex !important; }
+#sk-bd { display: none; position: fixed; inset: 0; z-index: 9990; background: rgba(0,0,0,.55); }
+.rc-mask { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-top:6px; }
+.rc-mask label { flex:1; min-width:200px; display:flex; flex-direction:column; gap:4px; font-size:12px; opacity:.9; }
+.rc-mask input { width:100%; padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); color:inherit; }

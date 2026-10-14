@@ -97,8 +97,8 @@ def _previews(version, n=4):
 
 
 # Civitai's nsfw=false only filters preview IMAGES; adult models still come through by name/tags — hide them
-ADULT = re.compile(r"porn|nsfw|nude|naked|hentai|sex|xxx|lewd|erotic|onlyfans|nipple|breast|boob|genital|pussy|penis|"
-                   r"fetish|bdsm|undress|topless|bikini|lingerie|voluptuous|seductive|age slider|loli|shota|ahegao|futa", re.I)
+ADULT = re.compile(r"porn|nsfw|nude|naked|hentai|\bsex|xxx|lewd|erotic|onlyfans|nipple|breast|boob|genital|pussy|penis|"
+                   r"fetish|bdsm|undress|topless|bikini|lingerie|voluptuous|seductive|\bage slider|loli|shota|ahegao|futa", re.I)
 
 
 def _item(m, role, have):

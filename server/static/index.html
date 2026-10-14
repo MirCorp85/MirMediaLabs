@@ -1139,6 +1139,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
               </div>
             </div>
             <button class="tool" id="b-params" title="Parameters for this model"><i class="mi" data-ic="sliders"></i></button>
+            <button class="tool" id="b-literal" title="My words: OFF — the engines rewrite and improve your prompt. Click to make them use your words exactly as written."><i class="mi" data-ic="type"></i></button>
             </div>
             <button class="go" id="b-go"><span class="gt">SEND </span><i class="mi" data-ic="send"></i></button>
           </div>
@@ -1182,7 +1183,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ICON={image:MI.html('image'),video:MI.html('video'),audio:MI.html('music'),text:MI.html('note')};
-const SHORT={auto:'AUTO',h3:'H3',music3:'MUSIC 3',qimg:'QWEN',ace:'ACE',llama:'MirAI'};
+const SHORT={auto:'AUTO',vace:'VACE SWAP',h3:'H3',music3:'MUSIC 3',qimg:'QWEN',ace:'ACE',llama:'MirAI'};
 /* MirAI hand-off: lines in a reply that start with a lab command get a Use button */
 const MUSE_SKIP=['/help','/skills','/clear','/commands'];
 function museLines(t){return (t||'').split('\n').map(l=>l.trim().replace(/^(?:[-*•]|\d+[.)])\s+/,'')).filter(l=>/^\/[a-z0-9]{2,20}\s+\S/i.test(l)&&!MUSE_SKIP.includes(l.split(/\s/)[0].toLowerCase()))}
@@ -1233,10 +1234,10 @@ function refLabel(r){const p=String(r).split('_');return p.length>2&&p[0]==='ref
   if(!lc){const h=document.querySelector('.col.left .card .h');if(h){lc=document.createElement('button');lc.className='btn sm lcbtn';lc.id='lcol-close';lc.title='Collapse this column';lc.innerHTML='<i class="mi" data-ic="chevron-left"></i>';const f=h.querySelector('.fcv');h.insertBefore(lc,f||null)}}
   if(lc)lc.onclick=e=>{e.stopPropagation();setL(true)};
   document.getElementById('lcol-open').onclick=()=>setL(false);
-  document.getElementById('lcol-skills').onclick=()=>{setL(false);const c=document.querySelector('.card.skl');if(c&&c.classList.contains('shut'))c.querySelector('.h').click()};})();
+  document.getElementById('lcol-skills').onclick=()=>{setL(false);window.openSkills&&openSkills()};})();
 /* models rail */
 const PICK=['auto','h3','music3','qimg','ace'];   /* the generative models (MirAI still answers chat through Auto) */
-const PICKN={auto:'Picks the right model, skill or pipeline for you — and answers questions',h3:'Video',music3:'Song with vocals',qimg:'Image',ace:'Music / instrumental'};
+const PICKN={auto:'Picks the right model, skill or pipeline for you — and answers questions',h3:'Video',vace:'Put someone in a clip',music3:'Song with vocals',qimg:'Image',ace:'Music / instrumental'};
 function renderModels(){
   const st=(status.comfy||{}).models||{},m=MODELS[cur]||MODELS.auto;if(!m)return;
   const b=$('#b-model');
@@ -1263,6 +1264,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')mmOpen(false);if(e.a
 function setModel(k){cur=k;if(typeof lSetRole==='function'&&LROLE[k]&&LROLE[k]!==lRole)setTimeout(()=>lSetRole(LROLE[k]),0);if(typeof renderLsel==='function')setTimeout(renderLsel,0);LS.set('mml.model2',k);(document.documentElement.dataset.theme||document.documentElement.style.setProperty('--acc',mcol(k)));renderModels();renderHint();renderAtts()}
 const PH={auto:'Just say what you want — MirAI picks the tool… e.g. a neon city at night, 8 s video · or ask anything',
   h3:'Ask H3 for a video… e.g. a lighthouse keeper climbs the stairs at dusk, slow crane up 8s',
+  vace:'Attach your picture + the clip — the person in the clip becomes you. Optional notes…',
   music3:'Ask Music 3 for a song… e.g. uplifting synth-pop anthem, bright female vocal --90s',
   qimg:'Ask Qwen for an image… e.g. neon jazz club poster, the sign reads "BLUE NOTE"',
   ace:'Ask ACE for a track… e.g. lo-fi beat, dusty drums, warm Rhodes --30s (attach audio to remix)',
@@ -1307,7 +1309,7 @@ document.addEventListener('click',()=>$('#moremenu').classList.remove('open'));
 $$('#moremenu button').forEach(b=>b.onclick=e=>{e.stopPropagation();$('#moremenu').classList.remove('open');const x=b.dataset.x;
   if(x==='file')$('#file').click();else if(x==='text')openTextAttach();else if(x==='params')openParams(cur);
   else if(x==='loras'){if(typeof lOpen==='function')lOpen()}else if(x==='book')openBook();else if(x==='series')mmlSeries();else if(x==='editor')mmlEditor();else if(x==='grab')mmlGrab();
-  else if(x==='skills'){setTab('create');const l=$('#sklist');if(l)l.scrollIntoView({behavior:'smooth'})}});
+  else if(x==='skills'){openSkills()}});
 $('#b-attach').onclick=e=>{e.stopPropagation();$('#attmenu').classList.toggle('open')};
 document.addEventListener('click',()=>$('#attmenu').classList.remove('open'));
 $$('#attmenu button').forEach(b=>b.onclick=()=>{$('#attmenu').classList.remove('open');
@@ -1335,7 +1337,7 @@ const go_send=go;$('#b-go').onclick=go;
 
 /* mascot: the atom mirrors the lab live */
 /* mascot status card — model icon + colour, MirAI's pick, pipeline steps, live stage, and the tags the prompt is using */
-const MICON={auto:'sparkle',h3:'film',music3:'mic',qimg:'image',ace:'drum',llama:'type'};
+const MICON={auto:'sparkle',vace:'user',h3:'film',music3:'mic',qimg:'image',ace:'drum',llama:'type'};
 const ROLE_IC={image:'image',video:'film',song:'mic',music:'drum',text:'type'};
 function mcTags(j){const p=j.params||{},m=j.model,t=[],seen=new Set();
   const add=(ic,v)=>{v=v==null?'':String(v).trim();if(!v||/^(auto|none|undefined|null|s|≤s)$/i.test(v)||seen.has(v.toLowerCase()))return;seen.add(v.toLowerCase());t.push([ic,v])};
@@ -1432,7 +1434,7 @@ function mcCard(j,state,title){const m=MODELS[j.model]||{},col=m.color||'var(--o
   b.onclick=()=>setH(!document.body.classList.contains('lcol-hide'));})();
 
 /* skills · pipelines · command book */
-var SK={skills:[],pipelines:[],commands:[],tips:[]},ARMED=null,skView='skills',acSel=0;
+var MASKW='person',SK={skills:[],pipelines:[],commands:[],tips:[]},ARMED=null,skView='skills',acSel=0;
 const ROLEN=r=>(SK.roles?.[r]?.label||r).toUpperCase();
 const CLIENT_CMDS=['/help','/skills','/clear'];
 async function loadSkills(){try{SK=await api('/api/skills')}catch(e){}renderSkills()}
@@ -1450,7 +1452,18 @@ function arm(type,id){
   const o=type==='skill'?SK.skills.find(s=>s.id===id):SK.pipelines.find(p=>p.id===id);if(!o)return;
   ARMED={...o,type};setModel(type==='skill'?o.model:o.steps[0].model);
   renderSkills();renderHint();$('#prompt').placeholder=o.name+' — describe it…'+(o.needs?' (attach '+(/^[aeiou]/i.test(o.needs)?'an ':'a ')+o.needs+')':'');
-  if(innerWidth<=860)setTab('create');$('#prompt').focus();toast((type==='skill'?'Skill: ':'Pipeline: ')+o.name)}
+  closeSkills();if(innerWidth<=860)setTab('create');$('#prompt').focus();toast((type==='skill'?'Skill: ':'Pipeline: ')+o.name)}
+/* Skills & pipelines sheet: the left card floats as a sheet when the column is hidden (new layout / phone) */
+function openSkills(){const c=document.querySelector('.card.skl');if(!c)return;
+  const hidden=getComputedStyle(c).display==='none'||document.body.classList.contains('lcol-off');
+  c.classList.remove('shut');loadSkills();
+  if(!hidden){c.scrollIntoView({behavior:'smooth'});return}
+  c.classList.add('sk-float');let bd=document.getElementById('sk-bd');
+  if(!bd){bd=document.createElement('div');bd.id='sk-bd';bd.onclick=closeSkills;document.body.appendChild(bd)}
+  bd.style.display='block'}
+function closeSkills(){const c=document.querySelector('.card.skl');if(c)c.classList.remove('sk-float');const bd=document.getElementById('sk-bd');if(bd)bd.style.display='none'}
+window.openSkills=openSkills;window.closeSkills=closeSkills;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSkills()});
 function disarm(){ARMED=null;renderSkills();renderHint();$('#prompt').placeholder='Message the lab…'}
 document.addEventListener('click',e=>{if(e.target.id==='unarm')disarm()});
 function acItems(q){
@@ -1501,10 +1514,18 @@ function renderRecipe(){const R=$('#recipe');if(!R)return;
         return a?`<span class="slot ok">${ICON[k]||''} ${esc(nm)} <em>${esc(a.label||a.name)}</em></span>`
                 :`<span class="slot miss" data-slot="${k}">${MI.html(k==='audio'?'mic':'attach','sm')} ${esc(nm)} — ${k==='audio'?'tap the mic or attach':'attach one'}</span>`}).join('')}).join('');
     const knobs=(o.knobs||[]).map(rcpKnob).join('');
+    const vatt=atts.find(a=>!a.uploading&&kindOf(a.name||'')==='video');
+    const masky=o.id==='swapin'?`<div class="rc-mask"><label>${MI.html('user','sm')} Who gets replaced <input id="rc-who" value="${esc(MASKW)}" placeholder="person · man in red shorts · woman on the left"></label>
+      <button class="btn sm" id="rc-chk" ${vatt?'':'disabled title="attach the clip first"'}>${MI.html('eye','sm')} Check who</button></div>`:'';
     const steps=o.type==='pipeline'&&o.manual?`<div class="steps">${o.manual.map(s=>`<span>${esc(s)}</span>`).join('')}</div>`:'';
     R.innerHTML=`<div class="rcp${rcpMin?' min':''}"><div class="rc-h">${MI.html(o.type==='pipeline'?'chain':o.icon,'sm')} <b>${esc(o.name)}</b><span class="rc-flow">${rcpFlow(o)}</span>
       ${slots||knobs||steps?`<button class="rc-more" id="rc-min" title="Show / hide the details">${rcpMin?'details':'hide'}</button>`:''}<button class="rc-x" id="unarm" title="Cancel">${MI.html('close')}</button></div>
-      ${slots||knobs||steps?`<div class="rc-body">${steps}${slots}${knobs}</div>`:''}</div>`;
+      ${slots||knobs||steps||masky?`<div class="rc-body">${steps}${slots}${knobs}${masky}</div>`:''}</div>`;
+    const who=$('#rc-who');if(who)who.oninput=()=>{MASKW=who.value};
+    const chk=$('#rc-chk');if(chk)chk.onclick=async e=>{e.stopPropagation();const v=atts.find(a=>!a.uploading&&kindOf(a.name||'')==='video');if(!v)return toast('Attach the clip first');
+      if(LAB_BUSY)return toast('One at a time — wait for the current request to finish');
+      try{await api('api/generate',{method:'POST',body:JSON.stringify({model:'h3',prompt:'Who gets replaced: '+(MASKW||'person'),maskcheck:true,refs:[v.name],override:{mask_what:MASKW||'person'},session:SESS.id})});
+        toast('Checking who gets replaced — a few seconds');stick=true;pollJobs(true);pollStatus()}catch(x){toast(x.message)}};
     $$('#recipe [data-kn]').forEach(el=>el.oninput=()=>{const kb=(o.knobs||[]).find(x=>x.k===el.dataset.kn);KNOBV[kb.k]=kb.type==='range'?+el.value:el.value;
       if(kb.type==='range')el.nextElementSibling.textContent=(+el.value).toFixed(2)});
     $$('#recipe [data-slot]').forEach(el=>el.onclick=()=>{if(el.dataset.slot==='audio'&&$('#b-go').classList.contains('mic'))$('#b-go').click();else $('#file').click()});
@@ -1539,6 +1560,14 @@ function planHTML(j){if(!j.plan||!j.plan.length)return '';
       ${r.used||r.prompt?`<details data-id="${j.id}_p${r.n}"><summary>${r.used?'prompt used':'MirAI wrote'}</summary><pre>${esc(r.used||r.prompt)}</pre></details>`:''}</div>`}).join('')}</div>`}
 
 let LAB_BUSY=false;
+/* "My words": the engines take the prompt literally (no director / rewriter / skill templates) — per device */
+let LITERAL=false;try{LITERAL=localStorage.getItem('mml.literal')==='on'}catch(e){}
+function paintLiteral(){const b=document.getElementById('b-literal');if(!b)return;b.classList.toggle('on',LITERAL);
+  b.style.color=LITERAL?'var(--acc,#ffd23f)':'';b.style.boxShadow=LITERAL?'0 0 0 1px var(--acc,#ffd23f) inset':'';
+  b.title=LITERAL?'My words: ON — every engine uses your words exactly as written (nothing rewritten). Click to let them rewrite again.':'My words: OFF — the engines rewrite and improve your prompt. Click to make them use your words exactly as written.'}
+document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('b-literal');if(!b)return;paintLiteral();
+  b.addEventListener('click',()=>{LITERAL=!LITERAL;try{localStorage.setItem('mml.literal',LITERAL?'on':'off')}catch(e){}paintLiteral();
+    toast(LITERAL?'My words ON — your prompt goes in exactly as written':'My words OFF — the engines rewrite your prompt again')})});
 async function go(){
   if(LAB_BUSY)return toast('One at a time — wait for the current request to finish');
   if(atts.some(a=>a.uploading))return toast('Wait for the uploads to finish');
@@ -1555,8 +1584,9 @@ async function go(){
   const miss=rcpMissing();if(miss){renderRecipe();return toast(miss)}
   $('#b-go').disabled=true;closeAC();
   const body={model:cur,prompt,refs:atts.map(a=>a.name),loras:(typeof loraSel!=='undefined'?loraSel.map(l=>({file:l.file,strength:l.strength})):[])};
-  if(ARMED){body[ARMED.type]=ARMED.id;body.knobs=KNOBV}
+  if(ARMED){body[ARMED.type]=ARMED.id;body.knobs=KNOBV;if(ARMED.id==='swapin')body.mask_what=MASKW||'person'}
   if(SOC)body.social=SOC;
+  if(LITERAL)body.literal=true;
   body.session=SESS.id;
   try{const _r=await api('/api/generate',{method:'POST',body:JSON.stringify(body)});VOICE.mine(_r&&_r.id);if(SOC)toast('When it finishes, VIRAL-Ω will draft the post for your approval');
     $('#prompt').value='';autosize();atts=[];saveAtts();renderAtts();disarm();stick=true;pollJobs(true);pollStatus()}
@@ -1570,6 +1600,8 @@ async function pollJobs(force){
   if(!seeded){jobs.forEach(j=>j.status==='done'&&seen.add(j.id));seeded=true}
   let fresh=false;
   jobs.forEach(j=>{if(j.status==='done'&&!seen.has(j.id)){seen.add(j.id);fresh=true;toast((SHORT[j.model]||j.model)+' finished')}});
+  /* a new project opens its own session: jump the chat + library to it once MirAI has replied */
+  jobs.forEach(j=>{if(j.status==='done'&&j.open_session&&!(window._mmlOpened||(window._mmlOpened={}))[j.id]){window._mmlOpened[j.id]=1;if(Date.now()/1000-(j.finished||0)<120)sessLoad().then(()=>{sessOpen(j.open_session);toast('New project — its own session')})}});
   if(fresh){loadLib(true);pollStatus()}
   const active=jobs.some(j=>(j.status==='running'||j.status==='queued')&&j.mine!==false);
   LAB_BUSY=active;$('#b-go').disabled=active;$('#b-go').innerHTML=MI.html(active?'hourglass':'send');if(!active&&window.composerMode)composerMode();
@@ -1820,11 +1852,16 @@ async function loadLib(reset){
 $('#more').onclick=()=>loadLib(false);
 /* chat sessions (sessions.py): a session = one project's chat + media. "General" (id "") holds everything older. */
 function sessPaint(){
-  const s=SESS.list.find(x=>x.id===SESS.id);if(!s)SESS.id='';SESS.name=s?s.name:'General';
+  const s=SESS.list.find(x=>x.id===SESS.id);if(!s&&SESS.loaded)SESS.id='';SESS.name=s?s.name:(SESS.id?'…':'General');
   $('#sess-name').textContent=SESS.name;$('#b-sess').title='Chat session: '+SESS.name+' — each session keeps its own chat and media';
   $('#b-libscope').textContent=SESS.all?'All sessions':'This session';$('#b-libscope').classList.toggle('on',!SESS.all);
 }
-async function sessLoad(){try{const d=await api('/api/sessions');SESS.list=d.sessions||[];if(!localStorage.getItem('mml.session')&&d.last)SESS.id=d.last}catch(e){}sessPaint()}
+async function sessLoad(){   /* reopen the session you were in: the server remembers it (every device / app), this browser is the backup */
+  try{const d=await api('/api/sessions');SESS.list=d.sessions||[];SESS.loaded=true;
+    const known=id=>id===''||SESS.list.some(x=>x.id===id);let ls=null;try{ls=localStorage.getItem('mml.session')}catch(e){}
+    if(typeof d.last==='string'&&known(d.last))SESS.id=d.last;else if(ls!=null&&known(ls))SESS.id=ls;
+    try{localStorage.setItem('mml.session',SESS.id)}catch(e){}
+  }catch(e){}sessPaint()}
 function sessOpen(id){
   SESS.id=id||'';try{localStorage.setItem('mml.session',SESS.id)}catch(e){}
   api('/api/sessions/'+(SESS.id||'_')+'',{method:'POST',body:JSON.stringify({last:true})}).catch(()=>{});
@@ -2028,7 +2065,7 @@ $('#b-settings').onclick=()=>{
    Keys are saved on this PC only and never shown again; invited people always stay on the local engine. */
 async function cloudCard(){const slot=$('#cb-slot');if(!slot)return;let d;try{d=await api('/api/cloud')}catch(e){slot.innerHTML='';return}
   const cur=d.brain,u=d.usage||{},m=d.models.find(x=>x.id===cur.model);
-  slot.innerHTML=`<div class="cbx"><div class="cbh">${MI.html('sparkle')} <b>Model picker</b><span>MirAI, the Director and the prompt writer — local or cloud (Claude · GPT · GLM 5.2), billed to your key</span></div>
+  slot.innerHTML=`<div class="cbx"><div class="cbh">${MI.html('sparkle')} <b>Model picker</b><span>MirAI, the Director and the prompt writer — local (Gemma 4 12B · Llama 3.1 8B) or cloud (Claude · GPT · GLM), cloud billed to your key</span></div>
     <div class="cbf"><span>Now: <b>${cur.provider==='local'?esc(d.local.label)+' (free)':esc(m?m.label:cur.model)}</b> · $${(u.usd||0).toFixed(2)} of $${d.cap} this month</span><span style="flex:1"></span><button class="btn sm pri" id="cb-open">Open model picker</button></div></div>`;
   $('#cb-open').onclick=()=>mpOpen()}
 /* MODEL PICKER (host PC) — same layout as MIR: provider groups, model cards with ctx/price/vision badges,
@@ -2038,18 +2075,20 @@ function mpK(n){return n>=1e6?(n/1e6)+'M':Math.round(n/(n%1024?1000:1024))+'K'}
 async function mpOpen(id){if(!ME.host)return;let box=$('#mpk');if(!box){box=document.createElement('div');box.id='mpk';document.body.appendChild(box);
     box.onclick=e=>{if(e.target===box)box.classList.remove('on')};document.addEventListener('keydown',e=>{if(e.key==='Escape')box.classList.remove('on')})}
   try{MP.d=await api('/api/cloud')}catch(e){return toast(e.message)}
-  MP.sel=id||MP.sel||(MP.d.brain.provider==='local'?'local':MP.d.brain.model);box.classList.add('on');mpDraw()}
+  MP.sel=id||MP.sel||(MP.d.brain.provider==='local'?'local:'+MP.d.local.model:MP.d.brain.model);box.classList.add('on');mpDraw()}
 function mpDraw(){const d=MP.d,box=$('#mpk'),cur=d.brain,nm={anthropic:'Anthropic · Claude',openai:'OpenAI · GPT',fireworks:'Fireworks · GLM'};
-  const isCur=id=>id==='local'?cur.provider==='local':cur.provider!=='local'&&cur.model===id;
+  const LOC=(d.locals&&d.locals.length?d.locals:[Object.assign({current:true,installed:true,note:'',vision:true},d.local)]);
+  const isCur=id=>id.indexOf('local:')===0?cur.provider==='local'&&(LOC.find(e=>'local:'+e.model===id)||{}).current:cur.provider!=='local'&&cur.model===id;
   const card=(id,label,model,badges,ready)=>`<button class="mpc${MP.sel===id?' sel':''}${ready?'':' off'}" data-id="${esc(id)}"><span class="t">${esc(label)}<span class="sp"></span>${isCur(id)?'<span class="tag">MirAI</span>':''}</span><code>${esc(model)}</code><span class="bd">${badges.map(x=>'<i>'+x+'</i>').join('')}</span></button>`;
-  let L=`<h4>LOCAL · OLLAMA</h4>`+card('local',d.local.label,d.local.model,['ctx '+mpK(d.local.ctx),'free · local','never makes media'],true);
+  let L=`<h4>LOCAL · OLLAMA</h4>`+LOC.map(e=>card('local:'+e.model,e.label,e.model,['ctx '+mpK(e.ctx||16384),'free · local',e.vision?'vision':'text only'].concat(e.installed===false?['not installed · pulls on pick']:[]),true)).join('');
   ['anthropic','fireworks','openai'].forEach(p=>{const ms=d.models.filter(m=>m.provider===p);
     L+=`<h4>${nm[p].toUpperCase()} <span class="k ${d.keys[p]?'ok':'no'}">${d.keys[p]?'KEY OK':'NO KEY'}</span></h4>`;
     if(!d.keys[p])L+=`<div class="mpn">Add a ${nm[p]} key below to list its models.</div>`;
     ms.forEach(m=>{L+=card(m.id,m.label,m.id,['ctx '+mpK(m.ctx),'$'+m.price[0]+' / $'+m.price[1]+' per 1M',m.vision?'vision':'text only'].concat(Object.keys(m.params||{}).length?['tuned']:[]),d.keys[p])})});
-  const m=d.models.find(x=>x.id===MP.sel),loc=MP.sel==='local'||!m,pr=(m&&m.params)||{};
-  let R=loc?`<h3>${esc(d.local.label)}</h3><div class="sub">Local Ollama · free · runs on this PC</div><div class="mpn">The local MirAI handles chat, prompt writing and the Auto-mode model pick. It never generates media. Context is fixed by its Modelfile.</div>
-      <div class="row"><button class="btn pri" id="mp-use">Use local MirAI</button></div>`
+  const m=d.models.find(x=>x.id===MP.sel),loc=String(MP.sel).indexOf('local')===0||!m,pr=(m&&m.params)||{};
+  const le=LOC.find(e=>'local:'+e.model===MP.sel)||LOC.find(e=>e.current)||LOC[0];
+  let R=loc?`<h3>${esc(le.label)}</h3><div class="sub">Local Ollama · <code>${esc(le.model)}</code> · free · runs on this PC${le.note?' · '+esc(le.note):''}</div><div class="mpn">The local brain handles MirAI chat, prompt writing and the Director's Auto-mode model pick. It never generates media. ${le.vision?'It can look at attached pictures.':'Text only — attached pictures are described by name, not seen.'}${le.installed===false?' <b>Not installed yet — picking it downloads it (~'+le.gb+' GB) in the background.</b>':''}</div>
+      <div class="row"><button class="btn pri" id="mp-use">${le.current&&cur.provider==='local'?'In use':'Use '+esc(le.label)}</button></div>`
     :`<h3>${esc(m.label)}</h3><div class="sub">${nm[m.provider]} · $${m.price[0]} / $${m.price[1]} per 1M tokens${m.note?' · '+esc(m.note):''}</div>
       <label>MODEL ID</label><input type="text" value="${esc(m.id)}" disabled>
       <label>CONTEXT WINDOW <em>${mpK(m.ctx)}</em></label><input type="range" min="0" max="1" value="1" disabled>
@@ -2070,7 +2109,7 @@ function mpDraw(){const d=MP.d,box=$('#mpk'),cur=d.brain,nm={anthropic:'Anthropi
   const tp=$('#mp-temp');if(tp)tp.oninput=()=>{$('#mp-tv').textContent=tp.value;tp.dataset.set=1};
   $$('#mp-eff button').forEach(b=>b.onclick=()=>{$$('#mp-eff button').forEach(x=>x.classList.toggle('on',x===b))});
   const params=()=>({max_out:$('#mp-out').value,temperature:tp&&!tp.disabled&&(tp.dataset.set||(m.params||{}).temperature!=null)?tp.value:'',effort:($('#mp-eff button.on')||{}).dataset?.e||'auto'});
-  $('#mp-use').onclick=()=>{const go=()=>post('/api/cloud/brain',loc?{provider:'local'}:{provider:m.provider,model:m.id}).then(r=>{done(r);toast('MirAI now thinks with '+(loc?d.local.label:m.label))}).catch(fail);
+  $('#mp-use').onclick=()=>{const go=()=>post('/api/cloud/brain',loc?{provider:'local',model:le.model}:{provider:m.provider,model:m.id}).then(r=>{done(r);toast('MirAI now thinks with '+(loc?le.label+(le.installed===false?' (downloading…)':''):m.label))}).catch(fail);
     if(loc)go();else post('/api/cloud/params',{model:m.id,params:params()}).then(go).catch(fail)};
   const sv=$('#mp-save');if(sv)sv.onclick=()=>post('/api/cloud/params',{model:m.id,params:params()}).then(r=>{done(r);say('saved')}).catch(fail);
   const rs=$('#mp-reset');if(rs)rs.onclick=()=>post('/api/cloud/params',{model:m.id,params:null}).then(r=>{done(r);say('reset')}).catch(fail);
@@ -2527,7 +2566,7 @@ window.addEventListener('message',function(e){var d=e.data||{};if(d.mml!=='edito
 
 /* LIVE VOICE (MIR MirAI) — show a voice-started render / download as it happens */
 window.addEventListener('message',function(e){var d=e.data||{};if(d.mml!=='voice-show')return;
-  try{if(typeof d.session==='string'&&d.session!==SESS.id)sessOpen(d.session);else pollJobs(true);}catch(x){}
+  try{if(typeof d.session==='string'&&d.session&&d.session!==SESS.id)sessOpen(d.session);else pollJobs(true);}catch(x){}   /* never jump to General */
   try{if(d.grab)mmlGrab();else setTab('create');}catch(x){}
 });/* DOWNLOADER (grab.py / static/grab.html) — link → MP3 / MP4 in the library → editor, Series, chat */
 /* PRODUCTION tab (producer.py / static/production.html) — MirAI productions as projects: timeline, resume, media */

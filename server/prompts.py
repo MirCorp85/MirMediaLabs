@@ -98,7 +98,7 @@ LYRICS:
 <section tags [Intro] [Verse] [Chorus] [Bridge] [Outro] [Instrumental] alone on their own line, at most one short modifier like [Chorus - anthemic]; blank line between sections; 6-10 syllables per line, consistent; backing vocals in parentheses; uppercase only for shouted lines; keep tags consistent with the instruments in TAGS. For an instrumental write only [Instrumental] sections.>
 No other text."""
 
-QWEN_MAX_REFS = 10   # Qwen-Image 2.1 edit/reference limit (TextEncodeQwenImage21 images.image_1..10)
+QWEN_MAX_REFS = 16   # Qwen-Image 2.1 edit/reference limit (TextEncodeQwenImage21 images.image_1..16)
 
 # ── Official Comfy prompting guides (Comfy MCP get_prompting_guide), harvested offline into
 # prompt_guides.json by tools/refresh_prompt_guides.py. They AUGMENT the hand-built specs above with
@@ -265,11 +265,11 @@ _ORD = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5, "sixth": 6
         "1st": 1, "2nd": 2, "3rd": 3, "4th": 4, "5th": 5, "last": -1}
 
 
-def link_refs(text, n_img, n_vid):
+def link_refs(text, n_img, n_vid, n_aud=0):
     """Point the person's words at the attachments, so the model knows WHICH reference they mean:
     'the woman in the picture' → 'the woman in <Picture 1>', 'image 2' / '@2' / 'the second photo' → '<Picture 2>',
     'the man in the video' → 'the man in <Video 1>'. Existing <Picture N>/<Video N> tags are left alone."""
-    if not text or not (n_img or n_vid):
+    if not text or not (n_img or n_vid or n_aud):
         return text
     out = text
 
@@ -298,17 +298,23 @@ def link_refs(text, n_img, n_vid):
         if n_vid == 1:
             out = re.sub(r"\b(?:the|this|that|my|attached|uploaded)\s+(?:attached\s+|uploaded\s+|reference\s+)?" + _VID + r"\b(?!\s*\d)",
                          "<Video 1>", out, flags=re.I)
+    if n_aud:
+        out = re.sub(r"(?<![<\w])(?:audio|sound|voice|track|song)\s*#?\s*(\d)\b", lambda m: num("Audio", n_aud, m), out, flags=re.I)
+        if n_aud == 1:
+            out = re.sub(r"\b(?:the|this|that|my)\s+(?:attached\s+|uploaded\s+|reference\s+)?(?:audio|sound|voice ?(?:clip|note|recording)?|recording|track)\b(?!\s*\d)",
+                         "<Audio 1>", out, flags=re.I)
     return out
 
 
 H3_REFS = H3_VIDEO + """
 
-REFERENCE MODE. The user attached reference media, tagged in order as <Picture 1>, <Picture 2> … and <Video 1> … You are shown
+REFERENCE MODE. The user attached reference media, tagged in order as <Picture 1>, <Picture 2> …, <Video 1> … and <Audio 1> … You are shown
 the pictures (and a still from each video). Rules for references:
 - Mention every tag at least once, exactly as written (e.g. "the woman from <Picture 1>"). Never rename or renumber tags.
 - Use the tag instead of re-describing a referenced face; describe only what the user wants changed or what happens.
 - Respect each reference's ROLE given in the brief (identity / style / scene / everything).
 - A <Video N> gives motion, camera movement and framing: describe the action following it.
+- An <Audio N> is a voice / sound / music the clip must use: say where it plays (e.g. "<Audio 1> plays exactly as it is").
 - If the user swaps or replaces someone, say clearly who from which tag takes whose place in which tag."""
 
 _ROLE = {"identity": "pictures = identity of the subjects (faces, people, products) — not their background",
@@ -317,10 +323,11 @@ _ROLE = {"identity": "pictures = identity of the subjects (faces, people, produc
          "all": "pictures = the subjects, their outfits and the setting"}
 
 
-def h3_refs(ask, text, secs, image_paths, video_frames, n_vid, role="identity"):
+def h3_refs(ask, text, secs, image_paths, video_frames, n_vid, role="identity", n_aud=0):
     """MiniMax H3 reference-to-video director: the engine SEES the attachments and writes a prompt that names them by tag."""
     n_img = len(image_paths)
-    tags = ["<Picture %d>" % (i + 1) for i in range(n_img)] + ["<Video %d>" % (i + 1) for i in range(n_vid)]
+    tags = ["<Picture %d>" % (i + 1) for i in range(n_img)] + ["<Video %d>" % (i + 1) for i in range(n_vid)] + \
+        ["<Audio %d>" % (i + 1) for i in range(n_aud)]
     brief = ("Clip length: %d seconds. References attached (in this order): %s. Role: %s. "
              "The images you see are, in order: %s.\nIdea: %s" % (
                  secs, ", ".join(tags), _ROLE.get(role, _ROLE["identity"]),

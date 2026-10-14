@@ -136,14 +136,22 @@ def probe(path):
             "audio": "Audio:" in t}
 
 
-def format_vertical(src, pid, fit="crop"):
-    """Any library video/image → 1080x1920 H.264 + AAC, -14 LUFS, faststart; plus a cover JPG."""
-    out = os.path.join(OUT, pid + ".mp4")
-    cover = os.path.join(OUT, pid + ".jpg")
+def format_vertical(src, pid, fit="crop", suffix=""):
+    """Any library video/image → 1080x1920 (9:16) H.264 + AAC, -14 LUFS, faststart; plus a cover JPG.
+    fit="keep" → 1920x1080 (16:9) for normal YouTube videos (suffix "_yt")."""
+    out = os.path.join(OUT, pid + suffix + ".mp4")
+    cover = os.path.join(OUT, pid + suffix + ".jpg")
     info = probe(src)
     is_img = core.kind_of(os.path.basename(src)) == "image"
+    if fit == "crop" and info["w"] and info["h"] and abs(info["w"] / info["h"] - 9 / 16) > 0.08:
+        fit = "blur"        # not already vertical: a hard crop chops heads/subjects off → whole frame on blurred 9:16
+    if fit == "keep" and info["w"] and info["h"] and abs(info["w"] / info["h"] - 16 / 9) > 0.08:
+        fit = "keepblur"
     if fit == "keep":       # long-form landscape (e.g. a series episode): 1920x1080, whole frame, no crop
         vf = "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2"
+    elif fit == "keepblur":   # 16:9 YouTube frame from a vertical/square source: whole frame on a blurred backdrop
+        vf = ("split[a][b];[a]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=30[bg];"
+              "[b]scale=1920:1080:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2")
     elif fit == "crop":
         vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920"
     else:   # blurred backdrop, whole frame visible
@@ -160,14 +168,14 @@ def format_vertical(src, pid, fit="crop"):
         args = ["-i", src, "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-filter_complex", "[0:v]" + vf + "[v]",
                 "-map", "[v]", "-map", "1:a", "-shortest"]
     args += ["-c:v", "libx264", "-preset", "medium", "-crf", "19", "-profile:v", "high", "-c:a", "aac", "-b:a", "192k",
-             "-movflags", "+faststart"] + ([] if fit == "keep" else ["-t", "180"]) + [out]
+             "-movflags", "+faststart"] + ([] if fit in ("keep", "keepblur") else ["-t", "180"]) + [out]
     r = _ff(args)
     if r.returncode or not os.path.isfile(out):
         raise RuntimeError("format failed: " + r.stderr[-400:])
     _ff(["-ss", "0.5", "-i", out, "-frames:v", "1", "-q:v", "2", cover], timeout=60)
     i = probe(out)
     return {"file": os.path.basename(out), "cover": os.path.basename(cover), "duration": round(i["duration"], 2),
-            "short": fit != "keep" and i["duration"] <= 60}
+            "short": fit not in ("keep", "keepblur") and i["duration"] <= 60}
 
 
 def set_cover(pid, at):
@@ -224,10 +232,11 @@ def ask_agent(task, data, want_json=True, local=False):
     if want_json:
         prompt += "\n\nReply with ONLY valid JSON."
     if local:   # cheap tasks stay on the local engine even when a cloud brain is active
+        core.gpu_wait("social")
         core.ensure_ollama()
         body = {"model": core.engine_model(), "prompt": prompt, "system": system, "stream": False, "think": False,
                 **({"format": "json"} if want_json else {})}
-        r = requests.post(core.OLLAMA + "/api/generate", timeout=240, json=body)
+        r = core.engine_post("/api/generate", body, timeout=240)
         if r.status_code >= 500:            # ComfyUI still holds the GPU: free it once and retry
             try:
                 try:
@@ -238,6 +247,11 @@ def ask_agent(task, data, want_json=True, local=False):
                 time.sleep(3)
             except Exception:
                 pass
+            r = requests.post(core.OLLAMA + "/api/generate", timeout=240, json=body)
+        fb = getattr(core, "FALLBACK_ENGINE", "qwen3.5:9b")
+        if r.status_code >= 500 and "llama-server" in r.text and body["model"] != fb:
+            _log("[social] engine %s won't start (%s) — writing with %s" % (body["model"], r.text[:120], fb))
+            body["model"] = fb                     # same fallback the lab chat uses (Gemma 4 / Ollama crash)
             r = requests.post(core.OLLAMA + "/api/generate", timeout=240, json=body)
         r.raise_for_status()
         txt = r.json().get("response", "")
@@ -264,18 +278,23 @@ def ask_agent(task, data, want_json=True, local=False):
 
 
 def draft_copy(p):
-    meta = core.index().get(p.get("library_ref", ""), {})
-    d = ask_agent("Write the post package for this new piece of content. Return JSON: "
-                  '{"hook": on-screen first-second hook text (<=7 words), "caption": Instagram caption (hook line, '
-                  'value/story line, CTA; <=2200 chars, line breaks ok, no hashtags inside), "hashtags": [3-5 niche + '
-                  '0-2 broad, no #], "yt_title": YouTube Shorts title <=70 chars with the search keyword first, '
-                  '"yt_description": 2-4 lines + CTA, "yt_tags": [8-15], "pillar": content pillar name, '
+    meta = (core.index_all() if hasattr(core, "index_all") else core.index()).get(p.get("library_ref", ""), {})
+    d = ask_agent("Write the post package for this new piece of content, tailored PER PLATFORM for maximum views, "
+                  "likes, shares and saves (follow the per-platform playbook in your brief). Return JSON: "
+                  '{"hook": on-screen first-second hook text (<=7 words), "caption": Instagram Reels caption (hook line '
+                  'above the fold, value/story line, save/share CTA; <=2200 chars, no hashtags inside), "hashtags": [3-5 '
+                  'niche + 0-2 broad, no #], "tt_caption": TikTok caption (<=150 chars, punchy curiosity/comment bait '
+                  'within rules, 3-5 hashtags written inline with #), "fb_caption": Facebook Reels caption (warm, '
+                  'shareable, 1-3 short lines + question CTA, 1-3 hashtags with #), "yt_title": YouTube video title (normal '
+                  '16:9 video, NOT a Short) <=70 chars with the search keyword first, "yt_description": 3-6 lines + CTA, '
+                  'no #shorts, "yt_tags": '
+                  '[8-15], "pinned_comment": first comment to pin that invites replies, "pillar": content pillar name, '
                   '"best_time": "HH:MM" local, "why": one sentence on why this will travel}',
                   {"prompt": meta.get("prompt") or p.get("brief", ""), "model": meta.get("model", ""),
                    "duration": (p.get("media") or {}).get("duration"), "brief": p.get("brief", ""),
                    "platforms": p.get("platforms")})
     kw = {k: d[k] for k in ("hook", "caption", "hashtags", "yt_title", "yt_description", "yt_tags", "pillar", "why",
-                            "best_time") if d.get(k)}
+                            "best_time", "tt_caption", "fb_caption", "pinned_comment") if d.get(k)}
     if isinstance(kw.get("hashtags"), list):
         kw["hashtags"] = [re.sub(r"[^\w]", "", str(h)) for h in kw["hashtags"]][:8]
     return kw
@@ -310,7 +329,10 @@ def create_draft(library_ref, platforms=PLATFORMS, brief="", owner="owner", fit=
 
     def prep():
         try:
-            media = format_vertical(src, pid, fit)
+            media = format_vertical(src, pid, "keep" if fit == "keep" else fit)   # 9:16 for IG / TikTok / FB Reels
+            if "youtube" in platforms and (get(pid) or {}).get("yt_format", "video") != "short":                    # YouTube = a NORMAL 16:9 video, never a Short
+                yt = media if fit == "keep" else format_vertical(src, pid, "keep", "_yt")
+                media["yt_file"], media["yt_cover"] = yt["file"], yt["cover"]
             update(pid, media=media)
             kw = draft_copy(get(pid)) if auto_copy else {}
             update(pid, status="draft", **kw)
@@ -528,8 +550,8 @@ def fb_connect(token, app_id="", app_secret="", page=""):
 def fb_publish(p):
     fb = _fb()
     path = os.path.join(OUT, p["media"]["file"])
-    desc = (p.get("caption") or p.get("yt_description") or "").strip()
-    if p.get("hashtags"):
+    desc = (p.get("fb_caption") or p.get("caption") or p.get("yt_description") or "").strip()
+    if p.get("hashtags") and "#" not in desc:
         desc += "\n\n" + " ".join("#" + h for h in p["hashtags"])
     with open(path, "rb") as f:
         r = requests.post("https://graph-video.facebook.com/v21.0/%s/videos" % fb["page_id"], timeout=1800,
@@ -619,10 +641,39 @@ def _yt(method, path, base="https://www.googleapis.com", **kw):
 
 
 def yt_publish(p, privacy="public"):
-    path = os.path.join(OUT, p["media"]["file"])
-    title = (p.get("yt_title") or p.get("hook") or "MIR MEDIA LABS")[:95]
-    if p["media"].get("short") and "#shorts" not in title.lower():
-        title = (title[:86] + " #Shorts")
+    """yt_format: video (16:9 normal, default) | short (9:16 Short) | both (two uploads)."""
+    fmt = p.get("yt_format") or "video"
+    if fmt == "short":
+        return _yt_upload(p, privacy, short=True)
+    r = _yt_upload(p, privacy, short=False)
+    if fmt == "both":
+        try:
+            s2 = _yt_upload(p, privacy, short=True)
+            r.update(short_id=s2["id"], short_url=s2["url"])
+        except Exception as e:
+            r["short_error"] = str(e)[:300]
+    return r
+
+
+def _yt_upload(p, privacy="public", short=False):
+    m = p["media"]
+    if short:
+        path = os.path.join(OUT, m["file"])
+        title = (p.get("yt_title") or p.get("hook") or "MIR MEDIA LABS")[:86]
+        if "#shorts" not in title.lower():
+            title += " #Shorts"
+        return _yt_send(p, path, title, os.path.join(OUT, p["id"] + ".jpg"), privacy, True)
+    if not m.get("yt_file") or not os.path.isfile(os.path.join(OUT, m["yt_file"])):   # older drafts: make the 16:9 now
+        src = core.in_dir(core.LIB, os.path.basename(p.get("library_ref", "")))
+        if src and os.path.isfile(src):
+            yt = format_vertical(src, p["id"], "keep", "_yt")
+            m["yt_file"], m["yt_cover"] = yt["file"], yt["cover"]
+            update(p["id"], media=m)
+    return _yt_send(p, os.path.join(OUT, m.get("yt_file") or m["file"]), re.sub(r"\s*#shorts\b", "", (p.get("yt_title") or p.get("hook") or "MIR MEDIA LABS"), flags=re.I)[:95],
+                    os.path.join(OUT, m.get("yt_cover") or (p["id"] + ".jpg")), privacy, False)
+
+
+def _yt_send(p, path, title, cover, privacy, short):
     body = {"snippet": {"title": title, "description": (p.get("yt_description") or p.get("caption") or "")[:4900],
                         "tags": (p.get("yt_tags") or p.get("hashtags") or [])[:30], "categoryId": "24"},
             "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": bool(p.get("kids")),
@@ -640,7 +691,6 @@ def yt_publish(p, privacy="public"):
     if up.status_code >= 400:
         raise PubError("YouTube upload: " + up.text[:300])
     vid = up.json()["id"]
-    cover = os.path.join(OUT, p["id"] + ".jpg")
     if os.path.isfile(cover):
         try:
             with open(cover, "rb") as f:
@@ -648,7 +698,7 @@ def yt_publish(p, privacy="public"):
                               timeout=120, headers={"Authorization": "Bearer " + _yt_token(), "Content-Type": "image/jpeg"})
         except Exception:
             pass          # custom thumbnails need a verified channel; never fail the post for it
-    return {"id": vid, "url": ("https://youtube.com/shorts/" if p["media"].get("short") else "https://youtu.be/") + vid}
+    return {"id": vid, "url": ("https://youtube.com/shorts/" if short else "https://youtu.be/") + vid}
 
 
 def yt_metrics(vid):
@@ -789,8 +839,8 @@ def tt_publish(p):
     size = os.path.getsize(path)
     MB = 1024 * 1024
     chunk, n = (size, 1) if size <= 64 * MB else (10 * MB, size // (10 * MB))   # last chunk takes the remainder
-    title = (p.get("caption") or p.get("hook") or "").strip()
-    if p.get("hashtags"):
+    title = (p.get("tt_caption") or p.get("caption") or p.get("hook") or "").strip()
+    if p.get("hashtags") and "#" not in title:
         title += "\n\n" + " ".join("#" + h for h in p["hashtags"])
     info = {"title": title[:2200], "privacy_level": s["privacy_level"],
             "disable_comment": bool(ci.get("comment_disabled") or not s.get("allow_comment")),
@@ -1094,6 +1144,8 @@ def register(app, hk):
         d = dict(p)
         if d.get("media"):
             d["video_url"] = "api/social/media/" + d["media"]["file"]
+            if d["media"].get("yt_file"):
+                d["yt_video_url"] = "api/social/media/" + d["media"]["yt_file"]
             d["cover_url"] = "api/social/media/%s.jpg?v=%d" % (d["id"], int(d.get("updated", 0)))
         return d
 
@@ -1134,11 +1186,34 @@ def register(app, hk):
             return jsonify({"error": str(e)}), 400
         return jsonify(out(p))
 
+    @app.post("/api/social/upload")
+    def social_upload():
+        """Attach a file from the owner's device → library → VIRAL-Ω drafts the per-platform post."""
+        owner()
+        f = request.files.get("file")
+        if not f or not f.filename:
+            return jsonify({"error": "no file attached"}), 400
+        ext = os.path.splitext(f.filename)[1].lower()
+        if ext not in (".mp4", ".mov", ".webm", ".m4v", ".png", ".jpg", ".jpeg", ".webp"):
+            return jsonify({"error": "attach a video or image file"}), 400
+        name = core.new_name("upload", ".mp4" if ext == ".m4v" else ext)
+        f.save(os.path.join(core.LIB, name))
+        brief = request.form.get("brief", "")
+        core.index_add(name, {"prompt": brief or os.path.splitext(os.path.basename(f.filename))[0], "model": "upload",
+                              "created": time.time(), "user": hk["uid"](), "source": "upload"})
+        plats = [x for x in (request.form.get("platforms") or "").split(",") if x in ALL_PLATFORMS] or PLATFORMS
+        try:
+            p = create_draft(name, plats, brief, owner=hk["uid"](), fit=request.form.get("fit", "crop"))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify(out(p))
+
     @app.post("/api/social/posts/<pid>")
     def social_edit(pid):
         owner()
         b = body()
         keep = {k: b[k] for k in ("caption", "hashtags", "hook", "yt_title", "yt_description", "yt_tags", "platforms",
+                                  "tt_caption", "fb_caption", "pinned_comment", "yt_format",
                                   "schedule_at", "pillar") if k in b}
         if "platforms" in keep:
             keep["platforms"] = [x for x in keep["platforms"] if x in ALL_PLATFORMS]
