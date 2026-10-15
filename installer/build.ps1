@@ -99,7 +99,7 @@ if ($LASTEXITCODE) { throw 'showcase failed' }
 
 # 4. compile the setup wizard (one file)
 $setupOut = Join-Path $build 'setupout'
-$setupArgs = $common + @("--onefile", "--enable-plugin=tk-inter",
+$setupArgs = $common + @("--onefile", "--enable-plugin=tk-inter", "--include-package=certifi",
     "--include-data-files=$zip=payload.zip", "--include-data-files=$build\build.json=build.json",
     "--include-data-files=$ico=MirMediaLabs.ico", "--include-data-files=$build\icon-64.png=icon-64.png",
     "--include-data-dir=$show=showcase",
