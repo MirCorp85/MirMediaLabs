@@ -23,6 +23,8 @@ import sys
 import threading
 import time
 import traceback
+import ssl
+import urllib.error
 import urllib.request
 import zipfile
 
@@ -316,12 +318,54 @@ def ollama_exe():
     return None
 
 
-def http_ok(url, timeout=3):
+_CTX = [None]                                    # SSL context in use: Windows store first, certifi bundle after a cert error
+
+
+def _is_cert_error(e):
+    return "CERTIFICATE_VERIFY_FAILED" in str(e) or isinstance(getattr(e, "reason", None), ssl.SSLCertVerificationError)
+
+
+def _use_certifi():
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=timeout) as r:
-            return r.status == 200
+        import certifi
+        _CTX[0] = ssl.create_default_context(cafile=certifi.where())
+        return True
     except Exception:
         return False
+
+
+def urlopen(req, timeout):
+    """urlopen that survives antivirus / proxy HTTPS scanning: on a certificate error retry with the certifi bundle."""
+    try:
+        return urllib.request.urlopen(req, timeout=timeout, context=_CTX[0])
+    except Exception as e:
+        if _CTX[0] is None and _is_cert_error(e) and _use_certifi():
+            return urllib.request.urlopen(req, timeout=timeout, context=_CTX[0])
+        raise
+
+
+def http_ok(url, timeout=3):
+    return net_check(url, timeout, tries=1)[0]
+
+
+def net_check(url="https://huggingface.co/api/models?limit=1", timeout=15, tries=3):
+    """(reachable, reason). Any real HTTP answer (even 401/403/429) means the site is reachable."""
+    why = ""
+    for i in range(tries):
+        try:
+            with urlopen(urllib.request.Request(url, headers=UA), timeout):
+                return True, ""
+        except urllib.error.HTTPError as e:
+            if e.code < 500:
+                return True, ""
+            why = "server answered %d" % e.code
+        except Exception as e:
+            r = getattr(e, "reason", e)
+            why = ("certificate check failed - antivirus or proxy scanning HTTPS?" if _is_cert_error(e)
+                   else "timed out" if "timed out" in str(r) else str(r)[:120])
+        if i < tries - 1:
+            time.sleep(1 + 2 * i)
+    return False, why
 
 
 # ─────────────────────────────── installer engine ───────────────────────────────
@@ -396,7 +440,7 @@ class Installer:
             if have:
                 hdr["Range"] = "bytes=%d-" % have
             try:
-                with urllib.request.urlopen(urllib.request.Request(url, headers=hdr), timeout=60) as r:
+                with urlopen(urllib.request.Request(url, headers=hdr), 60) as r:
                     if have and r.status != 206:
                         have = 0                                   # server ignored Range → start over
                     total = size or (int(r.headers.get("Content-Length") or 0) + have)
@@ -574,7 +618,7 @@ class Installer:
         self.log("pulling %s …" % tag)
         req = urllib.request.Request("http://127.0.0.1:11434/api/pull", data=json.dumps({"model": tag}).encode(),
                                      headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=3600) as r:
+        with urlopen(req, 3600) as r:
             for line in r:
                 self.check()
                 d = json.loads(line or b"{}")
@@ -965,6 +1009,14 @@ class Wizard(tk.Tk):
         self.sub.config(text=sub)
 
     def next(self):
+        if self.idx == 1 and getattr(self, "sys_warn", None) and not messagebox.askyesno(
+                "Minimum requirements not met",
+                "This PC does NOT meet the minimum requirements to run %s:\n\n" % APP +
+                "\n".join("-  %s: %s" % (k, v) for k, v in self.sys_warn) +
+                "\n\n%s may not work on this PC, may run very slowly, or big renders may crash. "
+                "Installing anyway is at your own risk.\n\n"
+                "Install anyway?" % APP, icon="warning", default="no"):
+            return
         if self.idx == 2 and not self.validate_options():
             return
         if self.idx == 5:
@@ -1032,7 +1084,7 @@ class Wizard(tk.Tk):
             gpu = gpu_info()
             ram, commit = ram_gb()
             self.sysinfo = {"gpu": gpu, "ram": ram, "commit": commit,
-                            "win": sys.getwindowsversion().build, "net": http_ok("https://huggingface.co", 8)}
+                            "win": sys.getwindowsversion().build, "net": net_check()}
         s = self.sysinfo
         rows, block = [], False
         g = s["gpu"]
@@ -1056,9 +1108,12 @@ class Wizard(tk.Tk):
             pf, "" if s["commit"] >= 64 else "  — raise it to 32–64 GB (System → Advanced → Virtual memory) "
                                                "or big video renders may crash")))
         rows.append((OK if s["win"] >= 19045 else ACCENT, "Windows", "build %d" % s["win"]))
-        rows.append((OK if s["net"] else BAD, "Internet", "Hugging Face reachable" if s["net"] else
-                     "can't reach huggingface.co — models can't download"))
-        block = block or not s["net"]
+        if not s["net"][0]:                          # re-check: a slow first DNS lookup / Wi-Fi wake must not stick
+            s["net"] = net_check(tries=2)
+        net_ok = s["net"][0]
+        rows.append((OK if net_ok else BAD, "Internet", "Hugging Face reachable" if net_ok else
+                     "huggingface.co didn't answer (%s) — setup needs the internet to download the engine and models. "
+                     "Check the connection, firewall, antivirus or VPN, then Check again." % (s["net"][1] or "no reply")))
         box = self.card()
         for col, k, v in rows:
             f = tk.Frame(box, bg=PANEL)
@@ -1072,8 +1127,20 @@ class Wizard(tk.Tk):
             self.text("Recommended for this GPU: " + ",  ".join(COMPONENTS[k][0].split(" — ")[1] for k in COMPONENTS if k in rec)
                       + ".  The video model is tuned for RTX 50-series; other RTX cards with 12 GB+ work, more slowly.",
                       fg=DIM, pad=(4, 0))
-        if block:
+        # only the internet is required (everything is downloaded); the rest are warnings confirmed on Next
+        self.sys_warn = [(k, v) for col, k, v in rows if col != OK and k != "Internet"]
+        if not net_ok:
             self.btn_next.state(["disabled"])
+            self.text("An internet connection is required to install.", fg=BAD, pad=(8, 0))
+        elif self.sys_warn:
+            warn = tk.Frame(self.body, bg=PANEL, highlightthickness=1, highlightbackground=BAD)
+            warn.pack(fill="x", pady=(10, 0))
+            tk.Label(warn, text="This PC does not meet the minimum requirements to run %s." % APP, fg=BAD, bg=PANEL,
+                     anchor="w", font=("Segoe UI Semibold", 11)).pack(fill="x", padx=10, pady=(8, 2))
+            tk.Label(warn, text="You can still install it, but it may not work, may run very slowly, or big renders may "
+                                "crash. Fix the items marked above for the best experience.", fg=FG, bg=PANEL,
+                     anchor="w", justify="left", wraplength=int(600 * self.scale)).pack(fill="x", padx=10, pady=(0, 8))
+        if not net_ok or self.sys_warn:
             ttk.Button(self.body, text="Check again", command=lambda: (setattr(self, "sysinfo", None), self.show())).pack(anchor="w", pady=10)
 
     def apply_preset(self):
