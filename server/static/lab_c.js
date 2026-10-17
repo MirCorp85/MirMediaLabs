@@ -116,7 +116,7 @@
   // ── bottom dock (desktop) / tab bar (phone): the six main features ──────────────────────────────────────────────
   var nav = $('nav.tabs');
   if (nav) {
-    nav.innerHTML = [['create', 'lab', 'Create'], ['projects', 'layers', 'Projects'], ['library', 'grid', 'Library'], ['editor', 'scissors', 'Editor'], ['motion', 'sparkle', 'Motion'],
+    nav.innerHTML = [['create', 'lab', 'Create'], ['projects', 'layers', 'Projects'], ['library', 'grid', 'Library'], ['editor', 'scissors', 'Editor'], ['motion', 'sparkle', 'Motion'], ['flow', 'chain', 'Flow'],
                      ['publish', 'globe', 'Publish'], ['tools', 'wand', 'Tools']]
       .map(function (b) { return '<button data-t="' + b[0] + '"' + (b[0] === 'create' ? ' class="on"' : '') + '>' + mi(b[1]) + b[2] + '</button>'; }).join('');
     var wide = function () { return window.matchMedia('(min-width: 861px)').matches; };
@@ -127,6 +127,7 @@
         if (t === 'publish') return mmlSocial();
         if (t === 'editor') return mmlEditor();
         if (t === 'motion') return mmlMotion();
+        if (t === 'flow') return mmlFlow();
         if (t === 'tools') return tools();
         if (t === 'create') return goHome();
         if (t === 'library' && wide()) { document.body.classList.toggle('lc-libwide'); b.classList.toggle('on', document.body.classList.contains('lc-libwide')); return; }
