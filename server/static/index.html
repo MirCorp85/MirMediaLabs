@@ -336,6 +336,7 @@ body.lcol-off .lrail{display:flex}
 .cbm small{color:var(--dim);font-size:11px}.cbu{margin-top:10px;font-size:12px;color:var(--dim)}.cbu input{width:64px;padding:2px 4px}
 .cbbar{height:6px;border-radius:9px;background:var(--line2);overflow:hidden;margin-bottom:6px}.cbbar i{display:block;height:100%;background:linear-gradient(90deg,var(--yellow),var(--acc))}
 .cbf{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px}.mb-brain{margin-left:6px;font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(180,140,255,.18);color:#c9b2ff;letter-spacing:.03em}
+.sheet .bd>.hinv,.sheet .bd>.kv{grid-column:1/-1}
 .hinv{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin-top:10px;padding:12px;border:1px dashed var(--yellow);border-radius:12px;background:rgba(255,194,26,.05)}
 .hinv img{width:150px;height:150px;background:#fff;border-radius:10px;padding:6px;box-sizing:border-box;display:block}
 .hqrs{width:150px}.hqrs figure{margin:0;text-align:center;display:none}.hqrs figure.on{display:block;animation:hqin .25s ease}
@@ -947,6 +948,8 @@ html[data-theme] #mascot .in{background:linear-gradient(135deg,color-mix(in srgb
 .mb-who .av .mi{width:11px;height:11px;color:#0d0806}
 .mb-tx{margin-top:3px;line-height:1.35;color:var(--ink)}
 .mb-ring{flex:none;display:block}
+.mb-tokl{font:600 11px var(--mono,monospace);color:var(--dim);margin-top:3px;display:flex;align-items:center;gap:4px}.mb-tokl:empty{display:none}.mb-tokl b{color:var(--grn,#5fd38d)}
+.mb-ringw{position:relative;flex:none;display:block;width:64px;height:64px}.mb-orb-slot{position:absolute;left:14px;top:12px;width:36px;height:36px;pointer-events:auto}.mb-orb-slot canvas{width:36px;height:36px;display:block}
 .mb-ring .pc{font:800 15px var(--mono);fill:var(--ink)}.mb-ring .lb{font:600 6.5px var(--mono);fill:var(--faint);letter-spacing:.12em}
 .mb-ring .q{transform-origin:32px 32px;animation:mbspin 3s linear infinite}
 .mb-ty{display:inline-flex;gap:3px;margin-left:5px;vertical-align:middle}.mb-ty i{width:5px;height:5px;border-radius:50%;background:var(--dim);animation:plpulse 1s infinite}.mb-ty i:nth-child(2){animation-delay:.2s}.mb-ty i:nth-child(3){animation-delay:.4s}
@@ -1055,15 +1058,15 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 <div class="app">
   <header class="top">
     <div class="brand"><img src="/static/icon-512.png" alt=""><b>MIR MEDIA LABS</b></div>
-    <nav class="studios" aria-label="Studios"><button class="studio" id="b-editor" title="Video editor — cut, arrange and re-render on a timeline" onclick="mmlEditor()"><i class="mi" data-ic="film"></i><span>VIDEO EDITOR</span></button><button class="studio" id="b-series" title="SERIES studio — build an animated series: cast, world, episodes, songs" onclick="mmlSeries()"><i class="mi" data-ic="tv"></i><span>SERIES STUDIO</span></button><button class="studio" id="b-grab" title="Downloader — YouTube and other links to MP3 or MP4 in your library" onclick="mmlGrab()"><i class="mi" data-ic="download"></i><span>DOWNLOADER</span></button></nav>
-    <button class="iconbtn" id="b-theme" title="Theme" onclick="openThemes()"><i class="mi" data-ic="palette"></i></button><button class="iconbtn" id="b-voice" title="MirAI voice on / off"><i class="mi" data-ic="volume"></i></button>
+    <nav class="studios" aria-label="Studios"><button class="studio" id="b-editor" title="Video editor — cut, arrange and re-render on a timeline" onclick="mmlEditor()"><i class="mi" data-ic="film"></i><span>VIDEO EDITOR</span></button><button class="studio" id="b-series" title="SERIES studio — build an animated series: cast, world, episodes, songs" onclick="mmlSeries()"><i class="mi" data-ic="tv"></i><span>SERIES STUDIO</span></button><button class="studio" id="b-motion" title="MOTION STUDIO — Remotion motion graphics: titles, captions, lyric videos, long videos" onclick="mmlMotion()"><i class="mi" data-ic="sparkle"></i><span>MOTION STUDIO</span></button><button class="studio" id="b-flow" title="NODE FLOW — wire inputs, engines and tools into one pipeline (ComfyUI-style, MIR settings)" onclick="mmlFlow()"><i class="mi" data-ic="chain"></i><span>NODE FLOW</span></button><button class="studio" id="b-grab" title="Downloader — YouTube and other links to MP3 or MP4 in your library" onclick="mmlGrab()"><i class="mi" data-ic="download"></i><span>DOWNLOADER</span></button></nav>
+    <button class="iconbtn" id="b-theme" title="Theme" onclick="openThemes()"><i class="mi" data-ic="palette"></i></button><button class="iconbtn" id="b-muse" title="MUSE — talk to the lab hands-free" onclick="MUSE.click(this)"><canvas style="width:30px;height:30px;display:block"></canvas></button><button class="iconbtn" id="b-voice" title="MirAI voice on / off"><i class="mi" data-ic="volume"></i></button>
     <button class="iconbtn" id="b-font" title="MIR FONTS — pick a typeface" onclick="window.MirFont&&MirFont.openPicker()"><i class="mi" data-ic="type"></i></button>
     <div class="pills">
       <div class="pill" id="p-comfy"><span class="d"></span><span class="lbl">GPU</span> <b id="p-comfy-v">…</b></div>
       <div class="pill e" id="p-eng"><span class="d"></span>PROMPT ENGINE <b id="p-eng-v">…</b></div>
       <div class="pill q" id="p-q"><span class="d"></span>QUEUE <b id="p-q-v">0</b></div>
     </div>
-    <button class="iconbtn" id="b-mykey" title="My key — your key as a QR code (one device per key)"><i class="mi" data-ic="qr"></i></button>
+    <button class="iconbtn" id="b-mykey" hidden title="My key — your key as a QR code (one device per key)"><i class="mi" data-ic="qr"></i></button>
     <button class="iconbtn" id="b-master" title="Master key — sees every chat (host PC only)" style="display:none;color:#ff5a1f"><i class="mi" data-ic="key"></i></button>
     <button class="iconbtn" id="b-users" title="Host control — who has access" style="display:none"><i class="mi" data-ic="shield"></i></button>
     <a class="iconbtn" id="b-patreon" href="https://www.patreon.com/cw/MirCorp" target="_blank" rel="noopener" title="Support MIR MEDIA LABS on Patreon" style="color:#f96854;display:inline-grid;place-items:center;text-decoration:none"><i class="mi" data-ic="heart"></i></a>
@@ -1127,7 +1130,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
                 <button data-x="loras"><i class="mi" data-ic="layers"></i> LoRA samples<small>browse + apply community LoRAs</small></button>
                 <button data-x="skills"><i class="mi" data-ic="sparkle"></i> Skills &amp; pipelines<small>tuned renders and chains</small></button>
                 <button data-x="book"><i class="mi" data-ic="book"></i> Command book<small>every slash command</small></button>
-                <button data-x="editor"><i class="mi" data-ic="film"></i> Video editor<small>timeline · cuts · titles · music</small></button><button data-x="series"><i class="mi" data-ic="tv"></i> Series studio<small>cast · world · episodes · songs</small></button><button data-x="grab"><i class="mi" data-ic="download"></i> Downloader<small>YouTube &amp; links → MP3 / MP4</small></button>
+                <button data-x="editor"><i class="mi" data-ic="film"></i> Video editor<small>timeline · cuts · titles · music</small></button><button data-x="series"><i class="mi" data-ic="tv"></i> Series studio<small>cast · world · episodes · songs</small></button><button data-x="motion"><i class="mi" data-ic="sparkle"></i> Motion studio<small>titles · captions · lyric &amp; long videos</small></button><button data-x="flow"><i class="mi" data-ic="chain"></i> Node flow<small>wire engines + tools into a pipeline</small></button><button data-x="grab"><i class="mi" data-ic="download"></i> Downloader<small>YouTube &amp; links → MP3 / MP4</small></button>
               </div>
             </div>
             <textarea class="prompt" id="prompt" rows="1" placeholder="Message the lab…"></textarea>
@@ -1161,7 +1164,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
     </section>
   </main>
 
-  <nav class="tabs"><button data-t="create" class="on"><i class="mi" data-ic="lab"></i>CHAT</button><button data-t="library"><i class="mi" data-ic="grid"></i>LIBRARY</button><button data-t="editor" class="st"><i class="mi" data-ic="film"></i>EDITOR</button><button data-t="series" class="st"><i class="mi" data-ic="tv"></i>SERIES</button><button data-t="grab" class="st"><i class="mi" data-ic="download"></i>DOWNLOAD</button><button data-t="production" class="st"><i class="mi" data-ic="film"></i>PRODUCTION</button><button data-t="social"><i class="mi" data-ic="globe"></i>SOCIAL</button></nav>
+  <nav class="tabs"><button data-t="create" class="on"><i class="mi" data-ic="lab"></i>CHAT</button><button data-t="library"><i class="mi" data-ic="grid"></i>LIBRARY</button><button data-t="editor" class="st"><i class="mi" data-ic="film"></i>EDITOR</button><button data-t="series" class="st"><i class="mi" data-ic="tv"></i>SERIES</button><button data-t="motion" class="st"><i class="mi" data-ic="sparkle"></i>MOTION</button><button data-t="flow" class="st"><i class="mi" data-ic="chain"></i>FLOW</button><button data-t="grab" class="st"><i class="mi" data-ic="download"></i>DOWNLOAD</button><button data-t="production" class="st"><i class="mi" data-ic="film"></i>PRODUCTION</button><button data-t="social"><i class="mi" data-ic="globe"></i>SOCIAL</button></nav>
 </div>
 
 <div class="lb" id="lb">
@@ -1279,7 +1282,7 @@ function renderHint(){
   if(cur==='qimg')b=`<b>${esc(v.mode)}</b> · ${esc(v.aspect)} · ${esc(v.size)} · ${esc(v.steps)} steps`;
   if(cur==='ace')b=`<b>${esc(v.mode)}</b> · ${esc(v.duration)}s · ${esc(v.steps)} steps · bpm ${esc(v.bpm||'auto')} · ${esc(v.key)}`;
   const acc=Object.entries(m.accepts).map(([k,t])=>`${ICON[k]} ${esc(t)}`).join(' &nbsp;·&nbsp; ');
-  $('#hint').innerHTML=`<span>→ <b>${esc(m.label)}</b> · ${MI.html('sliders','sm')} ${b}</span><span>${MI.html('attach','sm')} ${acc}</span><span>Ctrl+Enter to send</span>`;
+  $('#hint').innerHTML=`<span>→ <b>${esc(m.label)}</b> · ${MI.html('sliders','sm')} ${b}</span><span>${MI.html('attach','sm')} ${acc}</span><span>Enter to send · Shift+Enter new line</span>`;
 }
 
 /* attachments */
@@ -1308,7 +1311,7 @@ $('#b-more').onclick=e=>{e.stopPropagation();$('#moremenu').classList.toggle('op
 document.addEventListener('click',()=>$('#moremenu').classList.remove('open'));
 $$('#moremenu button').forEach(b=>b.onclick=e=>{e.stopPropagation();$('#moremenu').classList.remove('open');const x=b.dataset.x;
   if(x==='file')$('#file').click();else if(x==='text')openTextAttach();else if(x==='params')openParams(cur);
-  else if(x==='loras'){if(typeof lOpen==='function')lOpen()}else if(x==='book')openBook();else if(x==='series')mmlSeries();else if(x==='editor')mmlEditor();else if(x==='grab')mmlGrab();
+  else if(x==='loras'){if(typeof lOpen==='function')lOpen()}else if(x==='book')openBook();else if(x==='series')mmlSeries();else if(x==='editor')mmlEditor();else if(x==='grab')mmlGrab();else if(x==='motion')mmlMotion();else if(x==='flow')mmlFlow();
   else if(x==='skills'){openSkills()}});
 $('#b-attach').onclick=e=>{e.stopPropagation();$('#attmenu').classList.toggle('open')};
 document.addEventListener('click',()=>$('#attmenu').classList.remove('open'));
@@ -1329,9 +1332,9 @@ function autosize(){const t=$('#prompt');t.style.height='auto';t.style.height=Ma
 $('#prompt').addEventListener('keydown',e=>{
   if($('#ac').classList.contains('open')){const it=$$('#ac button');
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();acSel=(acSel+(e.key==='ArrowDown'?1:-1)+it.length)%it.length;it.forEach((b,i)=>b.classList.toggle('sel',i===acSel));return}
-    if((e.key==='Tab'||(e.key==='Enter'&&!e.ctrlKey))&&it[acSel]){e.preventDefault();it[acSel].click();return}
+    if((e.key==='Tab'||(e.key==='Enter'&&!e.shiftKey&&!e.ctrlKey))&&it[acSel]){e.preventDefault();it[acSel].click();return}
     if(e.key==='Escape'){closeAC();return}}
-  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();go()}});
+  if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();go()}});   // Enter sends · Shift+Enter = new line
 $('#prompt').addEventListener('input',acUpdate);
 const go_send=go;$('#b-go').onclick=go;
 
@@ -1682,7 +1685,7 @@ function mbRing(j){const S=mbSteps(j),n=S.length,R=26,C=2*Math.PI*R,g=n>1?4:0,L=
   const ri=S.findIndex(x=>x.status==='running'||x.status==='error'),step=(ri<0?S.length:ri+1)+'/'+n;
   if(j.status==='done')return o+`<text class="pc" x="32" y="38" text-anchor="middle" style="fill:var(--grn)">✓</text></svg>`;
   if(j.status==='error')return o+`<text class="pc" x="32" y="35" text-anchor="middle" style="fill:var(--red)">!</text><text class="lb" x="32" y="45" text-anchor="middle">STEP ${step}</text></svg>`;
-  return o+`<text class="pc mb-pct" x="32" y="35" text-anchor="middle">${Math.round(done/n*100)}%</text><text class="lb" x="32" y="45" text-anchor="middle">STEP ${step}</text></svg>`}
+  return '<span class="mb-ringw">'+o+`<text class="pc mb-pct" x="32" y="52" text-anchor="middle" style="font-size:7px">${Math.round(done/n*100)}%</text></svg><span class="mb-orb-slot" data-j="${j.id}"></span></span>`}
 function mbText(j){const S=mbSteps(j),r=S.find(x=>x.status==='running'),e=S.find(x=>x.status==='error');const ty='<span class="mb-ty"><i></i><i></i><i></i></span>';
   if(j.status==='queued')return (status&&status.running?'Got it — you\'re next after another job':'Got it — starting now')+ty;
   if(j.status==='running')return 'Making your '+esc((r?r.label:(MODELS[j.model]||{}).label||'media').toLowerCase())+' now'+ty;
@@ -1693,6 +1696,12 @@ function mbStepSub(j,x){const pg=j.progress;
   if(x.status==='error')return esc(j.error||'failed');
   if(x.status==='running')return (SHORT[x.model||j.model]||'')+' · '+esc(j.stage&&j.stage!=='queued'?j.stage:'rendering')+(pg&&pg.max?` <span class="mb-v">${pg.value} / ${pg.max}</span>`:'');
   return (SHORT[x.model]||x.model||'')+(j.status==='queued'?' · waiting':' · up next')}
+function tkK(n){n=+n||0;return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(n)}
+function mbTok(j){const L=j.tok_live,T=j.tokens;
+  if(L&&j.status==='running')return `${MI.html('bolt','sm')}<b>${L.tps}</b> tok/s · ${tkK(L.out)} tokens`;
+  if(T&&(T.in||T.out))return `${MI.html('bolt','sm')}${tkK(T.in)} in · ${tkK(T.out)} out${T.tps?` · <b>${T.tps}</b> tok/s`:''}${T.calls>1?` · ${T.calls} AI calls`:''}`;
+  return ''}
+function mbFoot(j,ic){const t=mbTok(j),b=j.brain?(ic?MI.html('lab','sm')+' ':'')+esc(j.brain):'';return b&&t?b+' · '+t:(b||t)}
 function museBlock(j){const live=j.status==='running'||j.status==='queued',S=mbSteps(j);
   const c=j.status==='done'?'var(--grn)':j.status==='error'?'var(--red)':j.status==='queued'?'var(--yellow)':'var(--yellow)';
   const c2=j.status==='done'?'var(--grn)':j.status==='error'?'var(--red)':j.status==='queued'?'var(--yellow)':'var(--acc)';
@@ -1701,10 +1710,11 @@ function museBlock(j){const live=j.status==='running'||j.status==='queued',S=mbS
   const tags=live&&typeof mcTags==='function'?`<div class="mb-tags">${mcTags(j).slice(0,8).map(([ic,v])=>`<span>${MI.html(ic)}${esc(v)}</span>`).join('')}</div>`:'';
   const ln=MB_LINE[j.id];
   const liveLine=live?`<div class="mb-live ${ln?ln.level:''}"><i class="d"></i><b class="mb-src">${esc(ln?ln.src:'LAB')}</b><span class="mb-ln">${esc(ln?ln.text:(j.status==='queued'?'waiting for the GPU':(j.stage||'starting')))}</span></div>`:'';
-  return `<div class="mb${live&&MB_FOLD.has(j.id)?' fold':''}" data-mb="${j.id}" style="--mbc:${c};--mbc2:${c2}"><div class="mb-h">${mbRing(j)}<div class="tx"><div class="mb-who"><span><span class="av">${MI.html('lab')}</span>MirAI${j.brain?`<small class="mb-brain">${esc(j.brain)}</small>`:''}</span><em class="mb-t">${t2}</em></div><div class="mb-tx">${mbText(j)}</div></div></div>${liveLine}${j.status==='running'&&typeof livePv==='function'?livePv(j):''}${steps}${tags}${live?'<div class="mb-hint">tap to expand</div>':''}</div>`}
+  return `<div class="mb${live&&MB_FOLD.has(j.id)?' fold':''}" data-mb="${j.id}" style="--mbc:${c};--mbc2:${c2}"><div class="mb-h">${mbRing(j)}<div class="tx"><div class="mb-who"><span><span class="av">${MI.html('lab')}</span>MirAI${j.brain?`<small class="mb-brain">${esc(j.brain)}</small>`:''}</span><em class="mb-t">${t2}</em></div><div class="mb-tx">${mbText(j)}</div><div class="mb-tokl">${mbTok(j)}</div></div></div>${liveLine}${j.status==='running'&&typeof livePv==='function'?livePv(j):''}${steps}${tags}${live?'<div class="mb-hint">tap to expand</div>':''}</div>`}
 /* live patch (no rebuild): timer, ring %, bar, step counter */
 function mbTick(jobs){jobs.forEach(j=>{MB_P[j.id]=j.status==='running'?(j.progress&&j.progress.max?j.progress.pct:null):null;if(j.status!=='running')return;const b=document.querySelector(`.mb[data-mb="${j.id}"]`);if(!b)return;
   const t=b.querySelector('.mb-t');if(t)t.textContent=dur(j.started);
+  const tk=b.querySelector('.mb-tokl');if(tk){const h=mbTok(j);if(tk.innerHTML!==h)tk.innerHTML=h}
   const rs=mbSteps(j).find(x=>x.status==='running'),sm=b.querySelector('.mb-st.running .mb-bd small');
   if(rs&&sm){const h=mbStepSub(j,rs);if(sm.innerHTML!==h)sm.innerHTML=h}
   const pg=j.progress;if(!pg||!pg.max)return;
@@ -1783,7 +1793,7 @@ window.VOICE=(function(){
     const r=e.target.closest('[data-say]');if(r){e.preventDefault();e.stopPropagation();const id=r.dataset.say,was=speaking(id);stop();
       if(!was){const j=(window._lastJobs||[]).find(x=>x.id===id);if(j)take(j.output||'',0,true)[0].forEach(x=>say(x,true,id))}}},true);
   setTimeout(btn,0);
-  return {st,say,stop,jobs,save,btn,url,mine}})();
+  return {st,say,stop,jobs,save,btn,url,mine,busy:()=>!!cur||Q.length>0}})();
 function openVoice(){head('volume','var(--panel2)','MirAI VOICE');
   fetch('/api/tts/voices').then(r=>r.json()).then(d=>{const v=VOICE.st;
     $('#s-body').innerHTML=(d.available?'':'<p style="color:var(--yellow)">The voice engine isn\'t installed on this PC yet — run MirMediaLabs-Setup.exe → Repair.</p>')+
@@ -1807,11 +1817,11 @@ function renderThread(jobs){
       ${j.refs?.length?refThumbs(j.refs):''}</div>`;
     const t2=j.status==='running'?dur(j.started):(j.finished&&j.started)?dur(j.started,j.finished):'';
     let body='';
-    if(live&&j.model==='llama'&&j.output)body=`<div class="txt wr">${esc(j.output)}<span class="caret"></span></div><div class="acts"><button class="btn sm danger" data-c="${j.id}">Stop</button></div>`;
+    if(live&&j.model==='llama'&&j.output)body=`<div class="txt wr">${esc(j.output)}<span class="caret"></span></div><div class="mb-tokl">${mbFoot(j,0)}</div><div class="acts"><button class="btn sm danger" data-c="${j.id}">Stop</button></div>`;
     else if(live)body=museBlock(j)+`<div class="acts"><button class="btn sm danger" data-c="${j.id}">Cancel</button></div>`;
     else if(j.status==='error')body=museBlock(j)+`<div class="err">${esc(j.error)}</div><div class="acts"><button class="btn sm" data-r="${j.id}">↺ Try again</button></div>`;
     else if(j.status==='cancelled')body=`<div style="color:var(--faint)">Cancelled.</div><div class="acts"><button class="btn sm" data-r="${j.id}">↺ Run again</button></div>`;
-    else if(j.model==='llama')body=`<div class="txt wr">${esc(j.output||'')}</div>${museLines(j.output).length?`<div class="uses">${museLines(j.output).map(l=>`<button class="btn sm" data-ul="${esc(l)}">${MI.html('arrow-right')} Use: ${esc(l.length>64?l.slice(0,63)+'…':l)}</button>`).join('')}</div>`:''}<div class="acts"><button class="btn sm" data-say="${j.id}">${MI.html('volume')} Listen</button><button class="btn sm" data-cp="${j.id}">${MI.html('copy')} Copy</button><button class="btn sm" data-tx="${j.id}">${MI.html('download')} Save .txt</button><button class="btn sm" data-tref="${j.id}">${MI.html('attach')} Use as text ref</button><button class="btn sm" data-r="${j.id}">↺ Again</button></div>`;
+    else if(j.model==='llama')body=`<div class="txt wr">${esc(j.output||'')}</div><div class="mb-tokl">${mbFoot(j,1)}</div>${museLines(j.output).length?`<div class="uses">${museLines(j.output).map(l=>`<button class="btn sm" data-ul="${esc(l)}">${MI.html('arrow-right')} Use: ${esc(l.length>64?l.slice(0,63)+'…':l)}</button>`).join('')}</div>`:''}<div class="acts"><button class="btn sm" data-say="${j.id}">${MI.html('volume')} Listen</button><button class="btn sm" data-cp="${j.id}">${MI.html('copy')} Copy</button><button class="btn sm" data-tx="${j.id}">${MI.html('download')} Save .txt</button><button class="btn sm" data-tref="${j.id}">${MI.html('attach')} Use as text ref</button><button class="btn sm" data-r="${j.id}">↺ Again</button></div>`;
     else body=museBlock(j)+`<div class="media">${(j.files||[]).map(mediaHTML).join('')}</div>
       <div class="acts">${(j.files||[]).map(fn=>`<button class="btn sm" data-open="${esc(fn)}">${MI.html('expand')} Open</button><button class="btn sm" data-use="${esc(fn)}">${MI.html('refresh')} Use as ref</button><a class="btn sm" href="/media/${encodeURIComponent(fn)}?dl=1" download="${esc(fn)}">${MI.html('download')} Download</a>`).join('')}<button class="btn sm" data-r="${j.id}">↺ Again</button></div>
       ${j.output?`<details data-id="${j.id}" ${open.has(j.id)?'open':''}><summary>details</summary><pre>${esc(j.output)}</pre></details>`:''}`;
@@ -1851,7 +1861,20 @@ async function loadLib(reset){
 }
 $('#more').onclick=()=>loadLib(false);
 /* chat sessions (sessions.py): a session = one project's chat + media. "General" (id "") holds everything older. */
-function sessPaint(){
+/* TOKEN READER — this chat session's AI usage + how full the last conversation was (context window) */
+async function tokPaint(){let el=$('#tok-rd');const b=$('#b-sess');if(!b)return;
+  if(!el){el=document.createElement('span');el.id='tok-rd';el.style.cssText='display:inline-flex;align-items:center;gap:6px;margin-left:8px;'+
+    'font:600 11px var(--mono,monospace);color:var(--dim);padding:4px 9px;border:1px solid var(--line);border-radius:9px;white-space:nowrap';b.after(el)}
+  let d;try{d=await api('/api/tokens?session='+encodeURIComponent(SESS.id||''))}catch(e){return}
+  const t=d.tokens||{},A=d.active||{},W=A.window||t.num_ctx||0;
+  const used=t.ctx||0,pct=W?Math.min(100,Math.round(used/W*100)):0,col=pct>=85?'var(--red)':pct>=60?'var(--yellow)':'var(--grn)';
+  el.innerHTML=MI.html('bolt','sm')+` ${tkK((t.in||0)+(t.out||0))} tokens`+(W?` · ctx <i style="display:inline-block;width:46px;height:5px;border-radius:3px;background:var(--line);overflow:hidden;vertical-align:middle"><i style="display:block;height:100%;width:${pct}%;background:${col}"></i></i> ${tkK(used)}/${tkK(W)}`:'');
+  el.title=`Token reader · ${SESS.name}\nModel now: ${A.label||A.model||'?'}${A.cloud?' (cloud)':''} — its memory here is ${W.toLocaleString()} tokens`+
+    (A.max&&A.max>W?` (the model itself supports ${A.max.toLocaleString()}; the lab runs it at ${W.toLocaleString()} to fit your GPU)`:'')+
+    `\n${(t.in||0).toLocaleString()} tokens in (what MirAI read) · ${(t.out||0).toLocaleString()} out (what she wrote) · ${t.calls||0} requests`+
+    (used?`\nLast conversation used ${used.toLocaleString()} of ${W.toLocaleString()} (${pct}%)`:'')}
+setInterval(()=>{if(!document.hidden)tokPaint()},15000);
+function sessPaint(){setTimeout(tokPaint,0);
   const s=SESS.list.find(x=>x.id===SESS.id);if(!s&&SESS.loaded)SESS.id='';SESS.name=s?s.name:(SESS.id?'…':'General');
   $('#sess-name').textContent=SESS.name;$('#b-sess').title='Chat session: '+SESS.name+' — each session keeps its own chat and media';
   $('#b-libscope').textContent=SESS.all?'All sessions':'This session';$('#b-libscope').classList.toggle('on',!SESS.all);
@@ -1962,7 +1985,7 @@ function openThemes(){head('palette','var(--panel2)','THEME');
     <div class="pv"><i style="background:${t.sw[1]}"></i><div class="r"><i style="background:${t.sw[2]};height:22px"></i><i style="background:${t.sw[1]};flex:1"></i><i style="background:${t.sw[4]};height:10px;width:46%"></i></div></div>
     <div class="nm" style="border-top:1px solid rgba(128,128,128,.25)">${esc(t.name)}<small>${esc(t.d)}</small></div></button>`).join('')+'</div>';
 
-  $('#s-body').insertAdjacentHTML('beforeend','<button class="btn" style="margin-top:14px" onclick="openVoice()">'+MI.html('volume')+' MirAI voice…</button>');
+  $('#s-body').insertAdjacentHTML('beforeend','<button class="btn" style="margin-top:14px" onclick="openVoice()">'+MI.html('volume')+' MirAI voice…</button> <button class="btn" style="margin-top:14px" onclick="MUSE.openLook()">'+MI.html('sparkle')+' MUSE look…</button>');
   $('#s-ft').innerHTML='';
   $$('#s-body [data-th]').forEach(b=>b.onclick=()=>{mmlTheme.save(b.dataset.th);openThemes()});
   openSheet();}
@@ -2035,32 +2058,34 @@ function openTextAttach(){
   $('#t-ok').onclick=async()=>{try{const j=await api('/api/upload-text',{method:'POST',body:JSON.stringify({name:$('#t-name').value,text:$('#t-body').value})});atts.push(j);saveAtts();renderAtts();closeSheet()}catch(e){toast(e.message)}};
   openSheet();setTimeout(()=>$('#t-body').focus(),50);
 }
-$('#b-settings').onclick=()=>{
+function settingsPart(part){part=part||'general';
   const s=status,e=s.engine||{},c=s.comfy||{},apk=s.apk||{};
   const host=(location.hostname==='127.0.0.1'||location.hostname==='localhost')?((status&&status.lan_ip)||location.hostname):location.hostname;
-  head('gear','#fff1e2','SETTINGS');
-  $('#s-body').innerHTML=`<div class="fld wide"><label>Prompt engine — local Ollama model that rewrites prompts (sees only your prompt + attached pictures)</label>
-      <select id="eng">${(e.available&&e.available.length?e.available:[e.model]).map(t=>`<option ${t===e.model?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+  head(part==='ai'?'sparkle':part==='system'?'server':'gear','#fff1e2',part==='ai'?'AI MODELS':part==='system'?'SYSTEM':'GENERAL');
+  $('#s-body').innerHTML=part!=='general'?'':`<div class="fld wide"><label>MirAI's model — the director, chat and prompt writer</label><div style="display:flex;gap:10px;align-items:center"><code id="eng-now">${esc((s.engine||{}).model||'')}</code><button class="btn sm" type="button" onclick="openSettings('ai')">Change in AI models…</button></div></div>
     <div class="fld wide"><label>Live render viewer — watch ComfyUI's picture form step by step in the job card</label>
       <select id="lpv"><option value="sharp">Sharp — near-final previews (small extra GPU work)</option><option value="fast">Fast — rough colour preview, no extra cost</option><option value="off">Off</option></select></div>
-    <div class="kv">
+    `;if(part==='system')$('#s-body').innerHTML=`<div class="kv">
       <div>GPU engine: <code>${c.up?'ComfyUI '+esc(c.version)+' on :'+c.port:'offline'}</code> ${c.up?'':'<button class="btn sm" id="eng-start">Start it</button>'}</div>
       ${c.vram&&c.vram.total?`<div>VRAM free: <code>${(c.vram.free/1e9).toFixed(1)} / ${(c.vram.total/1e9).toFixed(1)} GB</code></div>`:''}
       <div>Phone / LAN address: <code>http://${esc(host)}:5400</code> — other devices ask once for the key in <code>data\\access_key.txt</code></div>
       <div>Android app: <code>${apk.versionName?'v'+esc(apk.versionName)+' on the update server':'not published yet'}</code> ${apk.apk?`<a class="btn sm" href="/updates/${esc(apk.apk)}">${MI.html('download')} APK</a>`:''}</div>
       <div>Library folder: <code>data\\library</code></div>
     </div>`;
-  $('#s-ft').innerHTML=ME.role==='owner'?`<span style="flex:1"></span><button class="btn pri" id="eng-save">Save</button>`:'';
-  if(ME.role!=='owner'){$('#eng').disabled=true}
+  if(part==='system')$('#s-body').insertAdjacentHTML('beforeend','<p style="color:var(--dim)">Live PC meters are in the corner card on this PC.</p>'+(ME.role==='owner'?'<button class="btn" onclick="MUSE.offload()">'+MI.html('power')+' Offload all AI models — free the GPU and RAM now</button>':''));
+  $('#s-ft').innerHTML=part==='general'&&ME.role==='owner'?`<span style="flex:1"></span><button class="btn pri" id="eng-save">Save</button>`:'';
+  if(ME.role!=='owner'&&$('#eng')){$('#eng').disabled=true}
   api('/api/settings').then(r=>{if($('#lpv')&&r.live_preview)$('#lpv').value=r.live_preview}).catch(()=>{});
   if(ME.role!=='owner'&&$('#lpv'))$('#lpv').disabled=true;
-  if($('#eng-save'))$('#eng-save').onclick=async()=>{await api('/api/settings',{method:'POST',body:JSON.stringify({engine_model:$('#eng').value,live_preview:$('#lpv').value})});toast('Saved');closeSheet();pollStatus()};
-  if(ME.host){$('#s-body').insertAdjacentHTML('beforeend','<div id="cb-slot"></div>');cloudCard()}   // cloud brain: host PC only
-  if(ME.role==='owner'){$('#s-body').insertAdjacentHTML('beforeend','<div id="civ-slot"></div>');
+  if($('#eng-save'))$('#eng-save').onclick=async()=>{await api('/api/settings',{method:'POST',body:JSON.stringify({live_preview:$('#lpv').value})});toast('Saved');closeSheet();pollStatus()};
+  if(part==='ai'&&!ME.host&&ME.role!=='owner')$('#s-body').innerHTML='<p style="color:var(--dim)">AI models are chosen by the host of this lab.</p>';
+  if(part==='ai'&&ME.host){$('#s-body').insertAdjacentHTML('beforeend','<div id="cb-slot"></div>');cloudCard()}   // cloud brain: host PC only
+  if(part==='ai'&&ME.role==='owner'){$('#s-body').insertAdjacentHTML('beforeend','<div id="civ-slot"></div>');
     const fill=async()=>{const s=await civKeyStatus();const slot=$('#civ-slot');if(!slot)return;slot.innerHTML=civKeyBox('civ-set',s);civKeyWire('civ-set',fill)};fill()}
   const st=$('#eng-start');if(st)st.onclick=()=>api('/api/engine/start',{method:'POST'}).then(()=>toast('Starting ComfyUI (~40 s)…'));
   openSheet();
-};
+}
+$('#b-settings').onclick=()=>openSettings();
 /* CLOUD BRAIN (owner, host PC only) — Claude / GPT as MirAI, the Director and the prompt writer.
    Keys are saved on this PC only and never shown again; invited people always stay on the local engine. */
 async function cloudCard(){const slot=$('#cb-slot');if(!slot)return;let d;try{d=await api('/api/cloud')}catch(e){slot.innerHTML='';return}
@@ -2081,6 +2106,11 @@ function mpDraw(){const d=MP.d,box=$('#mpk'),cur=d.brain,nm={anthropic:'Anthropi
   const isCur=id=>id.indexOf('local:')===0?cur.provider==='local'&&(LOC.find(e=>'local:'+e.model===id)||{}).current:cur.provider!=='local'&&cur.model===id;
   const card=(id,label,model,badges,ready)=>`<button class="mpc${MP.sel===id?' sel':''}${ready?'':' off'}" data-id="${esc(id)}"><span class="t">${esc(label)}<span class="sp"></span>${isCur(id)?'<span class="tag">MirAI</span>':''}</span><code>${esc(model)}</code><span class="bd">${badges.map(x=>'<i>'+x+'</i>').join('')}</span></button>`;
   let L=`<h4>LOCAL · OLLAMA</h4>`+LOC.map(e=>card('local:'+e.model,e.label,e.model,['ctx '+mpK(e.ctx||16384),'free · local',e.vision?'vision':'text only'].concat(e.installed===false?['not installed · pulls on pick']:[]),true)).join('');
+  const FND=(d.found||[]).filter(f=>!f.added);
+  if(FND.length)L+=`<h4>FOUND ON THIS PC · NOT IN OLLAMA YET</h4><div class="mpn">Models other apps downloaded (LM Studio, Jan, Hugging Face…). Add one and MirAI can use it.</div>`+
+    FND.map(f=>`<div class="mpc off" style="cursor:default"><span class="t">${esc(f.label)}<span class="sp"></span></span><code>${esc(f.file)}</code>
+      <span class="bd"><i>${f.gb} GB</i><i>${esc(f.app)}</i></span>${f.importing==='running'?'<b style="font-size:11px">adding…</b>':
+      `<button class="btn sm" data-imp="${esc(f.path)}" type="button">${f.importing&&f.importing.indexOf('error')===0?'Retry':'Add to MirAI'}</button>`}</div>`).join('');
   ['anthropic','fireworks','openai'].forEach(p=>{const ms=d.models.filter(m=>m.provider===p);
     L+=`<h4>${nm[p].toUpperCase()} <span class="k ${d.keys[p]?'ok':'no'}">${d.keys[p]?'KEY OK':'NO KEY'}</span></h4>`;
     if(!d.keys[p])L+=`<div class="mpn">Add a ${nm[p]} key below to list its models.</div>`;
@@ -2105,7 +2135,8 @@ function mpDraw(){const d=MP.d,box=$('#mpk'),cur=d.brain,nm={anthropic:'Anthropi
   const post=(url,body)=>api(url,{method:'POST',body:JSON.stringify(body)}),say=(t,e)=>{const x=box.querySelector('.msg');x.textContent=t;x.className='msg'+(e?' e':'')};
   const done=r=>{MP.d=r;mpDraw();cloudCard()},fail=e=>say(e.message,1);
   $('#mp-x').onclick=()=>box.classList.remove('on');
-  $$('#mpk .mpc').forEach(c=>c.onclick=()=>{MP.sel=c.dataset.id;mpDraw()});
+  $$('#mpk .mpc[data-id]').forEach(c=>c.onclick=()=>{MP.sel=c.dataset.id;mpDraw()});
+  $$('#mpk [data-imp]').forEach(b=>b.onclick=e=>{e.stopPropagation();b.disabled=true;b.textContent='Adding…';post('/api/cloud/import',{path:b.dataset.imp}).then(r=>{toast(r.say||'Adding…');const t=setInterval(()=>api('/api/cloud').then(x=>{MP.d=x;if(!(x.found||[]).some(f=>f.importing==='running')){clearInterval(t);mpDraw();toast('Model added — pick it above')}}),4000)}).catch(fail)});
   const tp=$('#mp-temp');if(tp)tp.oninput=()=>{$('#mp-tv').textContent=tp.value;tp.dataset.set=1};
   $$('#mp-eff button').forEach(b=>b.onclick=()=>{$$('#mp-eff button').forEach(x=>x.classList.toggle('on',x===b))});
   const params=()=>({max_out:$('#mp-out').value,temperature:tp&&!tp.disabled&&(tp.dataset.set||(m.params||{}).temperature!=null)?tp.value:'',effort:($('#mp-eff button.on')||{}).dataset?.e||'auto'});
@@ -2344,7 +2375,7 @@ async function pcUpdate(){
 }
 
 /* phone tabs */
-function setTab(t){if(t==='production')return mmlProduction();if(t==='social')return mmlSocial();if(t==='editor')return mmlEditor();if(t==='series')return mmlSeries();if(t==='grab')return mmlGrab();document.body.dataset.tab=t;$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
+function setTab(t){if(t==='production')return mmlProduction();if(t==='social')return mmlSocial();if(t==='editor')return mmlEditor();if(t==='series')return mmlSeries();if(t==='grab')return mmlGrab();if(t==='motion')return mmlMotion();if(t==='flow')return mmlFlow();document.body.dataset.tab=t;$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
 $$('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
 
 (async function boot(){
@@ -2354,7 +2385,7 @@ $$('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
   loadSkills();
   const DESK=(()=>{try{return sessionStorage.getItem('mml_desktop')==='1'||new URLSearchParams(location.search).get('client')==='desktop'}catch(e){return false}})();
   if(ME.host&&DESK)$('#b-users').style.display='grid';      // Host control: only the desktop app on the GPU PC
-  if(ME.role==='owner'){$('#b-mykey').style.display='none';if(ME.host)$('#b-master').style.display='grid'}   // owner key = master: host PC only
+  if(ME.role==='owner'){$('#b-mykey').style.display='none'}   // keys: Settings -> Access & people   // owner key = master: host PC only
   if(ME.role==='owner')pcUpdate()
   if(ME.rights&&!ME.rights.owner){const R=ME.rights.caps||[];
     if(!R.includes('attach')){$$('#b-attach,#attmenu').forEach(e=>e.style.display='none')}
@@ -2577,6 +2608,31 @@ function mmlProduction(){
   try{closeLB()}catch(e){}
 }
 window.addEventListener('message',function(e){if((e.data||{}).mml!=='prod-close')return;var f=document.getElementById('mml-pr');if(f)f.remove();});
+/* MOTION STUDIO (remotion.py / static/motion.html) — Remotion motion graphics; renders land in the library */
+function mmlMotion(q){
+  var f=document.getElementById('mml-mo');if(f){if(q&&q.add)f.contentWindow.postMessage({mml:'motion-add',src:q.add},'*');return;}
+  var s='';try{s=localStorage.getItem('mml.session')||''}catch(e){}
+  var u='motion?session='+encodeURIComponent(s);if(q)Object.keys(q).forEach(function(k){u+='&'+k+'='+encodeURIComponent(q[k])});
+  f=document.createElement('iframe');f.id='mml-mo';f.src=u;f.allow='autoplay; fullscreen; clipboard-write';
+  f.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:10000;background:#000';document.body.appendChild(f);
+  try{closeLB()}catch(e){}
+}
+window.addEventListener('message',function(e){var d=e.data||{};
+  if(['motion-close','motion-editor','motion-attach','editor-motion'].indexOf(d.mml)<0)return;
+  if(d.mml==='editor-motion'){mmlMotion(d.src?{add:d.src}:null);return;}
+  var f=document.getElementById('mml-mo');if(f)f.remove();
+  if(d.mml==='motion-editor')mmlEditor(d.src||'');
+  else if(d.mml==='motion-attach'&&d.ref){try{atts.push(d.ref);saveAtts();renderAtts();setTab('create');toast('Attached — ready for your next request')}catch(x){}}
+  try{loadLib()}catch(x){}
+});
+/* NODE FLOW (nodeflow.py / static/flow.html) — ComfyUI-style wires on MIR blocks; runs go through the lab queue */
+function mmlFlow(){
+  var f=document.getElementById('mml-fl');if(f)return;
+  f=document.createElement('iframe');f.id='mml-fl';f.src='flow';f.allow='autoplay; fullscreen; clipboard-write';
+  f.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:10000;background:#000';document.body.appendChild(f);
+  try{closeLB()}catch(e){}
+}
+window.addEventListener('message',function(e){var d=e.data||{};if(d.mml!=='flow-close')return;var f=document.getElementById('mml-fl');if(f)f.remove();try{loadLib()}catch(x){}});
 function mmlGrab(){
   var f=document.getElementById('mml-gr');if(f)return;
   f=document.createElement('iframe');f.id='mml-gr';f.src='grab';f.allow='autoplay; fullscreen; clipboard-write; clipboard-read';
@@ -2593,5 +2649,8 @@ window.addEventListener('message',function(e){var d=e.data||{};
 });
 </script>
 <script src="static/lab_c.js"></script>
+<script type="module" src="static/muse_orb.js"></script>
+<script src="static/muse_voice.js"></script>
+<script src="static/settings_hub.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 """MIR MEDIA LABS watermark — every finished render is marked before it reaches the library.
 
-  * images + video: a small, semi-transparent "MIR MEDIA LABS" mark in the bottom-right corner
+  * images + video: a small semi-transparent MML flask logo (mark.png) in the bottom-right corner — no text
   * video + audio: an "AI-generated with MIR MEDIA LABS" tag in the file's metadata
 
 On by default. Host prefs: "watermark" (false = off) and "watermark_text" (the visible text).
@@ -49,23 +49,34 @@ def _ffmpeg(args):
         raise RuntimeError("ffmpeg: %s" % (r.stderr or "")[-300:])
 
 
+MARK = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mark.png")
+
+
+def _overlay(path):
+    """Flask ~9% of the short side, 85% opacity, 2% margin from the bottom-right corner (size from the frame)."""
+    w, h = (core.media_size(path) or (0, 0))[:2]
+    side = max(28, int(min(w, h) * 0.09)) if w and h else 72
+    pad = max(8, int(min(w, h) * 0.02)) if w and h else 12
+    return ("[1:v]scale=%d:%d,format=rgba,colorchannelmixer=aa=0.85[mk];[0:v][mk]overlay=x=W-w-%d:y=H-h-%d"
+            % (side, side, pad, pad))
+
+
 def _visible(path, video):
+    if not os.path.exists(MARK):                       # no logo shipped → metadata only, never a text mark
+        return _tag(path) if video else None
     ext = os.path.splitext(path)[1]
-    tmp, txt = path + ".wm" + ext, path + ".wm.txt"
-    with open(txt, "w", encoding="utf-8") as f:
-        f.write(text())
+    tmp = path + ".wm" + ext
     try:
         if video:
-            _ffmpeg(["-i", path, "-vf", _drawtext(txt), "-map", "0:v", "-map", "0:a?", "-c:v", "libx264", "-crf", "16",
-                     "-pix_fmt", "yuv420p", "-c:a", "copy", "-metadata", "comment=" + TAG, "-movflags", "+faststart", tmp])
+            _ffmpeg(["-i", path, "-i", MARK, "-filter_complex", _overlay(path) + "[v]", "-map", "[v]", "-map", "0:a?", "-c:v", "libx264",
+                     "-crf", "16", "-pix_fmt", "yuv420p", "-c:a", "copy", "-metadata", "comment=" + TAG, "-movflags", "+faststart", tmp])
         else:
             q = ["-q:v", "2"] if ext.lower() in (".jpg", ".jpeg") else (["-quality", "95"] if ext.lower() == ".webp" else [])
-            _ffmpeg(["-i", path, "-vf", _drawtext(txt), "-frames:v", "1", "-update", "1"] + q + [tmp])
+            _ffmpeg(["-i", path, "-i", MARK, "-filter_complex", _overlay(path), "-frames:v", "1", "-update", "1"] + q + [tmp])
         os.replace(tmp, path)
     finally:
-        for p in (tmp, txt):
-            if os.path.exists(p):
-                os.remove(p)
+        if os.path.exists(tmp):
+            os.remove(tmp)
 
 
 def _tag(path):

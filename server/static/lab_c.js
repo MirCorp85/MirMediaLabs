@@ -97,7 +97,8 @@
 
   // ── Tools: everything that isn't a main feature ────────────────────────────────────────────────────────────────
   function tools() {
-    var T = [['download', 'Downloader', 'links → MP3 / MP4', function () { mmlGrab(); }],
+    var T = [['sparkle', 'Motion studio', 'Remotion titles · captions · lyric & long videos', function () { mmlMotion(); }],
+             ['download', 'Downloader', 'links → MP3 / MP4', function () { mmlGrab(); }],
              ['tv', 'Series studio', 'build a series by hand', function () { mmlSeries(); }],
              ['layers', 'LoRA library', 'styles & characters', function () { lOpen(); }],
              ['sparkle', 'Skills & pipelines', 'presets, multi-step', function () { window.openSkills && openSkills(); }],
@@ -115,7 +116,7 @@
   // ── bottom dock (desktop) / tab bar (phone): the six main features ──────────────────────────────────────────────
   var nav = $('nav.tabs');
   if (nav) {
-    nav.innerHTML = [['create', 'lab', 'Create'], ['projects', 'layers', 'Projects'], ['library', 'grid', 'Library'], ['editor', 'scissors', 'Editor'],
+    nav.innerHTML = [['create', 'lab', 'Create'], ['projects', 'layers', 'Projects'], ['library', 'grid', 'Library'], ['editor', 'scissors', 'Editor'], ['motion', 'sparkle', 'Motion'],
                      ['publish', 'globe', 'Publish'], ['tools', 'wand', 'Tools']]
       .map(function (b) { return '<button data-t="' + b[0] + '"' + (b[0] === 'create' ? ' class="on"' : '') + '>' + mi(b[1]) + b[2] + '</button>'; }).join('');
     var wide = function () { return window.matchMedia('(min-width: 861px)').matches; };
@@ -125,12 +126,24 @@
         if (t === 'projects') return mmlProjects();
         if (t === 'publish') return mmlSocial();
         if (t === 'editor') return mmlEditor();
+        if (t === 'motion') return mmlMotion();
         if (t === 'tools') return tools();
+        if (t === 'create') return goHome();
         if (t === 'library' && wide()) { document.body.classList.toggle('lc-libwide'); b.classList.toggle('on', document.body.classList.contains('lc-libwide')); return; }
         setTab(t);
       };
     });
   }
+  // Create = home: close every studio overlay, panel and sheet, show the chat
+  window.goHome = function () {
+    ['mml-ed', 'mml-pr', 'mml-gr', 'mml-se', 'mml-so', 'mml-mo', 'mml-fl'].forEach(function (id) { var f = document.getElementById(id); if (f) f.remove(); });
+    document.querySelectorAll('.lc-tools').forEach(function (x) { x.remove(); });
+    document.body.classList.remove('lc-libwide');
+    try { if (document.getElementById('sheet').classList.contains('on')) closeSheet(); } catch (e) { }
+    setTab('create');
+    if (nav) nav.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x.dataset.t === 'create'); });
+    try { var th = document.getElementById('thread'); if (th) th.scrollTop = th.scrollHeight; } catch (e) { }
+  };
   // ── Library → PROJECTS tab: every project as a folder; open one and pull its media into your message ──────────────
   var filt = $('#filters');
   if (filt) {

@@ -39,7 +39,23 @@ def _path(uid):
 def load(uid):
     d = core.load_json(_path(uid), {})
     return {"sessions": [s for s in d.get("sessions") or [] if isinstance(s, dict) and _ID.match(str(s.get("id") or ""))],
-            "last": d.get("last") or ""}
+            "last": d.get("last") or "", "tokens": d.get("tokens") or {}}
+
+
+def add_tokens(uid, sid, tin, tout, ctx=0, num_ctx=0):
+    """Token reader per session ("" = General): totals + the size of the last conversation sent to the engine."""
+    if not (tin or tout):
+        return
+    with _LOCK:
+        d = core.load_json(_path(uid), {})
+        t = (d.setdefault("tokens", {})).setdefault(sid or "", {"in": 0, "out": 0, "calls": 0})
+        t["in"] = int(t.get("in") or 0) + int(tin)
+        t["out"] = int(t.get("out") or 0) + int(tout)
+        t["calls"] = int(t.get("calls") or 0) + 1
+        if ctx:
+            t["ctx"], t["num_ctx"] = int(ctx), int(num_ctx or 0)
+        t["t"] = time.time()
+        _save(uid, d)
 
 
 def _save(uid, d):

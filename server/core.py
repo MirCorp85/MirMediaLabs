@@ -267,7 +267,18 @@ def save_json(path, obj):
         tmp = path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(obj, f, indent=1)
-        os.replace(tmp, path)
+        for i in range(20):            # Windows: a reader / antivirus holding the file briefly → WinError 5 on replace
+            try:
+                os.replace(tmp, path)
+                return
+            except PermissionError:
+                time.sleep(0.1 * (i + 1))
+        with open(path, "w", encoding="utf-8") as f:     # still locked for rename: overwrite in place, never lose the save
+            json.dump(obj, f, indent=1)
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
 
 
 def access_key():
@@ -317,18 +328,27 @@ def new_name(prefix, ext):
 # ── prompt engine (local Ollama) — rewrites prompts only, never sees anything else ──
 OLLAMA = "http://127.0.0.1:11434"
 DEFAULT_ENGINE = "gemma4:12b"  # MirAI: chat, prompt building + Auto-mode model picker (never renders); falls back to any installed gemma4 / first model
-LEGACY_ENGINES = ("qwen3.5:9b",)   # older installs pinned this → moved to DEFAULT_ENGINE
+LEGACY_ENGINES = ()   # (qwen3.5:9b used to be remapped to Gemma — it is a normal pickable engine now)
 # Local brains the owner can pick in the model picker (MUSE chat + Director + prompt writer). Any other installed
 # Ollama tag still works from Settings → Prompt engine; these are the tested ones.
 LOCAL_ENGINES = [
-    {"model": "gemma4:12b", "label": "MirAI · Gemma 4 12B", "note": "recommended · sees pictures", "vision": True, "gb": 8.0},
-    {"model": "llama3.1:8b", "label": "MUSE · Llama 3.1 8B", "note": "lighter + faster · text only", "vision": False, "gb": 4.9},
+    {"model": "gemma4:12b", "label": "Gemma 4 12B", "note": "recommended · sees pictures", "vision": True, "gb": 8.0},
+    {"model": "llama3.1:8b", "label": "Llama 3.1 8B", "note": "lighter + faster · text only", "vision": False, "gb": 4.9},
 ]
 
 
 def engine_label(model=None):
     m = model or engine_model()
-    return next((e["label"] for e in LOCAL_ENGINES if e["model"] == m or m.startswith(e["model"] + "-")), m)
+    return next((e["label"] for e in LOCAL_ENGINES if e["model"] == m or m.startswith(e["model"] + "-")), pretty_tag(m))
+
+
+def pretty_tag(m):
+    """'qwen3.5:9b-mtp-nodraft' -> 'Qwen 3.5 9B (mtp-nodraft)' for any installed Ollama tag."""
+    name, _, tag = (m or "").rpartition("/")[-1].partition(":")
+    fam = re.sub(r"^([a-z]+)([0-9])", r"\1 \2", name).replace("-", " ").strip()
+    fam = " ".join(w.upper() if w in ("hf", "mtp") else (w[:1].upper() + w[1:]) for w in fam.split())
+    size, _, extra = tag.partition("-")
+    return (fam + (" " + size.upper() if size else "") + (" (%s)" % extra if extra else "")).strip() or m
 
 
 _OLLAMA_LOCK = threading.Lock()
@@ -386,7 +406,57 @@ def ensure_ollama(wait=60):
 FALLBACK_ENGINE = "qwen3.5:9b"                  # used only when the chosen engine fails to load
 
 
-ENGINE_BROKEN = set()                           # engines Ollama failed to start this run (llama-server exit) → skipped
+class _Broken(set):
+    """Engines Ollama failed to start. Entries EXPIRE after 10 min (a load that failed because a render held the GPU
+    must not pin MirAI to the fallback for the rest of the run); picking a model in Settings clears it at once."""
+    def __init__(self):
+        super().__init__()
+        self.t = {}
+
+    def add(self, m):
+        self.t[m] = time.time()
+        super().add(m)
+
+    def discard(self, m):
+        self.t.pop(m, None)
+        super().discard(m)
+
+    def __contains__(self, m):
+        if m in self.t and time.time() - self.t[m] > 600:
+            self.discard(m)
+        return super().__contains__(m)
+
+
+USED = {"model": None}
+TOK = {"in": 0, "out": 0, "secs": 0.0, "calls": 0, "ctx": 0, "num_ctx": 0}   # tokens of the job being worked on
+
+
+def tok_reset():
+    TOK.update({"in": 0, "out": 0, "secs": 0.0, "calls": 0, "ctx": 0, "num_ctx": 0})
+
+
+def tok_add(tin=0, tout=0, secs=0.0, num_ctx=0):
+    """Every AI call adds here: local Ollama (prompt_eval/eval counts) and cloud brains (usage)."""
+    TOK["in"] += int(tin or 0)
+    TOK["out"] += int(tout or 0)
+    TOK["secs"] += float(secs or 0)
+    TOK["calls"] += 1
+    if tin:
+        TOK["ctx"] = max(TOK["ctx"], int(tin or 0) + int(tout or 0))
+    if num_ctx:
+        TOK["num_ctx"] = int(num_ctx)
+
+
+def tok_from_ollama(d, body=None):
+    try:
+        tin, tout = d.get("prompt_eval_count") or 0, d.get("eval_count") or 0
+        if tin or tout:
+            tok_add(tin, tout, (d.get("eval_duration") or 0) / 1e9,
+                    ((body or {}).get("options") or {}).get("num_ctx") or CTX_OK.get((body or {}).get("model"), 0) or 16384)
+    except Exception:
+        pass
+CTX_OK = {}                                         # engine -> num_ctx it starts with here (learned)                              # the local engine that actually answered last (bubble label)
+ENGINE_BROKEN = _Broken()                           # engines Ollama failed to start this run (llama-server exit) → skipped
 
 
 def engine_twin(m, tags):
@@ -398,6 +468,71 @@ def engine_twin(m, tags):
     return FALLBACK_ENGINE
 
 
+CTX_CAP = int(CONFIG.get("max_ctx") or 65536)        # never ask any engine for more than this
+
+
+def model_max_ctx(tag):
+    """The context length the model itself supports (Ollama tags)."""
+    try:
+        for t in requests.get(OLLAMA + "/api/tags", timeout=3).json().get("models", []):
+            if t["name"] == tag:
+                return int((t.get("details") or {}).get("context_length") or 0)
+    except Exception:
+        pass
+    return 0
+
+
+def engine_window(tag):
+    """MirAI's memory for this engine: as big as the model supports (up to CTX_CAP), minus what was learned on this
+    PC (a window that crashed it or spilled it off the GPU is remembered in CTX_OK)."""
+    mx = model_max_ctx(tag) or 16384
+    return max(2048, min(mx, CTX_CAP, CTX_OK.get(tag) or 10 ** 9))
+
+
+def fit_window(tag, win, load):
+    """Load `tag` at `win`; if the GPU can't hold it all (spills to the CPU = slow) or it won't start, halve the window
+    and retry, down to 8K. Remembers the result in CTX_OK. load(num_ctx) -> requests.Response."""
+    while True:
+        r = load(win)
+        ok = r is not None and r.ok
+        spilled = False
+        if ok:
+            try:
+                m = next((m for m in requests.get(OLLAMA + "/api/ps", timeout=3).json().get("models", []) if m["name"] == tag), None)
+                spilled = bool(m and m.get("size") and m.get("size_vram", 0) < 0.97 * m["size"])
+            except Exception:
+                pass
+        if (ok and not spilled) or win <= 8192:
+            if ok:
+                CTX_OK[tag] = win
+            return r, win
+        win = max(8192, win // 2)
+        _note("[engine] %s: shrinking MirAI's memory to %d tokens to fit the GPU" % (tag, win))
+        try:
+            requests.post(OLLAMA + "/api/generate", json={"model": tag, "keep_alive": 0}, timeout=30)
+        except Exception:
+            pass
+
+
+def free_for_engine(model):
+    """Make room for MirAI's picked engine: unload every OTHER model Ollama holds (old engines, other apps' models)
+    and ComfyUI's idle models. A picked engine that "won't start" is usually just out of VRAM, not broken."""
+    try:
+        for m in requests.get(OLLAMA + "/api/ps", timeout=3).json().get("models", []):
+            if m["name"] != model:
+                requests.post(OLLAMA + "/api/generate", json={"model": m["name"], "keep_alive": 0}, timeout=30)
+    except Exception:
+        pass
+    try:
+        import comfy as _c
+        q = requests.get(_c.BASE + "/queue", timeout=3).json()
+        if not (q.get("queue_running") or q.get("queue_pending")):     # never pull models out from under a render
+            requests.post(_c.BASE + "/free", json={"unload_models": True, "free_memory": True}, timeout=30)
+    except Exception:
+        pass
+    time.sleep(2)
+
+
 def engine_failed(r):
     return r is not None and r.status_code >= 500 and ("llama-server" in r.text or "loading model" in r.text)
 
@@ -406,9 +541,29 @@ def engine_post(path, body, **kw):
     """POST to Ollama with the engine in body['model']; an engine that can't start is marked broken and the request is
     retried on its stand-in (vision kept when the stand-in is the same family)."""
     r = None
-    for _ in range(3):
+    freed = False
+    if body.get("model") in CTX_OK:
+        o = body.get("options") or {}
+        body = dict(body, options=dict(o, num_ctx=min(int(o.get("num_ctx") or 10 ** 9), CTX_OK[body["model"]])))
+    for _ in range(5):
         r = requests.post(OLLAMA + path, json=body, **kw)
+        if engine_failed(r) and not freed:            # out of VRAM? free the GPU and try the SAME engine once more
+            freed = True
+            free_for_engine(body.get("model"))
+            continue
+        nc = int((body.get("options") or {}).get("num_ctx") or 0)
+        if engine_failed(r) and (nc == 0 or nc > 8192):   # some engines only start with a smaller context (no num_ctx
+            body = dict(body, options=dict(body.get("options") or {}, num_ctx=8192))   # = the Modelfile's, often huge)
+            CTX_OK[body["model"]] = 8192
+            continue
         if not engine_failed(r) or body.get("model") == FALLBACK_ENGINE:
+            if r is not None and r.ok:
+                USED["model"] = body.get("model")
+                if body.get("stream") is False:
+                    try:
+                        tok_from_ollama(r.json(), body)
+                    except Exception:
+                        pass
             return r
         ENGINE_BROKEN.add(body["model"])
         try:
@@ -420,7 +575,19 @@ def engine_post(path, body, **kw):
         body = dict(body, model=nxt)
         if body.get("images") and not engine_sees(nxt):
             body.pop("images", None)
+    if r is not None and r.ok:
+        USED["model"] = body.get("model")
     return r
+
+
+def used_label(job=None):
+    """'Gemma 4 12B', or 'Qwen 3.5 9B · fallback' when the picked engine couldn't run."""
+    m = USED.get("model")
+    if not m:
+        return None
+    picked = prefs().get("engine_model") or DEFAULT_ENGINE
+    lab = engine_label(m).split(" · ", 1)[-1]
+    return lab if (m == picked or m.startswith(picked + "-") or picked.startswith(m)) else lab + " · fallback"
 
 
 def engine_model():
@@ -536,6 +703,7 @@ def ask(prompt, system, timeout=120, images=None, want_json=False, role="prompt"
         body.pop("images", None)
         r = requests.post(OLLAMA + "/api/generate", json=body, timeout=timeout)
     r.raise_for_status()
+    USED["model"] = body.get("model")
     d = r.json()
     return (d.get("response") or "").strip() or (d.get("thinking") or "").strip()
 

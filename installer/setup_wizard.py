@@ -58,6 +58,8 @@ UV_URL = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-
 COMFY_URL = "https://github.com/comfyanonymous/ComfyUI/archive/refs/tags/v%s.zip" % COMFY_TAG
 OLLAMA_URL = "https://ollama.com/download/OllamaSetup.exe"
 VCREDIST_URL = "https://aka.ms/vs/17/release/vc_redist.x64.exe"   # Microsoft C++ 2015-2022 runtime, needed by PyTorch
+NODE_VER = "22.12.0"                      # private Node.js LTS for the MIR MOTION (Remotion) render daemon
+NODE_URL = "https://nodejs.org/dist/v%s/node-v%s-win-x64.zip" % (NODE_VER, NODE_VER)
 UA = {"User-Agent": "MirMediaLabs-Setup/" + VERSION}
 NO_WINDOW = 0x08000000
 GB = 1024 ** 3
@@ -119,7 +121,7 @@ MUSE_TAG = "gemma4:12b"
 ENGINES = {MUSE_TAG: ("MirAI · Gemma 4 12B (recommended · sees pictures)", 8.0),
            "llama3.1:8b": ("MUSE · Llama 3.1 8B (lighter + faster · text only)", 4.9),
            "": ("None — no MirAI: no chat or Auto mode, prompts used exactly as typed", 0)}
-RUNTIME_GB = 9.0      # python + torch CUDA + ComfyUI deps (+ download cache, removed afterwards)
+RUNTIME_GB = 9.5      # python + torch CUDA + ComfyUI deps + Node.js motion engine (+ download cache, removed afterwards)
 PARALLEL_DOWNLOADS = 3   # model files fetched at once (a single HTTPS stream rarely fills a fast line)
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\%s" % APP_ID
 APK_URL = "https://github.com/MirCorp85/MirMediaLabs/releases/latest/download/MirMediaLabs.apk"
@@ -585,6 +587,32 @@ class Installer:
         for f, size in (("kokoro-v1.0.onnx", 325532387), ("voices-v1.0.bin", 28214398)):
             self.download(KOKORO_URL + f, os.path.join(kd, f), size=size, label="MirAI voice · " + f)
 
+    def step_motion(self):
+        """MIR MOTION (Motion Studio, editor scenes, series graphics): a private Node.js runtime + the Remotion packages
+        for <install>\\motion, plus Remotion's headless browser. CPU only. Never touches a system-wide Node."""
+        mdir = os.path.join(self.dir, "motion")
+        if not os.path.isfile(os.path.join(mdir, "package.json")):
+            self.log("motion engine files missing from the payload — skipped")
+            return
+        ndir = os.path.join(self.rt, "node")
+        node = os.path.join(ndir, "node.exe")
+        if not (os.path.isfile(node) and NODE_VER in run_quiet([node, "-v"], 30)):
+            z = self.download(NODE_URL, os.path.join(self.cache, "node-%s.zip" % NODE_VER), label="Node.js (motion engine)")
+            tmp = ndir + "_new"
+            shutil.rmtree(tmp, ignore_errors=True)
+            with zipfile.ZipFile(z) as zz:
+                zz.extractall(tmp)
+            shutil.rmtree(ndir, ignore_errors=True)
+            shutil.move(os.path.join(tmp, os.listdir(tmp)[0]), ndir)
+            shutil.rmtree(tmp, ignore_errors=True)
+        npm = os.path.join(ndir, "node_modules", "npm", "bin", "npm-cli.js")
+        self.sh([node, npm, "ci", "--no-audit", "--no-fund", "--loglevel=error"], cwd=mdir)
+        try:                                             # first render would fetch it anyway — do it now, with progress in the log
+            self.sh([node, os.path.join(mdir, "node_modules", "@remotion", "cli", "remotion-cli.js"), "browser", "ensure"], cwd=mdir)
+        except RuntimeError as e:
+            self.log("  Remotion browser will download on the first motion render (%s)" % str(e)[:120])
+        self.node = node
+
     def step_ollama(self):
         tag = self.o["engine"]
         if not tag:
@@ -708,6 +736,9 @@ class Installer:
                     "ffmpeg": ff.splitlines()[-1] if ff else None, "installed": time.strftime("%Y-%m-%d %H:%M"),
                     "version": VERSION, "components": self.o["components"], "engine": self.o["engine"],
                     "reuse": reuse or None})
+        node = getattr(self, "node", None) or os.path.join(self.rt, "node", "node.exe")
+        if os.path.isfile(node):                            # MIR MOTION daemon (server/remotion.py)
+            cfg.update({"node": node, "motion_dir": os.path.join(self.dir, "motion")})
         cfg.setdefault("comfy_args", [])
         cfg.setdefault("port", 5400)
         json.dump(cfg, open(cfg_f, "w", encoding="utf-8"), indent=1)
@@ -783,6 +814,7 @@ class Installer:
         if self.o["engine"]:
             steps.append(("%s (Ollama)" % ENGINES.get(self.o["engine"], (self.o["engine"],))[0].split(" (")[0], self.step_ollama, 10))
             steps.append(("MirAI voice (Kokoro)", self.step_voice, 3))
+        steps.append(("Motion engine (Remotion)", self.step_motion, 3))
         self._dl_thread, self._dl_error = None, None
         if self.o["components"]:
             steps.append(("Finishing model downloads", self.wait_models, 60))

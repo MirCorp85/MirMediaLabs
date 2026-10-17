@@ -1,0 +1,14 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>MUSE</title>
+<style>html,body{margin:0;height:100%;background:transparent;overflow:hidden;touch-action:none}canvas{width:100%;height:100%;display:block}</style>
+</head><body><canvas id="c"></canvas>
+<!-- the app's MUSE (header button, live-voice card, MUSE look picker): ?style=pearl|halo|particles|crystal&small=1&state=… -->
+<script type="module">
+import './muse_orb.js';
+const q=new URLSearchParams(location.search);
+const o=MuseOrb.mount(document.getElementById('c'),{style:q.get('style')||'pearl',small:q.get('small')==='1',state:q.get('state')||'idle'});
+window.orb=o;   // the app drives it: orb.state('speaking'), orb.level(0.4), orb.style('halo')
+const c=document.getElementById('c');
+c.addEventListener('click',()=>{if(c.museMoved())return;try{MuseApp.tap()}catch(e){}});
+</script></body></html>

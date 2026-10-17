@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#262624">
+<title>MIR MEDIA LABS · Node Flow</title>
+<link rel="icon" href="static/icon-512.png">
+<link rel="stylesheet" href="static/flow.css">
+</head>
+<body>
+<div id="nf" class="nf">
+  <header class="nf-top">
+    <button class="eb ic" data-a="close" title="Back to the lab"><i class="mi" data-ic="arrow-left"></i></button>
+    <div class="nf-brand"><i class="mi" data-ic="chain"></i><b>NODE FLOW</b></div>
+    <input class="nf-name" id="nf-name" value="Untitled flow" spellcheck="false" title="Flow name">
+    <span class="nf-save" id="nf-state"></span>
+    <span class="sp"></span>
+    <button class="eb" data-a="add" title="Add a node"><i class="mi" data-ic="plus"></i><span> Node</span></button>
+    <button class="eb" data-a="templates" title="Starter flows"><i class="mi" data-ic="layers"></i><span> Templates</span></button>
+    <button class="eb" data-a="open" title="Your saved flows"><i class="mi" data-ic="folder"></i><span> Open</span></button>
+    <button class="eb" data-a="save" title="Save this flow"><i class="mi" data-ic="check"></i><span> Save</span></button>
+    <button class="eb" data-a="fit" title="Fit all nodes in view"><i class="mi" data-ic="expand"></i></button>
+    <button class="eb pri" data-a="run" id="nf-run" title="Run the whole flow"><i class="mi" data-ic="play"></i><span> Run</span></button>
+    <button class="eb warn" data-a="stop" id="nf-stop" title="Stop the run" hidden><i class="mi" data-ic="stop"></i><span> Stop</span></button>
+  </header>
+  <div class="nf-body">
+    <aside class="nf-pal" id="nf-pal"></aside>
+    <main class="nf-canvas" id="nf-canvas">
+      <div class="nf-world" id="nf-world"><svg class="nf-wires" id="nf-wires"></svg></div>
+      <div class="nf-legend"><span class="t-video">video</span><span class="t-image">picture</span><span class="t-audio">audio</span><span class="t-text">text</span></div>
+      <div class="nf-hint" id="nf-hint">Drag from an output dot to an input dot to wire nodes. Drag the background to pan, wheel / pinch to zoom.</div>
+    </main>
+    <aside class="nf-insp" id="nf-insp"><div class="dim pad">Select a node to see its settings.</div></aside>
+  </div>
+</div>
+<div id="nf-modal" class="nf-modal" hidden></div>
+<div id="nf-toast" class="nf-toast"></div>
+<input type="file" id="nf-file" hidden>
+<script>
+(function () {
+  var mlab = location.pathname.indexOf('/mlab') === 0;
+  document.write('<script src="' + (mlab ? '/static/icons/mir-icons.js' : '/static/mir-icons.js') + '"><\/script>');
+})();
+</script>
+<script src="static/flow.js"></script>
+<script src="/static/fonts/mir/mirfont.js" data-vars="--sans"></script>
+</body>
+</html>

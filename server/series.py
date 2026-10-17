@@ -23,6 +23,13 @@ except ImportError:
     import core
     import prompts
     import series_presets as presets
+try:
+    from . import motion_series                        # MIR MOTION: Remotion graphics pass (both lab copies)
+except ImportError:
+    try:
+        import motion_series
+    except ImportError:
+        motion_series = None
 
 SER = os.path.join(core.DATA, "series")
 _ID_RE = re.compile(r"^[a-z0-9]{6,32}$")
@@ -360,6 +367,8 @@ def _setup(b):
            "res": b.get("res") if b.get("res") in ("draft", "standard", "high", "max") else "standard",
            "join": b.get("join") if b.get("join") in ("cut", "soft") else "soft",
            "flow": b.get("flow") if b.get("flow") in ("seamless", "cuts") else "seamless"}
+    if motion_series:                                  # MIR MOTION pack (intro / lyrics / credits)
+        out["motion"] = motion_series.clean_pack(b.get("motion"))
     cb = b.get("cons") if isinstance(b.get("cons"), dict) else {}
     out["cons"] = {"master": _clean(cb.get("master"), 40), **{k: bool(cb.get(k, dv)) for k, dv in CONS_DEFAULTS.items()}}
     sg = b.get("song") if isinstance(b.get("song"), dict) else {}
@@ -1548,9 +1557,27 @@ def use_song(d, ep, name, seconds_of, source="upload"):
     ep.pop("final", None)
 
 
+def _probe_secs(name):
+    import subprocess
+    p = _lib(name)
+    if not p:
+        return 0.0
+    r = subprocess.run([core.FFMPEG, "-nostdin", "-i", p], capture_output=True, timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    m = re.search(r"Duration: (\d+):(\d+):([\d.]+)", r.stderr.decode("utf-8", "replace"))
+    return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3)) if m else 0.0
+
+
 def finish(uid, d, ep, editor_dir):
     """Assemble + editor project (both the page and the runner)."""
     ep["final"] = assemble(d, ep, uid)
+    if motion_series:                                  # Remotion polish: intro + karaoke lyrics + credits around the cut
+        try:
+            w, h = {"16:9": (1280, 720), "9:16": (720, 1280), "1:1": (960, 960), "21:9": (1680, 720)}.get(_aspect(d), (1280, 720))
+            pol = motion_series.polish(d, ep, uid, w, h, lambda src: _probe_secs(src.partition(":")[2]))
+            if pol:
+                ep["final_raw"], ep["final"] = ep["final"], pol
+        except Exception as e:                         # never lose an episode to the graphics pass
+            ep["motion_error"] = str(e)[:300]
     proj = musical_project(d, ep)
     pid = ep.get("project") if _ID_RE.match(str(ep.get("project") or "")) else uuid.uuid4().hex[:12]
     proj.update(id=pid, created=time.time(), updated=time.time())

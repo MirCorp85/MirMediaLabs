@@ -22,7 +22,7 @@ except ImportError:
     import core
 
 DIR = os.path.join(core.DATA, "workflows")
-KIND = {"h3": "video", "qimg": "image", "music3": "audio", "ace": "audio"}
+KIND = {"vace": "video", "h3": "video", "qimg": "image", "music3": "audio", "ace": "audio"}
 _TOKEN = re.compile(r"\{\{\s*([a-z_]+\d?)\s*\}\}")
 
 

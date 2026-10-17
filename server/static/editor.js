@@ -825,6 +825,7 @@
     else if (a.indexOf('addtrack-') === 0) { var k = a.split('-')[1], n = P.tracks.filter(function (t) { return t.kind === k; }).length + 1;
       var t = { id: uid(), kind: k, name: (k === 'video' ? 'V' : k === 'audio' ? 'A' : 'Titles ') + n, clips: [] };
       if (k === 'audio') P.tracks.push(t); else P.tracks.splice(k === 'text' ? 0 : P.tracks.filter(function (x) { return x.kind === 'text'; }).length, 0, t); commit(); drawAll(); }
+    else if (a === 'motion') motionScene(); else if (a === 'motioncap') motionCaptions(); else if (a === 'motionstudio') { save(); if (window.parent !== window) window.parent.postMessage({ mml: 'editor-motion', src: SEL ? (findSel() || {}).src : '' }, '*'); else location.href = B + '/motion'; }
     else if (a === 'score') aiScore(); else if (a === 'voice') aiVoice(); else if (a === 'fill') aiFill();
   }
   document.addEventListener('click', function (e) { var b = e.target.closest('[data-a]'); if (b && !b.closest('#ed-insp')) action(b.dataset.a); });
@@ -844,6 +845,48 @@
     else if (k === 'Escape') { SEL = null; drawAll(); ED.classList.remove('insp-on', 'bin-on'); scrim(false); }
   });
   window.addEventListener('beforeunload', function () { if (DIRTY) save(); });
+  /* ── MIR MOTION: Remotion scenes rendered straight onto the timeline (remotion.py) ── */
+  function findSel() { for (var i = 0; i < P.tracks.length; i++) for (var j = 0; j < P.tracks[i].clips.length; j++) if (P.tracks[i].clips[j].id === SEL) return P.tracks[i].clips[j]; return null; }
+  function motionRender(proj, label, at) {
+    toast('Rendering ' + label + ' with Remotion…');
+    return api('/api/motion/render', { project: proj, codec: proj.alpha ? 'alpha' : 'mp4', purpose: 'editor' }).then(function (j) {
+      if (j.error) { toast(j.error, 1); return; }
+      var poll = function () { api('/api/motion/job/' + j.id).then(function (s) {
+        if (s.status === 'running') return setTimeout(poll, 1200);
+        if (s.status !== 'done') return toast('Motion render failed: ' + (s.error || s.status), 1);
+        addMedia(s.src, { at: at, prompt: label, name: label }).then(function () { toast(label + ' placed at ' + at.toFixed(1) + 's'); });
+      }); }; poll();
+    });
+  }
+  function motionScene() {
+    api('/api/motion/schema').then(function (sc) {
+      var S = sc.scenes || {}, keys = Object.keys(S).filter(function (k) { return k !== 'audio' && k !== 'media'; });
+      modal('<h2>Motion scene</h2><div class="fld"><label>Scene</label><select id="ms_t">' + keys.map(function (k) { return '<option value="' + k + '">' + esc(S[k].label) + '</option>'; }).join('') + '</select></div>' +
+        '<div class="fld"><label>Text</label><input id="ms_x" placeholder="Title, name, number…"></div><div class="fld"><label>Second line</label><input id="ms_y" placeholder="Subtitle / role / label (optional)"></div>' +
+        '<div class="fld"><label>Length (s)</label><input id="ms_d" type="number" value="4" min="0.5" step="0.5"></div><label class="row"><input type="checkbox" id="ms_a" checked> Transparent overlay (sits on top of your video)</label>' +
+        '<div class="acts"><button class="eb" data-x="c">Cancel</button><button class="eb pri" data-x="go">Render at playhead</button></div>', function (m) {
+        $('[data-x=c]', m).onclick = function () { m.hidden = true; };
+        $('[data-x=go]', m).onclick = function () {
+          var t = $('#ms_t').value, x = $('#ms_x').value, y = $('#ms_y').value, d = +$('#ms_d').value || 4, al = $('#ms_a').checked, props = { transparent: al };
+          if (t === 'lowerthird') { props.name = x; props.role = y; } else if (t === 'stat') { props.value = +x || 0; props.label = y; } else if (t === 'chapter') { props.num = y || '1'; props.title = x; }
+          else if (t === 'credits' || t === 'chart') props.title = x; else if (t === 'quote') { props.text = x; props.by = y; } else { props.text = x; props.sub = y; props.title = x; }
+          m.hidden = true;
+          motionRender({ name: (S[t].label + ' ' + x).slice(0, 60), w: P.w, h: P.h, fps: 30, font: 'orbit', alpha: al, tracks: [{ kind: 'scene', clips: [{ id: 'a', type: t, start: 0, dur: d, props: props, out: { type: 'fade', dur: 0.4 } }] }] }, S[t].label, T);
+        };
+      });
+    });
+  }
+  function motionCaptions() {
+    var c = findSel(); if (!c || !c.src || c.type === 'image') return toast('Select a video or audio clip first', 1);
+    toast('Transcribing with Whisper…');
+    api('/api/motion/words', { src: c.src }).then(function (d) {
+      if (d.error) return toast(d.error, 1);
+      var a = c.in || 0, b = c.out || c.dur || 9999, sp = c.speed || 1;
+      var ws = (d.words || []).filter(function (w) { return w.s >= a && w.e <= b; }).map(function (w) { return { w: w.w, s: +((w.s - a) / sp).toFixed(3), e: +((w.e - a) / sp).toFixed(3) }; });
+      if (!ws.length) return toast('No speech heard in this clip', 1);
+      motionRender({ name: 'Captions', w: P.w, h: P.h, fps: 30, font: 'orbit', alpha: true, tracks: [{ kind: 'captions', clips: [{ id: 'a', type: 'captions', start: 0, dur: ws[ws.length - 1].e + 0.5, props: { words: ws, style: 'pop', upper: true, transparent: true } }] }] }, 'Captions', c.start || 0);
+    });
+  }
   window.addEventListener('message', function (e) { var d = e.data || {}; if (d.mml === 'editor-add' && d.src) addMedia(d.src, { prompt: d.prompt }); });
 
   /* ── boot: ?p=<project> opens it · ?add=lib:x (repeatable) drops items in (from the lab's "Edit" buttons) ── */

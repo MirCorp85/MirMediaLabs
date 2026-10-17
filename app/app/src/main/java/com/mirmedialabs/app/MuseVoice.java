@@ -111,6 +111,9 @@ final class MuseVoice {
         for (String s : take(text, 0, true).sentences) say(s, true);
     }
 
+    /** Talking right now or about to (MUSE live: barge-in + the speaking look). */
+    boolean busy() { return cur != null || !q.isEmpty(); }
+
     boolean speaking(String id) { return id != null && id.equals(replyId); }
 
     private void idle() { m.runOnUiThread(() -> { if (m.create != null) m.create.paintListen(); }); }

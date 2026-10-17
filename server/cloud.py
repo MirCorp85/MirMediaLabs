@@ -8,6 +8,7 @@ The worker thread activates the brain for the job it runs (activate / active), s
 the Director all follow the same per-job choice without extra plumbing.
 """
 import json
+import os
 import re
 import threading
 import time
@@ -176,6 +177,7 @@ def spent():
 
 
 def _record(model, tin, tout):
+    core.tok_add(tin, tout)
     pi, po = price_of(model)
     with _ULOCK:
         u = usage()
@@ -421,14 +423,118 @@ def _refresh_fireworks():
 
 
 def local_engines():
-    """The pickable local Ollama brains, with whether each is installed (an uninstalled one is pulled on pick)."""
+    """Every language model Ollama has on this PC, found automatically (nothing to configure): chat-capable ones only
+    (embedding models are skipped), tested ones first, with vision / size / context from Ollama itself."""
     try:
-        tags = [m["name"] for m in core.requests.get(core.OLLAMA + "/api/tags", timeout=3).json().get("models", [])]
+        tags = core.requests.get(core.OLLAMA + "/api/tags", timeout=3).json().get("models", [])
     except Exception:
         tags = None
-    cur = core.engine_model()
-    return [dict(e, ctx=16384, installed=None if tags is None else any(t == e["model"] or t.startswith(e["model"] + "-") for t in tags),
-                 current=cur == e["model"] or cur.startswith(e["model"] + "-")) for e in core.LOCAL_ENGINES]
+    want = core.prefs().get("engine_model") or core.DEFAULT_ENGINE
+    names = [m["name"] for m in tags or []]
+    out = [dict(e, ctx=16384, installed=None if tags is None else any(t == e["model"] or t.startswith(e["model"] + "-") for t in names),
+                current=want == e["model"]) for e in core.LOCAL_ENGINES]
+    known = {e["model"] for e in core.LOCAL_ENGINES}
+    for m in tags or []:
+        t, caps, det = m["name"], m.get("capabilities"), m.get("details") or {}
+        if t in known:
+            continue
+        if caps is not None and "completion" not in caps:          # embedding / reranker models can't chat
+            continue
+        if caps is None and re.search(r"embed|bge|nomic|minilm|rerank", t, re.I):
+            continue
+        bits = [det.get("parameter_size"), det.get("quantization_level")]
+        out.append({"model": t, "label": core.pretty_tag(t), "note": " · ".join(x for x in bits if x) or "installed on this PC",
+                    "vision": bool(caps and "vision" in caps), "gb": round((m.get("size") or 0) / 1e9, 1) or None,
+                    "ctx": min(int(det.get("context_length") or 16384), 131072), "installed": True, "current": want == t})
+    return out
+
+
+# GGUF model files other apps downloaded (LM Studio, Jan, GPT4All, KoboldCpp, Hugging Face...) — one click adds them to
+# Ollama so MirAI can use them. Only files under these folders are ever offered or imported.
+GGUF_DIRS = [os.path.join(os.path.expanduser("~"), *p) for p in (
+    (".lmstudio", "models"), (".cache", "lm-studio", "models"), ("AppData", "Roaming", "Jan", "data", "models"),
+    ("jan", "models"), ("AppData", "Local", "nomic.ai", "GPT4All"), (".cache", "huggingface", "hub"), ("models",),
+    ("Documents", "models"), ("Downloads",))] + [p for p in (core.CONFIG.get("gguf_dirs") or []) if isinstance(p, str)]
+_FOUND = {"t": 0, "rows": []}
+
+
+def found_gguf(force=False):
+    if not force and time.time() - _FOUND["t"] < 120:
+        return _FOUND["rows"]
+    try:
+        have = {m["name"] for m in core.requests.get(core.OLLAMA + "/api/tags", timeout=3).json().get("models", [])}
+    except Exception:
+        have = set()
+    rows, seen = [], set()
+    for root in GGUF_DIRS:
+        if not os.path.isdir(root):
+            continue
+        for dp, dn, fn in os.walk(root):
+            if dp[len(root):].count(os.sep) > 5:
+                dn[:] = []
+                continue
+            dn[:] = [d for d in dn if not d.startswith(".") or d in (".internal",)]
+            for f in fn:
+                low = f.lower()
+                if not low.endswith(".gguf") or "mmproj" in low or re.search(r"embed|bge|nomic|minilm|rerank", low) \
+                        or re.search(r"-0000[2-9]-of-", low):
+                    continue
+                path = os.path.join(dp, f)
+                try:
+                    size = os.path.getsize(path)
+                except OSError:
+                    continue
+                if size < 300e6 or f in seen:
+                    continue
+                seen.add(f)
+                name = import_name(path)
+                rows.append({"path": path, "file": f, "gb": round(size / 1e9, 1), "name": name,
+                             "label": core.pretty_tag(name.split("/")[-1]), "added": name in have or name + ":latest" in have,
+                             "app": next((a for k, a in (("lmstudio", "LM Studio"), ("lm-studio", "LM Studio"), ("jan", "Jan"),
+                                                         ("gpt4all", "GPT4All"), ("huggingface", "Hugging Face")) if k in path.lower()), "this PC")})
+    _FOUND.update(t=time.time(), rows=rows)
+    return rows
+
+
+def import_name(path):
+    base = re.sub(r"\.gguf$", "", os.path.basename(path), flags=re.I).lower()
+    base = re.sub(r"[^a-z0-9._-]+", "-", base).strip("-.")[:60] or "model"
+    return "mml-" + base
+
+
+_IMPORT = {}
+
+
+def import_gguf(path):
+    """ollama create <name> from a found GGUF (runs in the background; poll found_gguf / summary)."""
+    row = next((r for r in found_gguf(force=True) if os.path.normcase(r["path"]) == os.path.normcase(path)), None)
+    if not row:
+        raise ValueError("that file isn't one of the models found on this PC")
+    if _IMPORT.get(row["name"]) == "running":
+        return row["name"]
+    import subprocess
+    import tempfile
+
+    def run():
+        _IMPORT[row["name"]] = "running"
+        mf = os.path.join(tempfile.gettempdir(), "mml_%s.Modelfile" % row["name"])
+        try:
+            with open(mf, "w", encoding="utf-8") as f:
+                f.write('FROM "%s"\n' % row["path"])
+            exe = core.CONFIG.get("ollama_exe") or "ollama"
+            r = subprocess.run([exe, "create", row["name"], "-f", mf], capture_output=True, text=True, timeout=3600,
+                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            _IMPORT[row["name"]] = "done" if r.returncode == 0 else ("error: " + (r.stderr or r.stdout)[-200:])
+        except Exception as e:
+            _IMPORT[row["name"]] = "error: " + str(e)[:200]
+        finally:
+            _FOUND["t"] = 0
+            try:
+                os.remove(mf)
+            except OSError:
+                pass
+    threading.Thread(target=run, daemon=True, name="mml-gguf-import").start()
+    return row["name"]
 
 
 def summary():
@@ -436,6 +542,8 @@ def summary():
     _refresh_fireworks()
     k = keys()
     return {"keys": {p: bool(v) for p, v in k.items()}, "brain": brain(), "models": models(),
-            "local": {"label": core.engine_label(), "model": core.engine_model(), "ctx": 16384},
+            "local": {"label": core.engine_label(), "model": core.engine_model(), "ctx": 16384,
+                      "picked": core.prefs().get("engine_model") or core.DEFAULT_ENGINE},
             "locals": local_engines(),
+            "found": [dict(r, importing=_IMPORT.get(r["name"])) for r in found_gguf()],
             "usage": usage(), "cap": cap(), "over_cap": spent() >= cap()}
