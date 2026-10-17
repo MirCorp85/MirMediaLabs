@@ -581,11 +581,17 @@ class Installer:
         tpy = os.path.join(tvenv, "Scripts", "python.exe")
         if not os.path.isfile(tpy):
             self.sh([self.uv, "venv", tvenv, "--python", PY_VER, "--managed-python"])
-        self.sh([self.uv, "pip", "install", "--python", tpy, "kokoro-onnx", "soundfile"])
+        self.sh([self.uv, "pip", "install", "--python", tpy, "kokoro-onnx", "soundfile", "faster-whisper"])
         kd = os.path.join(self.engine, "models", "kokoro")
         os.makedirs(kd, exist_ok=True)
         for f, size in (("kokoro-v1.0.onnx", 325532387), ("voices-v1.0.bin", 28214398)):
             self.download(KOKORO_URL + f, os.path.join(kd, f), size=size, label="MirAI voice · " + f)
+        # MUSE's ears: faster-whisper "base" (CPU int8, ~150 MB), downloaded now so the first "hey MUSE" just works
+        wd = os.path.join(self.engine, "models", "whisper")
+        os.makedirs(wd, exist_ok=True)
+        self.log("downloading MUSE's ears (speech recognition) …")
+        self.sh([tpy, "-c", "import sys;from faster_whisper import WhisperModel;"
+                            "WhisperModel('base', device='cpu', compute_type='int8', download_root=sys.argv[1]);print('ears ready')", wd])
 
     def step_motion(self):
         """MIR MOTION (Motion Studio, editor scenes, series graphics): a private Node.js runtime + the Remotion packages
@@ -739,6 +745,9 @@ class Installer:
                     "ffmpeg": ff.splitlines()[-1] if ff else None, "installed": time.strftime("%Y-%m-%d %H:%M"),
                     "version": VERSION, "components": self.o["components"], "engine": self.o["engine"],
                     "reuse": reuse or None})
+        tpy = os.path.join(self.rt, "tts-venv", "Scripts", "python.exe")
+        if os.path.isfile(tpy):                             # MUSE's ears (server/voice.py) run in the voice runtime
+            cfg.update({"stt_python": tpy, "voice_stt_dir": os.path.join(self.engine, "models", "whisper")})
         node = getattr(self, "node", None) or os.path.join(self.rt, "node", "node.exe")
         if os.path.isfile(node):                            # MIR MOTION daemon (server/remotion.py)
             cfg.update({"node": node, "motion_dir": os.path.join(self.dir, "motion")})
