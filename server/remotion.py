@@ -68,6 +68,8 @@ def ensure_daemon(wait=40):
         node = core.CONFIG.get("node") or shutil.which("node") or (r"C:\Program Files\nodejs\node.exe" if os.name == "nt" else "node")
         log = open(os.path.join(MD, "daemon.log"), "ab")
         env = dict(os.environ, MIR_LIB=core.LIB, MIR_REFS=core.REFS, MIR_MOTION_PORT=str(PORT), MIR_FONTS=FONTS)
+        if os.path.isabs(node):                                       # the installer's private Node: first on PATH
+            env["PATH"] = os.path.dirname(node) + os.pathsep + env.get("PATH", "")
         flags = (0x00000008 | 0x08000000) if os.name == "nt" else 0       # DETACHED_PROCESS | CREATE_NO_WINDOW
         subprocess.Popen([node, "server.mjs"], cwd=ENGINE, stdin=subprocess.DEVNULL, stdout=log, stderr=log,
                          env=env, creationflags=flags, close_fds=True)
