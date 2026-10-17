@@ -605,6 +605,9 @@ class Installer:
             shutil.rmtree(ndir, ignore_errors=True)
             shutil.move(os.path.join(tmp, os.listdir(tmp)[0]), ndir)
             shutil.rmtree(tmp, ignore_errors=True)
+        # npm runs package install scripts (esbuild's install.js) as plain "node ..." through cmd.exe: the private Node
+        # must be first on PATH, or a PC without a system-wide Node fails with "'node' is not recognized"
+        os.environ["PATH"] = ndir + os.pathsep + os.environ.get("PATH", "")
         npm = os.path.join(ndir, "node_modules", "npm", "bin", "npm-cli.js")
         self.sh([node, npm, "ci", "--no-audit", "--no-fund", "--loglevel=error"], cwd=mdir)
         try:                                             # first render would fetch it anyway — do it now, with progress in the log
