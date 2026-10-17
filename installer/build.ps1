@@ -70,6 +70,13 @@ $stage = Join-Path $build 'payload'
 Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force (Join-Path $stage 'updates') | Out-Null
 Copy-Item $dist (Join-Path $stage 'app') -Recurse
+# flask watermark logo next to the compiled watermark module (watermark.MARK = <app>\mark.png)
+Copy-Item (Join-Path $root 'server\mark.png') (Join-Path $stage 'app\mark.png')
+# MIR MOTION engine source (Remotion daemon + scenes + prebuilt player/schema); the wizard installs Node + npm ci
+$mo = Join-Path $stage 'motion'
+New-Item -ItemType Directory -Force $mo | Out-Null
+foreach ($f in 'server.mjs', 'build_player.mjs', 'package.json', 'package-lock.json', 'tsconfig.json') { Copy-Item (Join-Path $root "motion\$f") $mo }
+foreach ($d in 'src', 'dist') { Copy-Item (Join-Path $root "motion\$d") (Join-Path $mo $d) -Recurse }
 if ($Public) {
     # public payload carries the MirCorp-signed release APK (never the private debug build)
     $rel = Join-Path $root 'MirMediaLabs-release.apk'

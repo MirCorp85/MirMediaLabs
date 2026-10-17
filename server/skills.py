@@ -30,6 +30,17 @@ def overrides(entry, model):
     """Engine-specific param overrides for this skill/step: {"params": {"<engine id>": {...}}}."""
     return dict((entry.get("params") or {}).get(model) or {})
 
+# Copy-the-movement knobs (defined here so both SKILLS and PIPELINES can use them)
+_PEOPLE = {"k": "people", "label": "People to copy", "type": "select", "def": "", "opts": [["", "auto (2)"], ["1", "1"], ["2", "2"],
+           ["3", "3"], ["4", "4"], ["6", "6"]], "to": {"step": 2, "param": "control_people"}}
+_MSOUND = {"k": "sound", "label": "Sound", "type": "select", "def": "", "opts": [["", "new sound"], ["clip", "keep the clip's sound"]],
+           "to": {"step": 2, "param": "control_audio"}}
+_MLOOK = {"k": "look", "label": "Look", "type": "select", "def": "", "opts": [["", "as described"], ["Pixar-style 3D animation", "Pixar 3D"],
+          ["anime, cel-shaded 2D animation", "anime"], ["claymation stop-motion, Aardman style", "claymation"],
+          ["photorealistic, cinematic film", "photoreal"], ["comic book, bold ink lines", "comic"],
+          ["low-poly video game", "video game"]], "to": {"step": 1, "add": "Style: {v}."}}
+_MOVE_RE = r"\b(copy|same|follow|use|mimic|transfer)\b.{0,25}\b(movement|moves?|motion|dance|poses?|choreograph\w*)\b"
+
 SKILLS = [
     # ── images (Qwen) ──
     {"id": "product", "name": "Product Shot", "icon": "box", "role": "image",
@@ -134,6 +145,15 @@ SKILLS = [
      "tpl": "The subject from the pictures in this scene: {input}. The camera moves exactly like the reference clip (same path, speed "
             "and framing); only the camera motion is taken from the clip, not its people or place.",
      "params": {"h3": {"mode": "r2v", "ref_role": "identity", "seconds": 8}}},
+    {"id": "motioncopy", "name": "Copy The Movement", "icon": "user", "role": "video", "needs": "video",
+     "slotnames": {"video": ["Movement to copy"], "image": ["Character(s) / world (optional)"]},
+     "desc": "Only the body movement of the people in your clip is copied; characters and world come from your pictures or words",
+     "tpl": "{input}. The characters perform exactly the body movement, poses and timing of the people in the control video; "
+            "everything else (who they are, clothes, place, light) is new, taken from the reference pictures when given, otherwise "
+            "from this description.",
+     "knobs": [dict(_PEOPLE, to={"param": "control_people"}), dict(_MSOUND, to={"param": "control_audio"})],
+     "params": {"h3": {"mode": "control", "control": "pose", "replace": "whole", "control_audio": "h3", "control_people": 2,
+                       "seconds": 5}}},
     {"id": "reimagine", "name": "Re-imagine My Clip", "icon": "palette", "role": "video", "needs": "video",
      "slotnames": {"video": ["Your clip"]},
      "desc": "Same motion and timing as your clip, a whole new look (anime, clay, neon…)",
@@ -238,6 +258,39 @@ PARAM_MAP = {"voice_strength": {"ace": "voice"}, "remix_strength": {"ace": "remi
 _VIDEO_WORDS = r"\b(video|clip|visuali[sz]er|music video|animate|footage|reel)\b"
 
 PIPELINES = [
+    {"id": "motioncast", "name": "Copy The Movement · New Cast", "icon": "user",
+     "desc": "Turn your character picture into the look you ask for, then it performs the exact movement of your clip",
+     "when": "a clip AND a picture of a person / character are attached, and the person wants that character (often restyled: "
+             "cartoon, anime, clay...) to do the SAME movement / dance / jump / fight as the clip, in a new place",
+     "needs": {"video": 1, "image": 1}, "slotnames": {"video": ["Movement to copy"], "image": ["Character"]},
+     "triggers": _MOVE_RE, "also": r"\b(me|my|character|photo|picture|cartoon|anime|clay|pixar)\b",
+     "knobs": [_MLOOK, _PEOPLE, _MSOUND],
+     "steps": [{"role": "image", "does": "Redraw the attached character, full body, in the requested look (keeps who they are).",
+                "inputs": ["user:image", "user:text"],
+                "tpl": "Full-body character sheet of the person in the picture, same face, hair, build and outfit, redrawn as: {input}. "
+                       "Plain background, standing pose, whole body visible.", "params": {"qimg": {"aspect": "9:16", "mode": "auto"}}},
+               {"role": "video", "does": "The step 1 character performs the exact movement of the clip in the described world.",
+                "inputs": ["user:video", "step1:image"],
+                "tpl": "{input}. The character from the reference picture performs exactly the body movement, poses and timing of the "
+                       "person in the control video; the place, light and everything else are new, in the same look as the character.",
+                "params": {"h3": {"mode": "control", "control": "pose", "replace": "whole", "control_audio": "h3",
+                                  "control_people": 2, "seconds": 5}}}]},
+    {"id": "motionfresh", "name": "Copy The Movement · From Scratch", "icon": "wand",
+     "desc": "Invent a brand-new character from your words, then it performs the exact movement of your clip",
+     "when": "only a clip is attached (no picture) and the person wants a NEW character / creature / cartoon to do the same "
+             "movement as the clip",
+     "needs": {"video": 1}, "slotnames": {"video": ["Movement to copy"]},
+     "triggers": _MOVE_RE,
+     "knobs": [_MLOOK, _PEOPLE, _MSOUND],
+     "steps": [{"role": "image", "does": "Design the new character, full body, in the requested look.", "inputs": ["user:text"],
+                "tpl": "Full-body character design: {input}. Standing pose, whole body visible, plain background.",
+                "params": {"qimg": {"aspect": "9:16", "mode": "auto"}}},
+               {"role": "video", "does": "The step 1 character performs the exact movement of the clip in the described world.",
+                "inputs": ["user:video", "step1:image"],
+                "tpl": "{input}. The character from the reference picture performs exactly the body movement, poses and timing of the "
+                       "person in the control video, in a brand-new world described above, same look as the character.",
+                "params": {"h3": {"mode": "control", "control": "pose", "replace": "whole", "control_audio": "h3",
+                                  "control_people": 2, "seconds": 5}}}]},
     {"id": "myvoice", "name": "Sing It In My Voice", "icon": "mic",
      "desc": "Compose a full song on your topic and rhythm, then re-sing it with your recorded voice",
      "when": "a voice / audio recording is attached AND the person wants a NEW song sung with that voice",

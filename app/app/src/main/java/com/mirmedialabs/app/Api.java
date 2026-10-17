@@ -159,6 +159,32 @@ final class Api {
         }
     }
 
+    /** One recorded utterance -> /api/voice/hear (multipart "audio"). Blocking; call off the UI thread. */
+    Resp postAudioSync(String path, byte[] wav) {
+        HttpURLConnection c = null;
+        String bd = "mml" + System.nanoTime();
+        try {
+            c = (HttpURLConnection) new URL(url(path)).openConnection();
+            c.setRequestMethod("POST");
+            c.setConnectTimeout(6000);
+            c.setReadTimeout(60000);
+            c.setUseCaches(false);
+            headers(c);
+            c.setDoOutput(true);
+            c.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + bd);
+            try (OutputStream os = c.getOutputStream()) {
+                os.write(("--" + bd + "\r\nContent-Disposition: form-data; name=\"audio\"; filename=\"muse.wav\"\r\nContent-Type: audio/wav\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+                os.write(wav);
+                os.write(("\r\n--" + bd + "--\r\n").getBytes(StandardCharsets.UTF_8));
+            }
+            return finish(c, false);
+        } catch (Exception e) {
+            return new Resp(0, null, null, explain(e, base()));
+        } finally {
+            if (c != null) c.disconnect();
+        }
+    }
+
     interface Progress { void on(int pct); }
 
     /** Stream a picked file (any size) to /api/upload as multipart — never loaded fully into RAM. */

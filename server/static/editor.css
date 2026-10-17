@@ -154,3 +154,7 @@ textarea:focus,.insp input:focus{outline:0;border-color:var(--acc)}
 @media (min-width:761px){.ed-transport [data-a=bin]{display:none}}
 @media (min-width:1181px){.ed-transport [data-a=insp]{display:none}}
 .scrim{position:fixed;inset:0;z-index:39;background:rgba(0,0,0,.35)}
+/* MIR MOTION scene dialog */
+.ed-modal .fld{margin-bottom:9px}.ed-modal .fld label{display:block;font-size:11px;color:var(--dim);margin-bottom:3px}
+.ed-modal .fld input,.ed-modal .fld select{width:100%;border-radius:8px;border:1px solid var(--line);background:var(--bg);padding:7px 9px}
+.ed-modal .row{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}.ed-modal .acts{display:flex;gap:6px;justify-content:flex-end;margin-top:12px}

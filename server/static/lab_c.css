@@ -1,7 +1,7 @@
 /* MEDIA LAB · CREATE CENTER layout (picked Oct 10 2026, sample C) — a layer over the classic page: nothing is removed,
    the same pieces are re-arranged. Left = this project's media · centre = MirAI chat · right = production timeline ·
    bottom dock = Create / Projects / Library / Editor / Publish / Tools. Identical in both lab copies. */
-body.labc .top .studios, body.labc #b-theme, body.labc #b-font, body.labc #b-users, body.labc #b-patreon, body.labc #b-about,
+body.labc .top .studios, body.labc #b-theme, body.labc #b-font, body.labc #b-users, body.labc #b-about,
 body.labc .col.left > .lrail, body.labc .col.left > .card:not(.lib), body.labc #b-panel, body.labc #b-book { display: none !important; }
 body.labc .top .lc-proj { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 10px;
   border: 1px solid var(--line); background: var(--panel2, rgba(255,255,255,.04)); cursor: pointer; font-weight: 600; max-width: 300px }
@@ -12,7 +12,12 @@ body.labc .lc-state.run { color: #7aa7ff; border-color: #7aa7ff } body.labc .lc-
 body.labc .lc-state.fail { color: #e5484d; border-color: #e5484d } body.labc .lc-state.ok { color: #5fd38d; border-color: #5fd38d }
 @media (min-width: 861px) {
   body.labc .main { grid-template-columns: 250px minmax(0, 1fr) 320px !important; padding-bottom: 0 }
-  body.labc.lc-libwide .main { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 320px !important }
+  body.labc.lc-libwide .main { grid-template-columns: minmax(0, 1fr) !important }
+/* LIBRARY tab = its own full screen: every creation in a big grid (chat + production timeline step aside) */
+body.labc.lc-libwide .main > .col.center, body.labc.lc-libwide .main > .col.right { display: none !important }
+body.labc.lc-libwide .main > .col.left { max-width: none !important; width: 100% !important }
+body.labc.lc-libwide .lgrid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important; gap: 14px !important }
+body.labc.lc-libwide .col.left .card.lib { height: 100%; }
   body.labc .col.left { display: flex !important; flex-direction: column; min-height: 0 }
   body.labc .col.left > .card.lib { flex: 1; min-height: 0; display: flex !important; flex-direction: column }
   body.labc .col.left > .card.lib .grid { flex: 1; overflow: auto }

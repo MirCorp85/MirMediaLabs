@@ -256,7 +256,8 @@ def build(project, resolve, out_path, rng=None, w=None, h=None, tmpdir=TMP):
                 else:
                     a, b = _num(c.get("in"), 0, 0), _num(c.get("out"), 1)
                     b = max(b, a + 0.05)
-                    inputs += ["-ss", "%.3f" % a, "-t", "%.3f" % (b - a), "-i", p]     # input seek: fast on long sources
+                    dec = ["-c:v", "libvpx"] if os.path.basename(p).startswith("motion_") and p.lower().endswith(".webm") else []   # keep the alpha of MIR MOTION overlays
+                    inputs += ["-ss", "%.3f" % a, "-t", "%.3f" % (b - a)] + dec + ["-i", p]     # input seek: fast on long sources
                     sp = _num(c.get("speed"), 1, SPEED_LO, SPEED_HI)
                     chain = ["[%d:v]trim=duration=%.3f" % (idx, b - a), "setpts=(PTS-STARTPTS)/%.4f" % sp]
                     if not t.get("muted") and not c.get("muted") and info.get("audio") and _num(c.get("volume"), 1, 0, 4) > 0:

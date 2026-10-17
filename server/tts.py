@@ -25,6 +25,11 @@ _CFG = core.CONFIG
 _RUNTIME = os.path.dirname(os.path.dirname(os.path.dirname(_CFG.get("comfy_python") or ""))) if _CFG.get("comfy_python") else ""
 TTS_PY = _CFG.get("tts_python") or (pu.venv_python(os.path.join(_RUNTIME, "tts-venv")) if _RUNTIME else "")
 MODELS = _CFG.get("tts_models") or os.path.join(_CFG.get("comfy_root") or "", "models", "kokoro")
+_DEF = os.path.join(os.environ.get("SystemDrive", "C:") + os.sep, "MirMediaLabs")   # default install (dev source runs)
+if not (TTS_PY and os.path.isfile(TTS_PY)) and os.path.isfile(pu.venv_python(os.path.join(_DEF, "runtime", "tts-venv"))):
+    TTS_PY = pu.venv_python(os.path.join(_DEF, "runtime", "tts-venv"))
+if not os.path.isfile(os.path.join(MODELS, "kokoro-v1.0.onnx")) and os.path.isdir(os.path.join(_DEF, "engine", "models", "kokoro")):
+    MODELS = os.path.join(_DEF, "engine", "models", "kokoro")
 CACHE = os.path.join(core.DATA, "tts_cache")
 IDLE = 600
 

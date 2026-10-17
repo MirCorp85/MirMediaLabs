@@ -34,6 +34,7 @@ public class MainActivity extends Activity {
 
     Api api;
     MuseVoice voice;
+    MuseLive muse;
     private TextView voiceBtn, popBtn;
     Loras loras;
     JSONObject models = new JSONObject(), status = new JSONObject();
@@ -79,13 +80,16 @@ public class MainActivity extends Activity {
         }
         api = new Api(this);
         voice = new MuseVoice(this);
+        muse = new MuseLive(this);
+        FloatingMuse.install(this);
+        if (getIntent().getBooleanExtra("muse", false)) Api.MAIN.postDelayed(() -> muse.start(), 800);
         loras = new Loras(this);
         cur = Prefs.str(this, "model2", "auto");     // Auto (MirAI Director) is the default
         if ("llama".equals(cur)) cur = "auto";      // the picker lists the generative models only
         loadAtts();
         build();
         api.probe(() -> {
-            Sessions.init(this); refreshModels(); poll(); library.reload(); Fonts.sync(this, api); Theme.sync(this, api); voice.sync(); loras.refresh(null);
+            Sessions.init(this); refreshModels(); poll(); library.reload(); Fonts.sync(this, api); Theme.sync(this, api); voice.sync(); muse.sync(); loras.refresh(null);
             if (!fromNotification(getIntent())) Updater.check(this, false);
         });
         handleShare(getIntent());
@@ -98,7 +102,11 @@ public class MainActivity extends Activity {
         else super.onBackPressed();
     }
 
-    @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); if (!fromNotification(i)) handleShare(i); }
+    @Override protected void onNewIntent(Intent i) {
+        super.onNewIntent(i);
+        if (i != null && i.getBooleanExtra("muse", false)) { muse.start(); return; }     // floating MUSE tapped on another screen
+        if (!fromNotification(i)) handleShare(i);
+    }
     @Override protected void onResume() {
         super.onResume(); resumed = true; Push.appVisible = true; h.removeCallbacks(loop); h.postDelayed(loop, 400);
         String ref = GrabActivity.pendingRef;
@@ -190,6 +198,11 @@ public class MainActivity extends Activity {
         aa.setPadding(Ui.dp(12), Ui.dp(2), Ui.dp(2), Ui.dp(2));
         aa.setOnClickListener(v -> Theme.pick(this));
         top.addView(aa);
+        android.webkit.WebView museBtn = muse.orb(muse.style, true, "idle", () -> muse.toggle());   // MUSE: her 3D look = the live-voice button
+        muse.mini = museBtn;
+        LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(Ui.dp(34), Ui.dp(34));
+        mlp.setMargins(Ui.dp(10), 0, 0, 0);
+        top.addView(museBtn, mlp);
         voiceBtn = Ui.text(this, "[[volume]]", 17, Ui.DIM);           // MirAI voice on / off (same as the web header)
         voiceBtn.setPadding(Ui.dp(10), Ui.dp(2), Ui.dp(2), Ui.dp(2));
         voiceBtn.setOnClickListener(v -> voice.toggle());
@@ -279,6 +292,7 @@ public class MainActivity extends Activity {
         sh.row("palette", "Theme", "Claude Dark · Graphite · Obsidian · Midnight · Paper", () -> Theme.pick(this));
         sh.row("type", "Font", "MIR FONTS", () -> Fonts.pick(this, api));
         sh.row("volume", "MirAI voice", "natural voice made on the lab PC · voice + speed", () -> voice.pick());
+        sh.row("sparkle", "MUSE look", MuseLive.LOOK_NAMES[java.util.Arrays.asList(MuseLive.LOOKS).indexOf(muse.style) < 0 ? 0 : java.util.Arrays.asList(MuseLive.LOOKS).indexOf(muse.style)] + " · her 3D look in the header + live voice", () -> muse.pickLook());
         sh.row("expand", "Layout", layoutLabel(), this::pickLayout);
         sh.section("App");
         sh.row("qr", "My key", "your key as a QR code · one device per key", () -> myKey(false));
@@ -977,5 +991,13 @@ public class MainActivity extends Activity {
         }
         if (added > 0) { saveAtts(); create.renderAtts(); toast("Prompt + " + added + " reference" + (added > 1 ? "s" : "") + " loaded — press Send"); }
         showTab(0);
+    }
+
+    @Override public void onRequestPermissionsResult(int rc, String[] p, int[] g) {
+        super.onRequestPermissionsResult(rc, p, g);
+        if (rc == 74) {
+            if (g.length > 0 && g[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) muse.start();
+            else toast("MUSE needs the microphone to hear you");
+        }
     }
 }

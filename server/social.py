@@ -107,7 +107,9 @@ def public_accounts():
     a = accounts()
     ig, yt, tt = a.get("instagram") or {}, a.get("youtube") or {}, a.get("tiktok") or {}
     fb = a.get("facebook") or {}
+    mt = a.get("meta") or {}
     return {"handle": a.get("handle", "@mirmedialabs"),
+            "meta": {"has_app": bool(mt.get("app_id") and mt.get("app_secret")), "app_id": mt.get("app_id", "")},
             "facebook": {"connected": bool(fb.get("token") and fb.get("page_id")), "page": fb.get("page", ""),
                          "pages": fb.get("pages") or []},
             "instagram": {"connected": bool(ig.get("token") and ig.get("user_id")), "username": ig.get("username", ""),
@@ -157,7 +159,7 @@ def format_vertical(src, pid, fit="crop", suffix=""):
     else:   # blurred backdrop, whole frame visible
         vf = ("split[a][b];[a]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30[bg];"
               "[b]scale=1080:1920:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2")
-    vf += ",fps=30,format=yuv420p"
+    vf += ",fps=30,scale=w=iw:h=ih:out_range=tv,format=yuv420p"   # Instagram rejects full-range (yuvj420p) video
     if is_img:
         args = ["-loop", "1", "-t", "8", "-i", src, "-f", "lavfi", "-t", "8", "-i", "anullsrc=r=48000:cl=stereo",
                 "-filter_complex", "[0:v]" + vf + "[v]", "-map", "[v]", "-map", "1:a"]
@@ -545,6 +547,67 @@ def fb_connect(token, app_id="", app_secret="", page=""):
                      "app_id": app_id, "app_secret": app_secret, "pages": [p.get("name", "") for p in pages][:20]}
     save_accounts(a)
     return public_accounts()
+
+
+
+# ── Meta one-time login (Facebook Login → Facebook Page + its linked Instagram in one go) ──────────
+META_SCOPES = ("pages_show_list,pages_manage_posts,pages_read_engagement,publish_video,"
+               "instagram_basic,instagram_content_publish,instagram_manage_insights,business_management")
+
+
+def meta_redirect():
+    base = (_HK.get("public_base") or (lambda: ""))()
+    if not base.startswith("https://"):
+        raise PubError("Facebook needs the lab's public https address (Social → Accounts)")
+    return base.rstrip("/") + "/social/meta/callback"
+
+
+def meta_auth_url():
+    a = accounts()
+    m = a.get("meta") or {}
+    if not (m.get("app_id") and m.get("app_secret")):
+        raise PubError("add the Meta app ID and secret first")
+    from urllib.parse import urlencode
+    m["state"], m["state_exp"] = uuid.uuid4().hex, time.time() + 900
+    a["meta"] = m
+    save_accounts(a)
+    return "https://www.facebook.com/v21.0/dialog/oauth?" + urlencode({
+        "client_id": m["app_id"], "redirect_uri": meta_redirect(), "state": m["state"],
+        "scope": META_SCOPES, "response_type": "code"})
+
+
+def meta_callback(code, state):
+    """Code → user token → 60-day token; connects the Facebook Page and (when linked to it) Instagram."""
+    a = accounts()
+    m = a.get("meta") or {}
+    if not state or not m.get("state") or not hmac.compare_digest(str(state), str(m["state"]))             or m.get("state_exp", 0) < time.time():
+        raise PubError("this sign-in link expired — start again from Social → Accounts")
+    d = _g("GET", "/oauth/access_token", base=GRAPH, params={"client_id": m["app_id"], "client_secret": m["app_secret"],
+                                                              "redirect_uri": meta_redirect(), "code": code})
+    tok = d["access_token"]
+    m.pop("state", None)
+    m.pop("state_exp", None)
+    a["meta"] = m
+    save_accounts(a)
+    done, errs = [], []
+    try:
+        fb_connect(tok, m["app_id"], m["app_secret"])
+        done.append("Facebook Page")
+    except Exception as e:
+        errs.append("Facebook: %s" % e)
+    old = (accounts().get("instagram") or {})
+    try:
+        ig_connect(tok, m["app_id"], m["app_secret"])
+        done.append("Instagram")
+    except Exception as e:
+        if old.get("token"):                           # keep a working Instagram-Login connection
+            a = accounts()
+            a["instagram"] = old
+            save_accounts(a)
+        errs.append("Instagram: %s" % e)
+    if not done:
+        raise PubError("; ".join(errs))
+    return done, errs
 
 
 def fb_publish(p):
@@ -1357,6 +1420,11 @@ def register(app, hk):
             yt["client_id"] = b["yt_client_id"].strip()
             if b.get("yt_client_secret", "").strip():          # an empty box keeps the saved secret
                 yt["client_secret"] = b["yt_client_secret"].strip()
+        if b.get("meta_app_id"):
+            mt = a.setdefault("meta", {})
+            mt["app_id"] = b["meta_app_id"].strip()
+            if b.get("meta_app_secret", "").strip():
+                mt["app_secret"] = b["meta_app_secret"].strip()
         if b.get("tt_client_key"):
             tt = a.setdefault("tiktok", {})
             tt["client_key"] = b["tt_client_key"].strip()
@@ -1384,7 +1452,11 @@ def register(app, hk):
         # Google "Desktop app" OAuth clients only accept a LOOPBACK return address, so sign-in must finish on the lab
         # PC itself (not a phone / the public domain / the MirOS proxy). Always hand Google the standalone lab's
         # loopback callback; the MirOS copy has no YouTube publishing of its own.
-        return "http://127.0.0.1:%d/api/social/youtube/callback" % core.PORT
+        # Return to the server + mount the sign-in started on (MirOS serves this under /mlab on :5000; core.PORT
+        # here is a stale copy of the standalone lab's port). Desktop OAuth clients accept any loopback port.
+        port = request.host.rsplit(":", 1)[1] if ":" in request.host else "80"
+        pre = request.path[:request.path.find("/api/social/")] if "/api/social/" in request.path else ""
+        return "http://127.0.0.1:%s%s/api/social/youtube/callback" % (port, pre)
 
     @app.get("/api/social/youtube/connect")
     def social_yt_connect():
@@ -1406,7 +1478,31 @@ def register(app, hk):
             yt_callback(request.args.get("code", ""), _redirect())
         except Exception as e:
             return "YouTube connect failed: %s" % e, 400
-        return redirect("/social?v=accounts")
+        pre = request.path[:request.path.find("/api/social/")]
+        return redirect(pre + "/social?v=accounts")
+
+    # ── Meta (Facebook + Instagram) ── like TikTok: returns to the PUBLIC https address, state-protected.
+    @app.get("/api/social/meta/connect")
+    def social_meta_connect():
+        owner()
+        try:
+            return redirect(meta_auth_url())
+        except PubError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.get("/social/meta/callback")
+    def social_meta_cb():
+        if request.args.get("error"):
+            ok, msg = False, request.args.get("error_description") or request.args.get("error")
+        else:
+            try:
+                done, errs = meta_callback(request.args.get("code", ""), request.args.get("state", ""))
+                ok, msg = True, "Connected: %s.%s" % (" + ".join(done), (" Not connected — " + "; ".join(errs)) if errs else "")
+            except Exception as e:
+                ok, msg = False, str(e)
+        from html import escape
+        return ("<body style='font:15px system-ui;background:#262624;color:#f5f4ef;padding:30px'><h3>%s</h3><p>%s</p>"
+                "<p>You can close this tab.</p></body>" % ("Facebook sign-in done" if ok else "Facebook sign-in failed", escape(msg))),             (200 if ok else 400)
 
     # ── TikTok ── sign-in returns to the PUBLIC https address (TikTok requires https), so the callback is
     # public (the host gate lets /social/tiktok/ through) and is protected by the one-time state instead.

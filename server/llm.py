@@ -266,17 +266,51 @@ def run_llama(job):
     if c.get("seed") not in ("", None):
         opts["seed"] = int(c["seed"])
     tag = core.engine_model()
+    opts["num_ctx"] = core.engine_window(tag)        # sized for THIS model (and what this GPU holds), not a fixed 16K
     body = {"model": tag, "messages": msgs, "stream": True, "think": False, "options": opts, "keep_alive": "5m"}
     job["output"] = ""
     import console
     t0, ntok, last = time.time(), 0, 0.0
-    pre = core.requests.post(core.OLLAMA + "/api/generate", json={"model": tag, "keep_alive": "5m"}, timeout=(10, 300))
+    load = lambda: core.requests.post(core.OLLAMA + "/api/generate", timeout=(10, 300),
+                                      json={"model": tag, "keep_alive": "5m", "options": {"num_ctx": opts["num_ctx"]}})
+    pre = load()                                 # load at the SAME context the chat will use
+    if core.engine_failed(pre):                  # usually just a full GPU: free it and load the picked engine again
+        core.free_for_engine(tag)
+        pre = load()
+    if core.engine_failed(pre) or opts["num_ctx"] > 8192:   # too big for this GPU (crash or CPU spill) -> halve, remember
+        def _ld(n):
+            opts["num_ctx"] = n
+            return load()
+        pre, opts["num_ctx"] = core.fit_window(tag, opts["num_ctx"], _ld)
     if core.engine_failed(pre):                  # load first: an engine that can't start falls back before streaming
         core.ENGINE_BROKEN.add(tag)
         tag = core.engine_model()
         body["model"] = tag
         renderers.log(job, "engine fallback → %s" % tag)
-    with core.requests.post(core.OLLAMA + "/api/chat", json=body, stream=True, timeout=(10, 600)) as r:
+    for _try in range(4):                        # the engine can also die at chat time (e.g. gemma4:12b's MTP draft
+        r = core.requests.post(core.OLLAMA + "/api/chat", json=body, stream=True, timeout=(10, 600))   # needs ctx_other)
+        if r.status_code >= 500 and _try == 0:    # first: free the GPU and retry the SAME engine
+            r.close()
+            core.free_for_engine(tag)
+            continue
+        if r.status_code >= 500 and _try == 1 and opts["num_ctx"] > 8192:   # then the same engine with an 8K context
+            r.close()
+            opts["num_ctx"] = core.CTX_OK[tag] = 8192
+            continue
+        if r.status_code >= 500 and _try < 3:     # -> its working twin (gemma4:12b-hermes) / the fallback, same request
+            r.close()
+            core.ENGINE_BROKEN.add(tag)
+            nxt = core.engine_model()
+            if nxt == tag:
+                break
+            tag = body["model"] = nxt
+            renderers.log(job, "engine fallback → %s" % tag)
+            job["brain"] = core.engine_label(tag).split(" · ", 1)[-1]
+            continue
+        break
+    if r.ok:
+        core.USED["model"] = tag
+    with r:
         if r.status_code == 404:
             raise RuntimeError("%s isn't installed in Ollama — run:  ollama pull %s" % (core.engine_label(tag), tag))
         r.raise_for_status()
@@ -289,9 +323,12 @@ def run_llama(job):
             job["output"] += (d.get("message") or {}).get("content", "")
             ntok += 1
             if time.time() - last > 1.0:
+                job["tok_live"] = {"out": ntok, "tps": round(ntok / max(.1, time.time() - t0), 1)}
                 last = time.time()
                 console.emit("MirAI", "%s writing · %d tokens · %.0f tok/s" % (tag, ntok, ntok / max(.1, last - t0)), job)
             if d.get("done"):
+                core.tok_from_ollama(d, body)
+                job.pop("tok_live", None)
                 break
     if job.get("skill") == "Song Lyrics":            # the lyrics skill's reply goes straight to the Song engine
         job["output"] = sanitize_lyrics(job["output"])
