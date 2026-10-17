@@ -110,7 +110,8 @@ window.MUSE=(function(){
         :n==='NotFoundError'?'no microphone found — plug one in or pick one in Windows Sound settings'
         :n==='NotReadableError'||n==='AbortError'?'the mic is busy in another app (Discord, a call, Steam…) or the headset is in music-only mode — free it, then tap MUSE again'
         :'mic error: '+(n||String(err)));return}
-    fetch('/api/voice/warm',{method:'POST'}).then(r=>r.json()).then(d=>{if(d&&d.error)set('error',d.error)}).catch(()=>{});
+    S.noEars=null;                                             // ears that can't start: say so and stop listening (no endless "listening")
+    fetch('/api/voice/warm',{method:'POST'}).then(r=>r.json()).then(d=>{if(d&&d.error&&S.on){S.noEars=d.error;set('error',d.error)}}).catch(()=>{});
     S.prevOn=VOICE.st.on;VOICE.st.on=true;                     // MUSE always answers out loud while live
     S.ctx=new (window.AudioContext||window.webkitAudioContext)();
     const src=S.ctx.createMediaStreamSource(S.stream);S.an=S.ctx.createAnalyser();S.an.fftSize=1024;src.connect(S.an);
@@ -200,6 +201,7 @@ window.MUSE=(function(){
 
   function loop(){
     if(!S.on)return;
+    if(S.noEars){if(S.state!=='error')set('error',S.noEars);S.raf=requestAnimationFrame(loop);return}
     const r=rms(),now=performance.now(),speaking=VOICE.busy();
     const lv=S.talking?Math.min(1,r*14):0;if(BIG)BIG.level(lv);if(MINI)MINI.level(lv);if(FLOAT)FLOAT.level(lv);
     // her own voice leaks back even with echo-cancel: be stricter while she talks
