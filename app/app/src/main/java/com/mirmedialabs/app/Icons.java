@@ -145,6 +145,14 @@ public final class Icons {
         D.put("hand", new String[]{"p:M8 13V6.5C8 5.7 8.7 5 9.5 5C10.3 5 11 5.7 11 6.5V11", "p:M11 11V4.5C11 3.7 11.7 3 12.5 3C13.3 3 14 3.7 14 4.5V11", "p:M14 11V5.5C14 4.7 14.7 4 15.5 4C16.3 4 17 4.7 17 5.5V12", "p:M17 9.5C17 8.7 17.7 8 18.5 8C19.3 8 20 8.7 20 9.5V15C20 18.3 17.3 21 14 21H12.5C10.5 21 8.8 20 7.8 18.4L4.5 13.2C4 12.4 4.3 11.4 5.1 11C5.8 10.6 6.7 10.8 7.2 11.5L8 13"});
         D.put("flag", new String[]{"p:M5 21V4", "p:M5 4H17L14.5 8L17 12H5"});
         D.put("tiles", new String[]{"p:M4 4H10V10H4Z", "p:M14 4H20V10H14Z", "p:M4 14H10V20H4Z", "p:M14 14H20V20H14Z"});
+        D.put("crop", new String[]{"p:M6 2V18H22", "p:M2 6H18V22"});
+        D.put("bookmark", new String[]{"p:M6 3H18V21L12 16L6 21Z"});
+        D.put("message", new String[]{"p:M4 5H20V16H9L4 20Z"});
+        D.put("activity", new String[]{"p:M3 12H7L10 4L14 20L17 12H21"});
+        D.put("list", new String[]{"p:M9 6H20", "p:M9 12H20", "p:M9 18H20", "p:M4 6H5", "p:M4 12H5", "p:M4 18H5"});
+        D.put("chart", new String[]{"p:M4 20H20", "p:M7 20V12", "p:M12 20V6", "p:M17 20V15"});
+        D.put("trending-up", new String[]{"p:M3 17L9 11L13 15L21 7", "p:M15 7H21V13"});
+        D.put("circle", new String[]{"p:M12 4A8 8 0 1 1 11.99 4Z"});
     }
     private static final Pattern TOKEN = Pattern.compile("\\[\\[([a-zA-Z0-9-]+)\\]\\]");
 

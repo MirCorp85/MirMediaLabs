@@ -188,6 +188,16 @@
     chips('#su-clip', [6, 8, 10, 12], su.clip || 10, function (v) { return '~' + v + ' s'; });
     chips('#su-flow', ['seamless', 'cuts'], su.flow || 'seamless', function (v) { return { seamless: 'one seamless take', cuts: 'scene cuts' }[v]; });
     chips('#su-join', ['soft', 'cut'], su.join || 'soft', function (v) { return { soft: 'soft dissolve on cuts', cut: 'hard cuts' }[v]; });
+    var mp = su.motion = su.motion || { on: true, font: 'orbit', lyrics: 'karaoke', intro: true, credits: true };
+    var moChips = function (id, opts, cur, fmt) { var e = $(id); if (!e) return; e.innerHTML = opts.map(function (o) { return '<button data-a="mo" data-k="' + id.slice(4) + '" data-v="' + esc(o) + '" class="' + (String(o) === String(cur) ? 'on' : '') + '"><span>' + esc(fmt ? fmt(o) : o) + '</span></button>'; }).join(''); };
+    moChips('#mo-on', ['on', 'off'], mp.on === false ? 'off' : 'on', function (v) { return v === 'on' ? 'intro + lyrics + credits' : 'plain cut only'; });
+    moChips('#mo-font', ['orbit', 'bastion', 'horizon', 'velocity', 'quill', 'pixel', 'stencil', 'vector', 'hollow', 'matrix'], mp.font || 'orbit', function (v) { return 'MIR ' + v; });
+    moChips('#mo-lyrics', ['karaoke', 'pop', 'reveal', 'box', 'off'], mp.lyrics || 'karaoke');
+    moChips('#mo-parts', ['both', 'intro', 'credits', 'none'], mp.intro !== false && mp.credits !== false ? 'both' : mp.intro !== false ? 'intro' : mp.credits !== false ? 'credits' : 'none');
+    var PALS = { night: ['#0b0b10', '#f4f1ea', '#ffcc33', '#ff5a8a'], ocean: ['#0b1220', '#e6ecf5', '#3fb8c9', '#7c8cff'], candy: ['#fff8ec', '#1e1d1a', '#ff7a59', '#2bb3a3'], galaxy: ['#120a24', '#f2e9ff', '#c77dff', '#5ee7ff'], jungle: ['#0d1f12', '#effff2', '#7dff8a', '#f6ff6b'] };
+    var curPal = Object.keys(PALS).filter(function (k) { return mp.palette && mp.palette.acc === PALS[k][2]; })[0] || 'night';
+    moChips('#mo-pal', Object.keys(PALS), curPal);
+    window._moPALS = PALS;
     chips('#su-res', ['draft', 'standard', 'high', 'max'], su.res || 'standard', function (v) { return { draft: 'draft (fast test)', standard: 'standard', high: 'high', max: 'max 768p (slow)' }[v]; });
     var shots = Math.round(su.length / (su.clip || 10)), song = Math.round(su.length / 120 * 25), cuts = Math.ceil(shots / 2.5),
       per = { draft: 2.5, standard: 4.5, high: 10, max: 16 }[su.res || 'standard'];
@@ -810,6 +820,11 @@
     }
     if (a === 'cons-m') { S.setup.cons.master = b.dataset.v; drawCons(); return save(); }
     if (a === 'cons') { S.setup.cons[b.dataset.k] = b.dataset.v === '1'; drawCons(); return save(); }
+    if (a === 'mo') { var mk = b.dataset.k, mv = b.dataset.v, m = S.setup.motion = S.setup.motion || {};
+      if (mk === 'on') m.on = mv === 'on'; else if (mk === 'font') m.font = mv; else if (mk === 'lyrics') m.lyrics = mv;
+      else if (mk === 'parts') { m.intro = mv === 'both' || mv === 'intro'; m.credits = mv === 'both' || mv === 'credits'; }
+      else if (mk === 'pal') { var pp = window._moPALS[mv]; m.palette = { bg: pp[0], fg: pp[1], acc: pp[2], acc2: pp[3] }; }
+      drawSetup(); return save(); }
     if (a === 'su') { var k = b.dataset.k, v = b.dataset.v; S.setup[k === 'len' ? 'length' : k] = (k === 'aspect' || k === 'res' || k === 'join' || k === 'flow') ? v : +v; drawSetup(); return save(); }
     if (a === 'song') { S.setup.song[b.dataset.k] = b.dataset.v; drawSetup(); return save(); }
     if (a === 'style-attach') { filePurpose = 'style'; $('#se-file').multiple = true; return $('#se-file').click(); }

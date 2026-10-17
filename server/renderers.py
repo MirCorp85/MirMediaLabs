@@ -350,6 +350,45 @@ def mask_nodes(frames, c, p="msk"):
             p + "f": {"class_type": "FeatherMask", "inputs": {"mask": [p + "g", 0], "left": fe, "top": fe, "right": fe, "bottom": fe}}}
 
 
+def control_preview(ref_path, c, job):
+    """Pose Preview: what H3 motion control will follow (SDPose stick figures or Canny edges), no H3 render.
+    Source | control side by side, 12 fps, up to 10 s → library mp4 name."""
+    src = _tmp("ctlprev_src")
+    ffmpeg(["-i", ref_path, "-t", "10", "-vf", "scale=480:-2,fps=12", "-an", "-c:v", "libx264", "-crf", "18",
+            "-pix_fmt", "yuv420p", src], 120)
+    g = {"v": {"class_type": "LoadVideo", "inputs": {"file": comfy.upload(src)}},
+         "vc": {"class_type": "GetVideoComponents", "inputs": {"video": ["v", 0]}}}
+    what = c.get("control") if c.get("control") in ("pose", "canny") else "pose"
+    if what == "pose":
+        g["pm"] = {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "sdpose_wholebody_fp16.safetensors"}}
+        g["dm"] = {"class_type": "UNETLoader", "inputs": {"unet_name": "rt_detr_v4-x-hgnet_fp16.safetensors", "weight_dtype": "default"}}
+        g["det"] = {"class_type": "RTDETR_detect", "inputs": {"model": ["dm", 0], "image": ["vc", 0], "threshold": 0.5,
+                    "class_name": "person", "max_detections": int(c.get("control_people") or 2)}}
+        g["kp"] = {"class_type": "SDPoseKeypointExtractor", "inputs": {"model": ["pm", 0], "vae": ["pm", 2], "image": ["vc", 0],
+                   "batch_size": 16, "bboxes": ["det", 0]}}
+        g["out"] = {"class_type": "SDPoseDrawKeypoints", "inputs": {"keypoints": ["kp", 0], "draw_body": True, "draw_hands": True,
+                    "draw_face": True, "draw_feet": True, "stick_width": 4, "face_point_size": 2, "score_threshold": 0.5, "draw_head": True}}
+    else:
+        g["out"] = {"class_type": "Canny", "inputs": {"image": ["vc", 0], "low_threshold": 0.4, "high_threshold": 0.8}}
+    g["cv"] = {"class_type": "CreateVideo", "inputs": {"images": ["out", 0], "fps": 12}}
+    g["save"] = {"class_type": "SaveVideo", "inputs": {"video": ["cv", 0], "filename_prefix": comfy.OUT_PREFIX + "/ctlprev",
+                                                       "format": "auto", "codec": "auto"}}
+    entry, _ = comfy.run(g, "video", job, 15 * 60)
+    m = _tmp("ctlprev_m")
+    comfy.fetch(entry, m)
+    name = core.new_name("posecheck", ".mp4")
+    ffmpeg(["-i", src, "-i", m, "-filter_complex", "[1:v][0:v]scale2ref[c][s];[s][c]hstack=inputs=2,format=yuv420p[o]",
+            "-map", "[o]", "-c:v", "libx264", "-crf", "20", "-movflags", "+faststart", os.path.join(core.LIB, name)], 300)
+    core.index_add(name, {"model": "h3", "prompt": "pose preview (%s)" % what, "job": job["id"], "created": time.time(),
+                          "user": job.get("user") or "owner", **({"session": job["session"]} if job.get("session") else {})})
+    for p_ in (src, m):
+        try:
+            os.remove(p_)
+        except OSError:
+            pass
+    return name
+
+
 def mask_preview(ref_path, c, job):
     """Fast check of WHO gets replaced: SAM3 only (no H3), the mask tinted over the clip → mp4 path."""
     w, h = 480, 0
@@ -602,6 +641,15 @@ def run_h3(job):
     mode = c["mode"]
     if mode == "swap":                     # whole-body subject swap → the Wan VACE engine
         return run_vace_swap(job, c, text if not script else text, imgs, vids, literal)
+    if job.get("ctlcheck"):                 # Pose Preview: the control video H3 would follow, no render
+        if not vids:
+            raise RuntimeError("attach the clip to preview the pose on")
+        comfy.ensure()
+        prepare_gpu(job)
+        log(job, "extracting the %s control from your clip …" % c.get("control", "pose"))
+        name = control_preview(vids[0], c, job)
+        return {"files": [name], "text": "Control preview · left = your clip, right = what motion control follows. "
+                "Broken or swapped limbs here = jitter in the render: crop tighter, slow it down, or use depth."}
     if (job.get("override") or {}).get("maskcheck") or job.get("maskcheck"):   # "who gets replaced?" — SAM3 only, seconds
         if not vids:
             raise RuntimeError("attach the clip to check the mask on")
@@ -1202,6 +1250,9 @@ def face_pass(job, face_img, path, prepped):
     return False
 
 
+SWAP_MAX_S = 60
+
+
 def run_vace_swap(job, c, text, imgs, vids, literal=False):
     """Any length up to SWAP_MAX_S: clips over 10 s are swapped in sections and joined (same picture + seed)."""
     want = float(c.get("swap_secs") if c.get("swap_secs") not in (None, "") else 5)
@@ -1585,8 +1636,9 @@ def run_qimg(job):
         log(job, "your %d attached picture%s switch text → image to edit (they're used, not ignored)"
             % (len(pics), "" if len(pics) == 1 else "s"))
         mode = "edit"
-    if mode in ("edit", "cutout") and not pics:
-        raise RuntimeError("attach a picture with 📎 to %s" % ("edit" if mode == "edit" else "cut out"))
+    if mode in ("edit", "cutout") and not pics:    # a saved edit/cut-out mode + no picture (/image, voice): make it from text
+        log(job, "no picture attached — making it from your words (text → image)")
+        mode = "generate"
     wf = custom_workflow(job, "qimg", text, c, {"image": pics, "video": refs["video"], "audio": refs["audio"]},
                          *QIMG_ASPECT.get(aspect, (1024, 1024)), 0, steps)
     if wf:

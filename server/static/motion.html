@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#262624">
+<title>MIR MEDIA LABS · Motion Studio</title>
+<link rel="icon" href="static/icon-512.png">
+<link rel="stylesheet" href="static/motion.css">
+</head>
+<body>
+<div id="mo" class="mo">
+  <header class="mo-top">
+    <button class="eb ic" data-a="close" title="Back to the lab"><i class="mi" data-ic="arrow-left"></i></button>
+    <div class="mo-brand"><i class="mi" data-ic="sparkle"></i><b>MOTION STUDIO</b></div>
+    <input class="mo-name" id="mo-name" value="Untitled motion" spellcheck="false" title="Project name">
+    <span class="mo-save" id="mo-save">saved</span>
+    <span class="mo-eng" id="mo-eng" title="Remotion render engine"></span>
+    <span class="sp"></span>
+    <button class="eb ic" data-a="undo" title="Undo (Ctrl+Z)"><i class="mi" data-ic="rewind"></i></button>
+    <button class="eb ic" data-a="redo" title="Redo (Ctrl+Y)"><i class="mi" data-ic="forward"></i></button>
+    <select class="mo-sel" id="mo-aspect" title="Canvas">
+      <option value="1280x720">16:9 · 720p</option><option value="1920x1080">16:9 · 1080p</option><option value="3840x2160">16:9 · 4K</option>
+      <option value="720x1280">9:16 · vertical</option><option value="1080x1920">9:16 · 1080</option>
+      <option value="1080x1080">1:1 · square</option><option value="1080x1350">4:5 · portrait</option>
+    </select>
+    <select class="mo-sel" id="mo-fps" title="Frame rate"><option>24</option><option selected>30</option><option>60</option></select>
+    <button class="eb" data-a="style" title="Palette + font for the whole project"><i class="mi" data-ic="palette"></i><span> Style</span></button>
+    <button class="eb" data-a="projects" title="Your motion projects"><i class="mi" data-ic="folder"></i><span> Projects</span></button>
+    <button class="eb" data-a="versions" title="Restore an earlier version"><i class="mi" data-ic="clock"></i></button>
+    <button class="eb pri" data-a="export" title="Render with Remotion"><i class="mi" data-ic="upload"></i><span> Export</span></button>
+  </header>
+  <div class="mo-body">
+    <aside class="mo-bin" id="mo-bin">
+      <div class="tabs"><button data-t="scenes" class="on">Scenes</button><button data-t="lib">Library</button><button data-t="ai">AI</button><button data-t="tpl">Templates</button></div>
+      <div class="pane" data-p="scenes"><input class="srch" id="sc-q" placeholder="Search scenes…"><div id="sc-list"></div></div>
+      <div class="pane" data-p="lib" hidden>
+        <div class="chips"><button data-k="" class="on">All</button><button data-k="video">Video</button><button data-k="image">Images</button><button data-k="audio">Audio</button></div>
+        <div class="grid" id="mo-lib"></div>
+      </div>
+      <div class="pane" data-p="ai" hidden>
+        <div class="ai-h">Describe it — MUSE writes the scenes, timing and text.</div>
+        <div class="seg" id="ai-mode"><button data-m="append" class="on">Add at playhead</button><button data-m="project">Whole timeline</button><button data-m="props">Rewrite selected</button></div>
+        <textarea id="ai-prompt" rows="5" placeholder="e.g. a 20 second neon intro for my kids series 'Bubba &amp; Friends', then a lower third for Bubba"></textarea>
+        <label class="row">Target length <input type="number" id="ai-secs" min="0" max="7200" value="0" title="0 = let MUSE decide"> s</label>
+        <button class="eb pri wide" id="ai-go"><i class="mi" data-ic="sparkle"></i> Write it</button>
+        <div class="ai-h2">Quick wizards</div>
+        <button class="eb wide" data-w="lyrics"><i class="mi" data-ic="music"></i> Lyric video from a song</button>
+        <button class="eb wide" data-w="captions"><i class="mi" data-ic="message"></i> Captions for a video</button>
+        <button class="eb wide" data-w="slideshow"><i class="mi" data-ic="grid"></i> Slideshow from images</button>
+        <button class="eb wide" data-w="visualizer"><i class="mi" data-ic="activity"></i> Podcast / music visualizer</button>
+        <button class="eb wide" data-w="trailer"><i class="mi" data-ic="film"></i> Trailer from my clips</button>
+        <button class="eb wide" data-w="long"><i class="mi" data-ic="layers"></i> Long video (chapters)</button>
+        <button class="eb wide" data-a="critique"><i class="mi" data-ic="eye"></i> MUSE, review this frame</button>
+        <div class="ai-h2">Renders</div>
+        <div id="mo-jobs" class="jobs"><div class="dim">nothing running</div></div>
+      </div>
+      <div class="pane" data-p="tpl" hidden><div id="tpl-list"></div></div>
+    </aside>
+    <main class="mo-main">
+      <div class="mo-stagewrap" id="mo-stagewrap"><div class="mo-stage" id="mo-stage"><div id="mo-player"></div><div class="safe" id="mo-safe" hidden><i></i><b></b></div></div></div>
+      <div class="mo-transport">
+        <button class="eb ic" data-a="bin" title="Scenes + library + AI"><i class="mi" data-ic="grid"></i></button>
+        <button class="eb ic" data-a="start" title="Go to start (Home)"><i class="mi" data-ic="rewind"></i></button>
+        <button class="eb ic big" data-a="play" id="mo-play" title="Play / pause (Space)"><i class="mi" data-ic="play"></i></button>
+        <button class="eb ic" data-a="end" title="Go to end (End)"><i class="mi" data-ic="forward"></i></button>
+        <button class="eb ic" data-a="loop" id="mo-loop" title="Loop the selected clip (L)"><i class="mi" data-ic="refresh"></i></button>
+        <span class="tc" id="mo-tc">00:00.00 / 00:00.00</span>
+        <span class="sp"></span>
+        <button class="eb ic" data-a="safe" id="mo-safebtn" title="Safe zones"><i class="mi" data-ic="crop"></i></button>
+        <button class="eb ic" data-a="marker" title="Marker at playhead (M)"><i class="mi" data-ic="bookmark"></i></button>
+        <button class="eb ic" data-a="split" title="Split at playhead (S)"><i class="mi" data-ic="scissors"></i></button>
+        <button class="eb ic" data-a="dup" title="Duplicate (Ctrl+D)"><i class="mi" data-ic="copy"></i></button>
+        <button class="eb ic" data-a="del" title="Delete (Del) · Shift = ripple"><i class="mi" data-ic="trash"></i></button>
+        <button class="eb ic on" data-a="snap" id="mo-snap" title="Snapping"><i class="mi" data-ic="link"></i></button>
+        <input type="range" id="mo-zoom" min="4" max="300" value="60" title="Zoom (+ / −)">
+        <button class="eb ic" data-a="insp" title="Inspector"><i class="mi" data-ic="sliders"></i></button>
+      </div>
+      <div class="mo-tl" id="mo-tl">
+        <div class="mo-heads" id="mo-heads"></div>
+        <div class="mo-scroll" id="mo-scroll">
+          <div class="mo-ruler" id="mo-ruler"></div>
+          <div class="mo-tracks" id="mo-tracks"></div>
+          <div class="mo-ph" id="mo-ph"><i></i></div>
+        </div>
+      </div>
+    </main>
+    <aside class="mo-insp" id="mo-insp"><div class="dim pad">Select a clip to edit it — or add a scene from the left.</div></aside>
+  </div>
+</div>
+<div id="mo-modal" class="mo-modal" hidden></div>
+<div id="mo-toast" class="mo-toast"></div>
+<script>
+(function () {
+  var lab2 = location.pathname.indexOf('/lab2') === 0;
+  document.write('<script src="' + (lab2 ? '/static/icons/mir-icons.js' : '/static/mir-icons.js') + '"><\/script>');
+})();
+</script>
+<script src="motion/player.js"></script>
+<script src="static/motion.js"></script>
+<script src="/static/fonts/mir/mirfont.js" data-vars="--sans"></script>
+</body>
+</html>

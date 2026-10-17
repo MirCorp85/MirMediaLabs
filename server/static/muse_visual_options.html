@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MUSE Visual Options</title>
+<style>
+:root{--bg:#07070c;--card:#11111a;--text:#eee;--dim:#999}
+body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,sans-serif;padding:16px}
+h1{font-size:20px;margin:0 0 4px}p.sub{color:var(--dim);margin:0 0 14px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
+.bar button{background:#1c1c28;color:var(--text);border:1px solid #333;border-radius:20px;padding:8px 14px;cursor:pointer}
+.bar button.on{background:#3ddc97;color:#000;border-color:#3ddc97}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.card{background:var(--card);border-radius:18px;overflow:hidden;border:1px solid #222}
+.card canvas{width:100%;height:280px;display:block;cursor:grab}
+.card .t{padding:10px 14px}.card b{font-size:15px}.card span{display:block;color:var(--dim);font-size:12px;margin-top:3px}
+</style></head><body>
+<h1>MUSE — pick her look</h1>
+<p class="sub">Each one is live 3D. Drag to spin, tap to poke. Use the buttons to see how she reacts while listening, hearing you, thinking and speaking.</p>
+<div class="bar" id="bar"></div>
+<div class="grid" id="grid"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const STATES=['idle','listening','hearing','thinking','speaking'];let STATE='listening';
+const COL={idle:0x777799,listening:0x3ddc97,hearing:0xffd23f,thinking:0x7aa2ff,speaking:0xff5fd2};
+const bar=document.getElementById('bar');
+STATES.forEach(s=>{const b=document.createElement('button');b.textContent=s;b.onclick=()=>{STATE=s;[...bar.children].forEach(x=>x.classList.toggle('on',x===b))};if(s===STATE)b.classList.add('on');bar.appendChild(b)});
+// fake mic / voice level per state
+function level(t){if(STATE==='hearing')return .35+.6*Math.abs(Math.sin(t*9)*Math.sin(t*2.3));
+  if(STATE==='speaking')return .3+.55*Math.abs(Math.sin(t*7.1)*Math.cos(t*3.7));if(STATE==='thinking')return .25;return .08}
+const SAMPLES=[
+ {name:'A · Liquid Pearl',desc:'A glossy orb whose surface ripples like liquid with your voice.',make:liquid},
+ {name:'B · Neural Halo',desc:'A glowing core inside three tilted rings that spin faster as she thinks.',make:halo},
+ {name:'C · Particle Soul',desc:'A cloud of 3,000 sparks that breathes, swirls and bursts when she talks.',make:particles},
+ {name:'D · Crystal Muse',desc:'A faceted gem with an inner light; facets pulse to the words.',make:crystal},
+];
+const grid=document.getElementById('grid');
+SAMPLES.forEach(s=>{const c=document.createElement('div');c.className='card';c.innerHTML='<canvas></canvas><div class="t"><b>'+s.name+'</b><span>'+s.desc+'</span></div>';grid.appendChild(c);setup(c.querySelector('canvas'),s.make)});
+function setup(cv,make){
+  const r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});r.setPixelRatio(Math.min(2,devicePixelRatio));
+  const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(40,1,.1,100);cam.position.z=5.2;
+  sc.add(new THREE.AmbientLight(0xffffff,.35));const L=new THREE.PointLight(0xffffff,1.2);L.position.set(3,3,5);sc.add(L);
+  const grp=new THREE.Group();sc.add(grp);const upd=make(grp,sc);
+  let drag=null,vx=0,vy=.004,poke=0;
+  cv.onpointerdown=e=>{drag=[e.clientX,e.clientY];poke=1;cv.setPointerCapture(e.pointerId)};
+  cv.onpointermove=e=>{if(!drag)return;vy=(e.clientX-drag[0])*.004;vx=(e.clientY-drag[1])*.004;drag=[e.clientX,e.clientY]};
+  cv.onpointerup=()=>drag=null;
+  let col=new THREE.Color(COL[STATE]);
+  function size(){const w=cv.clientWidth,h=cv.clientHeight;r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+  new ResizeObserver(size).observe(cv);size();
+  (function f(ms){const t=ms/1000;col.lerp(new THREE.Color(COL[STATE]),.06);poke*=.92;
+    grp.rotation.y+=vy;grp.rotation.x+=vx;if(!drag){vx*=.95;vy=vy*.97+.004*.03}
+    upd(t,level(t)+poke*.6,col);r.render(sc,cam);requestAnimationFrame(f)})(0);
+}
+function liquid(g){
+  const geo=new THREE.IcosahedronGeometry(1.3,48),base=geo.attributes.position.array.slice();
+  const m=new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.12,metalness:.3,clearcoat:1,emissive:0x000000});
+  const me=new THREE.Mesh(geo,m);g.add(me);
+  return (t,lv,col)=>{const p=geo.attributes.position.array;
+    for(let i=0;i<p.length;i+=3){const x=base[i],y=base[i+1],z=base[i+2];
+      const n=Math.sin(x*3+t*2)*Math.sin(y*3.3+t*1.7)*Math.sin(z*2.7+t*2.3);const k=1+n*(.05+lv*.22);
+      p[i]=x*k;p[i+1]=y*k;p[i+2]=z*k}
+    geo.attributes.position.needsUpdate=true;geo.computeVertexNormals();m.color.copy(col);m.emissive.copy(col).multiplyScalar(.15+lv*.35)}}
+function halo(g){
+  const core=new THREE.Mesh(new THREE.SphereGeometry(.6,48,48),new THREE.MeshBasicMaterial({color:0xffffff}));g.add(core);
+  const glow=new THREE.Mesh(new THREE.SphereGeometry(.85,48,48),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.18}));g.add(glow);
+  const rings=[0,1,2].map(i=>{const r=new THREE.Mesh(new THREE.TorusGeometry(1.25+i*.22,.025,16,160),new THREE.MeshBasicMaterial({color:0xffffff}));
+    r.rotation.x=i*1.1;r.rotation.y=i*.7;g.add(r);return r});
+  return (t,lv,col)=>{core.material.color.copy(col);glow.material.color.copy(col);core.scale.setScalar(1+lv*.35);glow.scale.setScalar(1+lv*.6);
+    glow.material.opacity=.15+lv*.3;const sp=STATE==='thinking'?.05:.012+lv*.03;
+    rings.forEach((r,i)=>{r.rotation.z+=sp*(i%2?1:-1)*(1+i*.3);r.rotation.x+=sp*.4;r.material.color.copy(col).offsetHSL(i*.06,0,0)})}}
+function particles(g){
+  const N=3000,pos=new Float32Array(N*3),dir=[];
+  for(let i=0;i<N;i++){const u=Math.random()*2-1,a=Math.random()*6.283,s=Math.sqrt(1-u*u);dir.push([s*Math.cos(a),u,s*Math.sin(a),.8+Math.random()*.6])}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const m=new THREE.PointsMaterial({size:.035,color:0xffffff,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false});
+  g.add(new THREE.Points(geo,m));
+  return (t,lv,col)=>{m.color.copy(col);for(let i=0;i<N;i++){const d=dir[i];const sw=STATE==='thinking'?t*1.5+d[3]*4:0;
+      const r=d[3]*(1+lv*.7*Math.sin(t*6+i))*1.1+(Math.sin(t*1.3+i*.01)*.05);
+      const c=Math.cos(sw),s=Math.sin(sw);const x=d[0]*c-d[2]*s,z=d[0]*s+d[2]*c;
+      pos[i*3]=x*r;pos[i*3+1]=d[1]*r;pos[i*3+2]=z*r}geo.attributes.position.needsUpdate=true}}
+function crystal(g){
+  const gem=new THREE.Mesh(new THREE.OctahedronGeometry(1.25,1),new THREE.MeshPhysicalMaterial({color:0xffffff,metalness:.1,roughness:.05,transmission:.6,transparent:true,opacity:.85,flatShading:true,clearcoat:1}));
+  g.add(gem);const wire=new THREE.LineSegments(new THREE.EdgesGeometry(gem.geometry),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.6}));g.add(wire);
+  const inner=new THREE.Mesh(new THREE.SphereGeometry(.4,32,32),new THREE.MeshBasicMaterial({color:0xffffff}));g.add(inner);
+  const pl=new THREE.PointLight(0xffffff,2,6);g.add(pl);
+  return (t,lv,col)=>{gem.material.color.copy(col);wire.material.color.copy(col);inner.material.color.copy(col);pl.color.copy(col);
+    pl.intensity=1+lv*4;inner.scale.setScalar(.8+lv*1.2);const s=1+lv*.12;gem.scale.setScalar(s);wire.scale.setScalar(s)}}
+</script></body></html>

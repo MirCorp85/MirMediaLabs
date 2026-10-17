@@ -51,3 +51,9 @@ server/static/fx/
 
 # rejected preview tiles (kept locally only)
 server/static/series/samples_old_*/
+
+# -- MIR MOTION engine (npm ci) --
+motion/node_modules/
+motion/.bundle/
+motion/out/
+!motion/dist/

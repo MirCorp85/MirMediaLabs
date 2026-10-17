@@ -215,7 +215,8 @@ def _manual_rule(d, prompt, refs):
     """Manuals the person's own words + attachments point at unmistakably (the 8B model can miss these)."""
     p = (prompt or "").lower()
     kinds = [core.kind_of(r) for r in refs or []]
-    if d["action"] == "chat" and not re.search(_MAKE, p) and not re.search(r"\b(sing|sung|perform)\b", p):
+    if d["action"] == "chat" and not re.search(_MAKE, p) and not re.search(r"\b(sing|sung|perform)\b", p) \
+            and not re.search(skills._MOVE_RE, p):
         return d
     if d["action"] == "pipeline" and d.get("pipeline") in _RULE_ORDER:
         return d
@@ -234,11 +235,13 @@ def _manual_rule(d, prompt, refs):
     return d
 
 
-_RULE_ORDER = ("coverme", "myvoicevideo", "myvoice", "visualizer", "productstudio", "singer", "lyricsong", "adspot")
+_RULE_ORDER = ("motioncast", "motionfresh", "coverme", "myvoicevideo", "myvoice", "visualizer", "productstudio", "singer", "lyricsong", "adspot")
 _RULE_WHY = {"coverme": "re-sing that song in your voice", "myvoice": "a song, re-sung in your recorded voice",
              "myvoicevideo": "your-voice song plus a music video", "visualizer": "a video scored with your track",
              "productstudio": "your product in a new scene, then moving", "singer": "a character performing their song",
-             "lyricsong": "lyrics written first, then sung", "adspot": "packshot, jingle and the ad clip"}
+             "lyricsong": "lyrics written first, then sung", "adspot": "packshot, jingle and the ad clip",
+             "motioncast": "your character restyled, doing the clip's exact movement",
+             "motionfresh": "a new character doing the clip's exact movement"}
 
 
 def _refine(d, prompt, refs):

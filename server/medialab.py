@@ -39,6 +39,7 @@ import sessions
 import perf
 import console
 import tts
+import voice
 import router
 import watermark
 import workflows
@@ -263,7 +264,7 @@ def no_cache_api(resp):
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     resp.headers.setdefault("Referrer-Policy", "no-referrer")
-    resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(self), geolocation=()")
     if request.path.startswith("/api/") or request.path in ("/", "/index.html"):
         resp.headers["Cache-Control"] = "no-store"
     return resp
@@ -276,7 +277,7 @@ Q = queue.Queue()
 _JLOCK = threading.Lock()
 PUBLIC = ("id", "model", "prompt", "refs", "loras", "status", "stage", "log", "output", "files", "created", "started",
           "finished", "error", "social", "params", "user", "input", "skill", "pipeline", "steps", "step", "route", "lora_sel",
-          "loras_skipped", "plan", "pipeline_id", "knobs", "progress", "comfy_pid", "brain", "internal", "session", "open_session")
+          "loras_skipped", "plan", "pipeline_id", "knobs", "progress", "comfy_pid", "brain", "internal", "session", "open_session", "tokens", "tok_live")
 
 
 def _persist():
@@ -445,6 +446,8 @@ def worker():
         if job.get("model") not in ("llama",) and not comfy.up():    # cold engine boot takes minutes: say so
             job["stage"] = "starting the render engine (first render after a while takes a few minutes)"
             _persist()
+        core.USED["model"] = None                     # which local engine really answers this job (fallbacks included)
+        core.tok_reset()                              # token reader: everything this job's AI calls use
         brain = cloud.for_job(job)                   # owner only: Claude / GPT as MirAI, Director + prompt writer
         cloud.activate(brain)
         if brain:
@@ -466,12 +469,24 @@ def worker():
                 if watermark.apply(res["files"], lambda m: console.emit("LAB", m, job, "warn")):
                     console.emit("LAB", "watermarked · " + watermark.text(), job)
             job["files"], job["output"] = res["files"], res["text"]
+            if not brain and core.used_label():          # the bubble names the model that really did the work
+                job["brain"] = core.used_label()
             job["status"] = "done"
         except comfy.Cancelled:
             job["status"], job["error"] = "cancelled", "cancelled"
         except Exception as e:
             job["status"], job["error"] = "error", str(e)[:1500]
         finally:
+            if core.TOK["in"] or core.TOK["out"]:
+                t = dict(core.TOK)
+                t["tps"] = round(t["out"] / t["secs"], 1) if t["secs"] > 0.2 else None
+                job["tokens"] = t
+                job.pop("tok_live", None)
+                try:
+                    sessions.add_tokens(job.get("user") or "owner", job.get("session") or "", t["in"], t["out"],
+                                        t.get("ctx"), t.get("num_ctx"))
+                except Exception:
+                    pass
             cloud.activate(None)
             core.render_unlock()                     # GPU is free again for MirAI chat / Director / Social
             job["finished"] = time.time()
@@ -1081,6 +1096,8 @@ def generate():
            "user": uid(), "input": prompt, "loras": [], "lora_sel": sel, "caps": users.caps(g.user),
            # no session given (MirAI voice / chat tools, the series runner) → the session the person has open, not General
            "session": sessions.valid(uid(), body["session"] if "session" in body else sessions.load(uid()).get("last"))}
+    if body.get("ctlcheck") and model == "h3":        # Node Flow Pose Preview: control video only, queued like any render
+        job["ctlcheck"] = True
     if body.get("maskcheck") and model == "h3":       # quick SAM3 mask preview, queued like any render
         job["maskcheck"] = True
         if isinstance(body.get("override"), dict):
@@ -1268,9 +1285,12 @@ def cloud_brain():
     if prov == "local":
         core.save_pref("brain", {"provider": "local", "model": ""})
         if model:                                   # a local brain from the picker (Gemma 4 12B / Llama 3.1 8B)
-            if not any(e["model"] == model for e in core.LOCAL_ENGINES):
+            if not any(e["model"] == model for e in cloud.local_engines()):
                 return jsonify({"error": "unknown local model"}), 400
             core.save_pref("engine_model", model)
+            for m in list(core.ENGINE_BROKEN):                  # a fresh pick is tried again right away
+                if m == model or m.startswith(model + "-"):
+                    core.ENGINE_BROKEN.discard(m)
             _pull_engine(model)
             _refresh_status()
     elif prov in cloud.PROVIDERS:
@@ -1347,6 +1367,215 @@ def api_tts():
     resp = send_file(path, mimetype="audio/wav")
     resp.headers["Cache-Control"] = "private, max-age=86400"
     return resp
+
+
+@app.route("/api/voice/hear", methods=["POST"])
+def api_voice_hear():
+    """MUSE live voice: one spoken utterance -> text (the page then sends it to MirAI like a typed message)."""
+    fs = request.files.get("audio")
+    if not fs:
+        return jsonify({"error": "no audio"}), 400
+    try:
+        return jsonify({"text": voice.hear(fs, request.form.get("lang") or None)})
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 503
+
+
+# ── MUSE live voice (Oct 15 2026) — the same real-time speech-to-speech engine as MIR (VoiceServer: whisper ears, its own
+#    small brain, Chatterbox voice, barge-in), in its MML profile: MUSE persona + lab-only tools, never MIR data.
+#    Host/owner only (MUSE acts as the owner on this lab). Without VoiceServer on this PC the page falls back to /api/voice/hear.
+VOICESERVER = core.CONFIG.get("voiceserver") or "127.0.0.1:5410"
+VOICESERVER_BAT = core.CONFIG.get("voiceserver_bat") or core.LOCAL.get("voiceserver_bat") or ""   # owner PC only: data/local.json
+_MV = {"last": 0.0}
+
+
+def _voiceserver_start():
+    import subprocess as _sp
+    if not os.path.isfile(VOICESERVER_BAT) or time.time() - _MV["last"] < 60:
+        return os.path.isfile(VOICESERVER_BAT)
+    _MV["last"] = time.time()
+    try:
+        _sp.Popen(["cmd", "/c", VOICESERVER_BAT], cwd=os.path.dirname(VOICESERVER_BAT), close_fds=True,
+                  creationflags=getattr(_sp, "CREATE_NO_WINDOW", 0))
+        return True
+    except Exception:
+        return False
+
+
+def _muse_name():
+    """What MUSE calls this person: their own pick (Settings -> MUSE), else their lab name (never the owner placeholder)."""
+    n = (core.prefs().get("musename_" + uid()) or "").strip()
+    if not n:
+        n = str(g.user.get("name") or "")
+        n = "" if n.lower().startswith("owner") or n.lower() == "guest" else n
+    return n[:40]
+
+
+@app.route("/api/voice/name", methods=["GET", "POST"])
+def api_voice_name():
+    if request.method == "POST":
+        core.save_pref("musename_" + uid(), str((request.get_json(silent=True) or {}).get("name") or "").strip()[:40])
+    return jsonify({"name": _muse_name()})
+
+
+@app.route("/api/cloud/import", methods=["POST"])
+def api_cloud_import():
+    """Add a GGUF model another app downloaded (LM Studio, Jan, Hugging Face...) to Ollama so MirAI can use it."""
+    if not (is_owner() and _loopback()):
+        return jsonify({"error": "only the host PC can add models"}), 403
+    try:
+        name = cloud.import_gguf(str((request.get_json(silent=True) or {}).get("path") or ""))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"ok": True, "name": name, "say": "Adding it to Ollama — this takes a minute"})
+
+
+def _active_window():
+    """The context window of the model MirAI is using RIGHT NOW in this lab: a cloud brain's own window, or the local
+    engine's effective one (what MML really runs it with — learned 8K caps included — never above the model's max)."""
+    b = cloud.for_job({"user": uid(), "model": "llama"}) if is_owner() else None
+    if b:
+        m = next((x for x in cloud.models() if x["id"] == b.get("model")), None)
+        if m:
+            return {"model": m["id"], "label": m.get("label") or m["id"], "window": int(m.get("ctx") or 0),
+                    "max": int(m.get("ctx") or 0), "cloud": True}
+    tag = core.engine_model()
+    mx = core.model_max_ctx(tag)
+    win = core.engine_window(tag)
+    return {"model": tag, "label": core.engine_label(tag).split(" · ", 1)[-1], "window": int(win), "max": mx, "cloud": False}
+
+
+@app.route("/api/tokens")
+def api_tokens():
+    """Token reader for one chat session + the active model's context window."""
+    sid = request.args.get("session") or ""
+    t = (sessions.load(uid()).get("tokens") or {}).get(sid) or {}
+    return jsonify({"session": sid, "tokens": t, "active": _active_window()})
+
+
+@app.route("/api/offload", methods=["POST"])
+def api_offload():
+    """Offload every AI model from the GPU / RAM: MUSE's voice engine, the Ollama brains, ComfyUI's loaded models.
+    Host only. A render in progress is never touched (ComfyUI keeps what it is using)."""
+    if not is_owner():
+        return jsonify({"error": "only the lab's host can do that"}), 403
+    import urllib.request
+    done = []
+
+    def post(url, body=None, timeout=15):
+        req = urllib.request.Request(url, data=json.dumps(body or {}).encode(), method="POST",
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode() or "{}")
+    try:
+        post("http://%s/unload" % VOICESERVER)
+        done.append("MUSE voice")
+    except Exception:
+        pass
+    for base in ("http://127.0.0.1:11434", "http://127.0.0.1:11435"):
+        try:
+            with urllib.request.urlopen(base + "/api/ps", timeout=3) as r:
+                for m in json.loads(r.read().decode()).get("models", []):
+                    post(base + "/api/generate", {"model": m["name"], "keep_alive": 0}, 30)
+                    done.append(m["name"])
+        except Exception:
+            pass
+    busy = any(j.get("status") == "running" for j in JOBS.values())
+    if not busy:
+        try:
+            post(comfy.BASE + "/free", {"unload_models": True, "free_memory": True})
+            done.append("ComfyUI models")
+        except Exception:
+            pass
+    console.emit("ENGINE", "offloaded: " + (", ".join(done) or "nothing was loaded"))
+    return jsonify({"ok": True, "offloaded": done, "render_kept": busy})
+
+
+@app.route("/api/voice/live")
+def api_voice_live():
+    if not is_owner():
+        return jsonify({"ok": False, "why": "owner"})
+    try:
+        import urllib.request
+        with urllib.request.urlopen("http://%s/health" % VOICESERVER, timeout=2) as r:
+            return jsonify(dict(json.loads(r.read().decode()), ok=True))
+    except Exception:
+        return jsonify({"ok": False, "installed": os.path.isfile(VOICESERVER_BAT)})
+
+
+try:
+    from flask_sock import Sock as _Sock
+    _sock = _Sock(app)
+
+    @_sock.route("/ws/voice")
+    def ws_voice(ws):
+        import urllib.parse as _up
+        from websockets.sync.client import connect as _wsconnect
+        if not is_owner():
+            ws.send(json.dumps({"type": "error", "text": "Live voice is for the lab's host."}))
+            return
+        q = {k: request.args.get(k) for k in ("voice",) if request.args.get(k)}
+        q.update(app="mml", session="mml-" + uid(), name=_muse_name())
+        url = "ws://%s/ws/voice?%s" % (VOICESERVER, _up.urlencode(q))
+        up = None
+        try:
+            up = _wsconnect(url, max_size=None, open_timeout=5)
+        except Exception:
+            if _voiceserver_start():
+                try:
+                    ws.send(json.dumps({"type": "warn", "text": "Starting the voice engine (first time takes ~30 s)…"}))
+                except Exception:
+                    pass
+                for _i in range(45):
+                    time.sleep(2)
+                    try:
+                        up = _wsconnect(url, max_size=None, open_timeout=5)
+                        break
+                    except Exception:
+                        continue
+        if up is None:
+            ws.send(json.dumps({"type": "error", "text": "The voice engine didn't start."}))
+            return
+        stop = threading.Event()
+
+        def down():
+            try:
+                for m in up:
+                    ws.send(m)
+            except Exception:
+                pass
+            finally:
+                stop.set()
+                try:
+                    ws.close()
+                except Exception:
+                    pass
+
+        threading.Thread(target=down, daemon=True).start()
+        try:
+            while not stop.is_set():
+                m = ws.receive(timeout=1)
+                if m is not None:
+                    up.send(m)
+        except Exception:
+            pass
+        finally:
+            stop.set()
+            try:
+                up.close()
+            except Exception:
+                pass
+except Exception as _e:
+    print("[voice] live voice bridge disabled:", _e, flush=True)
+
+
+@app.route("/api/voice/warm", methods=["POST"])
+def api_voice_warm():
+    try:
+        voice.warm()
+        return jsonify({"ok": True, "tts": tts.available()})
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 503
 
 
 @app.route("/api/tts/voices")
@@ -1845,7 +2074,7 @@ def _series_submit(user_id, req):
     u = users.by_id(user_id) or (users.owner() if user_id in (None, "", "owner") else None)
     if not u:
         return None, "that person no longer has an account here", False
-    body = {k: req.get(k) for k in ("model", "prompt", "refs", "override", "session")}
+    body = {k: req.get(k) for k in ("model", "prompt", "refs", "override", "session", "ctlcheck")}
     body["series"] = True
     with app.test_request_context("/api/generate", method="POST", json=body):
         g.user = u
@@ -1930,6 +2159,62 @@ producer.register(app, {"uid": uid, "push": events.push, "job": _series_job, "ca
                             name, plats, brief, owner=owner, fit=fit, kids=kids)})
 
 
+# ── MIR MOTION: Remotion motion-graphics engine + Motion Studio (remotion.py; engine in <install>\motion, :5421) ──
+import remotion  # noqa: E402
+
+_MOTION_KIND = {".mp4": "video", ".webm": "video", ".mov": "video", ".png": "image", ".jpg": "image", ".jpeg": "image",
+                ".webp": "image", ".mp3": "audio", ".wav": "audio", ".m4a": "audio", ".flac": "audio", ".ogg": "audio"}
+
+
+def _motion_lib():
+    out = []
+    for n, m in sorted(core.index().items(), key=lambda kv: -((kv[1] or {}).get("created") or 0)):
+        k = _MOTION_KIND.get(os.path.splitext(n)[1].lower())
+        if k and isinstance(m, dict) and mine(m.get("user")):
+            out.append({"name": n, "kind": k, "prompt": m.get("prompt") or "", "session": m.get("session") or ""})
+        if len(out) >= 200:
+            break
+    return out
+
+
+def _motion_words(path):
+    import series_audio
+    return (series_audio.words_of(path) or {}).get("words") or []
+
+
+def _motion_ask(prompt, system):
+    return core.ask(prompt, system, want_json=True, role="director", timeout=300)
+
+
+remotion.register(app, {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "static": _static,
+                        "session": lambda s: sessions.valid(uid(), s), "ask": _motion_ask, "words": _motion_words,
+                        "lib_list": _motion_lib})
+
+
+# ── NODE FLOW: ComfyUI-style wire editor on the lab's building blocks (nodeflow.py / static/flow.html) ──
+import nodeflow  # noqa: E402
+
+
+def _flow_to_ref(user_id, path):
+    stem, ext = os.path.splitext(os.path.basename(path))
+    name = _store_ref(stem, ext.lower(), owner=user_id or "owner")
+    shutil.copy2(path, core.safe_path(os.path.join(core.REFS, name)))
+    return name
+
+
+def _flow_text_ref(user_id, text):
+    name = _store_ref("lyrics", ".txt", owner=user_id or "owner")
+    with open(core.safe_path(os.path.join(core.REFS, name)), "w", encoding="utf-8") as f:
+        f.write(str(text)[:50000])
+    return name
+
+
+nodeflow.register(app, {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "static": _static,
+                        "session": lambda s: sessions.valid(uid(), s if s is not None else sessions.load(uid()).get("last")),
+                        "submit": _series_submit, "job": _series_job, "cancel": _series_cancel,
+                        "to_ref": _flow_to_ref, "text_ref": _flow_text_ref})
+
+
 def main():
     if _port_busy(core.PORT):
         print("MIR MEDIA LABS already running on :%d" % core.PORT)
@@ -1944,6 +2229,10 @@ def main():
     threading.Thread(target=_status_loop, daemon=True, name="mml-status").start()
     threading.Thread(target=pcupdate.loop, daemon=True, name="mml-pc-update").start()
     pcupdate.cleanup()
+    try:
+        import ollama_mtp_guard; ollama_mtp_guard.start()   # gemma4 MTP-draft crash self-heal
+    except Exception as e:
+        print("mtp-guard not started: %s" % e)
     try:
         import tls
         tls.start(app)                              # :80 helper + :443 HTTPS when a cert exists

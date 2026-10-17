@@ -203,9 +203,21 @@
       '<div class="row" style="margin-top:10px"><input class="t" id="q" placeholder="e.g. Why did yesterday’s reel stall? What should I post tonight?" style="flex:1"><label class="row" style="font-size:12px"><input type="checkbox" id="loc"> local model</label><button class="sb pri" id="ask">' + mi('send') + '</button></div></div>';
   }
 
+  function metaBox() {
+    var a = STATS.accounts, m = a.meta || {}, base = (a.tiktok && a.tiktok.base) || 'https://<set the public address below>';
+    return '<div class="box"><h3>Facebook + Instagram — one-time login</h3><div class="row">' +
+      (a.facebook.connected ? '<span class="acct on">Facebook · ' + esc(a.facebook.page || '') + '</span>' : '<span class="acct">Facebook not connected</span>') +
+      (a.instagram.connected ? '<span class="acct on">Instagram · @' + esc(a.instagram.username) + '</span>' : '<span class="acct">Instagram not connected</span>') + '</div>' +
+      '<div class="why">One sign-in connects your Facebook Page and the Instagram account linked to it; access renews automatically. ' +
+      'Meta app → Facebook Login → Valid OAuth Redirect URIs: <b>' + esc(base) + '/social/meta/callback</b></div>' +
+      '<label class="f">Meta app ID + secret (Meta for Developers → your app → Settings → Basic)</label>' +
+      '<div class="row"><input class="t" id="mt-app" placeholder="app id" value="' + esc(m.app_id || '') + '"><input class="t" id="mt-sec" type="password" autocomplete="off" placeholder="' + (m.has_app ? 'saved — leave empty to keep' : 'app secret') + '"></div>' +
+      '<div class="row" style="margin-top:10px"><button class="sb" id="mt-save">Save app</button><button class="sb pri" id="mt-go"' + (m.has_app ? '' : ' disabled') + '>Continue with Facebook</button></div></div>';
+  }
+
   function accountsView() {
     var a = STATS.accounts;
-    return '<div class="box"><h3>Instagram ' + esc(a.handle) + '</h3><div class="row">' + (a.instagram.connected ? '<span class="acct on">connected · @' + esc(a.instagram.username) + '</span>' + (a.instagram.expires ? '<span class="why">token renews automatically · expires ' + when(a.instagram.expires) + '</span>' : '') : '<span class="acct">not connected</span>') + '</div>' +
+    return metaBox() + '<div class="box"><h3>Instagram ' + esc(a.handle) + '</h3><div class="row">' + (a.instagram.connected ? '<span class="acct on">connected · @' + esc(a.instagram.username) + '</span>' + (a.instagram.expires ? '<span class="why">token renews automatically · expires ' + when(a.instagram.expires) + '</span>' : '') : '<span class="acct">not connected</span>') + '</div>' +
       '<label class="f">Instagram access token — Meta app → Instagram → API setup with Instagram login → Generate token (starts with IG…). An older Facebook-Page token also works.</label><input class="t" id="ig-tok" type="password" autocomplete="off">' +
       '<label class="f">Instagram app ID (optional)</label><input class="t" id="ig-app">' +
       '<label class="f">Instagram app secret (optional — only needed for short 1-hour tokens)</label><input class="t" id="ig-sec" type="password" autocomplete="off">' +
@@ -403,7 +415,9 @@
       api('api/social/accounts', { method: 'POST', body: b }).then(function () { toast('Saved'); load(); }).catch(function (e) { toast(e.message); });
     };
     var ys = $('#yt-save'); if (ys) ys.onclick = function () { api('api/social/accounts', { method: 'POST', body: { yt_client_id: $('#yt-id').value, yt_client_secret: $('#yt-sec').value } }).then(function () { toast('Saved'); load(); }).catch(function (e) { toast(e.message); }); };
-    var yg = $('#yt-go'); if (yg) yg.onclick = function () { window.open(location.hostname === '127.0.0.1' || location.hostname === 'localhost' ? 'api/social/youtube/connect' : 'http://127.0.0.1:5400/api/social/youtube/connect', '_blank'); };
+    var yg = $('#yt-go'); if (yg) yg.onclick = function () { window.open('api/social/youtube/connect', '_blank'); };
+    var mts = $('#mt-save'); if (mts) mts.onclick = function () { api('api/social/accounts', { method: 'POST', body: { meta_app_id: $('#mt-app').value, meta_app_secret: $('#mt-sec').value } }).then(function () { toast('Saved'); load(); }).catch(function (e) { toast(e.message); }); };
+    var mtg = $('#mt-go'); if (mtg) mtg.onclick = function () { window.open('api/social/meta/connect', '_blank'); };
     var tts = $('#tt-save'); if (tts) tts.onclick = function () { api('api/social/accounts', { method: 'POST', body: { tt_client_key: $('#tt-key').value, tt_client_secret: $('#tt-sec').value } }).then(function () { toast('Saved'); load(); }).catch(function (e) { toast(e.message); }); };
     var ttg = $('#tt-go'); if (ttg) ttg.onclick = function () { window.open('api/social/tiktok/connect', '_blank'); };
     var tto = $('#tt-off'); if (tto) tto.onclick = function () { if (confirm('Disconnect TikTok? (Deletes the saved sign-in.)')) api('api/social/tiktok/disconnect', { method: 'POST' }).then(load); };

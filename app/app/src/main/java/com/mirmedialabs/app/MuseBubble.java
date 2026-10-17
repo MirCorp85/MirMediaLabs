@@ -24,6 +24,8 @@ final class MuseBubble extends LinearLayout {
     private final MainActivity m;
     final String id;
     private final Ring ring;
+    private final android.widget.FrameLayout ringBox;
+    private android.webkit.WebView orbView;
     private final TextView timer, status;
     private TextView liveSrc, liveText;
     private View liveDot;
@@ -49,7 +51,9 @@ final class MuseBubble extends LinearLayout {
         LinearLayout h = Ui.hbox(a);
         h.setGravity(Gravity.CENTER_VERTICAL);
         ring = new Ring(a);
-        h.addView(ring, Ui.lp(Ui.dp(60), Ui.dp(60)));
+        ringBox = new android.widget.FrameLayout(a);                // MUSE's 3D look sits inside the ring while the job is live
+        ringBox.addView(ring, new android.widget.FrameLayout.LayoutParams(Ui.dp(60), Ui.dp(60)));
+        h.addView(ringBox, Ui.lp(Ui.dp(60), Ui.dp(60)));
         LinearLayout tx = Ui.vbox(a);
         LinearLayout who = Ui.hbox(a);
         who.setGravity(Gravity.CENTER_VERTICAL);
@@ -234,6 +238,18 @@ final class MuseBubble extends LinearLayout {
     /** Patch the live bits in place. */
     void update(JSONObject j) {
         String st = j.optString("status");
+        boolean liveNow = "running".equals(st) || "queued".equals(st);
+        if (liveNow && orbView == null && m.muse != null) {
+            orbView = m.muse.orb(m.muse.style, true, "thinking", null);
+            ringBox.addView(orbView, new android.widget.FrameLayout.LayoutParams(Ui.dp(34), Ui.dp(34), Gravity.CENTER));
+            ring.orb = true;
+        } else if (!liveNow && orbView != null) {
+            ringBox.removeView(orbView);
+            orbView.destroy();
+            orbView = null;
+            ring.orb = false;
+            ring.invalidate();
+        }
         boolean was = pvRun;
         pvRun = pv != null && "running".equals(st);
         if (pvRun && !was) post(pvPoll);
@@ -295,6 +311,7 @@ final class MuseBubble extends LinearLayout {
         private int[] state = new int[0];
         private float pct;
         private int qpos;
+        boolean orb;
 
         Ring(Context c) { super(c); }
 
@@ -326,6 +343,7 @@ final class MuseBubble extends LinearLayout {
                     if (fr > 0) { p.setColor(s == 2 ? Ui.GRN : s == 3 ? Ui.RED : ORG); c.drawArc(r, a0, len * fr, false, p); }
                 }
             }
+            if (orb) return;                                    // MUSE fills the centre
             p.setStyle(Paint.Style.FILL);
             p.setTextAlign(Paint.Align.CENTER);
             p.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
