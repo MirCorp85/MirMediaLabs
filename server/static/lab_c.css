@@ -83,3 +83,4 @@ body .col.left > .card.skl.sk-float .seg { display: flex !important; }
 .rc-mask { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-top:6px; }
 .rc-mask label { flex:1; min-width:200px; display:flex; flex-direction:column; gap:4px; font-size:12px; opacity:.9; }
 .rc-mask input { width:100%; padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); color:inherit; }
+body.labc:not(.lc-ready) nav.tabs { visibility: hidden }   /* no classic tab bar flash before the dock is built */

@@ -135,6 +135,7 @@
       };
     });
   }
+  document.body.classList.add('lc-ready');
   // Create = home: close every studio overlay, panel and sheet, show the chat
   window.goHome = function () {
     ['mml-ed', 'mml-pr', 'mml-gr', 'mml-se', 'mml-so', 'mml-mo', 'mml-fl'].forEach(function (id) { var f = document.getElementById(id); if (f) f.remove(); });
