@@ -40,6 +40,7 @@ import perf
 import console
 import tts
 import voice
+import muse_talk
 import router
 import watermark
 import workflows
@@ -1377,6 +1378,17 @@ def api_voice_hear():
         return jsonify({"error": "no audio"}), 400
     try:
         return jsonify({"text": voice.hear(fs, request.form.get("lang") or None)})
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 503
+
+
+@app.route("/api/voice/talk", methods=["POST"])
+def api_voice_talk():
+    """MUSE spoken turn without VoiceServer: a real conversation (own short memory) + lab tools, not a chat job per turn."""
+    b = request.get_json(silent=True) or {}
+    js = sorted((j for j in JOBS.values() if mine(j.get("user"))), key=lambda j: j.get("created") or 0, reverse=True)[:30]
+    try:
+        return jsonify(muse_talk.turn(uid(), str(b.get("text") or "")[:2000], js, _muse_name()))
     except Exception as e:
         return jsonify({"error": str(e)[:300]}), 503
 
