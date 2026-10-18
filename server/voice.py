@@ -22,8 +22,32 @@ READY_S = 600                                          # first start may downloa
 # Self-contained worker. Installed PCs: faster-whisper (CTranslate2, CPU int8) in the voice runtime (tts-venv);
 # the dev source falls back to openai-whisper. argv: model, download dir ("" = default cache).
 _WORKER = r'''
-import json, sys
+import json, os, sys
 name, root = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else "") or None
+def _msvcp():
+    # ctranslate2 needs MSVCP140.dll (VC++ runtime) but doesn't bundle it; a fresh Windows without the VC++ redist
+    # then fails "DLL load failed". Borrow the copy numpy/onnxruntime ship and put it beside ctranslate2.dll.
+    if os.name != "nt":
+        return
+    import ctypes, glob, importlib.util, re, shutil
+    try:
+        ctypes.WinDLL("msvcp140.dll")
+        return
+    except OSError:
+        pass
+    spec = importlib.util.find_spec("ctranslate2")
+    if not spec or not spec.submodule_search_locations:
+        return
+    ct = list(spec.submodule_search_locations)[0]
+    dst = os.path.join(ct, "msvcp140.dll")
+    if os.path.isfile(dst):
+        return
+    site = os.path.dirname(ct)
+    for src in glob.glob(os.path.join(site, "*", "msvcp140*.dll")) + glob.glob(os.path.join(site, "*", "*", "msvcp140*.dll")):
+        if re.fullmatch(r"msvcp140(-[0-9a-f]+)?\.dll", os.path.basename(src).lower()):   # not _1/_2/_codecvt_ids
+            shutil.copyfile(src, dst)
+            return
+_msvcp()
 try:
     from faster_whisper import WhisperModel
     m = WhisperModel(name, device="cpu", compute_type="int8", download_root=root)
@@ -34,8 +58,11 @@ try:
             audio = audio.mean(axis=1)
         segs, info = m.transcribe(audio, language=lang or None, condition_on_previous_text=False, vad_filter=True)
         return " ".join(s.text.strip() for s in segs if s.no_speech_prob < 0.6).strip(), info.language
-except ImportError:
-    import whisper
+except ImportError as e:
+    try:
+        import whisper
+    except ImportError:
+        raise e                                  # the real reason (e.g. a DLL that won't load), not "no whisper"
     m = whisper.load_model(name, device="cpu", download_root=root)
     def tr(wav, lang):
         out = m.transcribe(wav, fp16=False, language=lang or None, condition_on_previous_text=False, no_speech_threshold=0.6)
@@ -61,8 +88,8 @@ _JUNK = {"", "you", "thank you", "thanks for watching", "thank you for watching"
 
 def _has(py, mods):
     try:
-        return subprocess.run([py, "-c", "import importlib.util as u,sys;sys.exit(0 if any(u.find_spec(m) for m in %r) else 1)" % (mods,)],
-                              capture_output=True, timeout=60,
+        return subprocess.run([py, "-I", "-c", "import importlib.util as u,sys;sys.exit(0 if any(u.find_spec(m) for m in %r) else 1)" % (mods,)],
+                              capture_output=True, timeout=60, cwd=os.path.dirname(py) or None,
                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).returncode == 0
     except Exception:
         return False
@@ -93,14 +120,38 @@ def _python():
     raise RuntimeError(NO_EARS)
 
 
+ERRLOG = os.path.join(core.DATA, "voice_worker.log")
+
+
+def _errlog():
+    try:
+        os.makedirs(core.DATA, exist_ok=True)
+        return open(ERRLOG, "w", encoding="utf-8", errors="replace")
+    except Exception:
+        return subprocess.DEVNULL
+
+
+def _lasterr():
+    """last meaningful line the worker printed to stderr (the exception), trimmed for the UI."""
+    try:
+        with open(ERRLOG, encoding="utf-8", errors="replace") as f:
+            lines = [l.strip() for l in f if l.strip() and not l.startswith((" ", "\t", "Traceback"))]
+        return lines[-1][:160] if lines else ""
+    except Exception:
+        return ""
+
+
 def _start():
     # the installer's pre-downloaded model folder loads offline; otherwise the model name (downloads into STT_DIR)
     local = bool(STT_DIR) and os.path.isfile(os.path.join(STT_DIR, "model.bin"))
     name, root = (STT_DIR, "") if local else (MODEL, STT_DIR)
-    p = subprocess.Popen([_python(), "-c", _WORKER, name, root], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                         stderr=subprocess.DEVNULL, text=True, encoding="utf-8", bufsize=1,
+    # -I + a neutral cwd (Oct 18): "-c" puts the CURRENT folder first on sys.path; the compiled app runs from its own folder
+    # full of Python 3.12 .pyd files, so the 3.13 voice runtime imported those -> "python312.dll conflicts with this version"
+    py = _python()
+    p = subprocess.Popen([py, "-I", "-c", _WORKER, name, root], cwd=os.path.dirname(py) or None, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                         stderr=_errlog(), text=True, encoding="utf-8", bufsize=1,
                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-                         env=dict(os.environ, PYTHONIOENCODING="utf-8", HF_HUB_DISABLE_TELEMETRY="1",
+                         env=dict({k: v for k, v in os.environ.items() if k not in ("PYTHONPATH", "PYTHONHOME")}, PYTHONIOENCODING="utf-8", HF_HUB_DISABLE_TELEMETRY="1",
                                   PATH=os.path.dirname(core.FFMPEG) + os.pathsep + os.environ.get("PATH", "")))
     got = []
     t = threading.Thread(target=lambda: got.append(p.stdout.readline()), daemon=True)
@@ -117,7 +168,10 @@ def _start():
             pass
         _P["proc"] = None
         _PY.pop("py", None)
-        raise RuntimeError(NO_EARS if not got else "MUSE's ears didn't start (speech model failed to load)")
+        why = _lasterr()
+        console.emit("VOICE", "MUSE ears failed: %s" % (why or "no output"))
+        raise RuntimeError(NO_EARS if not got else "MUSE's ears didn't start (speech model failed to load%s)"
+                           % (": " + why if why else ""))
     _P["proc"] = p
     console.emit("VOICE", "MUSE ears ready (whisper %s, CPU)" % MODEL)
     threading.Thread(target=_reaper, daemon=True).start()
