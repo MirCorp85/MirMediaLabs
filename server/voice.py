@@ -94,7 +94,10 @@ def _python():
 
 
 def _start():
-    p = subprocess.Popen([_python(), "-c", _WORKER, MODEL, STT_DIR], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+    # the installer's pre-downloaded model folder loads offline; otherwise the model name (downloads into STT_DIR)
+    local = bool(STT_DIR) and os.path.isfile(os.path.join(STT_DIR, "model.bin"))
+    name, root = (STT_DIR, "") if local else (MODEL, STT_DIR)
+    p = subprocess.Popen([_python(), "-c", _WORKER, name, root], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.DEVNULL, text=True, encoding="utf-8", bufsize=1,
                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                          env=dict(os.environ, PYTHONIOENCODING="utf-8", HF_HUB_DISABLE_TELEMETRY="1",

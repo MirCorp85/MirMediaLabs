@@ -55,7 +55,9 @@ $appOut = if ($env:MML_APPOUT) { $env:MML_APPOUT } else { 'C:\mmb' }
 Remove-Item $appOut -Recurse -Force -ErrorAction SilentlyContinue
 $ico  = Join-Path $root 'MirMediaLabs.ico'
 # plain string arrays: PowerShell 5.1 splits "--opt=(expr)" into two arguments
-$common = @("-m", "nuitka", "--low-memory", "--nofollow-import-to=yt_dlp.extractor.lazy_extractors", "--assume-yes-for-downloads", "--windows-console-mode=disable", "--python-flag=no_docstrings", "--python-flag=no_asserts", "--lto=yes", "--deployment",
+# MML_NOLTO=1: skip link-time optimisation (the LTO link of ~5500 files needs 15+ GB free RAM and ~1.5 h)
+$lto = if ($env:MML_NOLTO) { "--lto=no" } else { "--lto=yes" }
+$common = @("-m", "nuitka", "--low-memory", "--nofollow-import-to=yt_dlp.extractor.lazy_extractors", "--assume-yes-for-downloads", "--windows-console-mode=disable", "--python-flag=no_docstrings", "--python-flag=no_asserts", $lto, "--deployment",
             "--windows-icon-from-ico=$ico", "--company-name=MirCorp", "--product-name=MIR MEDIA LABS",
             "--file-version=$ver.0", "--product-version=$ver.0", "--copyright=(c) 2026 MirCorp. GPL-3.0")
 $appArgs = $common + @("--standalone", "--include-package=openai", "--include-package=anthropic", "--include-package=yt_dlp", "--nofollow-import-to=imageio_ffmpeg", "--nofollow-import-to=tkinter", "--nofollow-import-to=PIL",
