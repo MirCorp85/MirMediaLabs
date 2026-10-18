@@ -58,6 +58,8 @@ UV_URL = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-
 COMFY_URL = "https://github.com/comfyanonymous/ComfyUI/archive/refs/tags/v%s.zip" % COMFY_TAG
 OLLAMA_URL = "https://ollama.com/download/OllamaSetup.exe"
 VCREDIST_URL = "https://aka.ms/vs/17/release/vc_redist.x64.exe"   # Microsoft C++ 2015-2022 runtime, needed by PyTorch
+WHISPER_URL = "https://huggingface.co/Systran/faster-whisper-base/resolve/main/"
+WHISPER_FILES = (("config.json", 2309), ("model.bin", 145217532), ("tokenizer.json", 2203239), ("vocabulary.txt", 459861))
 NODE_VER = "22.12.0"                      # private Node.js LTS for the MIR MOTION (Remotion) render daemon
 NODE_URL = "https://nodejs.org/dist/v%s/node-v%s-win-x64.zip" % (NODE_VER, NODE_VER)
 UA = {"User-Agent": "MirMediaLabs-Setup/" + VERSION}
@@ -409,7 +411,25 @@ class Installer:
         return dict(os.environ, UV_PYTHON_INSTALL_DIR=os.path.join(self.rt, "python"), UV_CACHE_DIR=self.cache,
                     UV_LINK_MODE="copy", UV_NO_PROGRESS="1", PYTHONUTF8="1", UV_HTTP_TIMEOUT="300")
 
-    def sh(self, cmd, cwd=None):
+    def sh(self, cmd, cwd=None, retries=1):
+        """Run a command; network installs (pip / npm / browser fetch) pass retries=3 so a dropped connection
+        (WinError 10038/10054, timeouts, a flaky mirror) is retried instead of stopping the whole setup."""
+        for attempt in range(1, retries + 1):
+            try:
+                return self._sh(cmd, cwd)
+            except Cancelled:
+                raise
+            except RuntimeError as e:
+                if attempt >= retries:
+                    raise
+                wait = 10 * attempt
+                self.log("  network hiccup? retrying in %d s (attempt %d of %d): %s" % (wait, attempt + 1, retries,
+                                                                                      str(e).splitlines()[0][:160]))
+                for _ in range(wait):
+                    self.check()
+                    time.sleep(1)
+
+    def _sh(self, cmd, cwd=None):
         self.log("$ " + " ".join(os.path.basename(c) if i == 0 else c for i, c in enumerate(cmd)))
         p = subprocess.Popen(cmd, cwd=cwd, env=self.env(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                              text=True, encoding="utf-8", errors="replace", creationflags=NO_WINDOW)
@@ -546,7 +566,7 @@ class Installer:
                 with zz.open(name) as s, open(self.uv, "wb") as d:
                     shutil.copyfileobj(s, d)
         if not os.path.isfile(self.py):
-            self.sh([self.uv, "venv", self.venv, "--python", PY_VER, "--managed-python"])
+            self.sh([self.uv, "venv", self.venv, "--python", PY_VER, "--managed-python"], retries=3)
 
     def step_comfy(self):
         verf = os.path.join(self.comfy, "comfyui_version.py")
@@ -571,27 +591,26 @@ class Installer:
         backend, torch_pkgs = torch_backend(self.o["gpu"]["driver"])
         self.log("PyTorch backend: %s" % backend)
         base = [self.uv, "pip", "install", "--python", self.py, "--torch-backend", backend]
-        self.sh(base + torch_pkgs)
+        self.sh(base + torch_pkgs, retries=3)
         # engine only — the app itself is compiled and needs none of this (imageio-ffmpeg = its ffmpeg binary)
-        self.sh(base + ["-r", os.path.join(self.comfy, "requirements.txt"), "imageio-ffmpeg"])
+        self.sh(base + ["-r", os.path.join(self.comfy, "requirements.txt"), "imageio-ffmpeg"], retries=3)
 
     def step_voice(self):
         """MirAI voice: Kokoro 82M (ONNX, CPU only) in its own small venv, so the render engine's packages never change."""
         tvenv = os.path.join(self.rt, "tts-venv")
         tpy = os.path.join(tvenv, "Scripts", "python.exe")
         if not os.path.isfile(tpy):
-            self.sh([self.uv, "venv", tvenv, "--python", PY_VER, "--managed-python"])
-        self.sh([self.uv, "pip", "install", "--python", tpy, "kokoro-onnx", "soundfile", "faster-whisper"])
+            self.sh([self.uv, "venv", tvenv, "--python", PY_VER, "--managed-python"], retries=3)
+        self.sh([self.uv, "pip", "install", "--python", tpy, "kokoro-onnx", "soundfile", "faster-whisper"], retries=3)
         kd = os.path.join(self.engine, "models", "kokoro")
         os.makedirs(kd, exist_ok=True)
         for f, size in (("kokoro-v1.0.onnx", 325532387), ("voices-v1.0.bin", 28214398)):
             self.download(KOKORO_URL + f, os.path.join(kd, f), size=size, label="MirAI voice · " + f)
-        # MUSE's ears: faster-whisper "base" (CPU int8, ~150 MB), downloaded now so the first "hey MUSE" just works
-        wd = os.path.join(self.engine, "models", "whisper")
-        os.makedirs(wd, exist_ok=True)
-        self.log("downloading MUSE's ears (speech recognition) …")
-        self.sh([tpy, "-c", "import sys;from faster_whisper import WhisperModel;"
-                            "WhisperModel('base', device='cpu', compute_type='int8', download_root=sys.argv[1]);print('ears ready')", wd])
+        # MUSE's ears: faster-whisper "base" (CPU int8) fetched with the same resumable, retrying downloader as the
+        # big models (a dropped connection resumes instead of stopping the setup); voice.py loads this folder directly
+        wd = os.path.join(self.engine, "models", "whisper", "base")
+        for f, size in WHISPER_FILES:
+            self.download(WHISPER_URL + f, os.path.join(wd, f), size=size, label="MUSE's ears · " + f)
 
     def step_motion(self):
         """MIR MOTION (Motion Studio, editor scenes, series graphics): a private Node.js runtime + the Remotion packages
@@ -615,9 +634,9 @@ class Installer:
         # must be first on PATH, or a PC without a system-wide Node fails with "'node' is not recognized"
         os.environ["PATH"] = ndir + os.pathsep + os.environ.get("PATH", "")
         npm = os.path.join(ndir, "node_modules", "npm", "bin", "npm-cli.js")
-        self.sh([node, npm, "ci", "--no-audit", "--no-fund", "--loglevel=error"], cwd=mdir)
+        self.sh([node, npm, "ci", "--no-audit", "--no-fund", "--loglevel=error"], cwd=mdir, retries=3)
         try:                                             # first render would fetch it anyway — do it now, with progress in the log
-            self.sh([node, os.path.join(mdir, "node_modules", "@remotion", "cli", "remotion-cli.js"), "browser", "ensure"], cwd=mdir)
+            self.sh([node, os.path.join(mdir, "node_modules", "@remotion", "cli", "remotion-cli.js"), "browser", "ensure"], cwd=mdir, retries=3)
         except RuntimeError as e:
             self.log("  Remotion browser will download on the first motion render (%s)" % str(e)[:120])
         self.node = node
@@ -747,7 +766,7 @@ class Installer:
                     "reuse": reuse or None})
         tpy = os.path.join(self.rt, "tts-venv", "Scripts", "python.exe")
         if os.path.isfile(tpy):                             # MUSE's ears (server/voice.py) run in the voice runtime
-            cfg.update({"stt_python": tpy, "voice_stt_dir": os.path.join(self.engine, "models", "whisper")})
+            cfg.update({"stt_python": tpy, "voice_stt_dir": os.path.join(self.engine, "models", "whisper", "base")})
         node = getattr(self, "node", None) or os.path.join(self.rt, "node", "node.exe")
         if os.path.isfile(node):                            # MIR MOTION daemon (server/remotion.py)
             cfg.update({"node": node, "motion_dir": os.path.join(self.dir, "motion")})
@@ -819,14 +838,30 @@ class Installer:
         if self._dl_error:
             raise self._dl_error
 
+    def optional(self, fn, what):
+        """An extra the studio works without (voice, motion): if it still fails after its own retries, note it and
+        carry on — the install finishes and Repair adds it later. The core (app, engine, models) still stops on error."""
+        def go():
+            try:
+                fn()
+            except Cancelled:
+                raise
+            except Exception as e:
+                self.log(traceback.format_exc())
+                self.log("!! %s skipped: %s" % (what, str(e).splitlines()[-1][:200] if str(e) else type(e).__name__))
+                self.warnings.append(what)
+        go.__name__ = getattr(fn, "__name__", "optional")
+        return go
+
     def run(self):
+        self.warnings = []
         steps = [("App files", self.step_files, 1), ("Visual C++ runtime", self.step_vcredist, 2),
                  ("Python runtime", self.step_python, 3),
                  ("ComfyUI engine", self.step_comfy, 3), ("PyTorch + engine packages", self.step_packages, 18)]
         if self.o["engine"]:
             steps.append(("%s (Ollama)" % ENGINES.get(self.o["engine"], (self.o["engine"],))[0].split(" (")[0], self.step_ollama, 10))
-            steps.append(("MirAI voice (Kokoro)", self.step_voice, 3))
-        steps.append(("Motion engine (Remotion)", self.step_motion, 3))
+            steps.append(("MirAI voice + MUSE's ears", self.optional(self.step_voice, "MirAI voice / MUSE's ears"), 3))
+        steps.append(("Motion engine (Remotion)", self.optional(self.step_motion, "Motion Studio engine"), 3))
         self._dl_thread, self._dl_error = None, None
         if self.o["components"]:
             steps.append(("Finishing model downloads", self.wait_models, 60))
@@ -849,7 +884,9 @@ class Installer:
                     self._dl_thread = threading.Thread(target=self._models_bg, daemon=True)
                     self._dl_thread.start()
             self.emit("step", (len(steps), "Done", 1.0, 0))
-            self.emit("done", None)
+            if self.warnings:
+                self.log("finished, but these extras need Repair later (internet hiccup?): " + ", ".join(self.warnings))
+            self.emit("done", self.warnings)
         except Cancelled:
             self.log("cancelled — run setup again to resume (downloads continue where they stopped)")
             self.emit("failed", "Cancelled. Run setup again to resume; finished downloads are kept.")
@@ -1402,6 +1439,10 @@ class Wizard(tk.Tk):
                 elif k == "done":
                     RESULT["failed"] = False
                     self._ended = True
+                    if v and not self.update_mode:
+                        messagebox.showwarning(APP, "Installed. These extras couldn't be downloaded (internet hiccup?):\n\n  • " +
+                                               "\n  • ".join(v) + "\n\nEverything else works. Run this setup again and "
+                                               "choose Repair to add them — nothing is downloaded twice.")
                     if self.update_mode:                   # relaunch the updated app and get out of the way
                         self.lbl_step.config(text="Updated to v%s — restarting MIR MEDIA LABS …" % VERSION)
                         self.launch(server_only=True)
