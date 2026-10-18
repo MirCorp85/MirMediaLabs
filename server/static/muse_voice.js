@@ -1,5 +1,5 @@
 /* MUSE live voice — hands-free conversation with the lab (ported from MirOS live_voice.js, adapted for MML).
-   Listen (energy VAD) → /api/voice/hear (whisper) → /api/generate model:auto (MirAI chats or renders)
+   Listen (energy VAD) → /api/voice/hear (whisper) → /api/voice/talk (MUSE's own brain + lab tools; renders → /api/generate)
    → reply spoken by VOICE (Kokoro). Talking over MUSE stops her (barge-in). Docked card, top-right. */
 window.MUSE=(function(){
   const S={on:false,state:'off',stream:null,ctx:null,an:null,rec:null,chunks:[],talking:false,quietAt:0,startAt:0,
@@ -213,9 +213,12 @@ window.MUSE=(function(){
     }else{
       if(r>th*0.7)S.quietAt=0;else if(!S.quietAt)S.quietAt=now;
       if((S.quietAt&&now-S.quietAt>STOP_MS)||now-S.startAt>MAX_MS){S.talking=false;finish(now-S.startAt-(S.quietAt?now-S.quietAt:0))}}
-    if(S.state==='thinking'&&S.job){const j=(window._lastJobs||[]).find(x=>x.id===S.job);
-      if(j&&j.status!=='queued'&&j.status!=='running'){S.job=null;if(!speaking)set('listening')}
-      else if(speaking)set('speaking')}
+    if(S.state==='speaking'&&!speaking&&!S.talking)set('listening');
+    if(S.watch&&now-(S.wAt||0)>1500){S.wAt=now;           // renders she started: tell them when each one lands
+      Object.keys(S.watch).forEach(id=>{const j=(window._lastJobs||[]).find(x=>x.id===id);if(!j)return;
+        if(j.status==='done'){delete S.watch[id];VOICE.say('Your '+({qimg:'picture',h3:'video',music3:'track',ace:'song',llama:'answer'}[j.model]||'render')+' is ready.',true)}
+        else if(j.status==='error'){delete S.watch[id];VOICE.say('That render didn\'t finish.',true)}
+        else if(j.status==='cancelled')delete S.watch[id]})}
     S.raf=requestAnimationFrame(loop)}
 
   function begin(){S.chunks=[];
@@ -237,9 +240,22 @@ window.MUSE=(function(){
     if(/^(stop|goodbye|bye muse|end (the )?conversation|that'?s all)[.!]*$/i.test(t)){VOICE.say('Okay, talk soon.',true);setTimeout(stop,400);return}
     if(/^(stop|quiet|shush|be quiet)[.!]*$/i.test(t)){VOICE.stop();set('listening');return}
     set('thinking');
-    try{const r=await api('/api/generate',{method:'POST',body:JSON.stringify({model:'auto',prompt:t,session:(window.SESS||{}).id||''})});
-      S.job=r&&r.id;VOICE.mine(S.job);try{stick=true;pollJobs(true);pollStatus()}catch(e){}}
-    catch(e){const m=String(e&&e.message||e);VOICE.say(/still working/i.test(m)?'I\'m still on your last request. Give me a moment.':'Sorry, that didn\'t go through.',true);set('listening')}}
+    // a real conversation turn (MUSE's own brain + lab tools) — only actual work (a render, a long MirAI task) becomes a chat job
+    let d2;try{d2=await api('/api/voice/talk',{method:'POST',body:JSON.stringify({text:t,session:(window.SESS||{}).id||''})})}
+    catch(e){if(!S.on)return;VOICE.say('Sorry, I couldn\'t think just now. Say that again?',true);set('listening');return}
+    if(!S.on)return;
+    const sess=(window.SESS||{}).id||'';
+    try{
+      if(d2.do==='make'||d2.do==='mirai'){
+        const r=await api('/api/generate',{method:'POST',body:JSON.stringify({model:d2.do==='mirai'?'llama':'auto',prompt:d2.prompt||t,session:sess})});
+        if(d2.do==='make'&&r&&r.id){S.watch=S.watch||{};S.watch[r.id]=1}
+        try{stick=true;pollJobs(true);pollStatus()}catch(e){}}
+      else if(d2.do==='cancel'&&d2.job){await api('/api/jobs/'+d2.job+'/cancel',{method:'POST'});try{pollJobs(true)}catch(e){}}
+      else if(d2.do==='tab'&&TAB[d2.tab])setTab(TAB[d2.tab]);
+    }catch(e){const m=String(e&&e.message||e);d2.say=/still working/i.test(m)?'I\'m still on your last request. Give me a moment.':'That didn\'t go through: '+m}
+    say(d2.say||'');
+    if(d2.say)VOICE.say(d2.say,true);
+    set(d2.say?'speaking':'listening')}
 
   return {start,stop,toggle:()=>S.on?stop():start(),click:b=>{const c=b.querySelector('canvas');if(c&&c.museMoved&&c.museMoved())return;S.on?stop():start()},openLook,setStyle,setFloat,offload,get state(){return S.state}}})();
 /* ?muse=1 opens MUSE on load (needs one tap for the mic on most browsers) */
