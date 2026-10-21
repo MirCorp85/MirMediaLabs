@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased - VIRAL-Ω research desk + setup from source
+- **Setup from source:** clone the repo and run `Setup.bat` (Windows) or `./setup.sh` (Linux, beta). The wizard checks the PC, suggests models for your GPU, reuses ComfyUI models you already have, and installs the app's Python, PyTorch, a headless ComfyUI, the models, MirAI (optional), the voice and the motion engine, all inside the clone. `Setup.bat --yes` installs unattended. App packages are listed in `requirements.txt`.
+- **Social → Trends:** a live trend radar (YouTube niche outliers and trending, Google Trends, Google News, and Reddit with a free app key), scored for your account, with ready-to-run lab prompts.
+- **Social → Hook Lab:** write-then-judge hooks and a library of your own hooks ranked by results.
+- **Social → Remix:** study a viral video and make an original version of it in the lab, judged against the source, with automatic retries.
+- **Social → Planner:** ideas, drafts, scheduled and live posts on one board.
+- Burned-in on-screen hooks and word captions (motion engine), with the original video kept. Weekly lessons from your own numbers (hold rate, shares, saves, YouTube retention).
+- **Send to VIRAL-Ω** from the library: a dialog that formats the video for each platform and writes the full post package, ready to copy, rewrite or approve.
+- **Repost** a published video to other platforms, and **Refresh all stats** in one click.
+- Library: smaller icon-only REF / VIRAL-Ω buttons on thumbnails, and the player centres videos correctly.
+- Fallback, vision and stand-in engines are now settings (`fallback_engine`, `vision_pref`, `engine_twins` in `mml_config.json`), with defaults that work on a fresh install.
+
 ## v1.0.7 - Windows setup + LoRA fixes
 - **Setup wizard:** the language-model choice is now **MUSE · Llama 3.1 8B** (Qwen 3.5 removed). MUSE is the lab's general-purpose model for conversation, prompt building and the Auto-mode model picker. It never renders anything. Upgrades from Qwen 3.5 installs switch to MUSE.
 - The prompt engine defaults to Llama 3.1 8B. Pictures are only sent to engines that can see them, instead of failing on text-only models.

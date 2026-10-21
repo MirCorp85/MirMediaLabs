@@ -6,8 +6,47 @@
 <meta name="theme-color" content="#262624">
 <title>MIR MEDIA LABS · Social</title>
 <link rel="icon" href="static/icon-512.png">
-<link rel="stylesheet" href="static/social.css">
-<script src="static/mir-icons.js"></script>
+<link rel="stylesheet" href="static/social.css?v=wd1">
+<link rel="stylesheet" href="static/viral.css?v=remix2">
+<script>
+/* Startup watchdog + error reporter: a phone/app WebView that fails shows Reload (never a blank panel) and reports
+   exactly what broke to /api/social/clientlog (data/social/client_errors.jsonl on the PC). */
+(function () {
+  var t0 = Date.now(), sent = 0;
+  function rep(kind, msg) {
+    if (sent++ > 8) return;
+    try {
+      var b = JSON.stringify({ kind: kind, msg: String(msg).slice(0, 800), ua: navigator.userAgent, url: location.href, ms: Date.now() - t0 });
+      if (!(navigator.sendBeacon && navigator.sendBeacon('api/social/clientlog', new Blob([b], { type: 'application/json' }))))
+        fetch('api/social/clientlog', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: b });
+    } catch (e) {}
+  }
+  window.__soRep = rep;
+  window.addEventListener('error', function (e) {
+    var el = e.target && e.target !== window ? e.target : null;
+    rep(el ? 'load-fail' : 'js-error', el ? (el.src || el.href) : (e.message + ' @' + e.filename + ':' + e.lineno));
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) { var r = e.reason; rep('promise', r && (r.stack || r.message) || r); });
+  // the app keeps this WebView alive forever (it only re-fires visibilitychange): pick up new versions on return
+  document.addEventListener('visibilitychange', function () {
+    var m = document.getElementById('modal');
+    if (!document.hidden && Date.now() - t0 > 20 * 60e3 && (!m || m.hidden)) location.reload();   // never mid-dialog
+  });
+  setTimeout(function () {
+    var v = document.getElementById('view');
+    if (window.SOCIAL && v && v.innerHTML.replace(/\s/g, '')) return;
+    var res = (performance.getEntriesByType ? performance.getEntriesByType('resource') : []).map(function (r) { return r.name.split('/').pop() + ':' + Math.round(r.duration) + 'ms'; }).join(' ');
+    rep('boot-timeout', 'SOCIAL=' + !!window.SOCIAL + ' VIRAL=' + !!window.VIRAL + ' MI=' + !!window.MI + ' view=' + !!v + ' res=' + res);
+    var box = document.createElement('div');
+    box.style.cssText = 'position:fixed;inset:auto 12px 20px 12px;background:#3a3936;color:#f5f4ef;padding:14px;border-radius:12px;z-index:99;font:14px system-ui;text-align:center';
+    box.innerHTML = 'Social didn’t finish loading. <button style="margin-left:8px;padding:6px 14px;border-radius:8px;border:0;background:#d97757;color:#fff" onclick="location.reload()">Reload</button>';
+    document.body.appendChild(box);
+  }, 12000);
+})();
+</script>
+<script defer src="static/mir-icons.js"></script>
+<script defer src="static/viral.js?v=remix2"></script>
+<script defer src="static/social.js?v=wd1"></script>
 </head>
 <body>
 <div class="so">
@@ -20,6 +59,8 @@
   <nav class="so-tabs">
     <button data-v="overview" class="on"><i class="mi" data-ic="grid"></i> Overview</button><button data-v="queue"><i class="mi" data-ic="clipboard"></i> Queue</button>
     <button data-v="calendar"><i class="mi" data-ic="clock"></i> Scheduled</button>
+    <button data-v="trends"><i class="mi" data-ic="radar"></i> Trends</button><button data-v="hooklab"><i class="mi" data-ic="wand"></i> Hook Lab</button>
+    <button data-v="remix"><i class="mi" data-ic="layers"></i> Remix</button><button data-v="planner"><i class="mi" data-ic="clock"></i> Planner</button>
     <button data-v="analytics"><i class="mi" data-ic="finance"></i> Analytics</button>
     <button data-v="skills"><i class="mi" data-ic="bolt"></i> Skills</button><button data-v="agent"><i class="mi" data-ic="brain"></i> VIRAL-Ω</button>
     <button data-v="accounts"><i class="mi" data-ic="key"></i> Accounts</button>
@@ -27,6 +68,5 @@
   <main class="so-main" id="view"></main>
 </div>
 <div class="modal" id="modal" hidden></div>
-<script src="static/social.js"></script>
 </body>
 </html>

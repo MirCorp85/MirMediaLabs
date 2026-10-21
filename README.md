@@ -118,6 +118,16 @@ A built-in desk for running your creator accounts: **Instagram, YouTube and TikT
 - **Overview, Queue, Scheduled and Analytics** (follower trend, reach and engagement charts per post).
 - **VIRAL-Ω**, a growth agent that studies what works, suggests what to post, writes captions, hashtags and hooks, and turns an idea into a lab render with one tap. A finished render can go straight into the queue as a draft.
 - **8 social skills**: Hook Doctor, Caption A/B, Hashtag Lab, Trend Scout, Repurpose, Best Time and more.
+- **Research desk** (new tabs **Trends**, **Hook Lab**, **Remix** and **Planner**):
+  - **Trends:** a live radar every 6 hours from YouTube (niche outliers and trending), Google Trends, Google News and, with a free app key, Reddit. VIRAL-Ω scores each trend for your account and hands you a ready-to-run lab prompt.
+  - **Hook Lab:** writes ten hooks, has a stricter pass judge them, and keeps a library of your own hooks ranked by real results.
+  - **Remix:** paste a link to a viral video. VIRAL-Ω studies *why* it travels (hook, pacing, payoff), plans an original version in your own style, renders it in the lab, judges the result against the source and retries with fixes. Only the mechanics carry over: never the footage, music, people or characters.
+  - **Planner:** your ideas, drafts, scheduled and live posts on one board.
+  - On-screen captions: the hook and word-by-word speech captions are burned in with the motion engine, and the original video is kept.
+  - Weekly lessons learned from your own numbers (hold rate, share and save rate, YouTube retention) feed back into every post VIRAL-Ω writes.
+- **Send to VIRAL-Ω** from any library video or image: pick the platforms, and VIRAL-Ω formats the video for each one and writes the whole package (hook, captions, hashtags, YouTube title, description and tags, pinned comment, best time). Copy any part, ask for a rewrite, or approve and schedule.
+- **Repost** a published video to platforms it isn't on yet, and **Refresh all stats** in one click.
+- VIRAL-Ω writes with your cloud brain (Claude, GPT or GLM) when you've added a key, otherwise with MirAI on your PC.
 - **Approve-only publishing:** nothing is ever posted without your explicit approval. The server refuses to publish a post that hasn't been approved, whoever asks.
 - TikTok posts follow TikTok's own rules: privacy, comments, duet, stitch, disclosure and the AI-generated label are set per post before approval.
 
@@ -299,13 +309,25 @@ Only download from this repository. Windows SmartScreen may warn about the unsig
 5. **Phone/TV:** install the APK. On the PC open **Host Control > Invite someone**, then scan the QR code with the app (or paste the link). To use it away from home, add your address under **Host Control > Phones** (port-forwarding steps are in the app).
 
 ## Run from source
+Clone the repository and run the setup wizard. It installs everything **inside the clone**, so nothing else on your PC changes:
+
 ```
-cd server
-pip install flask requests "yt-dlp[default]"
-python medialab.py        # http://127.0.0.1:5400
+git clone https://github.com/MirCorp85/MirMediaLabs.git
+cd MirMediaLabs
+Setup.bat
 ```
-Rendering needs a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with the models installed. MirAI (chat, prompt building and the Auto-mode model picker) needs [Ollama](https://ollama.com) with `gemma4:12b`. The video editor and downloader need [ffmpeg](https://ffmpeg.org).
-Linux: `linux/install.sh`. Android: open `app/` in Android Studio, or run `powershell -File build_apk.ps1`.
+
+The wizard checks your GPU, RAM and disk, suggests models for your GPU, finds ComfyUI models you already have (so you don't download them twice), and then installs:
+- `runtime\app`: the app's own Python and packages (`requirements.txt`)
+- `runtime\venv` and `engine\ComfyUI`: PyTorch for your NVIDIA driver, a headless ComfyUI pinned to the tested release, and the models you picked (downloads resume if interrupted)
+- optionally **MirAI** through [Ollama](https://ollama.com), the voice, and the motion engine (a private Node.js)
+- `mml_config.json` with this PC's paths, plus Start-menu and desktop shortcuts
+
+Then start the studio with **`Start-MirMediaLabs.bat`** and open http://127.0.0.1:5400. Run `Setup.bat` again at any time to add models or repair the install. For an unattended install, use `Setup.bat --yes`. To see all options, use `Setup.bat --help`.
+
+**Linux (beta):** `./setup.sh`, then `./start-mirmedialabs.sh`. **Android:** open `app/` in Android Studio, or run `powershell -File build_apk.ps1`.
+
+Your library, keys and settings live in `data/`, and engine paths live in `mml_config.json`. Both are git-ignored, so `git pull` never touches them.
 
 ## Support development
 MIR MEDIA LABS is free and always will be. If it's useful to you, please support it on **[Patreon](https://www.patreon.com/cw/MirCorp)**: **$3 Supporter** backs free development, **$5 Early Access** gets you beta builds to test new features first. Your support funds new models, features and testing hardware. You can also use the **Support** button inside the app.

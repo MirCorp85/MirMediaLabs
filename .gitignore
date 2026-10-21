@@ -57,3 +57,8 @@ motion/node_modules/
 motion/.bundle/
 motion/out/
 !motion/dist/
+
+# -- source setup (Setup.bat / setup.sh): runtimes, engine + models, machine config --
+runtime/
+engine/
+comfy/

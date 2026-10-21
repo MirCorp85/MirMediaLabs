@@ -853,8 +853,8 @@ class Installer:
         go.__name__ = getattr(fn, "__name__", "optional")
         return go
 
-    def run(self):
-        self.warnings = []
+    def steps(self):
+        """[(label, step, weight)] in run order (the source-checkout wizard swaps the compiled-app steps)."""
         steps = [("App files", self.step_files, 1), ("Visual C++ runtime", self.step_vcredist, 2),
                  ("Python runtime", self.step_python, 3),
                  ("ComfyUI engine", self.step_comfy, 3), ("PyTorch + engine packages", self.step_packages, 18)]
@@ -862,10 +862,15 @@ class Installer:
             steps.append(("%s (Ollama)" % ENGINES.get(self.o["engine"], (self.o["engine"],))[0].split(" (")[0], self.step_ollama, 10))
             steps.append(("MirAI voice + MUSE's ears", self.optional(self.step_voice, "MirAI voice / MUSE's ears"), 3))
         steps.append(("Motion engine (Remotion)", self.optional(self.step_motion, "Motion Studio engine"), 3))
-        self._dl_thread, self._dl_error = None, None
         if self.o["components"]:
             steps.append(("Finishing model downloads", self.wait_models, 60))
         steps.append(("Shortcuts + self-test", self.step_finish, 4))
+        return steps
+
+    def run(self):
+        self.warnings = []
+        self._dl_thread, self._dl_error = None, None
+        steps = self.steps()
         os.makedirs(os.path.join(self.dir, "data", "logs"), exist_ok=True)
         self.logf = open(os.path.join(self.dir, "data", "logs", "install.log"), "a", encoding="utf-8")
         self.log("=== %s %s setup → %s  components=%s engine=%s" % (APP, VERSION, self.dir, self.o["components"],

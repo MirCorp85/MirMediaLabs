@@ -297,7 +297,7 @@ def run_llama(job):
             r.close()
             opts["num_ctx"] = core.CTX_OK[tag] = 8192
             continue
-        if r.status_code >= 500 and _try < 3:     # -> its working twin (gemma4:12b-nodraft) / the fallback, same request
+        if r.status_code >= 500 and _try < 3:     # -> its configured twin / the fallback, same request
             r.close()
             core.ENGINE_BROKEN.add(tag)
             nxt = core.engine_model()

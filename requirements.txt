@@ -1,0 +1,15 @@
+# MIR MEDIA LABS - the app server's Python packages (server/medialab.py).
+# The render engine (ComfyUI + PyTorch), the voice runtime and the motion engine are installed by
+# Setup.bat (Windows) / setup.sh (Linux) into runtime/ and engine/, not from this file.
+flask>=3.1
+requests>=2.32
+cryptography>=44
+qrcode>=8.0
+pillow>=11.0
+psutil>=6.0
+numpy>=2.0
+imageio-ffmpeg>=0.6
+yt-dlp[default]>=2026.1.1
+# optional cloud brain (Claude / GPT / GLM) - only used when the owner adds an API key in Settings
+anthropic>=0.100
+openai>=1.50

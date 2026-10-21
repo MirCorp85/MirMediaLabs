@@ -180,7 +180,7 @@ a{color:inherit;text-decoration:none}
 .th img{width:100%;height:100%;object-fit:cover;display:block}
 .th .ov{position:absolute;inset:auto 0 0 0;padding:14px 7px 5px;background:linear-gradient(transparent,rgba(0,0,0,.85));font-size:10px;color:#eee;display:flex;gap:5px;align-items:center;white-space:nowrap;overflow:hidden}
 .th .ov .m{font-weight:800;letter-spacing:.08em;color:var(--mc)}
-.th .uref{position:absolute;top:6px;left:6px;z-index:2;display:none;align-items:center;gap:4px;padding:4px 9px;border-radius:8px;border:1px solid color-mix(in srgb,var(--acc) 60%,transparent);background:rgba(13,8,6,.82);color:var(--ink);font:700 10px var(--mono);letter-spacing:.06em;cursor:pointer}.th .uref:hover{background:var(--acc);color:#160a04}@media (min-width:861px){.th:hover .uref{display:inline-flex}}
+.th .uref{position:absolute;top:4px;left:4px;z-index:2;display:none;align-items:center;justify-content:center;gap:0;padding:3px;border-radius:6px;border:1px solid color-mix(in srgb,var(--acc) 60%,transparent);background:rgba(13,8,6,.82);color:var(--ink);font:700 8.5px var(--mono);letter-spacing:.04em;line-height:1.5;cursor:pointer}.th .uref:hover{background:var(--acc);color:#160a04}@media (min-width:861px){.th:hover .uref{display:inline-flex}}
 .th .play{position:absolute;top:6px;right:6px;font-size:10px;background:rgba(0,0,0,.6);padding:2px 6px;border-radius:6px}
 .th.aud{display:grid;place-items:center;background:linear-gradient(135deg,color-mix(in srgb,var(--mc) 35%,#160d09),#160d09)}
 .th.aud .note{font-size:26px;opacity:.9}
@@ -201,6 +201,39 @@ a{color:inherit;text-decoration:none}
 .scrim.on{display:block}
 .sheet{position:fixed;z-index:41;top:50%;left:50%;transform:translate(-50%,-50%);width:min(760px,calc(100vw - 24px));max-height:calc(100dvh - 40px);display:none;flex-direction:column;background:#140c08;border:1px solid var(--line2);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.7)}
 .sheet.on{display:flex}
+/* SEND TO VIRAL-Ω: library file → VIRAL-Ω formats it + writes the per-platform post package */
+.th .uvir{position:absolute;top:4px;left:26px;z-index:2;display:none;align-items:center;justify-content:center;gap:0;padding:3px;border-radius:6px;border:1px solid color-mix(in srgb,var(--acc) 60%,transparent);background:rgba(13,8,6,.82);color:var(--ink);font:700 8.5px var(--mono);letter-spacing:.04em;line-height:1.5;cursor:pointer}.th .uvir:hover{background:var(--acc);color:#160a04}.th .uref .mi,.th .uvir .mi{width:12px;height:12px;font-size:12px}@media (min-width:861px){.th:hover .uvir{display:inline-flex}}
+#vir{position:fixed;inset:0;z-index:62;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.62);padding:12px}
+#vir.on{display:flex}
+#vir .vbox{width:min(720px,100%);max-height:calc(100dvh - 24px);display:flex;flex-direction:column;background:var(--surface,#140c08);border:1px solid var(--line2);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.7);overflow:hidden}
+#vir .vhd{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+#vir .vhd b{font-weight:800;letter-spacing:.14em;font-size:13px}#vir .vhd span{color:var(--dim);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+#vir .vbd{overflow:auto;padding:14px 16px;display:grid;gap:12px}
+#vir .vft{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-top:1px solid var(--line);align-items:center}
+#vir .vft .sp{flex:1}
+#vir .vtop{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:start}
+#vir .vprev{width:120px;aspect-ratio:9/16;border-radius:10px;overflow:hidden;background:#000;border:1px solid var(--line)}
+#vir .vprev img,#vir .vprev video{width:100%;height:100%;object-fit:cover;display:block}
+#vir .vlbl{font-size:10.5px;letter-spacing:.08em;color:var(--dim);text-transform:uppercase;font-weight:600;margin-bottom:6px}
+#vir .vchips{display:flex;flex-wrap:wrap;gap:6px}
+#vir .vchip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:9px;border:1px solid var(--line2);background:rgba(0,0,0,.3);font-size:12px;cursor:pointer;user-select:none}
+#vir .vchip.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 22%,transparent)}
+#vir .vchip.off{opacity:.45;cursor:not-allowed}#vir .vchip small{color:var(--faint)}
+#vir textarea{width:100%;min-height:64px;border:1px solid var(--line2);background:rgba(0,0,0,.35);border-radius:9px;padding:8px 9px;outline:none;color:var(--ink);font:inherit;resize:vertical}
+#vir .vstage{display:grid;gap:8px;padding:6px 2px}
+#vir .vst{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--faint)}
+#vir .vst.on{color:var(--ink)}#vir .vst.ok{color:var(--grn)}#vir .vst.bad{color:var(--red)}
+#vir .vst i.dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+#vir .vst.on i.dot{animation:virp 1s ease-in-out infinite}@keyframes virp{50%{opacity:.25}}
+#vir .vcard{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:rgba(0,0,0,.25)}
+#vir .vcard .vk{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:700}
+#vir .vcard .vk button{margin-left:auto}
+#vir .vcard .vv{white-space:pre-wrap;font-size:13px;line-height:1.45;word-break:break-word}
+#vir .vtags{color:var(--acc);font-size:12.5px;margin-top:6px;word-break:break-word}
+#vir .vwhy{font-size:12px;color:var(--dim)}
+#vir .vmini{padding:3px 8px;border-radius:7px;border:1px solid var(--line2);background:transparent;color:var(--dim);font:600 10.5px var(--mono);cursor:pointer}
+#vir .vmini:hover{color:var(--ink);border-color:var(--acc)}
+@media (max-width:560px){#vir .vtop{grid-template-columns:84px 1fr}#vir .vprev{width:84px}}
 .sheet .hd{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
 .sheet .hd .tt{font-weight:800;letter-spacing:.14em;font-size:13px}
 .sheet .bd{overflow:auto;padding:14px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px 14px}
@@ -407,6 +440,10 @@ body.lcol-off .lrail{display:flex}
 .lb .view>:not(img){position:absolute;inset:16px;margin:auto;max-width:calc(100% - 32px);max-height:calc(100% - 32px)}
 .lb .view>.audiocard{height:max-content}
 .lb .view>video{width:100%;height:100%;object-fit:contain;background:#000}/*fit-any*/
+/* library player: the video/audio is wrapped in a .mp div. Absolute-positioning blockifies that
+   inline-block, so with inset:16px (left+right both set) it used to STRETCH full-width and the clamped
+   video inside sat off to the left. Shrink-wrap the wrapper so the margin:auto above re-centers it. */
+.lb .view>.mp.vid{width:max-content;height:max-content;max-width:calc(100% - 32px);max-height:calc(100% - 32px)}
 .lb .bar{overflow-x:auto;scrollbar-width:none}.lb .bar::-webkit-scrollbar{display:none}.lb .bar>*{flex:none}.lb .bar .nm{flex:1 0 80px}
 .lb .view .zhint{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);inset:auto auto calc(14px + env(safe-area-inset-bottom)) 50%;max-width:none;max-height:none;height:auto;width:auto;margin:0;
   font:11px var(--mono,monospace);letter-spacing:.06em;color:var(--dim);background:color-mix(in srgb,var(--bg,#000) 80%,transparent);padding:5px 10px;border-radius:999px;pointer-events:none}
@@ -1170,12 +1207,14 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 
 <div class="lb" id="lb">
   <div class="bar"><span class="chip" id="lb-chip"></span><span class="nm" id="lb-name"></span>
-    <button class="btn" id="lb-edit" onclick="viewing&&mmlEditor('lib:'+viewing.name)"><i class="mi" data-ic="scissors"></i> Edit</button><button class="btn" id="lb-social" onclick="viewing&&mmlSocialDraft(viewing.name)"><i class="mi" data-ic="globe"></i> Post</button><button class="btn" id="lb-use"><i class="mi" data-ic="refresh"></i> Use as ref</button><a class="btn" id="lb-dl"><i class="mi" data-ic="download"></i> Save</a><button class="btn" id="lb-sess" title="Move it to another session"><i class="mi" data-ic="folder"></i> Move</button><button class="btn danger" id="lb-del"><i class="mi" data-ic="trash"></i></button><button class="iconbtn" id="lb-x"><i class="mi" data-ic="close"></i></button></div>
+    <button class="btn" id="lb-edit" onclick="viewing&&mmlEditor('lib:'+viewing.name)"><i class="mi" data-ic="scissors"></i> Edit</button><button class="btn" id="lb-social" onclick="viewing&&mmlSocialDraft(viewing.name)" title="VIRAL-Ω formats it and writes the post + description, ready to approve"><i class="mi" data-ic="trending-up"></i> Send to VIRAL-Ω</button><button class="btn" id="lb-use"><i class="mi" data-ic="refresh"></i> Use as ref</button><a class="btn" id="lb-dl"><i class="mi" data-ic="download"></i> Save</a><button class="btn" id="lb-sess" title="Move it to another session"><i class="mi" data-ic="folder"></i> Move</button><button class="btn danger" id="lb-del"><i class="mi" data-ic="trash"></i></button><button class="iconbtn" id="lb-x"><i class="mi" data-ic="close"></i></button></div>
   <div class="view" id="lb-view"></div>
   <button class="lbnav prev" id="lb-prev" title="Previous (←)"><i class="mi" data-ic="chevron-left"></i></button><button class="lbnav next" id="lb-next" title="Next (→)"><i class="mi" data-ic="chevron-right"></i></button><span class="lbpos" id="lb-pos"></span>
 </div>
 <div class="drop" id="drop">DROP TO ATTACH</div>
 <div class="scrim" id="scrim"></div>
+<div id="vir"><div class="vbox"><div class="vhd"><i class="mi" data-ic="trending-up"></i><b>SEND TO VIRAL-Ω</b><span id="vir-nm"></span><button class="iconbtn" id="vir-x" title="Close"><i class="mi" data-ic="close"></i></button></div>
+  <div class="vbd" id="vir-bd"></div><div class="vft" id="vir-ft"></div></div></div>
 <div class="sheet" id="sheet">
   <div class="hd"><span class="chip" id="s-chip"></span><span class="tt" id="s-title"></span><span style="flex:1"></span><button class="iconbtn" id="s-x"><i class="mi" data-ic="close"></i></button></div>
   <div class="bd" id="s-body"></div>
@@ -1848,8 +1887,8 @@ $('#b-clear').onclick=()=>api('/api/jobs/clear',{method:'POST',body:JSON.stringi
 
 /* library + lightbox */
 function thumbHTML(it){const m=MODELS[it.model]||{};const c=m.color||'#888';const s=SHORT[it.model]||'';
-  if(it.kind==='audio')return `<div class="th aud" data-n="${esc(it.name)}" data-m="${esc(it.model||'')}" style="--mc:${c}" title="${esc(it.prompt||it.name)}"><span class="note">${MI.html('music','lg')}</span><button class="uref" data-ref="${esc(it.name)}" title="Add as a reference to your next message">${MI.html('plus','sm')} REF</button><div class="ov"><span class="m">${esc(s)}</span>${esc(it.name)}</div></div>`;
-  return `<div class="th" data-n="${esc(it.name)}" data-m="${esc(it.model||'')}" style="--mc:${c}" title="${esc(it.prompt||it.name)}"><img loading="lazy" src="/thumb/${encodeURIComponent(it.name)}" onerror="this.style.display='none'" alt="">${it.kind==='video'?'<span class="play">'+MI.html('play','sm')+' VIDEO</span>':''}<button class="uref" data-ref="${esc(it.name)}" title="Add as a reference to your next message">${MI.html('plus','sm')} REF</button><div class="ov"><span class="m">${esc(s)}</span></div></div>`}
+  if(it.kind==='audio')return `<div class="th aud" data-n="${esc(it.name)}" data-m="${esc(it.model||'')}" style="--mc:${c}" title="${esc(it.prompt||it.name)}"><span class="note">${MI.html('music','lg')}</span><button class="uref" data-ref="${esc(it.name)}" title="Add as a reference to your next message">${MI.html('plus','sm')}</button><div class="ov"><span class="m">${esc(s)}</span>${esc(it.name)}</div></div>`;
+  return `<div class="th" data-n="${esc(it.name)}" data-m="${esc(it.model||'')}" style="--mc:${c}" title="${esc(it.prompt||it.name)}"><img loading="lazy" src="/thumb/${encodeURIComponent(it.name)}" onerror="this.style.display='none'" alt="">${it.kind==='video'?'<span class="play">'+MI.html('play','sm')+' VIDEO</span>':''}<button class="uref" data-ref="${esc(it.name)}" title="Add as a reference to your next message">${MI.html('plus','sm')}</button><button class="uvir" data-vir="${esc(it.name)}" title="Send to VIRAL-Ω — it writes the post + description, ready to approve">${MI.html('trending-up','sm')}</button><div class="ov"><span class="m">${esc(s)}</span></div></div>`}
 async function loadLib(reset){
   if(reset)libItems=[];
   let j;try{j=await api(`/api/library?kind=${libKind}&offset=${libItems.length}&limit=40${SESS.all?'':'&session='+encodeURIComponent(SESS.id)}`)}catch(e){return}
@@ -1859,6 +1898,7 @@ async function loadLib(reset){
   $('#more').style.display=libItems.length<j.total?'block':'none';
   $$('#grid .th').forEach(t=>t.onclick=()=>showFile(t.dataset.n,t.dataset.m));
   $$('#grid .uref').forEach(b=>b.onclick=e=>{e.stopPropagation();useAsRef(b.dataset.ref)});
+  $$('#grid .uvir').forEach(b=>b.onclick=e=>{e.stopPropagation();mmlSocialDraft(b.dataset.vir)});
 }
 $('#more').onclick=()=>loadLib(false);
 /* chat sessions (sessions.py): a session = one project's chat + media. "General" (id "") holds everything older. */
@@ -1953,6 +1993,7 @@ function showFile(name,model){
   else v.innerHTML=mpHTML('audio',url,{big:1,autoplay:1,name,label:m.label||'AUDIO'});
   $('#lb-chip').textContent=SHORT[model]||'';$('#lb-chip').style.background=m.color||'#888';
   $('#lb-name').textContent=name;$('#lb-dl').href=url+'?dl=1';$('#lb').classList.add('on');lbNavState();
+  $('#lb-social').hidden=k==='audio';
 }
 /* previous / next through the library as it's listed (current filter); loads the next page at the end */
 function lbIdx(){return viewing?libItems.findIndex(x=>x.name===viewing.name):-1}
@@ -2549,9 +2590,72 @@ function mmlSocial(view){
   f.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9998;background:#000';document.body.appendChild(f);
   try{closeLB()}catch(e){}
 }
+/* SEND TO VIRAL-Ω: any library video/image → VIRAL-Ω formats it per platform (9:16 Reels/TikTok, 16:9 YouTube)
+   and writes the whole post package (hook, captions, hashtags, YouTube title/description/tags, pinned comment, best time).
+   It lands in Social as a draft — nothing publishes until you press Approve (approve-only rule, enforced server-side). */
+const VIR={name:null,pid:null,timer:null,acc:null};
+const VIR_PL=[['instagram','Instagram','Reel 9:16'],['youtube','YouTube','16:9 video'],['tiktok','TikTok','9:16'],['facebook','Facebook','Reel 9:16']];
+function virClose(){clearTimeout(VIR.timer);VIR.pid=null;$('#vir').classList.remove('on');$('#vir-bd').innerHTML='';$('#vir-ft').innerHTML=''}
+$('#vir-x').onclick=virClose;$('#vir').onclick=e=>{if(e.target.id==='vir')virClose()};
+function virPrev(name){const url='/media/'+encodeURIComponent(name);
+  return kindOf(name)==='video'?`<video src="${url}" muted loop autoplay playsinline preload="metadata"></video>`:`<img src="${url}" alt="">`}
 async function mmlSocialDraft(name){
-  try{await api('api/social/draft',{method:'POST',body:JSON.stringify({library_ref:name})});toast('Sent to Social — VIRAL-Ω is writing the post');mmlSocial('queue')}catch(e){toast(e.message)}
+  if(!name)return;if(kindOf(name)==='audio')return toast('VIRAL-Ω posts videos and images — audio can’t be posted on its own');
+  VIR.name=name;VIR.pid=null;clearTimeout(VIR.timer);$('#vir-nm').textContent=name;$('#vir').classList.add('on');
+  $('#vir-bd').innerHTML='<div class="vst on"><i class="dot"></i>Checking your connected accounts…</div>';$('#vir-ft').innerHTML='';
+  try{VIR.acc=await api('api/social/accounts')}catch(e){VIR.acc={}}
+  const conn=k=>!!((VIR.acc||{})[k]||{}).connected;
+  $('#vir-bd').innerHTML=`<div class="vtop"><div class="vprev">${virPrev(name)}</div><div style="display:grid;gap:12px">
+    <div><div class="vlbl">Post it on</div><div class="vchips">${VIR_PL.map(([k,l,f])=>`<span class="vchip${conn(k)?' on':' off'}" data-pl="${k}" title="${conn(k)?f:l+' is not connected — connect it in Social → Accounts'}">${l} <small>${conn(k)?f:'not connected'}</small></span>`).join('')}</div></div>
+    <div><div class="vlbl">What it's about (optional — VIRAL-Ω reads the prompt it was made with)</div><textarea id="vir-brief" placeholder="e.g. teaser for episode 3 of the kids musical, push the song"></textarea></div></div></div>`;
+  $$('#vir .vchip[data-pl]').forEach(c=>c.onclick=()=>{if(!c.classList.contains('off'))c.classList.toggle('on')});
+  $('#vir-ft').innerHTML=`<span class="sp"></span><button class="btn" id="vir-cancel">Cancel</button><button class="btn pri" id="vir-go">${MI.html('send','sm')} Send to VIRAL-Ω</button>`;
+  $('#vir-cancel').onclick=virClose;
+  $('#vir-go').onclick=async()=>{const pl=$$('#vir .vchip.on').map(c=>c.dataset.pl);
+    if(!pl.length)return toast(Object.keys(VIR.acc||{}).some(conn)?'Pick at least one platform':'No platform is connected yet — connect one in Social → Accounts');
+    $('#vir-go').disabled=true;
+    try{const p=await api('api/social/draft',{method:'POST',body:JSON.stringify({library_ref:name,platforms:pl,brief:$('#vir-brief').value.trim()})});
+      VIR.pid=p.id;virPoll()}catch(e){$('#vir-go').disabled=false;toast(e.message)}};
 }
+function virStages(st){const S=[['fmt','Formatting the video for each platform'],['copy','Writing the hook, captions, hashtags and YouTube copy'],['done','Post package ready']];
+  const at=st==='preparing'?0:st==='failed'?-1:2;
+  return '<div class="vstage">'+S.map(([k,t],i)=>`<div class="vst ${at<0&&i===0?'bad':at>i||(at===2&&i===2)?'ok':at===i?'on':''}"><i class="dot"></i>${t}</div>`).join('')+'</div>'}
+async function virPoll(){if(!VIR.pid)return;const pid=VIR.pid;let p;
+  try{p=await api('api/social/posts/'+pid)}catch(e){VIR.timer=setTimeout(virPoll,2500);return}
+  if(pid!==VIR.pid)return;
+  if(p.status==='preparing'){$('#vir-bd').innerHTML=`<div class="vtop"><div class="vprev">${virPrev(VIR.name)}</div><div>${virStages('preparing')}<div class="vwhy">VIRAL-Ω is on it — you can close this; the draft keeps going and shows up in Social.</div></div></div>`;
+    $('#vir-ft').innerHTML='<span class="sp"></span><button class="btn" id="vir-bg">Close — keep working in the background</button>';$('#vir-bg').onclick=virClose;
+    VIR.timer=setTimeout(virPoll,2000);return}
+  if(p.status==='failed'){$('#vir-bd').innerHTML=virStages('failed')+`<div class="vcard"><div class="vv">${esc(p.error||'VIRAL-Ω could not prepare this file')}</div></div>`;
+    $('#vir-ft').innerHTML=`<span class="sp"></span><button class="btn" id="vir-re">${MI.html('refresh','sm')} Try writing again</button>`;
+    $('#vir-re').onclick=()=>virRewrite();return}
+  virShow(p)}
+function virCard(k,label,val,extra){if(!val)return'';return `<div class="vcard"><div class="vk">${label}<button class="vmini" data-cp="${k}">${MI.html('copy','sm')} Copy</button></div><div class="vv">${esc(val)}</div>${extra||''}</div>`}
+function virShow(p){VIR.post=p;const pl=p.platforms||[],tags=(p.hashtags||[]).map(h=>'#'+h).join(' ');
+  const when=p.best_time?' at '+p.best_time:'';
+  const cards=[virCard('hook','On-screen hook (first second)',p.hook),
+    pl.includes('instagram')?virCard('ig','Instagram caption',p.caption,tags?`<div class="vtags">${esc(tags)}</div>`:''):'',
+    pl.includes('youtube')?virCard('ytt','YouTube title',p.yt_title):'',
+    pl.includes('youtube')?virCard('ytd','YouTube description',p.yt_description,(p.yt_tags||[]).length?`<div class="vtags">${esc((p.yt_tags||[]).join(', '))}</div>`:''):'',
+    pl.includes('tiktok')?virCard('tt','TikTok caption',p.tt_caption):'',
+    pl.includes('facebook')?virCard('fb','Facebook caption',p.fb_caption):'',
+    virCard('pin','Pinned comment',p.pinned_comment)].join('');
+  $('#vir-bd').innerHTML=`<div class="vtop"><div class="vprev">${p.video_url?`<video src="${esc(p.video_url)}" muted loop autoplay playsinline></video>`:virPrev(VIR.name)}</div><div style="display:grid;gap:8px">
+    ${virStages('draft')}${p.why?`<div class="vwhy">${MI.html('sparkle','sm')} ${esc(p.why)}</div>`:''}<div class="vwhy">${MI.html('clock','sm')} Best time${esc(when||': next open slot')} · ${esc(pl.join(' · '))}</div></div></div>${cards}
+    <div><div class="vlbl">Want it different? Tell VIRAL-Ω</div><textarea id="vir-note" placeholder="e.g. funnier hook, mention the song name, shorter caption"></textarea></div>`;
+  const CP={hook:p.hook,ig:(p.caption||'')+(tags?'\n\n'+tags:''),ytt:p.yt_title,ytd:(p.yt_description||''),tt:p.tt_caption,fb:p.fb_caption,pin:p.pinned_comment};
+  $$('#vir [data-cp]').forEach(b=>b.onclick=()=>{const t=CP[b.dataset.cp]||'';(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Copied'),()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(_){}a.remove();toast('Copied')})});
+  $('#vir-ft').innerHTML=`<button class="btn" id="vir-re">${MI.html('wand','sm')} Rewrite</button><span class="sp"></span><button class="btn" id="vir-done">Keep as draft</button><button class="btn pri" id="vir-ok">${MI.html('check','sm')} Approve &amp; schedule${esc(when)}</button>`;
+  $('#vir-re').onclick=()=>virRewrite($('#vir-note').value.trim());
+  $('#vir-done').onclick=()=>{virClose();toast('Saved as a draft in Social — approve it there when you’re ready')};
+  $('#vir-ok').onclick=async()=>{$('#vir-ok').disabled=true;
+    try{const q=await api('api/social/posts/'+p.id+'/approve',{method:'POST',body:'{}'});virClose();
+      toast('Approved — scheduled for '+new Date((q.schedule_at||0)*1000).toLocaleString([], {weekday:'short',hour:'2-digit',minute:'2-digit'}))}
+    catch(e){$('#vir-ok').disabled=false;toast(e.message)}};
+}
+async function virRewrite(note){if(!VIR.pid)return;const b=$('#vir-re');if(b){b.disabled=true;b.innerHTML=MI.html('wand','sm')+' Rewriting…'}
+  try{const p=await api('api/social/posts/'+VIR.pid+'/rewrite',{method:'POST',body:JSON.stringify({note:note||''})});virShow(p)}
+  catch(e){if(b){b.disabled=false;b.innerHTML=MI.html('wand','sm')+' Rewrite'}toast(e.message)}}
 window.addEventListener('message',function(e){var d=e.data||{};
   if(d.mml==='social-close'){var f=document.getElementById('mml-so');if(f)f.remove();return}
   if(d.mml==='social-make'){var f2=document.getElementById('mml-so');if(f2)f2.remove();window.MML_SOCIAL=d.social||{platforms:['instagram','youtube']};

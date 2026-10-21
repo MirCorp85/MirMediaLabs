@@ -343,7 +343,7 @@ def engine_label(model=None):
 
 
 def pretty_tag(m):
-    """'qwen3.5:9b-mtp-nodraft' -> 'Qwen 3.5 9B (mtp-nodraft)' for any installed Ollama tag."""
+    """'qwen3.5:9b-q8_0' -> 'Qwen 3.5 9B (q8_0)' for any installed Ollama tag."""
     name, _, tag = (m or "").rpartition("/")[-1].partition(":")
     fam = re.sub(r"^([a-z]+)([0-9])", r"\1 \2", name).replace("-", " ").strip()
     fam = " ".join(w.upper() if w in ("hf", "mtp") else (w[:1].upper() + w[1:]) for w in fam.split())
@@ -430,7 +430,8 @@ def ensure_ollama(wait=60):
     return False
 
 
-FALLBACK_ENGINE = "qwen3.5:9b-q8_0"        # used only when the chosen engine fails to load (Oct 19: old qwen3.5:9b deleted)
+# used only when the chosen engine fails to load; mml_config.json / data/local.json "fallback_engine" overrides it
+FALLBACK_ENGINE = CONFIG.get("fallback_engine") or LOCAL.get("fallback_engine") or "qwen3.5:9b"
 
 
 class _Broken(set):
@@ -486,12 +487,16 @@ CTX_OK = {}                                         # engine -> num_ctx it start
 ENGINE_BROKEN = _Broken()                           # engines Ollama failed to start this run (llama-server exit) → skipped
 
 
+# Optional working stand-ins for engines that won't load (e.g. the same weights rebuilt without a draft model):
+# mml_config.json / data/local.json  {"engine_twins": {"gemma4:12b": "gemma4:12b-nodraft"}}
+ENGINE_TWINS = dict(LOCAL.get("engine_twins") or {}, **(CONFIG.get("engine_twins") or {}))
+
+
 def engine_twin(m, tags):
-    """A working stand-in for an engine that won't load: its -nodraft build (same weights, no bundled draft model —
-    gemma4:12b's MTP draft crashes newer Ollama with 'Gemma4Assistant requires ctx_other'), else the fallback."""
-    for t in (m + "-nodraft", m.split(":")[0] + ":" + m.split(":")[-1] + "-nodraft"):
-        if t in tags and t not in ENGINE_BROKEN:
-            return t
+    """A working stand-in for an engine that won't load: its configured twin when installed, else the fallback."""
+    t = ENGINE_TWINS.get(m)
+    if t and t in tags and t not in ENGINE_BROKEN:
+        return t
     return FALLBACK_ENGINE
 
 
@@ -667,7 +672,8 @@ def _cloud_brain():
         return None
 
 
-VISION_PREF = ("qwen3.5:9b-q8_0", "gemma4:12b-nodraft", "gemma4:12b")   # NVFP4 has the vision projector (Gemma 4 + images crashes Ollama)
+# Picture-reading engines to try first (in order); "vision_pref" in mml_config.json / data/local.json overrides it
+VISION_PREF = tuple(CONFIG.get("vision_pref") or LOCAL.get("vision_pref") or ("qwen3.5:9b", "gemma4:12b"))
 
 
 def vision_model():
