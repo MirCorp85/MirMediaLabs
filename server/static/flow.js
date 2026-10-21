@@ -4,7 +4,7 @@
    (/api/flow/run) in topological order through /api/generate's direct-model path — the page only polls. */
 (function () {
   'use strict';
-  var B = location.pathname.indexOf('/lab2') === 0 ? '/lab2' : '';
+  var B = '';
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var mi = function (n) { return '<i class="mi" data-ic="' + n + '"></i>'; };
@@ -25,7 +25,7 @@
   function theme(id) { var t = THEMES[id] || THEMES.claude, r = document.documentElement.style;
     ['--bg', '--panel', '--panel2', '--ink', '--acc'].forEach(function (k, i) { r.setProperty(k, t[i]); }); }
   try { theme(localStorage.getItem('mml.theme') || 'claude'); } catch (e) { theme('claude'); }
-  fetch('/api/mir-prefs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.mltheme && d.mltheme.id) theme(d.mltheme.id); }).catch(function () { });
+  fetch('/api/prefs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.mltheme && d.mltheme.id) theme(d.mltheme.id); }).catch(function () { });
   var SESSION = (function () { try { return localStorage.getItem('mml.session') || ''; } catch (e) { return ''; } })();
 
   var CAT = {}, TPL = [], G = { id: '', name: 'Untitled flow', nodes: [], links: [] }, VIEW = { x: 40, y: 30, k: 1 };

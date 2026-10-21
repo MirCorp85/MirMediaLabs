@@ -86,12 +86,7 @@
 </div>
 <div id="ed-modal" class="ed-modal" hidden></div>
 <div id="ed-toast" class="ed-toast"></div>
-<script>
-(function () {   /* icons live in different places in the two lab copies */
-  var lab2 = location.pathname.indexOf('/lab2') === 0;
-  document.write('<script src="' + (lab2 ? '/static/icons/mir-icons.js' : '/static/mir-icons.js') + '"><\/script>');
-})();
-</script>
+<script src="/static/mir-icons.js"></script>
 <script src="static/editor.js"></script>
 <script src="/static/fonts/mir/mirfont.js" data-vars="--sans"></script>
 </body>

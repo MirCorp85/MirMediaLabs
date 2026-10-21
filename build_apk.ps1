@@ -11,7 +11,7 @@
 # Manifests are signed with installer\signing\update_ed25519.key (same key as the PC edition - never commit it).
 param([switch]$Play, [switch]$Install, [switch]$Publish, [switch]$Bump, [switch]$Release, [switch]$GitHub, [string]$Tag = "", [string]$Notes = "")
 $env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.10"
-$env:ANDROID_HOME = "C:\Tools\android-sdk"
+if (-not $env:ANDROID_HOME) { $env:ANDROID_HOME = Join-Path $env:LOCALAPPDATA "Android\Sdk" }
 if ($GitHub) { $Release = $true }
 $proj = Join-Path $PSScriptRoot "app"
 $gradle = Join-Path $proj "app\build.gradle"
@@ -19,7 +19,7 @@ $updateDir = Join-Path $PSScriptRoot "updates"
 $tool = Join-Path $PSScriptRoot "installer\build_tool.py"
 $py = Join-Path $PSScriptRoot "installer\build\nvenv\Scripts\python.exe"
 if (-not (Test-Path $py)) { $py = "python" }
-$gh = "C:\Tools\gh\bin\gh.exe"
+$gh = if ($env:GH_EXE) { $env:GH_EXE } else { "gh" }
 $repo = "MirCorp85/MirMediaLabs"
 
 if ($Bump) {

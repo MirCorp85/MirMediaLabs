@@ -12,10 +12,7 @@ import os
 import subprocess
 import sys
 
-try:
-    from . import core
-except ImportError:
-    import core
+import core
 
 MODEL_ID = "depth-anything/Depth-Anything-V2-Small-hf"
 CACHE = os.path.join(core.DATA, "models", "hf")
@@ -78,10 +75,7 @@ def _python():
             return sys.executable.replace("pythonw.exe", "python.exe")
         except Exception:
             pass
-    try:
-        from . import comfy
-    except ImportError:
-        import comfy
+    import comfy
     if comfy.COMFY_PY and os.path.isfile(comfy.COMFY_PY):
         return comfy.COMFY_PY
     raise RuntimeError("depth needs the engine's Python (torch + transformers) — run Setup → Repair")

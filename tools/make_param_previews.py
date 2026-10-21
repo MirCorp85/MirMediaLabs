@@ -131,7 +131,7 @@ def write_manifest():
                 key = rel[3:-4]                                    # fx/h3/camera/orbit.jpg → h3/camera/orbit
                 if "/aspect/" in key:
                     key = key.replace("x", ":")                    # h3/aspect/16x9 → h3/aspect/16:9
-                ent = {"poster": "static/" + rel}          # relative: the page lives at / (lab)
+                ent = {"poster": "static/" + rel}          # relative to the page
                 if os.path.isfile(os.path.join(root, fn[:-4] + ".mp4")):
                     ent["video"] = "static/" + rel[:-4] + ".mp4"
                 man[key] = ent

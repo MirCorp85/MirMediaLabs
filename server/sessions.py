@@ -2,8 +2,7 @@
 sessions.py — chat sessions (projects) for MIR MEDIA LABS: every chat request and every file it makes belongs to one,
 so the chat and the library can be split by project.
 ═══════════════════════════════════════════════════════════════════════════════
-IDENTICAL in both copies (standalone server/sessions.py and the other copy's sessions.py) — copy, never
-import across. Each copy wires it in with
+Wired in with
     sessions.register(app, hooks)
 where hooks = {"uid": uid(), "move": move(uid, from_sid, to_sid) → re-files that session's chats + media}.
 
@@ -21,10 +20,7 @@ import threading
 import time
 import uuid
 
-try:                      # package copy lives in the package copy
-    from . import core
-except ImportError:       # standalone server runs its modules flat
-    import core
+import core
 
 SD = os.path.join(core.DATA, "sessions")
 MAX = 200

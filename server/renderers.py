@@ -1,5 +1,5 @@
-"""The four generators. Graph logic is ported from MIR (same verified node graphs),
-re-homed so every input comes from data/refs and every output lands in data/library.
+"""The four generators, built on verified node graphs: every input comes from data/refs and every
+output lands in data/library.
 
 Each run_<model>(job) reads job['prompt'], job['refs'] (names in data/refs) and
 job['params'] (resolved ⚙ values) and returns {"files": [...], "text": summary}.
@@ -1820,7 +1820,7 @@ def run_ace(job):
         label, secs, bpm, key, st, seed, dt / 60, tip, tags, lyrics)}
 
 
-import llm   # noqa: E402  (text model — standalone only)
+import llm   # noqa: E402  (text model)
 
 def run_vace(job):
     """WAN VACE SWAP as its own model: picture + clip → the person in the clip becomes the person in the picture."""

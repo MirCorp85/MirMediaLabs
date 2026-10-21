@@ -1,10 +1,10 @@
 """Refresh server/static/prompt_guides.json from Comfy's official per-model prompting guides.
 
 Dev-time only — never called at render time. Talks to the Comfy Cloud MCP (discovery tools are free,
-no generation is ever submitted) and writes the MML copy plus an optional mirror.
+no generation is ever submitted) and writes the MML copy (plus an optional local mirror).
 
     set COMFY_API_KEY=comfyui-...        (platform.comfy.org → API keys)
-    C:\\Tools\\comfy-agent-venv\\Scripts\\python.exe tools\\refresh_prompt_guides.py [--dry]
+    python tools\\refresh_prompt_guides.py [--dry]
 
 Without an API key, ask Claude Code (signed in to the comfy-cloud MCP) to run get_prompting_guide for
 each family below and save the same JSON shape.

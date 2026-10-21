@@ -15,11 +15,8 @@ import os
 import re
 import time
 
-try:
-    from . import comfy, core
-except ImportError:
-    import comfy
-    import core
+import comfy
+import core
 
 DIR = os.path.join(core.DATA, "workflows")
 KIND = {"vace": "video", "h3": "video", "qimg": "image", "music3": "audio", "ace": "audio"}
