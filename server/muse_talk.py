@@ -51,9 +51,17 @@ _WANT = re.compile(r"\b(i (?:want|need|wanna)|i'?d (?:like|love)|i would (?:like
 _NOUN = re.compile(r"\b(picture|image|photo|portrait|poster|logo|drawing|painting|artwork|character|video|clip|scene|"
                    r"animation|movie|song|music|track|beat|melody|soundtrack|jingle|wallpaper|thumbnail|cover)s?\b", re.I)
 _HOWTO = re.compile(r"^\W*(?:how|why|what|which|when|where|who|is|are|does|do you know|tell me|explain)\b", re.I)
+# a question after a short lead-in ("Great, which tool would you use…", "Okay so how do I…") — the anchored _HOWTO
+# missed these, so a question that merely mentions "make" + "song" started a render (Oct 21 fix)
+_PLEASE = re.compile(r"\b(?:can|could|would|will) you (?:please )?(?:create|make|generate|render|draw|paint|design|compose|"
+                     r"produce|animate|film)\b", re.I)          # "…, can you make a video of waves?" is a request
+_ASK = re.compile(r"^\W*(?:[\w']+\W+){0,2}?(?:how|why|what|which|when|where|who|whose|do you know|tell me|explain)\b", re.I)
 _AFFIRM = re.compile(r"^\W*(yes|yeah|yep|yup|sure|ok(?:ay)?|go ahead|go for it|do it|please do|let'?s do it|make it|"
                      r"start it|sounds good|perfect)\b", re.I)
-_CLAIMS = re.compile(r"\b(sending|sent|passing|starting|started|creating|generating|rendering|making|queu(?:e|ed|ing)|"
+# only MUSE's OWN claims ("I'm making it", "I'll start the song", "sending it to the lab") — not her describing the
+# person's plan back to them ("you're making a music video" queued the question as a render, Oct 21 fix)
+_CLAIMS = re.compile(r"(?:^|[.!?]\s+|\b(?:i|we)(?:'m|'re|'ll|'ve| am| are| will| have)?\s+(?:\w+\s+){0,2}?)"
+                     r"(sending|sent|passing|starting|started|creating|generating|rendering|making|queu(?:e|ed|ing)|"
                      r"kick(?:ing|ed) off|firing up|working on)\b.{0,60}\b(it|that|this|request|render|picture|image|video|"
                      r"song|track|music|media lab|lab|studio)\b|\b(on it|i'?ll (?:create|make|render|generate|start))\b", re.I)
 
@@ -62,7 +70,8 @@ def _wants_make(said, prev_a):
     """-> the prompt to render, or None."""
     if _MAKE.search(said) and _MEDIA.search(said):
         return said
-    if _NOUN.search(said) and not _HOWTO.match(said) and (_VERB_ANY.search(said) or _WANT.search(said)):
+    asks = _HOWTO.match(said) or _ASK.match(said) or (said.rstrip().endswith("?") and not (_WANT.search(said) or _PLEASE.search(said)))
+    if _NOUN.search(said) and not asks and (_VERB_ANY.search(said) or _WANT.search(said)):
         return said
     if _AFFIRM.match(said) and prev_a and _NOUN.search(prev_a) and (prev_a.rstrip().endswith("?") or _CLAIMS.search(prev_a)):
         return prev_a                                     # "yes" to her offer: render what she described
@@ -265,7 +274,8 @@ def turn(user, said, jobs, name=""):
     reply = _chat(user, said, facts, name, extra)
     _remember(user, said, reply)
     # she SAID she's sending / making it but no route fired -> really start it (never a claim without a job)
-    if not extra and _CLAIMS.search(reply) and (_NOUN.search(said) or _NOUN.search(prev_u) or _AFFIRM.match(said)):
+    if not extra and not (_HOWTO.match(said) or _ASK.match(said)) and _CLAIMS.search(reply) and \
+            (_NOUN.search(said) or _NOUN.search(prev_u) or _AFFIRM.match(said)):
         what = said if _NOUN.search(said) else (prev_a if _AFFIRM.match(said) and _NOUN.search(prev_a or "") else prev_u)
         return {"say": reply, "do": "make", "prompt": what}
     return {"say": reply}
