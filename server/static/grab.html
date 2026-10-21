@@ -8,7 +8,7 @@
 <link rel="icon" href="static/icon-512.png">
 <link rel="stylesheet" href="static/series.css">
 <style>
-/* Downloader — identical in both lab copies; reuses the Series look (series.css) */
+/* Downloader — reuses the Series look (series.css) */
 [hidden]{display:none!important}
 .gr-url{display:flex;gap:8px}.gr-url input{flex:1;height:40px;font-size:15px}
 .gr-pv{display:flex;gap:12px;align-items:center;margin-top:10px}.gr-pv img{width:160px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:var(--bg)}
@@ -135,12 +135,7 @@
   <div class="gr-list" id="gr-list"><p class="dim">Nothing yet.</p></div>
 </div>
 <div class="toast" id="gr-toast"></div>
-<script>
-(function () {   /* icons live in different places in the two lab copies */
-  var mlab = location.pathname.indexOf('/mlab') === 0;
-  document.write('<script src="' + (mlab ? '/static/icons/miros-icons.js' : '/static/miros-icons.js') + '"><\/script>');
-})();
-</script>
+<script src="/static/mir-icons.js"></script>
 <script src="static/grab.js"></script>
 </body>
 </html>

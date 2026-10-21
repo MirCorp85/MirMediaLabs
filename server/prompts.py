@@ -1,4 +1,4 @@
-"""MIR MEDIA LABS prompt builders (standalone copy of the MirOS builders) — one per generative model, each following that model's
+"""MIR MEDIA LABS prompt builders — one per generative model, each following that model's
 official prompting guide. The console engine (local Ollama — MirAI / Gemma 4 12B by default; pictures are
 only sent to vision-capable engines) does the rewriting; every builder fails soft and returns the user's own text.
 

@@ -17,7 +17,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-/** TIMELINE EDITOR — the lab's own editor page (/editor, identical on web, phone web and the MirOS copy) in a
+/** TIMELINE EDITOR — the lab's own editor page (/editor, identical on web and phone web) in a
  *  full-screen WebView, signed in with this phone's key + device id. Cut, trim, arrange, titles, audio mix, and the
  *  AI tools (animate · extend · regenerate · restyle · edit picture · remix · score · voiceover · fill gap) all run on
  *  the lab PC; the export lands in the library. Open with an optional "src" (lib:<file>) to drop a piece straight in. */

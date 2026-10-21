@@ -1,6 +1,6 @@
 """MIR MEDIA LABS skills, pipelines and the chat command book.
 
-Media Labs only — nothing here touches MirOS. A SKILL is one render with a tuned prompt template and
+A SKILL is one render with a tuned prompt template and
 parameter overrides. A PIPELINE is a MANUAL: ordered steps in ONE job (it still holds the single GPU slot, so the
 one-request-at-a-time rule covers the whole chain); each step names its inputs (the person's attachments and/or
 earlier steps' outputs, in order) and what it carries forward (lyrics, tempo, key, style). MirAI reads the manuals,
@@ -18,7 +18,7 @@ ROLES = {
     "video": {"label": "Video", "icon": "video", "model": "h3"},
     "song":  {"label": "Song",  "icon": "mic", "model": "music3"},   # vocal song with lyrics
     "music": {"label": "Music", "icon": "music", "model": "ace"},      # tracks / beats / instrumentals
-    "text":  {"label": "Writing", "icon": "type", "model": "llama"},   # chat + creative writing (standalone only)
+    "text":  {"label": "Writing", "icon": "type", "model": "llama"},   # chat + creative writing
 }
 
 
@@ -233,10 +233,7 @@ _BPM = {"k": "bpm", "label": "Tempo", "type": "select", "def": "", "opts": [["",
         ["100", "100"], ["120", "120"], ["140", "140 fast"], ["170", "170"]], "to": {"step": 1, "add": "{v} BPM"}}
 _MATCH = {"k": "match", "label": "Voice match", "type": "range", "def": 0.65, "min": 0.3, "max": 0.95, "step": 0.05,
           "to": {"step": 2, "param": "voice_strength"}}
-try:
-    from . import params as _params
-except ImportError:
-    import params as _params
+import params as _params
 _STYLE = {"k": "style", "label": "Effect", "type": "select", "def": "",
           "opts": [["", "pick one"]] + [o if isinstance(o, list) else [o, o] for o in getattr(_params, "H3_STYLES", [])],
           "to": {"step": 1, "param": "style"}}

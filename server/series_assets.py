@@ -9,7 +9,7 @@ characters (hero · turnaround · expressions + every builder choice + voice), l
     data/assets/<user>/songs/<name>-<id>/        song.json       song.mp3   vocal.wav
 
 Using an asset in a series COPIES it in (pictures go into the person's refs), so editing or deleting either side never
-breaks the other. Identical in the MirOS copy (miros_mlab) — copy, never import across.
+breaks the other.
 """
 import json
 import os
@@ -18,11 +18,8 @@ import shutil
 import time
 import uuid
 
-try:
-    from . import core, series
-except ImportError:
-    import core
-    import series
+import core
+import series
 
 ROOT = os.path.join(core.DATA, "assets")
 KINDS = {"characters": "character", "locations": "location", "objects": "object", "styles": "style", "songs": "song"}

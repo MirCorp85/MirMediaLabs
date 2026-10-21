@@ -1,4 +1,4 @@
-/* MIR MEDIA LABS · timeline editor — IDENTICAL in both lab copies (standalone :5400 and MirOS /mlab).
+/* MIR MEDIA LABS · timeline editor — served by the lab on :5400.
    Timeline (video / image / colour / text / audio tracks) · live preview compositor · trim / split / move / ripple ·
    speed, volume, fades, crossfades, fit, position, scale, rotate, colour, looks, Ken Burns, titles ·
    AI tools (animate, extend, regenerate, restyle, edit picture, remix, score, voiceover, fill gap) run through the
@@ -6,7 +6,7 @@
    export through ffmpeg (editor.py) into the library or as a lab attachment. Engine names never appear here. */
 (function () {
   'use strict';
-  var B = location.pathname.indexOf('/mlab') === 0 ? '/mlab' : '';
+  var B = '';
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
   var ED = $('#ed'), STAGE = $('#ed-stage'), WRAP = $('#ed-stagewrap'), TRACKS = $('#ed-tracks'), HEADS = $('#ed-heads'),
@@ -26,7 +26,7 @@
   var toastT;
   function toast(t, err) { var e = $('#ed-toast'); e.textContent = t; e.className = 'ed-toast on' + (err ? ' err' : ''); clearTimeout(toastT); toastT = setTimeout(function () { e.className = 'ed-toast'; }, err ? 5200 : 2600); }
 
-  /* ── theme: the lab's palette (shared localStorage + /api/miros-prefs) ── */
+  /* ── theme: the lab's palette (shared localStorage + /api/prefs) ── */
   var THEMES = { claude: ['#262624', '#30302e', '#3a3936', '#f5f4ef', '#d97757'], graphite: ['#111214', '#18191c', '#212327', '#eceef1', '#7c8cff'],
     obsidian: ['#0e0d0b', '#171512', '#211e19', '#f3eee4', '#e3a949'], midnight: ['#0b1220', '#101929', '#172236', '#e6ecf5', '#3fb8c9'],
     paper: ['#f6f5f1', '#ffffff', '#f1efe9', '#1e1d1a', '#c2582f'] };
@@ -34,7 +34,7 @@
     r.setProperty('--bg', t[0]); r.setProperty('--panel', t[1]); r.setProperty('--panel2', t[2]); r.setProperty('--ink', t[3]); r.setProperty('--acc', t[4]);
     var m = $('meta[name=theme-color]'); if (m) m.content = t[1]; }
   try { theme(localStorage.getItem('mml.theme') || 'claude'); } catch (e) { theme('claude'); }
-  fetch('/api/miros-prefs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.mltheme && d.mltheme.id) theme(d.mltheme.id); }).catch(function () { });
+  fetch('/api/prefs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.mltheme && d.mltheme.id) theme(d.mltheme.id); }).catch(function () { });
 
   /* ── project model ── */
   var KIND_OF = { video: 'video', image: 'video', color: 'video', audio: 'audio', text: 'text' };

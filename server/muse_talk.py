@@ -1,10 +1,10 @@
-"""MUSE talk — the built-in voice brain for PCs without the MirVoice engine (Oct 18 2026).
+"""MUSE talk — the built-in voice brain (Oct 18 2026).
 
 Before, every spoken turn on such a PC became a MirAI chat job (/api/generate model auto): a chat bubble per sentence and
-a full Director pass before she answered. Now a turn is a short spoken conversation like MirOS MirVoice:
+a full Director pass before she answered. Now a turn is a short spoken conversation:
   heard text -> quick intent routes (open a tab, status, cancel, news, web facts, make something, hand MirAI a long task)
              -> otherwise the local brain answers in one to three spoken sentences, with its own short memory.
-Only real work (a render, a long writing task) still goes to the chat as a job. Nothing here touches MirOS.
+Only real work (a render, a long writing task) still goes to the chat as a job.
 """
 import html
 import re

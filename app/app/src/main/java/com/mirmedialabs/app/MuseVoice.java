@@ -17,7 +17,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** MirAI voice — same as the web studio's: her replies are read aloud sentence by sentence as they stream in, in a
- *  natural voice made on the lab PC (Kokoro, /api/tts). Voice + speed + on/off sync through /api/miros-prefs {voice}. */
+ *  natural voice made on the lab PC (Kokoro, /api/tts). Voice + speed + on/off sync through /api/prefs {voice}. */
 final class MuseVoice {
     static final String[] IDS = {"af_bella", "af_heart", "af_nicole", "af_sky", "bf_emma", "am_michael", "am_fenrir", "bm_george"};
     static final String[] NAMES = {"Bella · American, bright", "Heart · American, warm", "Nicole · American, soft", "Sky · American, light",
@@ -54,7 +54,7 @@ final class MuseVoice {
 
     /** Pull the shared pick (voice / speed / on) from the lab. */
     void sync() {
-        m.api.get("/api/miros-prefs", r -> {
+        m.api.get("/api/prefs", r -> {
             JSONObject v = r.ok() ? r.obj().optJSONObject("voice") : null;
             if (v == null) return;
             voice = v.optString("id", voice);
@@ -71,7 +71,7 @@ final class MuseVoice {
         Prefs.put(m, "voice_speed", String.valueOf(speed));
         if (push) {
             try {
-                m.api.post("/api/miros-prefs", Api.obj("key", "voice", "value",
+                m.api.post("/api/prefs", Api.obj("key", "voice", "value",
                         new JSONObject().put("id", voice).put("speed", speed).put("on", on)), null);
             } catch (Exception ignored) { }
         }

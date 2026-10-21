@@ -1,8 +1,7 @@
 """
 social.py — MIR MEDIA LABS · SOCIAL panel engine + VIRAL-Ω growth agent.
 ═══════════════════════════════════════════════════════════════════════════════
-IDENTICAL in both copies (standalone server/social.py and MirOS aimr-trading/miros_mlab/social.py) —
-the media-lab sync rule: copy, never import across. Each copy wires it in with
+Wired in with
     social.register(app, hooks)
 hooks: uid, is_owner, my_file, push(user, etype, title, body), public_base() -> https base or "".
 
@@ -28,10 +27,7 @@ import uuid
 
 import requests
 
-try:
-    from . import core
-except ImportError:
-    import core
+import core
 
 SD = os.path.join(core.DATA, "social")
 OUT = os.path.join(SD, "media")
@@ -241,10 +237,7 @@ def ask_agent(task, data, want_json=True, local=False):
         r = core.engine_post("/api/generate", body, timeout=240)
         if r.status_code >= 500:            # ComfyUI still holds the GPU: free it once and retry
             try:
-                try:
-                    from . import comfy as _c
-                except ImportError:
-                    import comfy as _c
+                import comfy as _c
                 requests.post(_c.BASE + "/free", json={"unload_models": True, "free_memory": True}, timeout=30)
                 time.sleep(3)
             except Exception:
@@ -1450,10 +1443,8 @@ def register(app, hk):
 
     def _redirect():
         # Google "Desktop app" OAuth clients only accept a LOOPBACK return address, so sign-in must finish on the lab
-        # PC itself (not a phone / the public domain / the MirOS proxy). Always hand Google the standalone lab's
-        # loopback callback; the MirOS copy has no YouTube publishing of its own.
-        # Return to the server + mount the sign-in started on (MirOS serves this under /mlab on :5000; core.PORT
-        # here is a stale copy of the standalone lab's port). Desktop OAuth clients accept any loopback port.
+        # PC itself (not a phone / the public domain / a proxy). Always hand Google the lab's loopback callback,
+        # on the port the sign-in started on. Desktop OAuth clients accept any loopback port.
         port = request.host.rsplit(":", 1)[1] if ":" in request.host else "80"
         pre = request.path[:request.path.find("/api/social/")] if "/api/social/" in request.path else ""
         return "http://127.0.0.1:%s%s/api/social/youtube/callback" % (port, pre)

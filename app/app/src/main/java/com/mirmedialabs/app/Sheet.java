@@ -25,9 +25,9 @@ import java.util.List;
 
 /** Proper app menus — a themed bottom sheet with a header, sections, icon rows, toggles, icon-button grids,
  *  command rows and a live search. Replaces the plain-text AlertDialog lists (settings, command book, skills,
- *  attach, Media Lab menu). Icons come from MIR ICONS. Same file (package renamed) in the standalone app. */
+ *  attach, Media Lab menu). Icons come from MIR ICONS. */
 public final class Sheet {
-    /** Colours for one surface (MirOS gold, or the current Media Lab theme). */
+    /** Colours for one surface (Mir gold, or the current Media Lab theme). */
     public static final class Pal {
         public final int bg, card, line, ink, dim, acc;
         public Pal(int bg, int card, int line, int ink, int dim, int acc) { this.bg = bg; this.card = card; this.line = line; this.ink = ink; this.dim = dim; this.acc = acc; }
@@ -36,12 +36,12 @@ public final class Sheet {
     public interface Toggle { void set(boolean on); }
     public interface Pick { void on(int i); }
 
-    public static Pal MIROS = new Pal(0xFF15130E, 0xFF1F1C15, 0x22FFE28C, 0xFFF4F1EA, 0xFFCFC6AE, 0xFFFFD34D);
+    public static Pal GOLD = new Pal(0xFF15130E, 0xFF1F1C15, 0x22FFE28C, 0xFFF4F1EA, 0xFFCFC6AE, 0xFFFFD34D);
 
     final Activity a; final Pal p; final Dialog d; final LinearLayout body; final float den;
     private final List<View[]> searchable = new ArrayList<>();   // {row, sectionHeader} + its text in tag
 
-    public Sheet(Activity a, String title, String icon) { this(a, title, icon, MIROS); }
+    public Sheet(Activity a, String title, String icon) { this(a, title, icon, GOLD); }
     public Sheet(Activity a, String title, String icon, Pal p) {
         this.a = a; this.p = p; den = a.getResources().getDisplayMetrics().density;
         d = new Dialog(a);

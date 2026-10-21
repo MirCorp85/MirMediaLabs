@@ -1,6 +1,6 @@
 /* MEDIA LAB · CREATE CENTER layout (picked Oct 10 2026, sample C) — a layer over the classic page: nothing is removed,
    the same pieces are re-arranged. Left = this project's media · centre = MirAI chat · right = production timeline ·
-   bottom dock = Create / Projects / Library / Editor / Publish / Tools. Identical in both lab copies. */
+   bottom dock = Create / Projects / Library / Editor / Publish / Tools. */
 body.labc .top .studios, body.labc #b-theme, body.labc #b-font, body.labc #b-users, body.labc #b-about,
 body.labc .col.left > .lrail, body.labc .col.left > .card:not(.lib), body.labc #b-panel, body.labc #b-book { display: none !important; }
 body.labc .top .lc-proj { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 10px;

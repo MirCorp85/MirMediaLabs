@@ -4,12 +4,8 @@ The raw assembly is kept (ep["final_raw"]) so a failed polish never loses an epi
 import os
 import time
 
-try:
-    from . import core
-    from . import remotion
-except ImportError:
-    import core
-    import remotion
+import core
+import remotion
 
 FONTS = ("bastion", "hollow", "horizon", "matrix", "orbit", "pixel", "quill", "stencil", "vector", "velocity")
 LYRIC_STYLES = ("karaoke", "pop", "reveal", "box", "off")

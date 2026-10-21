@@ -9,8 +9,6 @@ loras folder, and apply installed LoRAs to a render as a strong style / identity
 Only SFW previews are shown (nsfw=false, browsingLevel=1, per-image nsfwLevel ≤ 1). Installing downloads
 the .safetensors straight into ComfyUI's loras folder (resumable, progress in DL). A render applies its
 LoRAs by chaining LoraLoaderModelOnly nodes right after the final model loader (apply()).
-Used by both the standalone server and the MirOS copy (miros_mlab) — keep the two files identical
-apart from the import line.
 """
 import json
 import os
@@ -21,11 +19,8 @@ import time
 
 import requests
 
-try:
-    from . import comfy, core          # MirOS copy (package)
-except ImportError:
-    import comfy                       # standalone
-    import core
+import comfy
+import core
 
 CIVITAI = "https://civitai.com/api/v1/models"
 ROLES = {
@@ -214,10 +209,7 @@ def _strip(k):
 
 
 def _engine_file(engine):
-    try:
-        from . import renderers as R          # MirOS copy (package)
-    except ImportError:
-        import renderers as R                  # standalone
+    import renderers as R
     f = {"h3": R.H3.get("unet"), "qimg": R.QIMG.get("dit"), "ace": R.ACE.get("dit")}.get(engine)
     return f[0] if isinstance(f, list) else f
 

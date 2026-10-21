@@ -1,5 +1,5 @@
 # Builds the compiled PC edition of MIR MEDIA LABS.
-#   powershell -File C:\AiMir-Tools\MirMediaLabs\installer\build.ps1 [-Bump] [-Publish -Notes "what changed"]
+#   powershell -File installer\build.ps1 [-Bump] [-Publish -Notes "what changed"]
 #
 #   app\MirMediaLabs.exe        the server + launcher, compiled to native code by Nuitka (no .py ships);
 #                               the web UI is minified and embedded inside the binary

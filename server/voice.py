@@ -1,4 +1,4 @@
-"""MUSE live voice - talk to the lab hands-free (ported from MirOS MirVoice, adapted: no MirOS server, no finance).
+"""MUSE live voice - talk to the lab hands-free.
 
 The page listens (energy VAD, barge-in), sends each utterance here; a long-lived whisper worker (CPU - the GPU belongs
 to the renders) turns it into text. The page then sends that text to MirAI like a typed message (model "auto", so she

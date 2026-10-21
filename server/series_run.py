@@ -11,7 +11,6 @@ and then the run pauses with the reason. Every event also goes to the series' ev
 
 GPU steps go through the lab's own /api/generate (hk["submit"] — same queue, rights and one-at-a-time rule as the
 page), so a person working in the lab at the same time is never pushed aside: the runner simply waits its turn.
-Identical in the MirOS copy (miros_mlab) — copy, never import across.
 """
 import json
 import os
@@ -20,11 +19,8 @@ import threading
 import time
 import traceback
 
-try:
-    from . import core, series
-except ImportError:
-    import core
-    import series
+import core
+import series
 
 HK = {}
 TICK = 3.0
@@ -620,10 +616,7 @@ def _start_cpu(uid, sid, eid, kind):
                         series.write_musical(d, ep)
                         au = ep.get("audio_in") or {}
                         if au.get("mode") in ("remix", "remix_me"):     # sing MY words: the lyrics are what my recording says
-                            try:
-                                from . import audio_in as _ai
-                            except ImportError:
-                                import audio_in as _ai
+                            import audio_in as _ai
                             words = _ai.transcript(au["file"])
                             if words:
                                 ep.setdefault("song_text", {})["lyrics"] = words

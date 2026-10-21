@@ -18,16 +18,10 @@ import threading
 import time
 import uuid
 
-try:
-    from . import core
-    from . import params
-    from . import renderers
-    from . import node_docs
-except ImportError:
-    import core
-    import params
-    import renderers
-    import node_docs
+import core
+import params
+import renderers
+import node_docs
 
 FLOWS = os.path.join(core.DATA, "flows")
 V, I, A, T = "video", "image", "audio", "text"
@@ -266,10 +260,7 @@ def catalog(models_schema=None):
             n["fields"] = n["fields"][:1] + top + [x for x in n["fields"][1:] if x["k"] not in first]
         if k == "tts":
             try:
-                try:
-                    from . import tts
-                except ImportError:
-                    import tts
+                import tts
                 n["fields"] = [dict(n["fields"][0], opts=[[v, l] for v, l in tts.VOICES.items()], **{"def": tts.DEFAULT_VOICE})] + n["fields"][1:]
             except Exception:
                 pass
@@ -407,10 +398,7 @@ class Run:
                             meta = {kk: vv for kk, vv in it.items() if kk in ("overlap",)}
                             if depth:            # depth control = our own depth video, followed as-is by H3
                                 self.nodes[node["id"]]["note"] = "render %d/%d - depth map" % (k + 1, n)
-                                try:
-                                    from . import depth as _depth
-                                except ImportError:
-                                    import depth as _depth
+                                import depth as _depth
                                 path = _depth.depth_video(path, self.tmp("_depth.mp4"), stop=lambda: self.stop)
                         refs.append(self.h["to_ref"](self.user, path))
             for t in lyrics:
@@ -502,10 +490,7 @@ class Run:
                 raise RuntimeError("empty text")
             return [{"text": str(v["text"]).strip()}], ""
         if t == "tts":
-            try:
-                from . import tts
-            except ImportError:
-                import tts
+            import tts
             words = " ".join(i["text"] for i in self.ins(node, "text") if i.get("text"))
             dst = self.tmp(".wav")
             shutil.copy2(tts.say(words, v.get("voice"), v.get("speed")), dst)
@@ -540,10 +525,7 @@ class Run:
             for i in src:
                 self.check()
                 if v.get("control") == "depth":
-                    try:
-                        from . import depth as _depth
-                    except ImportError:
-                        import depth as _depth
+                    import depth as _depth
                     dm = _depth.depth_video(i["path"], self.tmp("_depth.mp4"), stop=lambda: self.stop)
                     d = self.tmp(".mp4")
                     renderers.ffmpeg(["-i", i["path"], "-i", dm, "-filter_complex",

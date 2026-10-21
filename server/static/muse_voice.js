@@ -1,4 +1,4 @@
-/* MUSE live voice — hands-free conversation with the lab (ported from MirOS live_voice.js, adapted for MML).
+/* MUSE live voice — hands-free conversation with the lab.
    Listen (energy VAD) → /api/voice/hear (whisper) → /api/voice/talk (MUSE's own brain + lab tools; renders → /api/generate)
    → reply spoken by VOICE (Kokoro). Talking over MUSE stops her (barge-in). Docked card, top-right. */
 window.MUSE=(function(){
@@ -11,8 +11,8 @@ window.MUSE=(function(){
   function orbs(fn){if(window.MuseOrb)fn();else addEventListener('museorb-ready',fn,{once:true})}
   function setStyle(s,push){if(LOOKS.indexOf(s)<0)return;STYLE=s;try{localStorage.setItem('mml.musestyle',s)}catch(e){}
     if(BIG)BIG.style(s);if(MINI)MINI.style(s);if(FLOAT)FLOAT.style(s);if(RING)RING.style(s);
-    if(push)fetch('/api/miros-prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'musestyle',value:s})}).catch(()=>{})}
-  fetch('/api/miros-prefs',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(d&&d.musestyle)setStyle(d.musestyle)}).catch(()=>{});
+    if(push)fetch('/api/prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'musestyle',value:s})}).catch(()=>{})}
+  fetch('/api/prefs',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(d&&d.musestyle)setStyle(d.musestyle)}).catch(()=>{});
   function mini(){const b=document.getElementById('b-muse'),c=b&&b.querySelector('canvas');if(!c||MINI)return;
     orbs(()=>{MINI=MuseOrb.mount(c,{style:STYLE,small:true,state:'idle'})})}
   /* floating MUSE: always on top of every screen (chat, editor, series, downloader…), drag anywhere, tap to talk */
@@ -117,67 +117,11 @@ window.MUSE=(function(){
     const src=S.ctx.createMediaStreamSource(S.stream);S.an=S.ctx.createAnalyser();S.an.fftSize=1024;src.connect(S.an);
     S.floor=0.008;set('listening');loop()}
 
-  /* ---- LIVE: the MirVoice engine (same as MirOS): 16 kHz PCM up, her own brain + Chatterbox voice streamed down ---- */
-  const L={ws:null,node:null,src:null,rate:24000,next:0,playing:[],an:null,anBuf:null,said:null};
-  const WORKLET='class D extends AudioWorkletProcessor{constructor(){super();this.r=sampleRate/16000;this.p=0;this.b=new Int16Array(320);this.n=0;this.l=0}'+
-    'process(i){var x=i[0]&&i[0][0];if(!x)return true;for(;this.p<x.length;this.p+=this.r){var v=x[Math.floor(this.p)];this.l=Math.max(this.l*0.995,Math.abs(v));'+
-    'this.b[this.n++]=Math.max(-32768,Math.min(32767,v*32767));if(this.n===320){this.port.postMessage({pcm:this.b.buffer,l:this.l},[this.b.buffer]);this.b=new Int16Array(320);this.n=0}}'+
-    'this.p-=x.length;return true}}registerProcessor("muse-down",D);';
   const TAB={create:'create',library:'library',projects:'production',editor:'editor',series:'series',motion:'motion',flow:'flow',downloader:'grab',social:'social'};
   async function start(){
     if(S.on)return;
-    let live=null;try{live=await (await fetch('/api/voice/live',{cache:'no-store'})).json()}catch(e){}
-    if(live&&(live.ok||live.installed))return startLive();
     return startBasic()}
-  function lsend(o){if(L.ws&&L.ws.readyState===1)L.ws.send(JSON.stringify(o))}
   function say(t){const c=el();let p=c.querySelector('.mu-say');if(!p){p=document.createElement('div');p.className='mu-say';p.style.cssText='margin-top:6px;max-height:90px;overflow:auto;font-size:12.5px;line-height:1.35';c.querySelector('.mu-you').after(p)}p.textContent=t}
-  function playPcm(buf){const ctx=S.ctx,i16=new Int16Array(buf);if(!i16.length)return;const f=new Float32Array(i16.length);for(let i=0;i<i16.length;i++)f[i]=i16[i]/32768;
-    const ab=ctx.createBuffer(1,f.length,L.rate);ab.copyToChannel(f,0);
-    if(!L.an){L.an=ctx.createAnalyser();L.an.fftSize=512;L.an.connect(ctx.destination);L.anBuf=new Float32Array(512)}
-    const src=ctx.createBufferSource();src.buffer=ab;src.connect(L.an);
-    const t=Math.max(ctx.currentTime+(L.next>ctx.currentTime?0:0.15),L.next);src.start(t);L.next=t+ab.duration;L.playing.push(src);
-    src.onended=()=>{L.playing=L.playing.filter(x=>x!==src);if(!L.playing.length&&S.on){lsend({type:'played'});if(S.state==='speaking')set('listening')}}}
-  function stopPlay(){L.playing.forEach(x=>{try{x.stop()}catch(e){}});L.playing=[];L.next=0}
-  function act(e){try{
-    if(e.do==='tab'&&TAB[e.tab])setTab(TAB[e.tab]);
-    else if(e.do==='lab'){if(e.session&&window.SESS&&e.session!==SESS.id&&typeof sessOpen==='function')sessOpen(e.session);setTab('create');stick=true;pollJobs(true)}
-  }catch(x){}}
-  function connect(){
-    const ws=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/ws/voice');ws.binaryType='arraybuffer';L.ws=ws;
-    ws.onmessage=m=>{if(typeof m.data!=='string'){playPcm(m.data);if(S.state!=='speaking'&&S.state!=='hearing')set('speaking');return}
-      let e;try{e=JSON.parse(m.data)}catch(x){return}
-      if(e.type==='hello'){L.rate=e.rate||24000;if(S.state==='starting'||S.state==='error')set('listening');
-        lsend({type:'config',mlab_session:(window.SESS||{}).id||''});
-        el().querySelector('.mu-hint').textContent='Voice: '+(e.tts==='chatterbox'?'MUSE (AI voice)':'backup voice')+' · ears '+(e.stt==='cuda'?'GPU':'CPU')+'. Talk over me to interrupt.'}
-      else if(e.type==='state'){const v=e.value;set(v==='idle'||v==='listening'?(L.playing.length?'speaking':'listening'):v==='thinking'?'thinking':v==='speaking'?'speaking':v==='hearing'?'hearing':S.state)}
-      else if(e.type==='partial'){you(e.text);if(e.text)set('hearing')}
-      else if(e.type==='user'){you(e.text);L.said=null}
-      else if(e.type==='assistant'){L.said=(L.said?L.said+' ':'')+e.text;say(L.said)}
-      else if(e.type==='interrupted'){stopPlay();L.said=null}
-      else if(e.type==='audio_end'){L.said=null}
-      else if(e.type==='action')act(e);
-      else if(e.type==='job'){if(e.status==='done'||e.status==='running')try{pollJobs(true)}catch(x){}}
-      else if(e.type==='tool'&&!e.ok)say('Could not do that: '+((e.result&&e.result.error)||'failed'));
-      else if(e.type==='warn')el().querySelector('.mu-hint').textContent=e.text;
-      else if(e.type==='render_conflict')lsend({type:confirm(e.text)?'stop_render':'keep_render'});
-      else if(e.type==='error'){set('error',e.text)}};
-    ws.onclose=()=>{if(S.on&&L.ws===ws){set('starting','reconnecting…');setTimeout(()=>{if(S.on&&L.ws===ws)connect()},1500)}}}
-  async function startLive(){
-    S.on=true;S.live=true;S.muted=false;S.prevOn=VOICE.st.on;btn();set('starting');you('');
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){S.on=false;btn();set('error','the mic needs https or this PC');return}
-    let st;try{st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}})}
-    catch(e){try{st=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e2){S.on=false;btn();set('error',e2.name==='NotAllowedError'?'mic blocked — allow the microphone for this page':'mic error: '+e2.name);return}}
-    S.stream=st;S.ctx=new (window.AudioContext||window.webkitAudioContext)();if(S.ctx.state==='suspended')S.ctx.resume();
-    try{await S.ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET],{type:'application/javascript'})));
-      L.src=S.ctx.createMediaStreamSource(st);L.node=new AudioWorkletNode(S.ctx,'muse-down');
-      L.node.port.onmessage=m=>{S.lvl=S.muted?0:m.data.l;if(!S.muted&&L.ws&&L.ws.readyState===1)L.ws.send(m.data.pcm)};L.src.connect(L.node)}
-    catch(e){set('error','live audio unavailable here ('+(e.name||'worklet')+')');return}
-    connect();liveLoop()}
-  function liveLoop(){if(!S.on||!S.live)return;
-    let lv=0;if(L.playing.length&&L.an){L.an.getFloatTimeDomainData(L.anBuf);let m=0;for(const v of L.anBuf)m=Math.max(m,Math.abs(v));lv=Math.min(1,m*1.6)}
-    else if(S.state==='hearing')lv=Math.min(1,(S.lvl||0)*3);
-    if(BIG)BIG.level(lv);if(MINI)MINI.level(lv);if(FLOAT)FLOAT.level(lv);
-    S.raf=requestAnimationFrame(liveLoop)}
   function mute(on){S.muted=!!on;const b=card&&card.querySelector('.mu-m:not(.mu-off)');
     if(b){b.classList.toggle('on',S.muted);b.innerHTML=window.MI?MI.html(S.muted?'mute':'mic'):(S.muted?'muted':'mic');b.title=S.muted?'Mic muted — tap to unmute':'Mute my mic'}
     if(S.stream)S.stream.getAudioTracks().forEach(t=>t.enabled=!S.muted);
@@ -187,8 +131,6 @@ window.MUSE=(function(){
     catch(e){toast(e.message)}}
   function stop(){
     S.on=false;btn();cancelAnimationFrame(S.raf);
-    if(S.live){S.live=false;try{L.node&&L.node.disconnect();L.src&&L.src.disconnect()}catch(e){}L.node=L.src=null;
-      const w=L.ws;L.ws=null;try{w&&w.close()}catch(e){}stopPlay();L.an=null}
     try{if(S.rec&&S.rec.state!=='inactive')S.rec.stop()}catch(e){}
     S.rec=null;S.talking=false;
     if(S.stream)S.stream.getTracks().forEach(t=>t.stop());S.stream=null;

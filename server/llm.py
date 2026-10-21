@@ -1,4 +1,4 @@
-"""MirAI — the writer-in-residence of MIR MEDIA LABS (standalone only; not in the MirOS copy).
+"""MirAI — the writer-in-residence of MIR MEDIA LABS.
 
 General chat + creative writing on a local Ollama model (Gemma 4 12B or Llama 3.1 8B — the owner picks). Runs as a normal lab job: it waits
 its turn in the one-at-a-time GPU queue, frees ComfyUI's VRAM first, and streams its reply into job['output'].

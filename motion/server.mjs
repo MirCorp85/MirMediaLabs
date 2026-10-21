@@ -1,4 +1,4 @@
-// MIR MOTION render daemon — 127.0.0.1:5421 only (MIR MEDIA LABS copy; MirOS runs its own on 5420). Bundles the Remotion project once, then renders jobs
+// MIR MOTION render daemon — 127.0.0.1:5421 only. Bundles the Remotion project once, then renders jobs
 // posted by the Media Lab (server/remotion.py). Serves library media + MIR fonts to the headless browser.
 //   GET  /health            → {ok, bundled, queue, version}
 //   GET  /schema            → scene schema (inspector + AI)
@@ -18,7 +18,7 @@ const HERE = path.dirname(url.fileURLToPath(import.meta.url));
 const PORT = +(process.env.MIR_MOTION_PORT || 5421);
 const LIB = process.env.MIR_LIB || path.join(HERE, '..', 'data', 'library');
 const REFS = process.env.MIR_REFS || path.join(HERE, '..', 'data', 'refs');
-const FONTS = process.env.MIR_FONTS || path.join(HERE, '..', 'server', 'static', 'fonts', 'miros');
+const FONTS = process.env.MIR_FONTS || path.join(HERE, '..', 'server', 'static', 'fonts', 'mir');
 const EXTRA = (process.env.MIR_MEDIA_ROOTS || '').split(';').filter(Boolean); // extra readable roots (abs: paths)
 const BASE = `http://127.0.0.1:${PORT}/`;
 const CONC = Math.max(1, Math.min(8, +(process.env.MIR_MOTION_CONC || 0) || Math.floor((await import('node:os')).cpus().length / 2)));

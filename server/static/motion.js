@@ -3,7 +3,7 @@
    Project: {id,name,w,h,fps,font,palette,session,markers[],tracks:[{kind,name,mute,hide,clips:[{id,type,start,dur,props,trans,out,kf}]}]} */
 (function () {
   'use strict';
-  var B = location.pathname.indexOf('/mlab') === 0 ? '/mlab' : '';
+  var B = '';
   var $ = function (s, r) { return (r || document).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var mi = function (n, c) { return '<i class="mi' + (c ? ' ' + c : '') + '" data-ic="' + n + '"></i>'; };
@@ -26,7 +26,7 @@
   function theme(id) { var t = THEMES[id] || THEMES.claude, r = document.documentElement.style;
     r.setProperty('--bg', t[0]); r.setProperty('--panel', t[1]); r.setProperty('--panel2', t[2]); r.setProperty('--ink', t[3]); r.setProperty('--acc', t[4]); }
   try { theme(localStorage.getItem('mml.theme') || 'claude'); } catch (e) { theme('claude'); }
-  fetch('/api/miros-prefs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.mltheme && d.mltheme.id) theme(d.mltheme.id); }).catch(function () { });
+  fetch('/api/prefs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.mltheme && d.mltheme.id) theme(d.mltheme.id); }).catch(function () { });
 
   var MM = window.MirMotion;
   if (!MM) { document.body.innerHTML = '<div class="pad">The motion engine bundle (motion/player.js) did not load. Run <code>node build_player.mjs</code> in TOOLS\\MirRemotion.</div>'; return; }
@@ -493,7 +493,7 @@
   function trackIn(p, k) { var t = p.tracks.filter(function (x) { return x.kind === k; })[0]; if (!t) { t = { kind: k, name: KINDS[k], clips: [] }; p.tracks.push(t); } return t; }
   function replaceWith(p, msg) { if (P.tracks.some(function (t) { return t.clips.length; }) && !confirm('Replace the current timeline? (Undo brings it back.)')) return; P = p; SEL = null; commit(); mountPlayer(); seek(0); toast(msg || 'Ready'); }
   var TPL = [
-    ['intro', 'film', 'Channel intro', 'Logo sting → title → subtitle — 7 s', function () { return seqProject('Channel intro', [['logo', 2.5, { text: 'MIR MEDIA' }], ['title', 4, { text: 'Episode One', sub: 'a MirOS production', anim: 'word-pop' }, 'zoom']]); }],
+    ['intro', 'film', 'Channel intro', 'Logo sting → title → subtitle — 7 s', function () { return seqProject('Channel intro', [['logo', 2.5, { text: 'MIR MEDIA' }], ['title', 4, { text: 'Episode One', sub: 'a MIR MEDIA LABS production', anim: 'word-pop' }, 'zoom']]); }],
     ['promo', 'star', 'Promo · 30 s', 'Hook, three feature cards, stat, call to action', function () { return seqProject('Promo', [['title', 4, { text: 'Meet MIR MEDIA LABS', anim: 'kinetic' }], ['split', 6, { title: 'Create', body: 'Video, music and pictures from one sentence.' }, 'slide-left'], ['split', 6, { title: 'Edit', body: 'Timeline editor + motion studio.', flip: true }, 'slide-left'], ['split', 6, { title: 'Publish', body: 'Straight to YouTube and Instagram.' }, 'slide-left'], ['stat', 4, { value: 10, suffix: 'x', label: 'faster' }, 'zoom'], ['title', 5, { text: 'Try it today', sub: 'mirmedialabs', anim: 'stamp' }, 'iris']]); }],
     ['explainer', 'book', 'Explainer · 60 s', 'Chapters, quote, chart and credits', function () { return seqProject('Explainer', [['title', 4, { text: 'How it works', anim: 'mask-up' }], ['chapter', 3, { num: '1', title: 'The idea' }], ['quote', 6, { text: 'Simple things, done well.' }], ['chapter', 3, { num: '2', title: 'The numbers' }], ['chart', 7, { title: 'Growth' }], ['stat', 4, { value: 87, suffix: '%', label: 'success' }], ['credits', 10, { title: 'Thanks for watching' }, 'blur']]); }],
     ['lyrics', 'music', 'Lyric video', 'Pick a song → Whisper times every word', function () { return wizard('lyrics'); }],

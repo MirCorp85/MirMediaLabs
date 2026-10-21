@@ -1,10 +1,9 @@
 """
 editor.py — MIR MEDIA LABS timeline video editor (server side).
 ═══════════════════════════════════════════════════════════════════════════════
-IDENTICAL in both copies (standalone server/editor.py and MirOS aimr-trading/miros_mlab/editor.py) —
-the media-lab sync rule: copy, never import across. Each copy wires it in with
+Wired in with
     editor.register(app, hooks)
-where hooks gives the copy's own auth helpers (uid, my_file, my_ref, store_ref, ref_info, can_attach).
+where hooks gives the server's auth helpers (uid, my_file, my_ref, store_ref, ref_info, can_attach).
 
 What it does (ffmpeg only — the compiled PC edition ships no Pillow / numpy):
   • projects     data/editor/projects/<user>/<id>.json  (tracks → clips, saved by the web editor)
@@ -29,10 +28,7 @@ import threading
 import time
 import uuid
 
-try:                      # MirOS copy lives in the miros_mlab package
-    from . import core
-except ImportError:       # standalone server runs its modules flat
-    import core
+import core
 
 ED = os.path.join(core.DATA, "editor")
 PROJ = os.path.join(ED, "projects")
@@ -456,7 +452,7 @@ def render(rid, project, resolve, out_path, rng, on_done):
         shutil.rmtree(tmpdir, ignore_errors=True)       # title text + filter graph of this export
 
 
-# ── Flask wiring (both copies call register) ────────────────────────────────────────────────────
+# ── Flask wiring ─────────────────────────────────────────────────────
 def register(app, hk):
     from flask import request, jsonify, send_file, abort
 

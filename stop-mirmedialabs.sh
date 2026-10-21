@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop the MIR MEDIA LABS server (only the process listening on :5400 - never MirOS or ComfyUI).
+# Stop the MIR MEDIA LABS server (only the process listening on :5400 - never ComfyUI or anything else).
 HERE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PORT="${MML_PORT:-5400}"
 if systemctl --user is-active --quiet mirmedialabs.service 2>/dev/null; then
