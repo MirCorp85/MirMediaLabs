@@ -5,6 +5,7 @@ set -e
 HERE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PORT="${MML_PORT:-5400}"
 PY="${MML_PYTHON:-python3}"
+[ -z "${MML_PYTHON:-}" ] && [ -x "$HERE/runtime/app/bin/python" ] && PY="$HERE/runtime/app/bin/python"   # Setup (setup.sh)
 export PYTHONUTF8=1 PYTHONIOENCODING=utf-8
 mkdir -p "$HERE/data/logs"
 

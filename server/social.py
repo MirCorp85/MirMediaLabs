@@ -21,6 +21,7 @@ import json
 import os
 import re
 import subprocess
+import shutil
 import threading
 import time
 import uuid
@@ -223,8 +224,14 @@ def _brain():
         return None
 
 
+def _viral():
+    import viral
+    return viral
+
+
 def ask_agent(task, data, want_json=True, local=False):
-    system = _soul()
+    vr = _viral()
+    system = _soul() + (vr.lessons_text() if vr else "")
     prompt = "TASK: %s\n\nDATA:\n%s\n\nRecent performance of our posts:\n%s" % (
         task, json.dumps(data, ensure_ascii=False)[:6000], json.dumps(_perf_digest(), ensure_ascii=False)[:4000])
     if want_json:
@@ -243,7 +250,7 @@ def ask_agent(task, data, want_json=True, local=False):
             except Exception:
                 pass
             r = requests.post(core.OLLAMA + "/api/generate", timeout=240, json=body)
-        fb = getattr(core, "FALLBACK_ENGINE", "qwen3.5:9b-q8_0")
+        fb = core.FALLBACK_ENGINE
         if r.status_code >= 500 and "llama-server" in r.text and body["model"] != fb:
             _log("[social] engine %s won't start (%s) — writing with %s" % (body["model"], r.text[:120], fb))
             body["model"] = fb                     # same fallback the lab chat uses (Gemma 4 / Ollama crash)
@@ -273,7 +280,7 @@ def ask_agent(task, data, want_json=True, local=False):
 
 
 def draft_copy(p):
-    meta = (core.index_all() if hasattr(core, "index_all") else core.index()).get(p.get("library_ref", ""), {})
+    meta = core.index().get(p.get("library_ref", ""), {})
     d = ask_agent("Write the post package for this new piece of content, tailored PER PLATFORM for maximum views, "
                   "likes, shares and saves (follow the per-platform playbook in your brief). Return JSON: "
                   '{"hook": on-screen first-second hook text (<=7 words), "caption": Instagram Reels caption (hook line '
@@ -284,15 +291,37 @@ def draft_copy(p):
                   '16:9 video, NOT a Short) <=70 chars with the search keyword first, "yt_description": 3-6 lines + CTA, '
                   'no #shorts, "yt_tags": '
                   '[8-15], "pinned_comment": first comment to pin that invites replies, "pillar": content pillar name, '
-                  '"best_time": "HH:MM" local, "why": one sentence on why this will travel}',
-                  {"prompt": meta.get("prompt") or p.get("brief", ""), "model": meta.get("model", ""),
-                   "duration": (p.get("media") or {}).get("duration"), "brief": p.get("brief", ""),
-                   "platforms": p.get("platforms")})
+                  '"best_time": "HH:MM" local, "captions": "none" | "hook" (burn the hook on screen for the first 2.5 s) | '
+                  '"speech" (word captions - only if people talk or sing) | "both", "why": one sentence on why this will '
+                  'travel}. Ground the hook in on_screen (what the frames really show); ride a live trend only if it fits.',
+                  dict({"prompt": meta.get("prompt") or p.get("brief", ""), "model": meta.get("model", ""),
+                        "duration": (p.get("media") or {}).get("duration"), "brief": p.get("brief", ""),
+                        "platforms": p.get("platforms")}, **_viral_ctx(p)))
     kw = {k: d[k] for k in ("hook", "caption", "hashtags", "yt_title", "yt_description", "yt_tags", "pillar", "why",
-                            "best_time", "tt_caption", "fb_caption", "pinned_comment") if d.get(k)}
+                            "best_time", "tt_caption", "fb_caption", "pinned_comment", "captions") if d.get(k)}
+    if str(kw.get("captions", "")).lower() not in ("none", "hook", "speech", "both"):
+        kw.pop("captions", None)
     if isinstance(kw.get("hashtags"), list):
         kw["hashtags"] = [re.sub(r"[^\w]", "", str(h)) for h in kw["hashtags"]][:8]
+    if kw.get("caption"):   # the IG publisher appends the hashtag list — tags the model left inline would post twice
+        kw["caption"] = re.sub(r"[ \t]*(?:#[\w-]+[ \t]*)+$", "", re.sub(r"(?:^|\s)#[\w-]+(?=\s*$)", "", kw["caption"].rstrip(), flags=re.M)).rstrip()
     return kw
+
+
+def _viral_ctx(p):
+    """What VIRAL-Ω's research desk adds to every package: what's on screen, live trends, our winning hooks."""
+    vr = _viral()
+    if not vr:
+        return {}
+    out = {}
+    try:
+        if p.get("id") and p.get("media"):
+            out["on_screen"] = vr.see(p["id"])
+        out["live_trends"] = [{k: t.get(k) for k in ("title", "angle", "format", "hook")} for t in vr.trends().get("picks", [])[:5]]
+        out["winning_hooks"] = vr.hook_library()[:6]
+    except Exception as e:
+        _log("[social] viral ctx: %s" % e)
+    return out
 
 
 def next_slot(best="18:00"):
@@ -331,12 +360,82 @@ def create_draft(library_ref, platforms=PLATFORMS, brief="", owner="owner", fit=
             update(pid, media=media)
             kw = draft_copy(get(pid)) if auto_copy else {}
             update(pid, status="draft", **kw)
+            vr = _viral()
+            if vr and auto_copy:
+                vr.on_drafted(pid)                  # judge the hook, burn captions if VIRAL chose them, lint
+                kw = get(pid) or kw
             _push(owner, "social_draft", "%s: new post ready to approve" % AGENT,
                   (kw.get("hook") or kw.get("caption") or "")[:120], post=pid)
         except Exception as e:
             update(pid, status="failed", error=str(e)[:500])
     threading.Thread(target=prep, daemon=True, name="social-prep").start()
     return p
+
+
+_REPOST_KEEP = ("caption", "hashtags", "hook", "yt_title", "yt_description", "yt_tags", "tt_caption", "fb_caption",
+                "pinned_comment", "yt_format", "pillar", "brief", "kids", "tiktok", "library_ref", "best_time", "why",
+                "cover_at")
+
+
+def _clone_file(name, pid, nid):
+    """<pid>…ext → <nid>…ext in OUT. Hard link (no extra disk; each post still owns its file, so deleting the
+    original never breaks the repost); plain copy if the drive can't link."""
+    if not name:
+        return None
+    src = os.path.join(OUT, name)
+    if not os.path.isfile(src):
+        return None
+    new = nid + name[len(pid):] if name.startswith(pid) else nid + "_" + name
+    dst = os.path.join(OUT, new)
+    try:
+        os.link(src, dst)
+    except OSError:
+        shutil.copy2(src, dst)
+    return new
+
+
+def repost(pid, platforms, when="draft", owner="owner"):
+    """An already-published post → a NEW post of the same video for other platform(s) (e.g. a YouTube video that
+    never went to TikTok). Copies the media + all the copy, links back with repost_of. when: 'draft' (lands in the
+    queue to edit/approve), 'now' (approve + publish), 'best' (approve for VIRAL-Omega's next best slot) or a unix time."""
+    p = get(pid)
+    if not p:
+        raise ValueError("post not found")
+    if not p.get("media") or not p["media"].get("file"):
+        raise ValueError("this post has no video/image to repost")
+    plats = [x for x in (platforms or []) if x in ALL_PLATFORMS]
+    if not plats:
+        raise ValueError("pick at least one platform")
+    nid = uuid.uuid4().hex[:12]
+    media = dict(p["media"])
+    for k in ("file", "cover", "yt_file", "yt_cover"):
+        if media.get(k):
+            media[k] = _clone_file(media[k], pid, nid) or media[k]
+    if not os.path.isfile(os.path.join(OUT, nid + ".jpg")):          # the cover the UI shows is always <id>.jpg
+        _clone_file(pid + ".jpg", pid, nid)
+    n = {k: p[k] for k in _REPOST_KEEP if k in p}
+    if "youtube" in plats and not media.get("yt_file"):
+        n["yt_format"] = "short"                                     # no 16:9 cut exists → it goes up as a Short
+    n.update(id=nid, owner=owner or p.get("owner", "owner"), platforms=plats, status="draft", media=media,
+             created=time.time(), updated=time.time(), metrics={}, remote={}, log=[], error="",
+             repost_of=pid, repost_from=sorted((p.get("remote") or {}).keys()))
+    with _LOCK:
+        ps = posts()
+        ps.append(n)
+        for q in ps:
+            if q["id"] == pid:
+                q["reposts"] = (q.get("reposts") or []) + [nid]
+        _save(ps)
+    note = ""
+    if when and when != "draft":
+        try:
+            approve(nid, time.time() if when == "now" else (None if when == "best" else float(when)))
+            if when == "now":
+                threading.Thread(target=publish, args=(nid,), daemon=True, name="social-repost").start()
+        except ValueError as e:      # e.g. TikTok needs its privacy settings first → stays a draft to edit
+            note = "saved as a draft — %s" % e
+    _log("[social] repost %s -> %s on %s (%s)" % (pid, nid, "+".join(plats), when))
+    return get(nid), note
 
 
 def on_job_done(job):
@@ -496,7 +595,14 @@ def ig_metrics(mid):
     ig = _ig()
     d = _g("GET", "/%s/insights" % mid, params={"metric": "views,reach,likes,comments,shares,saved,total_interactions",
                                                  "access_token": ig["token"]})
-    return {x["name"]: (x.get("values") or [{}])[0].get("value", 0) for x in d.get("data", [])}
+    out = {x["name"]: (x.get("values") or [{}])[0].get("value", 0) for x in d.get("data", [])}
+    try:   # Reels-only metrics: asked separately so a non-Reel can't fail the whole call
+        d = _g("GET", "/%s/insights" % mid, params={"metric": "ig_reels_avg_watch_time,ig_reels_video_view_total_time",
+                                                     "access_token": ig["token"]})
+        out.update({x["name"]: (x.get("values") or [{}])[0].get("value", 0) for x in d.get("data", [])})
+    except Exception:
+        pass
+    return out
 
 
 def ig_account():
@@ -760,7 +866,17 @@ def _yt_send(p, path, title, cover, privacy, short):
 def yt_metrics(vid):
     it = _yt("GET", "/youtube/v3/videos", params={"part": "statistics", "id": vid}).get("items") or [{}]
     s = it[0].get("statistics", {})
-    return {"views": int(s.get("viewCount", 0)), "likes": int(s.get("likeCount", 0)), "comments": int(s.get("commentCount", 0))}
+    out = {"views": int(s.get("viewCount", 0)), "likes": int(s.get("likeCount", 0)), "comments": int(s.get("commentCount", 0))}
+    try:   # YouTube Analytics (yt-analytics.readonly, already in YT_SCOPES): how much of the video people watched
+        r = _yt("GET", "/v2/reports", base="https://youtubeanalytics.googleapis.com", params={
+            "ids": "channel==MINE", "startDate": "2020-01-01", "endDate": time.strftime("%Y-%m-%d"), "filters": "video==" + vid,
+            "metrics": "averageViewDuration,averageViewPercentage,shares,subscribersGained"})
+        row = (r.get("rows") or [None])[0]
+        if row:
+            out.update(avg_view_s=float(row[0]), avg_view_pct=float(row[1]), shares=int(row[2]), subs_gained=int(row[3]))
+    except Exception:
+        pass
+    return out
 
 
 def yt_account():
@@ -1055,7 +1171,7 @@ def _loop():
                         tt_refresh(force=True)          # keeps the 1-year refresh token rolling
                     except Exception as e:
                         _log("[social] TikTok token refresh: %s" % e)
-            if now - last_idea > 86400 and time.localtime().tm_hour >= 9 and accounts().get("daily_ideas", True)                     and any(v["connected"] for k, v in public_accounts().items() if isinstance(v, dict)):
+            if now - last_idea > 86400 and time.localtime().tm_hour >= 9 and accounts().get("daily_ideas", True)                     and any(v.get("connected") for k, v in public_accounts().items() if isinstance(v, dict)):
                 last_idea = now
                 try:
                     ideas()
@@ -1070,7 +1186,8 @@ def ideas(n=3):
     d = ask_agent("Propose %d new short-form video ideas for @mirmedialabs that are most likely to go viral next, "
                   "based on what performed. Return JSON {\"ideas\": [{\"title\", \"hook\", \"why\", \"pillar\", "
                   "\"lab_prompt\": a ready-to-run MIR MEDIA LABS generation prompt (visual, motion, camera, mood), "
-                  "\"duration\": seconds}]}" % n, {"handle": accounts().get("handle")})
+                  "\"duration\": seconds}]}. Ride the live trends when they fit." % n,
+                  dict({"handle": accounts().get("handle")}, **_viral_ctx({})))
     out = {"t": time.time(), "ideas": (d.get("ideas") or [])[:n]}
     core.save_json(os.path.join(SD, "ideas.json"), out)
     if out["ideas"]:
@@ -1146,7 +1263,8 @@ SKILLS = {
     "hashtag_lab": ("Hashtag Lab", "search", "Niche-first hashtag set split into reach tiers.",
                     'Build a hashtag set: 3 niche (<500k posts), 2 mid, 1 broad, plus #mirmedialabs. JSON {"niche":[],"mid":[],"broad":[],"note"}'),
     "trend_scout": ("Trend Scout", "radar", "Short-form formats trending now that fit an AI media studio.",
-                    'List 5 current short-form video formats/trends that an AI art & video account can ride without copying anyone. '
+                    'From the LIVE trends in the data (real items pulled this week), list 5 formats/trends an AI art & video account '
+                    'can ride without copying anyone. '
                     'JSON {"trends":[{"name","how_we_do_it","lab_prompt"}]}'),
     "repurpose": ("Repurpose", "layers", "Turn one hit into a series: remix, sequel, carousel, YT long-form angle.",
                   'Turn our best-performing post into a series of 4 follow-ups. JSON {"series":[{"title","hook","lab_prompt","format"}]}'),
@@ -1167,7 +1285,9 @@ def run_skill(key, pid=None, note=""):
     data = {"note": note, "analytics": {k: v for k, v in analytics().items() if k in ("hours", "days", "pillars", "median_views")}}
     if pid and get(pid):
         p = get(pid)
-        data["post"] = {k: p.get(k) for k in ("hook", "caption", "hashtags", "yt_title", "pillar", "brief")}
+        data["post"] = {k: p.get(k) for k in ("hook", "caption", "hashtags", "yt_title", "pillar", "brief", "vision")}
+    if key in ("trend_scout", "growth_plan", "repurpose"):
+        data.update(_viral_ctx({}))
     out = ask_agent(task, data)
     out["_skill"] = name
     return out
@@ -1181,11 +1301,17 @@ def start():
     if not _STARTED:
         _STARTED.append(1)
         threading.Thread(target=_loop, daemon=True, name="social-scheduler").start()
+        vr = _viral()
+        if vr:
+            vr.start()                                   # VIRAL-Ω research desk: trends, watchlist, retention, lessons
 
 
 def register(app, hk):
     from flask import request, jsonify, send_file, abort, redirect
     _HK.update(hk)
+    import remix
+    _viral().register(app, hk)                           # /api/viral/* — trends, hook lab, captions, insights
+    remix.register(app, hk)                              # /api/viral/remix — study a viral video, make our own version
 
     def owner():
         if not hk["is_owner"]():
@@ -1203,7 +1329,24 @@ def register(app, hk):
             if d["media"].get("yt_file"):
                 d["yt_video_url"] = "api/social/media/" + d["media"]["yt_file"]
             d["cover_url"] = "api/social/media/%s.jpg?v=%d" % (d["id"], int(d.get("updated", 0)))
+        vr = _viral()
+        if vr and d.get("status") in ("draft", "failed", "scheduled"):
+            d["lint"] = vr.lint(d)
         return d
+
+    @app.post("/api/social/clientlog")
+    def social_clientlog():
+        """The Social page's startup watchdog / error reporter (phones + app WebViews) → client_errors.jsonl."""
+        owner()
+        b = request.get_json(silent=True, force=True) or {}
+        row = {"t": time.time(), **{k: str(b.get(k) or "")[:800] for k in ("kind", "msg", "ua", "url", "ms")}}
+        try:
+            with open(os.path.join(SD, "client_errors.jsonl"), "a", encoding="utf-8") as f:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        except OSError:
+            pass
+        _log("[social] client %s: %s" % (row["kind"], row["msg"][:200]))
+        return jsonify({"ok": True})
 
     @app.get("/social")
     def social_page():
@@ -1230,6 +1373,15 @@ def register(app, hk):
         st = request.args.get("status")
         ps = [out(p) for p in posts() if not st or p["status"] == st]
         return jsonify({"agent": AGENT, "posts": sorted(ps, key=lambda p: -p.get("created", 0))})
+
+    @app.get("/api/social/posts/<pid>")
+    def social_post_one(pid):
+        """One post — the lab's "Send to VIRAL-Ω" dialog polls it while the agent formats + writes the package."""
+        owner()
+        p = get(pid)
+        if not p:
+            return jsonify({"error": "not found"}), 404
+        return jsonify(out(p))
 
     @app.post("/api/social/draft")
     def social_draft():
@@ -1314,6 +1466,19 @@ def register(app, hk):
         threading.Thread(target=publish, args=(pid,), daemon=True).start()
         return jsonify(out(get(pid)))
 
+    @app.post("/api/social/posts/<pid>/repost")
+    def social_repost(pid):
+        """Repost an old published video to other platform(s): body {platforms:[…], when: draft|now|best|<unix>}."""
+        owner()
+        b = body()
+        try:
+            p, note = repost(pid, b.get("platforms") or [], b.get("when") or "draft", owner=hk["uid"]())
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        d = out(p)
+        d["note"] = note
+        return jsonify(d)
+
     @app.post("/api/social/posts/<pid>/reject")
     def social_reject(pid):
         owner()
@@ -1323,12 +1488,17 @@ def register(app, hk):
     def social_delete(pid):
         owner()
         with _LOCK:
-            _save([p for p in posts() if p["id"] != pid])
-        for ext in (".mp4", ".jpg"):
-            try:
-                os.remove(os.path.join(OUT, pid + ext))
-            except OSError:
-                pass
+            keep = [p for p in posts() if p["id"] != pid]
+            for p in keep:                      # a deleted repost no longer counts on its original
+                if pid in (p.get("reposts") or []):
+                    p["reposts"] = [x for x in p["reposts"] if x != pid]
+            _save(keep)
+        for suf in ("", "_yt", "_cap"):          # 9:16, YouTube 16:9 and the VIRAL captioned render
+            for ext in (".mp4", ".jpg"):
+                try:
+                    os.remove(os.path.join(OUT, pid + suf + ext))
+                except OSError:
+                    pass
         return jsonify({"ok": True})
 
     @app.post("/api/social/posts/<pid>/metrics")
@@ -1338,6 +1508,22 @@ def register(app, hk):
         if p:
             pull_metrics(p)
         return jsonify(out(get(pid)))
+
+    @app.post("/api/social/metrics/refresh-all")
+    def social_pull_all():
+        """Refresh live stats for EVERY published post in one call (the Scheduled tab's
+        'Refresh all' button). pull_metrics already isolates per-platform failures, so one
+        slow/broken account never blocks the rest."""
+        owner()
+        done = errs = 0
+        for p in [p for p in posts() if p.get("remote")]:   # anything actually live on a platform
+            try:
+                pull_metrics(p)
+                done += 1
+            except Exception as e:
+                errs += 1
+                _log("[social] refresh-all %s: %s" % (p.get("id"), e))
+        return jsonify({"ok": True, "refreshed": done, "errors": errs})
 
     @app.get("/api/social/stats")
     def social_stats():

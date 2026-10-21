@@ -41,7 +41,8 @@
           '<button class="sb" data-a="edit">' + mi('type') + ' Edit</button><button class="sb" data-a="rewrite">' + mi('wand') + ' Rewrite</button>' +
           (p.status === 'draft' ? '<button class="sb bad" data-a="reject">' + mi('x-circle') + '</button>' : '');
     else if (p.status === 'scheduled') a = '<button class="sb" data-a="edit">' + mi('type') + ' Edit</button><button class="sb" data-a="now">' + mi('send') + ' Post now</button><button class="sb bad" data-a="reject">Unschedule</button>';
-    else if (p.status === 'published') a = '<button class="sb" data-a="metrics">' + mi('refresh') + ' Refresh stats</button>';
+    else if (p.status === 'published') a = '<button class="sb" data-a="metrics">' + mi('refresh') + ' Refresh stats</button>' +
+      (p.video_url ? '<button class="sb" data-a="repost" title="Post this video again on another platform">' + mi('forward') + ' Repost</button>' : '');
     a += '<span class="sp"></span><button class="sb ic bad" data-a="delete" title="Delete">' + mi('trash') + '</button>';
     return '<div class="card" data-id="' + p.id + '"><div class="media">' +
       (p.video_url ? '<div class="pvw" data-pv="' + p.id + '" title="Preview"><img class="cv" src="' + esc(p.cover_url) + '" alt=""><span class="play">' + mi('play') + '</span></div>' : '<img class="cv" alt="">') +
@@ -50,8 +51,10 @@
       '<div class="hook">' + esc(p.hook || p.yt_title || '') + '</div><div class="cap">' + esc(p.caption || '') + '</div>' +
       '<div class="tags">' + (p.hashtags || []).map(function (h) { return '#' + esc(h); }).join(' ') + '</div>' +
       (p.why ? '<div class="why">' + esc(p.why) + '</div>' : '') + (p.error ? '<div class="why" style="color:var(--bad)">' + esc(p.error) + '</div>' : '') +
-      '<div class="mx">' + m + '</div><div class="why">' + (p.platforms || []).join(' + ') + (p.pillar ? ' · ' + esc(p.pillar) : '') + '</div></div></div>' +
-      '<div class="act">' + a + '</div></div>';
+      '<div class="mx">' + m + '</div><div class="why">' + (p.platforms || []).join(' + ') + (p.pillar ? ' · ' + esc(p.pillar) : '') +
+      (p.repost_of ? ' · ' + mi('forward') + ' repost' + ((p.repost_from || []).length ? ' (was on ' + esc(p.repost_from.join(' + ')) + ')' : '') : '') +
+      ((p.reposts || []).length ? ' · reposted ×' + p.reposts.length : '') + '</div></div></div>' +
+      (window.VIRAL ? VIRAL.cardExtra(p) : '') + '<div class="act">' + a + '</div></div>';
   }
 
   function render() {
@@ -63,15 +66,22 @@
         (q.length ? '<div class="grid">' + q.map(card).join('') + '</div>' : '<div class="empty">No drafts. Make something in the lab, then send it to Social.</div>');
     } else if (VIEW === 'calendar') {
       var s = POSTS.filter(function (p) { return /scheduled|publishing|published/.test(p.status); }).sort(function (a, b) { return (b.schedule_at || b.published_at || 0) - (a.schedule_at || a.published_at || 0); });
-      h = s.length ? '<div class="grid">' + s.map(card).join('') + '</div>' : '<div class="empty">Nothing scheduled yet.</div>';
+      var live = s.filter(function (p) { return p.remote && Object.keys(p.remote).length; }).length;
+      h = '<div class="row" style="margin-bottom:12px"><span class="dim" style="color:var(--faint);flex:1">' +
+        (live ? live + ' live post' + (live > 1 ? 's' : '') + ' — pull the latest views, likes & shares from every platform.' : 'Scheduled & published posts. Live stats appear once a post goes up.') + '</span>' +
+        (live ? '<button class="sb pri" id="refresh-all">' + mi('refresh') + ' Refresh all stats</button>' : '') + '</div>' +
+        (s.length ? '<div class="grid">' + s.map(card).join('') + '</div>' : '<div class="empty">Nothing scheduled yet.</div>');
     }     else if (VIEW === 'analytics') h = analytics();
     else if (VIEW === 'skills') h = skillsView();
     else if (VIEW === 'overview') h = overview();
     else if (VIEW === 'agent') h = agent();
     else if (VIEW === 'accounts') h = accountsView();
+    else if (window.VIRAL && VIRAL.views[VIEW]) h = VIRAL.views[VIEW]();
+    if (window.VIRAL && VIRAL.wrap[VIEW]) h = VIRAL.wrap[VIEW](h);      // brief on Overview, insights under Analytics
     v.innerHTML = h;
     if (window.MI && MI.fill) MI.fill(v);
     bind();
+    if (window.VIRAL) VIRAL.bind(VIEW);
   }
 
   /* ── charts (pure SVG, theme colours) ─────────────────────────────────────────── */
@@ -258,6 +268,45 @@
     if (a === 'delete') { if (confirm('Delete this post from Social? (Already-published posts stay on the platforms.)')) go('/delete'); return; }
     if (a === 'rewrite') { var n = prompt('Direction for VIRAL-Ω (optional):', ''); if (n === null) return; toast('Rewriting…'); return go('/rewrite', { note: n }); }
     if (a === 'edit') return editor(p);
+    if (a === 'repost') return repostDlg(p);
+  }
+
+  /* REPOST: an old published video → a new post for platform(s) it isn't on yet */
+  var PL_NAME = { instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook' };
+  function repostDlg(p) {
+    var m = $('#modal'), on = Object.keys(p.remote || {}), acc = (STATS && STATS.accounts) || {};
+    var rows = ['instagram', 'youtube', 'tiktok', 'facebook'].map(function (pl) {
+      var posted = on.indexOf(pl) > -1, conn = !!(acc[pl] || {}).connected;
+      return '<label class="row" style="font-size:13px;gap:8px;padding:4px 0"><input type="checkbox" data-rp="' + pl + '"' + (!posted && conn ? ' checked' : '') + '> ' + PL_NAME[pl] +
+        (posted ? ' <span class="why" style="margin:0">already posted here</span>' : '') + (!conn ? ' <span class="why" style="margin:0;color:var(--bad)">not connected</span>' : '') + '</label>';
+    }).join('');
+    m.innerHTML = '<div class="in" style="max-width:460px"><div class="row"><b style="flex:1">' + mi('forward') + ' Repost to another platform</b><button class="sb ic" id="mx">' + mi('close') + '</button></div>' +
+      '<div class="row" style="align-items:flex-start;margin-top:10px;gap:12px"><img src="' + esc(p.cover_url) + '" style="width:72px;aspect-ratio:9/16;object-fit:cover;border-radius:8px;background:#000">' +
+      '<div style="flex:1"><div class="hook" style="margin:0 0 6px">' + esc(p.hook || p.yt_title || '') + '</div><div class="why" style="margin:0">Live on: ' + (on.length ? on.map(function (x) { return PL_NAME[x] || x; }).join(', ') : '—') +
+      '</div><div class="why">A new post is made with the same video + captions (edit them after). The original stays as it is.</div></div></div>' +
+      '<label class="f">Post it on</label>' + rows +
+      '<label class="f">When</label><select class="t" id="rp-when"><option value="draft">Save as draft — I\'ll edit captions first</option><option value="best">Schedule — VIRAL-Ω picks the best time</option>' +
+      '<option value="at">Schedule — pick a time</option><option value="now">Post now</option></select>' +
+      '<input class="t" type="datetime-local" id="rp-at" hidden style="margin-top:6px">' +
+      '<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="sb" id="rp-cancel">Cancel</button><button class="sb pri" id="rp-go">' + mi('forward') + ' Repost</button></div></div>';
+    m.hidden = false; if (window.MI && MI.fill) MI.fill(m);
+    var close = function () { m.hidden = true; };
+    $('#mx').onclick = close; $('#rp-cancel').onclick = close;
+    $('#rp-when').onchange = function () { $('#rp-at').hidden = this.value !== 'at'; };
+    $('#rp-go').onclick = function () {
+      var pl = [].slice.call(m.querySelectorAll('[data-rp]:checked')).map(function (c) { return c.dataset.rp; });
+      if (!pl.length) return toast('Pick at least one platform');
+      var w = $('#rp-when').value, when = w;
+      if (w === 'at') { var v = $('#rp-at').value; if (!v) return toast('Pick a date and time'); when = String(new Date(v).getTime() / 1000); }
+      if (w === 'now' && !confirm('Post this video now to ' + pl.map(function (x) { return PL_NAME[x]; }).join(' + ') + '?')) return;
+      var b = this; b.disabled = true;
+      api('api/social/posts/' + p.id + '/repost', { method: 'POST', body: { platforms: pl, when: when } }).then(function (r) {
+        close();
+        toast(r.note ? 'Repost ' + r.note : w === 'draft' ? 'Repost saved to the queue — edit and approve it there' : w === 'now' ? 'Reposting now…' : 'Repost scheduled');
+        if (w === 'draft' || r.status === 'draft') VIEW = 'queue';
+        return load();
+      }).catch(function (e) { b.disabled = false; toast(e.message); });
+    };
   }
 
   function preview(p) {
@@ -394,6 +443,8 @@
     });
     var r = $('#report'); if (r) r.onclick = function () { r.disabled = true; $('#rep').textContent = 'VIRAL-Ω is reviewing the week…'; api('api/social/report', { method: 'POST' }).then(function (j) { $('#rep').textContent = j.report; }).catch(function (e) { $('#rep').textContent = e.message; }).then(function () { r.disabled = false; }); };
     var gi = $('#gen-ideas'); if (gi) gi.onclick = function () { gi.disabled = true; toast('Thinking up ideas…'); api('api/social/ideas', { method: 'POST' }).then(load).catch(function (e) { toast(e.message); gi.disabled = false; }); };
+    var ra = $('#refresh-all'); if (ra) ra.onclick = function () { var o = ra.innerHTML; ra.disabled = true; ra.innerHTML = mi('refresh') + ' Refreshing…'; if (window.MI && MI.fill) MI.fill(ra);
+      api('api/social/metrics/refresh-all', { method: 'POST' }).then(function (r) { toast('Updated ' + (r.refreshed || 0) + ' post' + (r.refreshed === 1 ? '' : 's') + (r.errors ? ' · ' + r.errors + ' failed' : '')); return load(); }).catch(function (e) { toast(e.message); ra.disabled = false; ra.innerHTML = o; if (window.MI && MI.fill) MI.fill(ra); }); };
     document.querySelectorAll('[data-make]').forEach(function (b) {
       b.onclick = function () {
         var i = STATS.ideas.ideas[+b.dataset.make];
@@ -429,7 +480,9 @@
   document.querySelectorAll('.so-tabs button').forEach(function (b) { b.onclick = function () { VIEW = b.dataset.v; render(); }; });
   $('#so-close').onclick = function () { if (window.MMLApp && MMLApp.close) return MMLApp.close(''); if (window.parent !== window) window.parent.postMessage({ mml: 'social-close' }, '*'); else history.back(); };
   window.addEventListener('message', function (e) { var d = e.data || {}; if (d.mml === 'social-toast') { toast(d.text); setTimeout(load, 1500); } });
+  window.SOCIAL = { api: api, esc: esc, mi: mi, toast: toast, fmt: fmt, when: when, reload: load, render: function () { render(); },
+    posts: function () { return POSTS; }, stats: function () { return STATS; }, go: function (v) { VIEW = v; render(); }, view: function () { return VIEW; } };
   var t = new URLSearchParams(location.search).get('v'); if (t) VIEW = t;
   load();
-  setInterval(function () { if (!document.hidden && $('#modal').hidden && VIEW !== 'agent' && VIEW !== 'accounts' && VIEW !== 'skills' && VIEW !== 'analytics') load(); }, 20000);
+  setInterval(function () { if (!document.hidden && $('#modal').hidden && VIEW !== 'agent' && VIEW !== 'accounts' && VIEW !== 'skills' && VIEW !== 'analytics' && !(window.VIRAL && VIRAL.views[VIEW])) load(); }, 20000);
 })();

@@ -2015,7 +2015,9 @@ def _public_base():
 
 
 social.register(app, {"uid": uid, "is_owner": lambda: _loopback() or is_owner(), "my_file": _my_file,
-                      "push": events.push, "public_base": _public_base, "static": _static})
+                      "push": events.push, "public_base": _public_base, "static": _static,
+                      "submit": _series_submit, "job": _series_job, "cancel": _series_cancel,
+                      "to_ref": lambda user_id, path: _flow_to_ref(user_id, path)})   # VIRAL-Ω Remix renders
 
 
 # ── PRODUCER: MirAI's one-sentence pipeline — brief → series cast/world → episode → YouTube draft (producer.py) ──

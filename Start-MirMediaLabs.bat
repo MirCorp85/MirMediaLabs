@@ -3,7 +3,9 @@
 :: Usage: Start-MirMediaLabs.bat [--server-only]
 set PYTHONUTF8=1
 set PYTHONIOENCODING=utf-8
+if not defined PYW if exist "%~dp0runtime\app\Scripts\pythonw.exe" set "PYW=%~dp0runtime\app\Scripts\pythonw.exe"
 if not defined PYW set PYW=pythonw.exe
+if not exist "%~dp0data\logs" mkdir "%~dp0data\logs"
 cd /d "%~dp0server"
 powershell -NoProfile -Command "if (-not (Get-NetTCPConnection -LocalPort 5400 -State Listen -ErrorAction SilentlyContinue)) { Start-Process -FilePath '%PYW%' -ArgumentList '-u','medialab.py' -WorkingDirectory '%~dp0server' -WindowStyle Hidden -RedirectStandardOutput '%~dp0data\logs\server_out.log' -RedirectStandardError '%~dp0data\logs\server_err.log' }"
 if "%~1"=="--server-only" exit /b 0
