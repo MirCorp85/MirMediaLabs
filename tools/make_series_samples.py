@@ -1,6 +1,6 @@
 """SERIES sample tiles: one picture per video style (the same test character, so styles compare cleanly) plus a preview
 for every builder / song / Setup option. Queues through the running lab (loopback = owner), one request at a time, and
-saves server/static/series/samples/<name>.<jpg|mp4|mp3> (the page shows a file once it exists), mirrored to MIR /mlab.
+saves server/static/series/samples/<name>.<jpg|mp4|mp3> (the page shows a file once it exists).
 
     python tools/make_series_samples.py [styles|builder|options|stylevideos|objects|moves|voices|songs|setup|all]
                                          [--only id,id]
@@ -32,7 +32,7 @@ sys.path.insert(0, SERVER)
 import series_help  # noqa: E402
 import series_presets as P  # noqa: E402
 
-LAB = os.environ.get("MML_LAB") or "http://127.0.0.1:5400"   # MIR rule: run via MML_LAB=http://127.0.0.1:5000/mlab
+LAB = os.environ.get("MML_LAB") or "http://127.0.0.1:5400"
 OUT = os.path.join(SERVER, "static", "series", "samples")
 LIB = os.environ.get("MML_LIB") or os.path.join(HERE, "..", "data", "library")
 MIRRORS = [p for p in os.environ.get("MML_SAMPLES_MIRROR", "").split(";") if p]   # optional local mirror copies (env var, never a hardcoded path)

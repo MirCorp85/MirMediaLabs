@@ -155,12 +155,7 @@
   <audio id="se-voice" hidden></audio>
   <input type="file" id="se-song" accept="audio/*,.mp3,.wav,.flac,.m4a,.ogg" hidden>
 </div>
-<script>
-(function () {   /* icons live in different places in the two lab copies */
-  var mlab = location.pathname.indexOf('/mlab') === 0;
-  document.write('<script src="' + (mlab ? '/static/icons/mir-icons.js' : '/static/mir-icons.js') + '"><\/script>');
-})();
-</script>
+<script src="/static/mir-icons.js"></script>
 <script src="static/series.js"></script>
 <script src="/static/fonts/mir/mirfont.js" data-vars="--sans"></script>
 </body>

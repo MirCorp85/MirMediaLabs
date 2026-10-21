@@ -13,10 +13,7 @@ import re
 import subprocess
 import time
 
-try:
-    from . import core
-except ImportError:
-    import core
+import core
 
 MODES = ("make", "own", "voice_music", "remix", "remix_me")
 AUDIO_EXT = (".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".mp4", ".mov", ".webm")
@@ -97,10 +94,7 @@ def bed_caption(song):
 
 def transcript(name):
     """The words in my audio (for remix: the lab sings them)."""
-    try:
-        from . import series_audio as sa
-    except ImportError:
-        import series_audio as sa
+    import series_audio as sa
     got = sa.words_of(core.in_dir(core.LIB, name))
     words = [w.get("w") or w.get("word") or w.get("text") or "" for w in got.get("words") or []]
     text = " ".join(x.strip() for x in words if x.strip())

@@ -1,4 +1,4 @@
-/* MIR MEDIA LABS · Series studio — IDENTICAL in both lab copies (standalone :5400 and MIR /mlab).
+/* MIR MEDIA LABS · Series studio — served by the lab on :5400.
    Setup (format · style · length · song) → style bible → cast (character builder: hero, turnaround, expressions,
    voice) → world → episodes. A musical episode is song-first: the writer lays the lyrics on the format's beats, the
    song is made, cut into bar-aligned shots, and every shot is generated TO its slice of the song (mouths follow the
@@ -8,7 +8,7 @@
    Engine names never appear here. */
 (function () {
   'use strict';
-  var B = location.pathname.indexOf('/mlab') === 0 ? '/mlab' : '';
+  var B = '';
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -34,7 +34,7 @@
   function theme(id) { var t = THEMES[id] || THEMES.claude, r = document.documentElement.style;
     r.setProperty('--bg', t[0]); r.setProperty('--panel', t[1]); r.setProperty('--panel2', t[2]); r.setProperty('--ink', t[3]); r.setProperty('--acc', t[4]); }
   try { theme(localStorage.getItem('mml.theme') || 'claude'); } catch (e) { theme('claude'); }
-  fetch('/api/mir-prefs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.mltheme && d.mltheme.id) theme(d.mltheme.id); }).catch(function () { });
+  fetch('/api/prefs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.mltheme && d.mltheme.id) theme(d.mltheme.id); }).catch(function () { });
   var FRAMED = window.parent !== window;
   $('#se-back').href = (B || '') + '/';
   $('#se-back').addEventListener('click', function (e) { if (FRAMED) { e.preventDefault(); window.parent.postMessage({ mml: 'series-close' }, '*'); } else if (window.MMLApp) { e.preventDefault(); MMLApp.close(''); } });

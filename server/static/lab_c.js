@@ -2,7 +2,7 @@
    • header: brand · PROJECT picker (the chat session = a project: its own chat + media) · production state · GPU/queue · voice · settings
    • left: this project's media (the library, scoped to the project) · centre: MirAI chat · right: the production timeline
    • bottom dock: Create · Projects (Series + Production, merged) · Library · Editor · Publish · Tools (everything else)
-   Opt out with ?classic=1 (or localStorage mml.layout=classic). Identical in both lab copies. */
+   Opt out with ?classic=1 (or localStorage mml.layout=classic). */
 (function () {
   try { if (/[?&]classic=1/.test(location.search) || localStorage.getItem('mml.layout') === 'classic') return; } catch (e) { }
   var $ = function (s, r) { return (r || document).querySelector(s); };

@@ -1,6 +1,6 @@
 """SERIES help — a plain one-line "what it does" for every Setup / song / character-builder / object-builder field and
 option. Data only, merged into series_presets.catalog() as "help"; the page shows the field line under its label and the
-picked (or hovered) option's line under its chips. Identical in the MIR copy (mir_mlab) — copy, never import across.
+picked (or hovered) option's line under its chips.
 
 HELP[field] = {"desc": field line, "opts": {option: option line}}. Option values are the exact preset strings.
 """

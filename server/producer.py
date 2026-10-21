@@ -15,9 +15,7 @@ post) and lays out its step timeline. It is crash-proof and self-healing:
   • a watchdog narrates each finished step, diagnoses failures (GPU out of memory → free VRAM, ComfyUI down → wait
     for it, step stuck → restart that step, engine/network hiccup → retry) and carries on by itself; only after
     MAX_HEAL attempts on the same problem does it stop and ask the person;
-  • every event goes to /api/produce/feed, which MirAI's voice, the MIR app and the Production tab read.
-
-Identical in the MIR copy (mir_mlab) — copy, never import across.
+  • every event goes to /api/produce/feed, which MirAI's voice, the apps and the Production tab read.
 """
 import json
 import os
@@ -27,15 +25,12 @@ import time
 import traceback
 import uuid
 
-try:
-    from . import core, series, series_run as runner, series_presets as presets, comfy, audio_in
-except ImportError:
-    import core
-    import series
-    import series_run as runner
-    import series_presets as presets
-    import audio_in
-    import comfy
+import core
+import series
+import series_run as runner
+import series_presets as presets
+import audio_in
+import comfy
 
 PROD = os.path.join(core.DATA, "produce")
 MAX_CAST, MAX_LOCS = 8, 3

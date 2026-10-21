@@ -7,12 +7,12 @@ import android.widget.LinearLayout;
 import org.json.JSONObject;
 
 /** MIR MEDIA LABS themes for the native Media Lab page — the same five palettes as the web (claude · graphite ·
- *  obsidian · midnight · paper). The pick lives in /api/mir-prefs {mltheme:{id}} so web + phone + TV follow one
+ *  obsidian · midnight · paper). The pick lives in /api/prefs {mltheme:{id}} so web + phone + TV follow one
  *  choice; a local copy makes it instant at launch. */
 public final class Theme {
     public static final String[] IDS = {"claude", "graphite", "obsidian", "midnight", "paper"};
     public static final String[] NAMES = {"Claude Dark", "Graphite", "Obsidian Gold", "Midnight Studio", "Paper Light"};
-    public static final String[] DESC = {"Warm charcoal, clay accent", "Neutral slate, indigo accent", "Near-black, MIR gold",
+    public static final String[] DESC = {"Warm charcoal, clay accent", "Neutral slate, indigo accent", "Near-black, Mir gold",
             "Deep navy, teal accent", "Warm white, rust accent"};
     /** {bg, bar, card, card2, line, line2, ink, dim, faint, accent} */
     public static final int[][] P = {
@@ -32,7 +32,7 @@ public final class Theme {
 
     /** Pull the shared pick; rebuild only when another device changed it. */
     static void sync(Activity a, Api api) {
-        api.get("/api/mir-prefs", r -> {
+        api.get("/api/prefs", r -> {
             if (!r.ok()) return;
             JSONObject t = r.obj().optJSONObject("mltheme");
             String id = t == null ? "" : t.optString("id", "");
@@ -48,7 +48,7 @@ public final class Theme {
             final int k = i;
             LinearLayout r = sh.row(IDS[i].equals(cur) ? "check" : "palette", NAMES[i], DESC[i], P[i][9], () -> {
                 Prefs.put(a, "mltheme", IDS[k]);
-                new Api(a).post("/api/mir-prefs", Api.obj("key", "mltheme", "value", Api.obj("id", IDS[k])), r2 -> a.recreate());
+                new Api(a).post("/api/prefs", Api.obj("key", "mltheme", "value", Api.obj("id", IDS[k])), r2 -> a.recreate());
             });
             swatch(a, r, P[i]);
         }

@@ -52,7 +52,7 @@ final class MuseLive {
     }
 
     void sync() {
-        m.api.get("/api/mir-prefs", r -> {
+        m.api.get("/api/prefs", r -> {
             String s = r.ok() ? r.obj().optString("musestyle", "") : "";
             if (!s.isEmpty() && !s.equals(style)) setStyle(s, false);
         });
@@ -103,7 +103,7 @@ final class MuseLive {
         js(big, "orb.style('" + s + "')");
         js(FloatingMuse.current, "orb.style('" + s + "')");
         if (push) try {
-            m.api.post("/api/mir-prefs", Api.obj("key", "musestyle", "value", s), null);
+            m.api.post("/api/prefs", Api.obj("key", "musestyle", "value", s), null);
         } catch (Exception ignored) { }
     }
 

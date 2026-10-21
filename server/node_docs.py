@@ -1,4 +1,4 @@
-"""NODE FLOW node descriptions — the one place for them (the page, the picker, mobile web, MirAI and Hermes all read this).
+"""NODE FLOW node descriptions — the one place for them (the page, the picker, mobile web and MirAI all read this).
 short = one everyday line on the node card · when = when to use it · tip = one practical tip. No jargon."""
 
 NODE_DOCS = {

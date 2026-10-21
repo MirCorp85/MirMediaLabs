@@ -1,4 +1,4 @@
-// MIR MOTION render daemon — 127.0.0.1:5421 only (MIR MEDIA LABS copy; MIR runs its own on 5420). Bundles the Remotion project once, then renders jobs
+// MIR MOTION render daemon — 127.0.0.1:5421 only. Bundles the Remotion project once, then renders jobs
 // posted by the Media Lab (server/remotion.py). Serves library media + MIR fonts to the headless browser.
 //   GET  /health            → {ok, bundled, queue, version}
 //   GET  /schema            → scene schema (inspector + AI)
