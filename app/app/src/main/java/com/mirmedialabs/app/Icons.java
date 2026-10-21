@@ -127,6 +127,7 @@ public final class Icons {
         D.put("pip", new String[]{"p:M3 5H21V19H3Z", "p:M12 12H19V17H12Z"});
         D.put("compass", new String[]{"c:12,12,9", "p:M15.5 8.5L13.5 13.5L8.5 15.5L10.5 10.5Z"});
         D.put("gamepad", new String[]{"p:M7 8H17C19.8 8 21.5 10 21.5 13L21 17C20.7 19 18.5 19.5 17.2 18L15 15.5H9L6.8 18C5.5 19.5 3.3 19 3 17L2.5 13C2.5 10 4.2 8 7 8Z", "p:M7 11V14", "p:M5.5 12.5H8.5", "f:15.5,11.5,1", "f:17.5,13.5,1"});
+        D.put("factory", new String[]{"p:M3 20.5V10L8 13V10L13 13V10L17 12.5V3.5H20.5V20.5Z", "p:M3 20.5H21", "p:M6.5 17H8.5", "p:M11 17H13", "p:M15.5 17H17.5"});
         D.put("pencil", new String[]{"p:M4 20L5 15L16 4L20 8L9 19Z", "p:M14 6L18 10"});
         D.put("eraser", new String[]{"p:M3 16L12 7L18 13L11 20H7Z", "p:M8 11L14 17", "p:M11 20H21"});
         D.put("bucket", new String[]{"p:M5 11L12 4L19 11L12 18Z", "p:M5 11H19", "p:M20 14C20 14 22 16.8 22 18C22 19.1 21.1 20 20 20C18.9 20 18 19.1 18 18C18 16.8 20 14 20 14Z"});

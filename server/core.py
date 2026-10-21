@@ -362,12 +362,39 @@ def ollama_up(timeout=2):
         return False
 
 
+def _port_listening():
+    """True when something already listens on Ollama's port — it is up but BUSY (loading a model / long prefill makes
+    /api/version miss its 2 s timeout). Launching another server then only fails to bind 11434 (19k bind errors +
+    duplicate 'ollama app' copies, Oct 18-19 2026), so never launch while the port is taken."""
+    import socket
+    from urllib.parse import urlparse
+    u = urlparse(OLLAMA)
+    try:
+        socket.create_connection((u.hostname or "127.0.0.1", u.port or 11434), timeout=1).close()
+        return True
+    except OSError:
+        return False
+
+
+def _app_running():
+    """True when Ollama's desktop app is already running. It then must NOT be launched again: an app that sees another
+    ollama.exe (e.g. another program's own Ollama server on a different port) never starts :11434, so relaunching it every 30 s piled up 200+
+    copies with the assistant offline (Oct 18 2026). In that case `ollama serve` is started directly instead."""
+    import subprocess
+    try:
+        out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq ollama app.exe", "/NH"], capture_output=True, text=True,
+                             timeout=5, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+        return "ollama app.exe" in out.lower()
+    except Exception:
+        return False
+
+
 def _ollama_cmd():
     """Ollama's desktop app when installed (it keeps the user's own settings), else `ollama serve`."""
     import shutil
     la = os.environ.get("LOCALAPPDATA", "")
     app = os.path.join(la, "Programs", "Ollama", "ollama app.exe")
-    if os.name == "nt" and os.path.isfile(app):
+    if os.name == "nt" and os.path.isfile(app) and not _app_running():
         return [app]
     for c in (CONFIG.get("ollama"), LOCAL.get("ollama"), shutil.which("ollama"),
               os.path.join(la, "Programs", "Ollama", "ollama.exe"), "/usr/local/bin/ollama", "/opt/homebrew/bin/ollama"):
@@ -384,7 +411,7 @@ def ensure_ollama(wait=60):
     with _OLLAMA_LOCK:
         if ollama_up():
             return True
-        cmd = _ollama_cmd()
+        cmd = None if _port_listening() else _ollama_cmd()
         if cmd and time.time() - _OLLAMA_TRY["t"] > 30:
             _OLLAMA_TRY["t"] = time.time()
             import subprocess
@@ -403,7 +430,7 @@ def ensure_ollama(wait=60):
     return False
 
 
-FALLBACK_ENGINE = "qwen3.5:9b"                  # used only when the chosen engine fails to load
+FALLBACK_ENGINE = "qwen3.5:9b-q8_0"        # used only when the chosen engine fails to load (Oct 19: old qwen3.5:9b deleted)
 
 
 class _Broken(set):
@@ -640,7 +667,7 @@ def _cloud_brain():
         return None
 
 
-VISION_PREF = ("qwen3.5:9b", "gemma4:12b-nodraft", "gemma4:12b")   # qwen3.5:9b: verified reading pictures (Gemma 4 + images crashes Ollama)
+VISION_PREF = ("qwen3.5:9b-q8_0", "gemma4:12b-nodraft", "gemma4:12b")   # NVFP4 has the vision projector (Gemma 4 + images crashes Ollama)
 
 
 def vision_model():

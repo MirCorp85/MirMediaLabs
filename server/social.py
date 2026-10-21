@@ -243,7 +243,7 @@ def ask_agent(task, data, want_json=True, local=False):
             except Exception:
                 pass
             r = requests.post(core.OLLAMA + "/api/generate", timeout=240, json=body)
-        fb = getattr(core, "FALLBACK_ENGINE", "qwen3.5:9b")
+        fb = getattr(core, "FALLBACK_ENGINE", "qwen3.5:9b-q8_0")
         if r.status_code >= 500 and "llama-server" in r.text and body["model"] != fb:
             _log("[social] engine %s won't start (%s) — writing with %s" % (body["model"], r.text[:120], fb))
             body["model"] = fb                     # same fallback the lab chat uses (Gemma 4 / Ollama crash)
