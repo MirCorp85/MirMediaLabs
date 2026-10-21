@@ -1,6 +1,6 @@
 """SERIES audio — hear an uploaded song: vocal stem (Demucs) + every sung word with its time (Whisper), then lines and
 sections. The heavy work runs in a CHILD process (python series_audio.py stems|words …) so a crash or the RAM of the
-speech models never touches the lab. CPU by default: ComfyUI usually holds the GPU. Identical in the MIR copy.
+speech models never touches the lab. CPU by default: ComfyUI usually holds the GPU.
 
     python series_audio.py stems <song> <out_dir>      → prints {"vocal": path}
     python series_audio.py words <wav> [model] [lang]  → prints {"words": [{"w","s","e"}], "lang": ".."}
@@ -26,10 +26,7 @@ def _python():
 
 def _ffmpeg():
     try:
-        try:
-            from . import core
-        except ImportError:
-            import core
+        import core
         return core.FFMPEG
     except Exception:
         return "ffmpeg"

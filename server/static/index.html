@@ -249,7 +249,7 @@ a{color:inherit;text-decoration:none}
   .go{padding:0 16px}.hint{display:none}
 }
 @media (max-width:420px){.sheet .bd{grid-template-columns:1fr}}
-/* ═══ compact pass (synced from MIR copy): accordion left column + slim composer ═══ */
+/* ═══ compact pass : accordion left column + slim composer ═══ */
 .main{grid-template-columns:212px minmax(0,1fr) 300px;gap:10px;padding:10px}
 .col{gap:10px}
 .h{padding:9px 12px 7px;font-size:9.5px}
@@ -393,7 +393,7 @@ body.lcol-off .lrail{display:flex}
 .mp.aud.lg .mp-viz{height:110px}.mp.aud.lg .mp-ttl{font-size:14px}
 .msg .lora-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin:-2px 0 8px}.msg .lora-line b{color:var(--ink)}.msg .lora-line .off{color:var(--faint)}
 
-/* ── Oct 8 2026: library spacing + hi-res viewer fit (synced MIR /mlab ⇄ standalone) ──
+/* ── Oct 8 2026: library spacing + hi-res viewer fit ──
    rows used to collapse to ~27px (overflow:hidden tiles have no min height) so tiles stacked on top of each other */
 .grid,.lgrid,.thgrid,.vgrid,.pgrid,.cbm{grid-auto-rows:max-content}
 .grid{gap:10px!important;padding:2px 12px 14px!important}
@@ -498,7 +498,7 @@ body.lcol-off .lrail{display:flex}
 </style>
 <script src="/static/mir-icons.js"></script>
 <style id="mml-themes">
-/* ═══ MIR MEDIA LABS THEMES — five professional palettes (synced: MIR /mlab + standalone + both APKs) ═══ */
+/* ═══ MIR MEDIA LABS THEMES — five professional palettes (synced: web + both APKs) ═══ */
 :root{--chrome:#141413;--surface:#1c1b1a;--glow:0}
 html[data-theme=claude]{--bg:#262624;--chrome:#1f1e1d;--surface:#2c2b29;--panel:#30302e;--panel2:#3a3936;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.15);
   --ink:#f5f4ef;--dim:#bfbdb1;--faint:#8b897f;--acc:#d97757;--orange:#d97757;--yellow:#e3b26b;--teal:#7fb3b0;--red:#e5726b;--grn:#8fbf8f}
@@ -602,16 +602,16 @@ html[data-theme] .iconbtn{background:var(--panel)}
 window.MML_THEMES=[
   {id:'claude',name:'Claude Dark',d:'Warm charcoal, clay accent',sw:['#262624','#30302e','#3a3936','#f5f4ef','#d97757']},
   {id:'graphite',name:'Graphite',d:'Neutral slate, indigo accent',sw:['#111214','#18191c','#212327','#eceef1','#7c8cff']},
-  {id:'obsidian',name:'Obsidian Gold',d:'Near-black, MIR gold',sw:['#0e0d0b','#171512','#211e19','#f3eee4','#e3a949']},
+  {id:'obsidian',name:'Obsidian Gold',d:'Near-black, Mir gold',sw:['#0e0d0b','#171512','#211e19','#f3eee4','#e3a949']},
   {id:'midnight',name:'Midnight Studio',d:'Deep navy, teal accent',sw:['#0b1220','#101929','#172236','#e6ecf5','#3fb8c9']},
   {id:'paper',name:'Paper Light',d:'Warm white, rust accent',sw:['#f6f5f1','#ffffff','#f1efe9','#1e1d1a','#c2582f']}];
 (function(){
   function apply(id){if(!MML_THEMES.some(t=>t.id===id))id='claude';document.documentElement.setAttribute('data-theme',id);
     document.documentElement.style.removeProperty('--acc');try{localStorage.setItem('mml.theme',id)}catch(e){}window.MML_THEME=id;}
   var t0='claude';try{t0=localStorage.getItem('mml.theme')||'claude'}catch(e){}apply(t0);
-  window.mmlTheme={apply:apply,save:function(id){apply(id);fetch('/api/mir-prefs',{method:'POST',headers:{'Content-Type':'application/json'},
+  window.mmlTheme={apply:apply,save:function(id){apply(id);fetch('/api/prefs',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({key:'mltheme',value:{id:id}})}).catch(function(){});},
-    sync:function(){fetch('/api/mir-prefs',{cache:'no-store'}).then(r=>r.json()).then(function(d){if(d&&d.mltheme&&d.mltheme.id&&d.mltheme.id!==window.MML_THEME)apply(d.mltheme.id);}).catch(function(){});}};
+    sync:function(){fetch('/api/prefs',{cache:'no-store'}).then(r=>r.json()).then(function(d){if(d&&d.mltheme&&d.mltheme.id&&d.mltheme.id!==window.MML_THEME)apply(d.mltheme.id);}).catch(function(){});}};
   mmlTheme.sync();setInterval(function(){if(!document.hidden)mmlTheme.sync();},20000);
 })();
 </script>
@@ -1059,7 +1059,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 <div class="app">
   <header class="top">
     <div class="brand"><img src="/static/icon-512.png" alt=""><b>MIR MEDIA LABS</b></div>
-    <nav class="studios" aria-label="Studios"><button class="studio" id="b-editor" title="Video editor — cut, arrange and re-render on a timeline" onclick="mmlEditor()"><i class="mi" data-ic="film"></i><span>VIDEO EDITOR</span></button><button class="studio" id="b-series" title="SERIES studio — build an animated series: cast, world, episodes, songs" onclick="mmlSeries()"><i class="mi" data-ic="tv"></i><span>SERIES STUDIO</span></button><button class="studio" id="b-motion" title="MOTION STUDIO — Remotion motion graphics: titles, captions, lyric videos, long videos" onclick="mmlMotion()"><i class="mi" data-ic="sparkle"></i><span>MOTION STUDIO</span></button><button class="studio" id="b-flow" title="NODE FLOW — wire inputs, engines and tools into one pipeline (ComfyUI-style, MIR settings)" onclick="mmlFlow()"><i class="mi" data-ic="chain"></i><span>NODE FLOW</span></button><button class="studio" id="b-grab" title="Downloader — YouTube and other links to MP3 or MP4 in your library" onclick="mmlGrab()"><i class="mi" data-ic="download"></i><span>DOWNLOADER</span></button></nav>
+    <nav class="studios" aria-label="Studios"><button class="studio" id="b-editor" title="Video editor — cut, arrange and re-render on a timeline" onclick="mmlEditor()"><i class="mi" data-ic="film"></i><span>VIDEO EDITOR</span></button><button class="studio" id="b-series" title="SERIES studio — build an animated series: cast, world, episodes, songs" onclick="mmlSeries()"><i class="mi" data-ic="tv"></i><span>SERIES STUDIO</span></button><button class="studio" id="b-motion" title="MOTION STUDIO — Remotion motion graphics: titles, captions, lyric videos, long videos" onclick="mmlMotion()"><i class="mi" data-ic="sparkle"></i><span>MOTION STUDIO</span></button><button class="studio" id="b-flow" title="NODE FLOW — wire inputs, engines and tools into one pipeline (ComfyUI-style)" onclick="mmlFlow()"><i class="mi" data-ic="chain"></i><span>NODE FLOW</span></button><button class="studio" id="b-grab" title="Downloader — YouTube and other links to MP3 or MP4 in your library" onclick="mmlGrab()"><i class="mi" data-ic="download"></i><span>DOWNLOADER</span></button></nav>
     <button class="iconbtn" id="b-theme" title="Theme" onclick="openThemes()"><i class="mi" data-ic="palette"></i></button><button class="iconbtn" id="b-muse" title="MUSE — talk to the lab hands-free" onclick="MUSE.click(this)"><canvas style="width:30px;height:30px;display:block"></canvas></button><button class="iconbtn" id="b-voice" title="MirAI voice on / off"><i class="mi" data-ic="volume"></i></button>
     <button class="iconbtn" id="b-font" title="MIR FONTS — pick a typeface" onclick="window.MirFont&&MirFont.openPicker()"><i class="mi" data-ic="type"></i></button>
     <div class="pills">
@@ -1096,7 +1096,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
       </div>
       <div class="card fold" data-fold="about" data-def="shut">
         <div class="h">Standalone<span class="sp"></span><span class="fcv">▾</span></div>
-        <div class="side-note">Own library, own access key, own update server. <b>No access to MIR data</b> — only the GPU (ComfyUI) and the local prompt engine are shared. <a href="#" id="isolink" style="color:var(--yellow)">Isolation audit ›</a></div>
+        <div class="side-note">Own library, own access key, own update server. Only the GPU (ComfyUI) and the local prompt engine are shared.</div>
       </div>
     </section>
 
@@ -1758,8 +1758,8 @@ window.VOICE=(function(){
   function mine(id){if(!id)return;MINE.add(id);try{sessionStorage.setItem('mml.voicemine',JSON.stringify([...MINE].slice(-40)))}catch(e){}}let cur=null,unlocked=false,seeded=false;
   try{const v=JSON.parse(localStorage.getItem('mml.voice')||'null');if(v)Object.assign(st,v)}catch(e){}
   const save=(push)=>{try{localStorage.setItem('mml.voice',JSON.stringify(st))}catch(e){}
-    if(push)fetch('/api/mir-prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'voice',value:st})}).catch(()=>{})};
-  fetch('/api/mir-prefs',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(d&&d.voice){Object.assign(st,d.voice);save();btn()}}).catch(()=>{});
+    if(push)fetch('/api/prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'voice',value:st})}).catch(()=>{})};
+  fetch('/api/prefs',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(d&&d.voice){Object.assign(st,d.voice);save();btn()}}).catch(()=>{});
   function btn(){const b=document.getElementById('b-voice');if(b){b.innerHTML=MI.html(st.on?'volume':'mute');b.classList.toggle('off',!st.on);b.title=st.on?'MirAI voice on — tap to mute':'MirAI voice muted — tap to turn on'}}
   function url(t){return '/api/tts?text='+encodeURIComponent(t)+'&voice='+st.id+'&speed='+st.speed}
   let curId=null;
@@ -2094,7 +2094,7 @@ async function cloudCard(){const slot=$('#cb-slot');if(!slot)return;let d;try{d=
   slot.innerHTML=`<div class="cbx"><div class="cbh">${MI.html('sparkle')} <b>Model picker</b><span>MirAI, the Director and the prompt writer — local (Gemma 4 12B · Llama 3.1 8B) or cloud (Claude · GPT · GLM), cloud billed to your key</span></div>
     <div class="cbf"><span>Now: <b>${cur.provider==='local'?esc(d.local.label)+' (free)':esc(m?m.label:cur.model)}</b> · $${(u.usd||0).toFixed(2)} of $${d.cap} this month</span><span style="flex:1"></span><button class="btn sm pri" id="cb-open">Open model picker</button></div></div>`;
   $('#cb-open').onclick=()=>mpOpen()}
-/* MODEL PICKER (host PC) — same layout as MIR: provider groups, model cards with ctx/price/vision badges,
+/* MODEL PICKER (host PC): provider groups, model cards with ctx/price/vision badges,
    per-model params (max output, temperature, reasoning effort), API keys, monthly cap. */
 let MP={d:null,sel:null};
 function mpK(n){return n>=1e6?(n/1e6)+'M':Math.round(n/(n%1024?1000:1024))+'K'}
@@ -2221,16 +2221,6 @@ $('#b-about').onclick=()=>{
   $('#ab-fb').onclick=()=>mailTo('Feedback',false);
   openSheet();
 };
-$('#isolink').onclick=async e=>{e.preventDefault();let j;try{j=await api('/api/isolation')}catch(x){return toast(x.message)}
-  head('shield','#5ee08a','ISOLATION AUDIT');
-  $('#s-body').innerHTML=`<div class="kv">
-    <div>Separate from MIR: <code>${j.separate_from_mir?'YES — no MIR code loaded':'NO: '+esc(j.mir_modules_loaded.join(', '))}</code></div>
-    ${Object.entries(j.own_folders).map(([k,v])=>`<div>Own ${esc(k)}: <code>${esc(v)}</code></div>`).join('')}
-    <div>Sandbox refuses: ${j.blocked_paths.map(p=>`<code>${esc(p)}</code>`).join(' ')}</div>
-    ${Object.entries(j.talks_to).map(([k,v])=>`<div>Shares ${esc(k)}: <code>${esc(v)}</code></div>`).join('')}
-    <div>Never contacts: ${j.never_talks_to.map(x=>`<code>${esc(x)}</code>`).join(' ')}</div></div>`;
-  $('#s-ft').innerHTML='';openSheet()};
-
 /* users (owner only) */
 let ME={role:'user'};
 function lanBase(){const h=(location.hostname==='127.0.0.1'||location.hostname==='localhost')?((status&&status.lan_ip)||location.hostname):location.hostname;return 'http://'+h+':5400'}
@@ -2422,7 +2412,7 @@ function civKeyWire(id,after){const box=document.getElementById(id);if(!box)retu
     b.disabled=true;try{const r=await api(LAPI+'token',{method:'POST',body:JSON.stringify({token:tok})});
       toast(clear?'Civitai key removed':'Civitai key saved'+(r.user?' — signed in as '+r.user:''));after&&after(r)}
     catch(e){toast(e.message)}b.disabled=false})}
-const LAPI=(location.pathname.indexOf('/mlab')===0?'api/loras/':'/api/loras/');
+const LAPI='/api/loras/';
 const LROLE={h3:'video',qimg:'image',ace:'music',music3:'music'};   // LoRA library tab per model
 const LCAN={h3:'video',qimg:'image',ace:'music'};                    // models that can load LoRAs (Music 3 can't)
 /* which LoRAs a finished request really used — and which it couldn't (wrong kind of model) */
@@ -2551,7 +2541,7 @@ function lDetail(it){lFull=false;head('layers','var(--panel2)','LoRA');
 </script>
 <script src="/static/fonts/mir/mirfont.js" data-vars="--sans"></script>
 <script>
-/* ── TIMELINE EDITOR (editor.html, same in both lab copies): full-screen layer over the lab ── */
+/* ── TIMELINE EDITOR (editor.html): full-screen layer over the lab ── */
 /* SOCIAL panel (social.py / static/social.html) — VIRAL-Ω drafts, approvals, analytics */
 function mmlSocial(view){
   var f=document.getElementById('mml-so');if(f)return;
@@ -2596,7 +2586,7 @@ window.addEventListener('message',function(e){var d=e.data||{};if(d.mml!=='edito
   try{loadLib()}catch(x){}
 });
 
-/* LIVE VOICE (MIR MirAI) — show a voice-started render / download as it happens */
+/* LIVE VOICE (MirAI) — show a voice-started render / download as it happens */
 window.addEventListener('message',function(e){var d=e.data||{};if(d.mml!=='voice-show')return;
   try{if(typeof d.session==='string'&&d.session&&d.session!==SESS.id)sessOpen(d.session);else pollJobs(true);}catch(x){}   /* never jump to General */
   try{if(d.grab)mmlGrab();else setTab('create');}catch(x){}
@@ -2626,7 +2616,7 @@ window.addEventListener('message',function(e){var d=e.data||{};
   else if(d.mml==='motion-attach'&&d.ref){try{atts.push(d.ref);saveAtts();renderAtts();setTab('create');toast('Attached — ready for your next request')}catch(x){}}
   try{loadLib()}catch(x){}
 });
-/* NODE FLOW (nodeflow.py / static/flow.html) — ComfyUI-style wires on MIR blocks; runs go through the lab queue */
+/* NODE FLOW (nodeflow.py / static/flow.html) — ComfyUI-style wires on lab blocks; runs go through the lab queue */
 function mmlFlow(){
   var f=document.getElementById('mml-fl');if(f)return;
   f=document.createElement('iframe');f.id='mml-fl';f.src='flow';f.allow='autoplay; fullscreen; clipboard-write';

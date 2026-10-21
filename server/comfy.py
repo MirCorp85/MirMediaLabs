@@ -341,10 +341,7 @@ def run(graph, want, job, timeout_s=120 * 60):
     """Submit a graph, wait for it, return the first output entry of kind want
     ('video' | 'audio' | 'image'). job['_cancel'] aborts; job['comfy_pid'] is recorded."""
     if job.get("loras"):                   # LoRA Samples picked for this render → chain them onto the model
-        try:
-            from . import loras as _loras
-        except ImportError:
-            import loras as _loras
+        import loras as _loras
         graph = _loras.apply(graph, job)
     job["progress"] = None
     watch = _Watch(job, "", graph)                 # socket first: live previews go to this client id

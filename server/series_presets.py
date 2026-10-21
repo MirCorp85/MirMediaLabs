@@ -1,6 +1,6 @@
 """SERIES presets — the configuration menu's vocabulary: video styles, episode structures, the character builder's
-options and the song options. Data only (plus compose helpers). Identical in the MIR copy (mir_mlab) — copy, never
-import across. Engine names never appear in anything a person reads."""
+options and the song options. Data only (plus compose helpers).
+Engine names never appear in anything a person reads."""
 import os
 import re
 
@@ -214,11 +214,8 @@ GENRE_CAPTION = {
 }
 
 
-try:                                                   # each lab copy serves its own static folder
-    try:
-        from . import core as _core
-    except ImportError:
-        import core as _core
+try:                                                   # the lab's own static folder
+    import core as _core
     SAMPLES = os.path.join(_core.STATIC, "series", "samples")
 except Exception:
     SAMPLES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "series", "samples")
@@ -249,10 +246,7 @@ def previews():
 
 
 def catalog():
-    try:
-        from . import series_help as _h
-    except ImportError:
-        import series_help as _h
+    import series_help as _h
     fields = {f["k"]: f for f in CHARACTER + OBJECT + SONG}
     return {"styles": STYLES, "structures": STRUCTURES, "lengths": LENGTHS, "aspects": ASPECTS, "clip_secs": CLIP_SECS,
             "character": CHARACTER, "object": OBJECT, "song": SONG, "previews": previews(),

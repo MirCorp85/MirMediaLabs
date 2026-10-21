@@ -1,4 +1,4 @@
-/* MIR MEDIA LABS · timeline editor — identical in both lab copies (palette set by editor.js from the lab theme) */
+/* MIR MEDIA LABS · timeline editor (palette set by editor.js from the lab theme) */
 :root{--bg:#262624;--panel:#30302e;--panel2:#3a3936;--ink:#f5f4ef;--acc:#d97757;--dim:color-mix(in srgb,var(--ink) 62%,transparent);
   --faint:color-mix(in srgb,var(--ink) 40%,transparent);--line:color-mix(in srgb,var(--ink) 12%,transparent);--line2:color-mix(in srgb,var(--ink) 20%,transparent);
   --vid:#5b8def;--img:#3fb8c9;--aud:#5fd38d;--txt:#e3a949;--col:#b48cff;--mono:ui-monospace,Consolas,monospace;

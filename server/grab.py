@@ -1,10 +1,9 @@
 """
 grab.py — MIR MEDIA LABS link downloader: YouTube (and any other yt-dlp site) → MP3 audio or MP4 video in the library.
 ═══════════════════════════════════════════════════════════════════════════════
-IDENTICAL in both copies (standalone server/grab.py and MIR private-app/mir_mlab/grab.py) — copy, never import
-across. Each copy wires it in with
+Wired in with
     grab.register(app, hooks)
-where hooks gives the copy's own helpers (uid, can_grab, static).
+where hooks gives the server's helpers (uid, can_grab, static).
 
 A finished download is an ordinary library item (index model "download"), so the timeline editor's media bin, the
 Series studio's "From library" picker, "Use as ref" and every engine see it with no extra wiring.
@@ -29,10 +28,7 @@ import threading
 import time
 import uuid
 
-try:                      # MIR copy lives in the mir_mlab package
-    from . import core
-except ImportError:       # standalone server runs its modules flat
-    import core
+import core
 
 GD = os.path.join(core.DATA, "grab")
 TMP = os.path.join(GD, "tmp")

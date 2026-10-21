@@ -299,11 +299,6 @@ public class MainActivity extends Activity {
         sh.row("server", "Server & access key", Api.host(Prefs.activeUrl(this)) + (Prefs.onLan(this) ? " · home Wi-Fi" : " · away"), () -> startActivity(new Intent(this, SetupActivity.class)));
         sh.row("bell", "Notifications", Push.allowed(this) ? (Push.instant(this) ? "on · instant delivery" : "on") : "off on this phone", () -> Push.settings(this));
         if (!BuildConfig.PLAY) sh.row("download", "Check for updates", "installed v" + Updater.installedName(this) + " · GitHub + your lab", () -> Updater.check(this, true));
-        sh.row("shield", "Isolation audit", "proof it never touches MIR data", () -> api.get("/api/isolation", r -> {
-            JSONObject j = r.obj();
-            info("Isolation audit", r.ok() ? ("Separate from MIR: " + (j.optBoolean("separate_from_mir") ? "YES" : "NO")
-                    + "\n\nOwn folders:\n" + j.optJSONObject("own_folders") + "\n\nNever contacts:\n" + j.optJSONArray("never_talks_to")).replace("\\\\", "\\") : r.err());
-        }));
         sh.section("About");
         sh.row("lab", "MIR MEDIA LABS v" + Updater.installedName(this), "by MirCorp · © 2026 MirCorp · GPL-3.0", this::about);
         sh.row("bug", "Report a bug", "email the developer with device details", () -> mail("Bug report", true));

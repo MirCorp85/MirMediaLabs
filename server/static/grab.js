@@ -1,8 +1,8 @@
-/* MIR MEDIA LABS · Downloader (grab.py) — identical in both lab copies.
+/* MIR MEDIA LABS · Downloader (grab.py).
    Link → MP3 / MP4 (+ optional stills) in the library → editor, Series studio, or a chat reference. */
 (function () {
   'use strict';
-  var B = location.pathname.indexOf('/mlab') === 0 ? '/mlab' : '';
+  var B = '';
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -24,7 +24,7 @@
   function theme(id) { var t = THEMES[id] || THEMES.claude, r = document.documentElement.style;
     r.setProperty('--bg', t[0]); r.setProperty('--panel', t[1]); r.setProperty('--panel2', t[2]); r.setProperty('--ink', t[3]); r.setProperty('--acc', t[4]); }
   try { theme(localStorage.getItem('mml.theme') || 'claude'); } catch (e) { theme('claude'); }
-  fetch('/api/mir-prefs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.mltheme && d.mltheme.id) theme(d.mltheme.id); }).catch(function () { });
+  fetch('/api/prefs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.mltheme && d.mltheme.id) theme(d.mltheme.id); }).catch(function () { });
 
   /* ── going places: framed in the lab → tell the lab page; on its own (app WebView) → navigate ── */
   var FRAMED = window.parent !== window;

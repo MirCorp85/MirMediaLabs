@@ -7,7 +7,7 @@ right reference pictures + one-off engine overrides), so the queue, permissions,
 GPU slot all stay where they are. When that job finishes, /api/series/<id>/attach files its output back into the
 series (copied into the person's refs, so it can be reused as a reference on every later shot).
 
-Data: data/series/<user>/<id>.json. Identical in the MIR copy (mir_mlab) — copy, never import across.
+Data: data/series/<user>/<id>.json.
 """
 import json
 import os
@@ -17,19 +17,13 @@ import threading
 import time
 import uuid
 
+import core
+import prompts
+import series_presets as presets
 try:
-    from . import core, prompts, series_presets as presets
+    import motion_series                               # MIR MOTION: Remotion graphics pass
 except ImportError:
-    import core
-    import prompts
-    import series_presets as presets
-try:
-    from . import motion_series                        # MIR MOTION: Remotion graphics pass (both lab copies)
-except ImportError:
-    try:
-        import motion_series
-    except ImportError:
-        motion_series = None
+    motion_series = None
 
 SER = os.path.join(core.DATA, "series")
 _ID_RE = re.compile(r"^[a-z0-9]{6,32}$")
@@ -209,10 +203,7 @@ def save(uid, d):
 def _new_session(uid, name, given=None):
     """The chat session a new project files into: the one given, else a fresh one named after the project."""
     try:
-        try:
-            from . import sessions as _S
-        except ImportError:
-            import sessions as _S
+        import sessions as _S
         return _S.valid(uid, given) or _S.create(uid, name)["id"]
     except Exception as e:
         print("[series] session for new project failed:", e)
@@ -671,10 +662,7 @@ def plan(d, kind, target=None, extra=None):
         ep = _find(d, "episodes", target)
         if not ep:
             return {"error": "pick an episode"}
-        try:
-            from . import audio_in as _ai
-        except ImportError:
-            import audio_in as _ai
+        import audio_in as _ai
         secs = int(round(float(ep.get("song_secs") or 60)))
         return {"model": "music3", "prompt": "%s --%ds\n| lyrics:\n[Instrumental]" % (
                     _ai.bed_caption((d.get("setup") or {}).get("song")), secs),
@@ -775,11 +763,7 @@ def write_song(d, ep):
 
 
 def _ask(prompt, system, images=None, want_json=False, role="director", timeout=300):
-    """core.ask in both copies (the MIR copy's ask has no cloud brain → no want_json / role)."""
-    try:
-        return core.ask(prompt, system, images=images, want_json=want_json, role=role, timeout=timeout)
-    except TypeError:
-        return core.ask(prompt + ("\n\nReply with one JSON object only." if want_json else ""), system, timeout=timeout, images=images)
+    return core.ask(prompt, system, images=images, want_json=want_json, role=role, timeout=timeout)
 
 
 def _json(raw):
@@ -1178,10 +1162,7 @@ def episode_project(d, ep, seconds_of):
 def _unmarked(src, dst):
     """Reference copy without the lab's corner watermark: trim the bottom strip it sits in. ffmpeg only."""
     try:
-        try:
-            from . import watermark
-        except ImportError:
-            import watermark
+        import watermark
         if not watermark.enabled() or os.path.splitext(src)[1].lower() not in watermark.IMAGE:
             return False
         import subprocess
@@ -1296,10 +1277,7 @@ def prepare(uid, d, kind, target, extra, store_ref):
         refs = []
         for stem, src in (("song_" + ep["id"], song), ("myvoice_" + ep["id"], sample)):
             if stem.startswith("myvoice_"):            # ACE matches a voice best from a clean 10-30 s sample
-                try:
-                    from . import audio_in as _ai
-                except ImportError:
-                    import audio_in as _ai
+                import audio_in as _ai
                 n = store_ref(stem, ".wav")
                 _ai._ff(["-i", src, "-t", "30", "-ac", "2", "-ar", "48000", os.path.join(core.REFS, n)])
             else:
@@ -1430,10 +1408,7 @@ def attach_file(uid, d, name, kind, target, i=None, store_ref=None, seconds_of=N
         ep = _find(d, "episodes", target)
         if not ep:
             raise ValueError("pick an episode")
-        try:
-            from . import audio_in as _ai
-        except ImportError:
-            import audio_in as _ai
+        import audio_in as _ai
         voice = (ep.get("audio_in") or {}).get("file") or ep.get("song")
         ep["bed"] = name
         ep["song"] = _ai.mix_bed(voice, name, uid, d.get("session") or "")
@@ -1591,10 +1566,7 @@ def finish(uid, d, ep, editor_dir):
 
 # ── hearing an uploaded song: vocal stem → words with times → lines / sections / shot map ─────────────────────────
 def transcribe(uid, sid, eid, store_ref, progress=None):
-    try:
-        from . import series_audio as sa
-    except ImportError:
-        import series_audio as sa
+    import series_audio as sa
     with locked(uid, sid):
         d = load(uid, sid)
         ep = _find(d, "episodes", eid)
@@ -1646,16 +1618,13 @@ def transcribe(uid, sid, eid, store_ref, progress=None):
     return d
 
 
-# ── Flask wiring (both copies call register) ────────────────────────────────────────────────────────────────────────
+# ── Flask wiring ─────────────────────────────────────────────────────────────────────────
 def register(app, hk):
     """hk: uid, my_file, my_ref, store_ref(stem, ext, owner=None), ref_info, can_attach, static, seconds_of(src)->float,
     editor_dir(uid=None)->path, submit(uid, request)->(job|error), job(jid)->dict|None."""
     from flask import request, jsonify, abort
-    try:
-        from . import series_run as runner, series_assets as assets
-    except ImportError:
-        import series_run as runner
-        import series_assets as assets
+    import series_run as runner
+    import series_assets as assets
     runner.setup(hk)
     assets.register(app, hk)
 

@@ -1,9 +1,9 @@
 """MIR MEDIA LABS — paths, storage, isolation guard, access key, prompt engine.
 
-Isolation contract (checked by /api/isolation):
+Isolation contract:
   * every file this app reads or writes lives under ROOT (the install folder)
     — its own library, references, job history, settings and update folder;
-  * it never imports MIR / mylab code and never calls the MIR dashboard (:5000);
+  * it is self-contained: it imports no outside app code and calls no outside dashboards;
   * the only shared things are machine resources: the GPU through the local ComfyUI
     engine and the local Ollama engine (used only to rewrite prompts, with no context).
 """
@@ -231,7 +231,7 @@ def kind_of(name):
 
 
 def safe_path(path):
-    """Resolve and enforce the sandbox: inside our own folders, never inside MIR."""
+    """Resolve and enforce the sandbox: inside our own folders, never anywhere else."""
     p = os.path.normcase(os.path.abspath(path))
     if any(p == f or p.startswith(f + os.sep) for f in FORBIDDEN):
         raise PermissionError("blocked: outside MIR MEDIA LABS sandbox")
@@ -282,7 +282,7 @@ def save_json(path, obj):
 
 
 def access_key():
-    """Media Lab's own access key — unrelated to the MIR PIN or dashboard key."""
+    """Media Lab's own access key."""
     try:
         k = open(KEY_FILE, encoding="utf-8").read().strip()
         if k:
@@ -686,10 +686,7 @@ def ask(prompt, system, timeout=120, images=None, want_json=False, role="prompt"
         # before, this failed silently and the director / picture-reading rewriter fell back to the raw words
         _note("[engine] %s couldn't load (GPU busy) — freeing ComfyUI VRAM and retrying" % model)
         try:
-            try:
-                from . import comfy as _c
-            except ImportError:
-                import comfy as _c
+            import comfy as _c
             requests.post(_c.BASE + "/free", json={"unload_models": True, "free_memory": True}, timeout=30)
             time.sleep(3)
         except Exception:

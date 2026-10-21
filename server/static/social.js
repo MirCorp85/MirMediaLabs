@@ -1,4 +1,4 @@
-/* MIR MEDIA LABS · SOCIAL panel — VIRAL-Ω growth agent UI. Identical in both lab copies.
+/* MIR MEDIA LABS · SOCIAL panel — VIRAL-Ω growth agent UI.
    Talks only to /api/social/* (social.py). Nothing posts without the owner pressing Approve. */
 (function () {
   'use strict';

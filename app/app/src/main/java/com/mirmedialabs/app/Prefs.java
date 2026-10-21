@@ -4,7 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
 
-/** Media Lab server addresses + its own access key (unrelated to MIR). */
+/** Media Lab server addresses + its own access key. */
 final class Prefs {
     static final String DEFAULT_LAN = "";
     static final String DEFAULT_REMOTE = "";

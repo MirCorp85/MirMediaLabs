@@ -5,8 +5,7 @@
 Four local models through ComfyUI: MiniMax H3 (video), MiniMax Music 3.0, Qwen-Image 2.1,
 ACE-Step 1.5. Its own console, ⚙ parameters per model, 📎 references (audio/image/text/video),
 its own library (data/library), its own access key and its own update server (/updates).
-Completely separate from MIR: no MIR imports, no calls to the MIR dashboard, no access
-to MIR files — see core.py for the sandbox and /api/isolation for the live audit.
+Self-contained: it reads and writes only its own folders — see core.py for the sandbox.
 """
 import json
 import mimetypes
@@ -56,7 +55,6 @@ console.start()
 
 # -- access gate: every person has their own key (users.py). Loopback = the owner on this PC. --
 OPEN_PATHS = ("/api/ping", "/privacy", "/sw.js", "/static/apple-touch-icon.png", "/static/icon-192.png", "/static/icon-512.png")
-LOOPBACK_ONLY = ("/api/admin/presence",)       # read by the owner's MIR ACCESS panel on this PC
 
 
 _LOCAL_NAMES = ("127.0.0.1", "localhost", "::1")
@@ -93,8 +91,6 @@ def gate():
         return None
     if request.path.startswith("/updates/pc/"):     # PC update channel: signed files + channel token
         return None if pcupdate.publisher_ok(request) else (jsonify({"error": "forbidden"}), 403)
-    if request.path in LOOPBACK_ONLY:
-        return None if _loopback() else (jsonify({"error": "local only"}), 403)
     if not REMOTE["on"] and not _loopback():        # the host paused remote access
         if request.path.startswith(("/api/", "/media/", "/thumb/", "/refs/", "/updates/")):
             return jsonify({"error": "the host has paused remote access to this Media Lab"}), 503
@@ -1147,9 +1143,9 @@ def generate():
     return jsonify(public(job))
 
 
-@app.route("/api/mir-prefs", methods=["GET", "POST"])
+@app.route("/api/prefs", methods=["GET", "POST"])
 def font_prefs():
-    """MIR FONTS pick for this Media Lab user (same API shape as MIR so mirfont.js is copied verbatim)."""
+    """Per-user look prefs for this Media Lab user: MIR FONTS pick, theme and MUSE voice."""
     key, tkey = "font_" + uid(), "mltheme_" + uid()
     if request.method == "POST":
         body = request.get_json(silent=True) or {}
@@ -1384,34 +1380,13 @@ def api_voice_hear():
 
 @app.route("/api/voice/talk", methods=["POST"])
 def api_voice_talk():
-    """MUSE spoken turn without VoiceServer: a real conversation (own short memory) + lab tools, not a chat job per turn."""
+    """MUSE spoken turn: a real conversation (own short memory) + lab tools, not a chat job per turn."""
     b = request.get_json(silent=True) or {}
     js = sorted((j for j in JOBS.values() if mine(j.get("user"))), key=lambda j: j.get("created") or 0, reverse=True)[:30]
     try:
         return jsonify(muse_talk.turn(uid(), str(b.get("text") or "")[:2000], js, _muse_name()))
     except Exception as e:
         return jsonify({"error": str(e)[:300]}), 503
-
-
-# ── MUSE live voice (Oct 15 2026) — the same real-time speech-to-speech engine as MIR (VoiceServer: whisper ears, its own
-#    small brain, Chatterbox voice, barge-in), in its MML profile: MUSE persona + lab-only tools, never MIR data.
-#    Host/owner only (MUSE acts as the owner on this lab). Without VoiceServer on this PC the page falls back to /api/voice/hear.
-VOICESERVER = core.CONFIG.get("voiceserver") or "127.0.0.1:5410"
-VOICESERVER_BAT = core.CONFIG.get("voiceserver_bat") or core.LOCAL.get("voiceserver_bat") or ""   # owner PC only: data/local.json
-_MV = {"last": 0.0}
-
-
-def _voiceserver_start():
-    import subprocess as _sp
-    if not os.path.isfile(VOICESERVER_BAT) or time.time() - _MV["last"] < 60:
-        return os.path.isfile(VOICESERVER_BAT)
-    _MV["last"] = time.time()
-    try:
-        _sp.Popen(["cmd", "/c", VOICESERVER_BAT], cwd=os.path.dirname(VOICESERVER_BAT), close_fds=True,
-                  creationflags=getattr(_sp, "CREATE_NO_WINDOW", 0))
-        return True
-    except Exception:
-        return False
 
 
 def _muse_name():
@@ -1479,11 +1454,6 @@ def api_offload():
                                      headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read().decode() or "{}")
-    try:
-        post("http://%s/unload" % VOICESERVER)
-        done.append("MUSE voice")
-    except Exception:
-        pass
     for base in ("http://127.0.0.1:11434", "http://127.0.0.1:11435"):
         try:
             with urllib.request.urlopen(base + "/api/ps", timeout=3) as r:
@@ -1501,84 +1471,6 @@ def api_offload():
             pass
     console.emit("ENGINE", "offloaded: " + (", ".join(done) or "nothing was loaded"))
     return jsonify({"ok": True, "offloaded": done, "render_kept": busy})
-
-
-@app.route("/api/voice/live")
-def api_voice_live():
-    if not is_owner():
-        return jsonify({"ok": False, "why": "owner"})
-    try:
-        import urllib.request
-        with urllib.request.urlopen("http://%s/health" % VOICESERVER, timeout=2) as r:
-            return jsonify(dict(json.loads(r.read().decode()), ok=True))
-    except Exception:
-        return jsonify({"ok": False, "installed": os.path.isfile(VOICESERVER_BAT)})
-
-
-try:
-    from flask_sock import Sock as _Sock
-    _sock = _Sock(app)
-
-    @_sock.route("/ws/voice")
-    def ws_voice(ws):
-        import urllib.parse as _up
-        from websockets.sync.client import connect as _wsconnect
-        if not is_owner():
-            ws.send(json.dumps({"type": "error", "text": "Live voice is for the lab's host."}))
-            return
-        q = {k: request.args.get(k) for k in ("voice",) if request.args.get(k)}
-        q.update(app="mml", session="mml-" + uid(), name=_muse_name())
-        url = "ws://%s/ws/voice?%s" % (VOICESERVER, _up.urlencode(q))
-        up = None
-        try:
-            up = _wsconnect(url, max_size=None, open_timeout=5)
-        except Exception:
-            if _voiceserver_start():
-                try:
-                    ws.send(json.dumps({"type": "warn", "text": "Starting the voice engine (first time takes ~30 s)…"}))
-                except Exception:
-                    pass
-                for _i in range(45):
-                    time.sleep(2)
-                    try:
-                        up = _wsconnect(url, max_size=None, open_timeout=5)
-                        break
-                    except Exception:
-                        continue
-        if up is None:
-            ws.send(json.dumps({"type": "error", "text": "The voice engine didn't start."}))
-            return
-        stop = threading.Event()
-
-        def down():
-            try:
-                for m in up:
-                    ws.send(m)
-            except Exception:
-                pass
-            finally:
-                stop.set()
-                try:
-                    ws.close()
-                except Exception:
-                    pass
-
-        threading.Thread(target=down, daemon=True).start()
-        try:
-            while not stop.is_set():
-                m = ws.receive(timeout=1)
-                if m is not None:
-                    up.send(m)
-        except Exception:
-            pass
-        finally:
-            stop.set()
-            try:
-                up.close()
-            except Exception:
-                pass
-except Exception as _e:
-    print("[voice] live voice bridge disabled:", _e, flush=True)
 
 
 @app.route("/api/voice/warm", methods=["POST"])
@@ -1984,12 +1876,6 @@ def host_qr():
         return jsonify({"error": "QR unavailable: %s" % e}), 500
 
 
-@app.route("/api/admin/presence")
-def admin_presence():
-    """Loopback only (see gate) - feeds the MIR ACCESS panel. Never includes keys."""
-    return jsonify(users.summary(include_keys=False, running_by_user=_running_by_user()))
-
-
 # ── update server: the Android app checks /updates/android.json (+ .sig, Ed25519) — version.json for pre-2.0 apps ──
 @app.route("/updates/<path:fn>")
 def updates(fn):
@@ -2024,23 +1910,6 @@ def pc_update():
     return jsonify(pcupdate.STATE)
 
 
-# ── isolation audit ────────────────────────────────────────────────────────
-@app.route("/api/isolation")
-def isolation():
-    bad_mods = [m for m in sys.modules if re.search(r"(^|\.)(dashboard|rh_api|rh_scheduler|recon|trinity|settlement|"
-                                                       r"mir_prompts|hermes_acp|alpaca_api|csp_strategy)$", m)]
-    roots = {"root": core.ROOT, "data": core.DATA, "library": core.LIB, "refs": core.REFS, "updates": core.UPDATES}
-    return jsonify({
-        "separate_from_mir": not bad_mods,
-        "mir_modules_loaded": bad_mods,
-        "own_folders": roots,
-        "blocked_paths": core.FORBIDDEN if is_owner() else ["(owner only)"],
-        "own_access_key": True,
-        "talks_to": {"comfyui": comfy.BASE + " (GPU renders)", "ollama": core.OLLAMA + " (prompt rewriting only, no context)"},
-        "never_talks_to": ["MIR dashboard :5000", "trading / broker accounts", "MIR vault", "Hermes"],
-    })
-
-
 def _lan_ip():
     """This PC's LAN address (no traffic is sent; a UDP connect just picks the route)."""
     try:
@@ -2057,14 +1926,14 @@ def _port_busy(port):
         return s.connect_ex(("127.0.0.1", port)) == 0
 
 
-# ── timeline video editor (editor.py — identical in the MIR copy) ──
+# ── timeline video editor (editor.py) ──
 import editor  # noqa: E402
 editor.register(app, {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "store_ref": _store_ref, "ref_info": _ref_info,
                       "can_attach": lambda: users.can(g.user, "attach"), "static": _static,
                       "can_render": lambda: users.over_limit(g.user), "count_render": lambda: users.count_job(g.user)})
 
 
-# ── SERIES studio: style bible → cast sheets → locations → episodes (series.py — identical in the MIR copy) ──
+# ── SERIES studio: style bible → cast sheets → locations → episodes (series.py) ──
 import series  # noqa: E402
 
 
@@ -2130,14 +1999,14 @@ series.register(app, {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "store
                       "submit": _series_submit, "job": _series_job, "cancel": _series_cancel})
 
 
-# ── DOWNLOADER: YouTube & co. → MP3 / MP4 in the library (grab.py — identical in the MIR copy) ──
+# ── DOWNLOADER: YouTube & co. → MP3 / MP4 in the library (grab.py) ──
 import grab  # noqa: E402
 grab.register(app, {"uid": uid, "can_grab": lambda: users.can(g.user, "grab"), "static": _static,
                     "lib_path": lambda n: core.in_dir(core.LIB, n) if _my_file(n) else None,
                     "session": lambda s: sessions.valid(uid(), s)})
 
 
-# ── SOCIAL panel + VIRAL-Ω growth agent (social.py — identical in the MIR copy) ──
+# ── SOCIAL panel + VIRAL-Ω growth agent (social.py) ──
 import social  # noqa: E402
 
 

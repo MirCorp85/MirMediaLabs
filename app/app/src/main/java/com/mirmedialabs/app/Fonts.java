@@ -12,9 +12,9 @@ import android.widget.TextView;
 
 import org.json.JSONObject;
 
-/** MIR FONTS — the 10 MIR typefaces (assets/fonts/<id>.ttf, copied from the MIR app; same designs as the web
- *  /static/fonts/mir/*.woff2). The pick lives in this Media Lab's own /api/mir-prefs {font:{id}} (per user),
- *  so desktop web, phone web and this app follow one choice. Never talks to MIR. */
+/** MIR FONTS — the 10 MIR typefaces (assets/fonts/<id>.ttf; same designs as the web
+ *  /static/fonts/mir/*.woff2). The pick lives in this Media Lab's own /api/prefs {font:{id}} (per user),
+ *  so desktop web, phone web and this app follow one choice. */
 final class Fonts {
     static final String[] IDS = {"", "orbit", "vector", "horizon", "bastion", "stencil", "pixel", "matrix", "velocity", "hollow", "quill"};
     static final String[] NAMES = {"Default", "Mir Orbit", "Mir Vector", "Mir Horizon", "Mir Bastion", "Mir Stencil",
@@ -35,7 +35,7 @@ final class Fonts {
 
     /** Pull the shared pick; rebuild only when it changed on another device. */
     static void sync(Activity a, Api api) {
-        api.get("/api/mir-prefs", r -> {
+        api.get("/api/prefs", r -> {
             if (!r.ok()) return;
             JSONObject f = r.obj().optJSONObject("font");
             String id = f == null ? "" : f.optString("id", "");
@@ -51,7 +51,7 @@ final class Fonts {
             final int k = i;
             LinearLayout r = sh.row(IDS[i].equals(cur) ? "check" : "type", NAMES[i] + "   Aa 4,561", DESC[i], () -> {
                 Prefs.put(a, "font", IDS[k]);
-                api.post("/api/mir-prefs", Api.obj("key", "font", "value", Api.obj("id", IDS[k])), null);
+                api.post("/api/prefs", Api.obj("key", "font", "value", Api.obj("id", IDS[k])), null);
                 a.recreate();
             });
             Typeface tf = load(a, IDS[i]);

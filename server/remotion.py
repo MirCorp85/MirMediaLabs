@@ -1,6 +1,6 @@
 r"""MIR MOTION — Remotion motion-graphics engine for the Media Lab (Motion Studio, Video Editor scenes, Series, Producer).
 
-The React/Remotion side lives in <install>\motion (render daemon server.mjs on 127.0.0.1:5421 — MIR runs its own on 5420,
+The React/Remotion side lives in <install>\motion (render daemon server.mjs on 127.0.0.1:5421,
 scenes in src/scenes.tsx, browser preview bundle dist/mir-motion-player.js, scene catalog dist/schema.json).
 This module: Motion Studio projects, render jobs → library (session-tagged), segmented long renders with a
 per-segment cache, Whisper word timings for captions/lyrics, the AI scene writer, and daemon supervision.
@@ -21,10 +21,7 @@ import time
 import urllib.request
 import uuid
 
-try:
-    from . import core
-except ImportError:
-    import core
+import core
 
 ENGINE = core.CONFIG.get("motion_dir") or os.environ.get("MML_MOTION_DIR") or os.path.join(core.ROOT, "motion")
 PORT = int(core.CONFIG.get("motion_port") or os.environ.get("MML_MOTION_PORT") or 5421)

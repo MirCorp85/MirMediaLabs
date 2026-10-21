@@ -1,11 +1,10 @@
-/* MIR FONTS — 10 original MIR typefaces + a picker, shared by every MIR web surface
-   (desktop /mir, mobile web /mir/m, Media Lab /mlab). The choice is stored in
-   /api/mir-prefs {font:{id}} so desktop, phone web and the native app all follow it.
+/* MIR FONTS — 10 original MIR typefaces + a picker, shared by every Media Lab page.
+   The choice is stored in /api/prefs {font:{id}} so desktop, phone web and the native app all follow it.
    Usage: <script src="/static/fonts/mir/mirfont.js" data-vars="--font,--disp"></script>
           MirFont.openPicker()   — opens the chooser */
 (function () {
   var FONTS = [
-    {id: '', name: 'MIR Default', desc: 'The original system look (Sora / Inter)'},
+    {id: '', name: 'Mir Default', desc: 'The original system look (Sora / Inter)'},
     {id: 'orbit', name: 'Mir Orbit', desc: 'Round monoline geometric — calm, friendly HUD sans'},
     {id: 'vector', name: 'Mir Vector', desc: 'Square-cut technical strokes with mitred corners'},
     {id: 'horizon', name: 'Mir Horizon', desc: 'Extended hairline — airy, wide, cinematic titles'},
@@ -62,12 +61,12 @@
 
   function save(id) {
     apply(id);
-    fetch('/api/mir-prefs', {method: 'POST', headers: {'Content-Type': 'application/json'},
+    fetch('/api/prefs', {method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({key: 'font', value: {id: id || ''}})}).catch(function () {});
   }
 
   function sync() {
-    fetch('/api/mir-prefs', {cache: 'no-store'}).then(function (r) { return r.json(); })
+    fetch('/api/prefs', {cache: 'no-store'}).then(function (r) { return r.json(); })
       .then(function (d) { apply(d && d.font ? d.font.id : ''); }).catch(function () {});
   }
 
@@ -79,7 +78,7 @@
     ov.innerHTML = '<div class="mf"><div class="mfh"><b>Aa · MIR FONTS</b><a data-x>✕ CLOSE</a></div><div class="mfg">' +
       FONTS.map(function (f) {
         return '<button class="mfo' + (f.id === (cur || '') ? ' on' : '') + '" data-id="' + f.id + '"><div class="n">' + f.name +
-          '</div><div class="s" style="font-family:' + (f.id ? "'" + f.name + "'," : '') + 'system-ui,sans-serif">MIR Aa 4,561</div><div class="d">' + f.desc + '</div></button>';
+          '</div><div class="s" style="font-family:' + (f.id ? "'" + f.name + "'," : '') + 'system-ui,sans-serif">Mir Aa 4,561</div><div class="d">' + f.desc + '</div></button>';
       }).join('') + '</div></div>';
     ov.addEventListener('click', function (e) {
       if (e.target === ov || e.target.closest('[data-x]')) { ov.remove(); return; }

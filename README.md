@@ -272,7 +272,6 @@ Videos and songs play in MML's own themed player on desktop, web, phone and TV:
 - **Per-person access keys** with per-engine and per-feature permissions, daily limits and expiry. Each user sees only their own jobs and media, and the owner sees everything.
 - **One device per invited key**; the master key is only ever shown on the host PC
 - Lockout after repeated wrong keys, security headers, and a sandboxed file system (the app only touches its own folders)
-- Isolation audit built in (`/api/isolation`)
 - Owner-only machine stats and cloud-brain settings: they are only served to the PC itself, and API keys are never sent back to any screen
 
 ### Design
