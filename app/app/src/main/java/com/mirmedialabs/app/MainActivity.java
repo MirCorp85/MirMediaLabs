@@ -284,6 +284,8 @@ public class MainActivity extends Activity {
         sh.row("film", "Video editor", "timeline · cut, trim, titles, music · AI animate / extend / restyle", () -> EditorActivity.open(this, null));
         sh.row("tv", "Series studio", "animated series · cast, world, episodes, songs", () -> SeriesActivity.open(this, null));
         sh.row("download", "Downloader", "YouTube & links → MP3 / MP4 in your library", () -> GrabActivity.open(this, null));
+        sh.row("sparkle", "Motion studio", "Remotion motion graphics · titles, captions, scenes → MP4", () -> StudioActivity.open(this, "motion"));
+        sh.row("chain", "Node flow", "wire models into a graph · run the whole chain", () -> StudioActivity.open(this, "flow"));
         sh.row("layers", "LoRA samples", "browse + apply community LoRAs", () -> loras.browse(Loras.roleOf(cur), ""));
         sh.row("sparkle", "Skills", "one tuned render", () -> { withSkills(() -> pickSkill(false)); });
         sh.row("chain", "Pipelines", "chained renders, one request", () -> { withSkills(() -> pickSkill(true)); });
@@ -463,8 +465,9 @@ public class MainActivity extends Activity {
         LinearLayout col = Ui.vbox(this);
         col.setPadding(Ui.dp(12), Ui.dp(8), Ui.dp(10), Ui.dp(12));
         col.addView(Ui.label(this, "Studios"), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 2, 0, 8));
-        String[][] st = {{"film", "Video editor"}, {"tv", "Series studio"}, {"download", "Downloader"}};
-        Runnable[] sgo = {() -> EditorActivity.open(this, null), () -> SeriesActivity.open(this, null), () -> GrabActivity.open(this, null)};
+        String[][] st = {{"film", "Video editor"}, {"tv", "Series studio"}, {"download", "Downloader"}, {"sparkle", "Motion studio"}, {"chain", "Node flow"}};
+        Runnable[] sgo = {() -> EditorActivity.open(this, null), () -> SeriesActivity.open(this, null), () -> GrabActivity.open(this, null),
+                          () -> StudioActivity.open(this, "motion"), () -> StudioActivity.open(this, "flow")};
         for (int i = 0; i < st.length; i++) {
             TextView r = Ui.bold(this, "[[" + st[i][0] + "]]  " + st[i][1], 13.5f, Ui.INK);
             r.setPadding(Ui.dp(12), Ui.dp(11), Ui.dp(10), Ui.dp(11));
@@ -848,6 +851,8 @@ public class MainActivity extends Activity {
         sh.row("film", "Video editor", "open the timeline editor", () -> EditorActivity.open(this, null));
         sh.row("tv", "Series studio", "cast · world · episodes · songs", () -> SeriesActivity.open(this, null));
         sh.row("download", "Downloader", "YouTube & links → MP3 / MP4 in your library", () -> GrabActivity.open(this, null));
+        sh.row("sparkle", "Motion studio", "Remotion motion graphics · titles, captions, scenes → MP4", () -> StudioActivity.open(this, "motion"));
+        sh.row("chain", "Node flow", "wire models into a graph · run the whole chain", () -> StudioActivity.open(this, "flow"));
         sh.row("sliders", "Parameters", "settings for the selected model", () -> openParams(cur));
         sh.row("layers", "LoRA samples", "browse + apply community LoRAs", () -> loras.browse(Loras.roleOf(cur), ""));
         sh.row("sparkle", "Skills", "one tuned render", () -> withSkills(() -> pickSkill(false)));
