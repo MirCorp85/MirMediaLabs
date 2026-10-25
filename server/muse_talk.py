@@ -186,8 +186,7 @@ def _voice_model():
     want = (core.prefs().get("voice_model") or "").strip()
     if want:
         try:
-            tags = [m["name"] for m in requests.get(core.OLLAMA + "/api/tags", timeout=3).json().get("models", [])]
-            if want in tags:
+            if want in core.ollama_names():
                 return want
         except Exception:
             pass
@@ -208,7 +207,7 @@ def _chat(user, said, facts, name, extra=None):
     core.ensure_ollama(wait=30)
     model = _voice_model()
     body = {"model": model, "messages": msgs, "stream": False, "think": False, "keep_alive": "30m",
-            "options": {"num_predict": 260, "temperature": 0.8, "num_ctx": int(core.engine_window(model) or 8192)}}
+            "options": {"num_predict": 260, "temperature": 0.8, "num_ctx": core.engine_ctx(model)}}
     r = core.engine_post("/api/chat", body, timeout=120)
     r.raise_for_status()
     d = r.json().get("message") or {}

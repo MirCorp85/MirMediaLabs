@@ -239,7 +239,9 @@ def ask_agent(task, data, want_json=True, local=False):
     if local:   # cheap tasks stay on the local engine even when a cloud brain is active
         core.gpu_wait("social")
         core.ensure_ollama()
-        body = {"model": core.engine_model(), "prompt": prompt, "system": system, "stream": False, "think": False,
+        model = core.engine_model()
+        body = {"model": model, "prompt": prompt, "system": system, "stream": False, "think": False,
+                "keep_alive": core.KEEP_ALIVE, "options": {"num_ctx": core.engine_ctx(model)},
                 **({"format": "json"} if want_json else {})}
         r = core.engine_post("/api/generate", body, timeout=240)
         if r.status_code >= 500:            # ComfyUI still holds the GPU: free it once and retry

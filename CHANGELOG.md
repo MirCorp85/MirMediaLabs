@@ -10,6 +10,8 @@
 - **Send to VIRAL-Ω** from the library: a dialog that formats the video for each platform and writes the full post package, ready to copy, rewrite or approve.
 - **Repost** a published video to other platforms, and **Refresh all stats** in one click.
 - Library: smaller icon-only REF / VIRAL-Ω buttons on thumbnails, and the player centres videos correctly.
+- **Faster local MirAI:** the Director, prompt writer, chat, Live Voice and Social now share one context window per model, so Ollama no longer reloads the model 2-3 times per Auto-mode message. The Director's window grew from 4K to at least 8K so its instructions are never cut off, local JSON steps (Series, Producer, Motion, Remix) ask Ollama for JSON, and the model list is cached.
+- **Brain on another PC:** point MirAI at an Ollama on your network with `ollama_url` in `mml_config.json` / `data/local.json` (or `OLLAMA_HOST_URL`).
 - Fallback, vision and stand-in engines are now settings (`fallback_engine`, `vision_pref`, `engine_twins` in `mml_config.json`), with defaults that work on a fresh install.
 
 ## v1.0.7 - Windows setup + LoRA fixes

@@ -20,7 +20,7 @@ import cloud
 import core
 import skills
 
-ROUTER_CTX = 4096
+ROUTER_CTX = 8192          # floor: the system prompt alone is ~3.2K tokens + history + message + 900 out
 KEEP_ALIVE = "3m"          # warm for the next message; renders evict Ollama anyway
 TIMEOUT = 45
 
@@ -292,7 +292,7 @@ def decide(prompt, refs=None, history=None, model=None):
             core.gpu_wait("router")
             core.ensure_ollama()
             body = {"model": model, "stream": False, "format": "json", "think": False, "keep_alive": KEEP_ALIVE,
-                    "options": {"temperature": 0.1, "num_ctx": ROUTER_CTX, "num_predict": 900},
+                    "options": {"temperature": 0.1, "num_ctx": max(ROUTER_CTX, core.engine_ctx(model)), "num_predict": 900},
                     "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
             if body.get("model") in core.ENGINE_BROKEN:
                 body["model"] = core.engine_model()
