@@ -426,7 +426,7 @@ def local_engines():
     """Every language model Ollama has on this PC, found automatically (nothing to configure): chat-capable ones only
     (embedding models are skipped), tested ones first, with vision / size / context from Ollama itself."""
     try:
-        tags = core.requests.get(core.OLLAMA + "/api/tags", timeout=3).json().get("models", [])
+        tags = core.ollama_tags()
     except Exception:
         tags = None
     want = core.prefs().get("engine_model") or core.DEFAULT_ENGINE
@@ -462,7 +462,7 @@ def found_gguf(force=False):
     if not force and time.time() - _FOUND["t"] < 120:
         return _FOUND["rows"]
     try:
-        have = {m["name"] for m in core.requests.get(core.OLLAMA + "/api/tags", timeout=3).json().get("models", [])}
+        have = set(core.ollama_names(fresh=force))
     except Exception:
         have = set()
     rows, seen = [], set()
@@ -529,6 +529,7 @@ def import_gguf(path):
             _IMPORT[row["name"]] = "error: " + str(e)[:200]
         finally:
             _FOUND["t"] = 0
+            core._TAGS["t"] = 0.0                 # the new model shows in the picker right away
             try:
                 os.remove(mf)
             except OSError:
@@ -542,7 +543,7 @@ def summary():
     _refresh_fireworks()
     k = keys()
     return {"keys": {p: bool(v) for p, v in k.items()}, "brain": brain(), "models": models(),
-            "local": {"label": core.engine_label(), "model": core.engine_model(), "ctx": 16384,
+            "local": {"label": core.engine_label(), "model": core.engine_model(), "ctx": core.engine_ctx(core.engine_model()),
                       "picked": core.prefs().get("engine_model") or core.DEFAULT_ENGINE},
             "locals": local_engines(),
             "found": [dict(r, importing=_IMPORT.get(r["name"])) for r in found_gguf()],

@@ -277,7 +277,8 @@ def run_llama(job):
     if core.engine_failed(pre):                  # usually just a full GPU: free it and load the picked engine again
         core.free_for_engine(tag)
         pre = load()
-    if core.engine_failed(pre) or opts["num_ctx"] > 8192:   # too big for this GPU (crash or CPU spill) -> halve, remember
+    learned = core.CTX_OK.get(tag) == opts["num_ctx"] and pre.ok   # this window already fit this GPU: no second load
+    if core.engine_failed(pre) or (opts["num_ctx"] > 8192 and not learned):   # too big (crash / CPU spill) -> halve, remember
         def _ld(n):
             opts["num_ctx"] = n
             return load()

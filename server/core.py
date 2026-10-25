@@ -326,7 +326,9 @@ def new_name(prefix, ext):
 
 
 # ── prompt engine (local Ollama) — rewrites prompts only, never sees anything else ──
-OLLAMA = "http://127.0.0.1:11434"
+# Another PC on the network can host the brain: mml_config.json / data/local.json "ollama_url", or OLLAMA_HOST_URL
+OLLAMA = (os.environ.get("OLLAMA_HOST_URL") or CONFIG.get("ollama_url") or LOCAL.get("ollama_url")
+          or "http://127.0.0.1:11434").rstrip("/")
 DEFAULT_ENGINE = "gemma4:12b"  # MirAI: chat, prompt building + Auto-mode model picker (never renders); falls back to any installed gemma4 / first model
 LEGACY_ENGINES = ()   # (qwen3.5:9b used to be remapped to Gemma — it is a normal pickable engine now)
 # Local brains the owner can pick in the model picker (MUSE chat + Director + prompt writer). Any other installed
@@ -353,6 +355,27 @@ def pretty_tag(m):
 
 _OLLAMA_LOCK = threading.Lock()
 _OLLAMA_TRY = {"t": 0}
+_TAGS = {"t": 0.0, "models": None}
+TAGS_TTL = 10                                       # seconds; a pull / Settings change shows up within this
+
+
+def ollama_tags(fresh=False):
+    """Ollama's installed models (the /api/tags entries), cached for TAGS_TTL s. A job asked for the list 5-10 times
+    and each ask could stall up to 3 s while Ollama was busy loading a model. Raises when Ollama doesn't answer."""
+    if not fresh and _TAGS["models"] is not None and time.time() - _TAGS["t"] < TAGS_TTL:
+        return _TAGS["models"]
+    models = requests.get(OLLAMA + "/api/tags", timeout=3).json().get("models", [])
+    _TAGS.update(t=time.time(), models=models)
+    return models
+
+
+def ollama_names(fresh=False):
+    return [m["name"] for m in ollama_tags(fresh)]
+
+
+def _ollama_local():
+    from urllib.parse import urlparse
+    return (urlparse(OLLAMA).hostname or "127.0.0.1") in ("127.0.0.1", "localhost", "::1")
 
 
 def ollama_up(timeout=2):
@@ -411,7 +434,7 @@ def ensure_ollama(wait=60):
     with _OLLAMA_LOCK:
         if ollama_up():
             return True
-        cmd = None if _port_listening() else _ollama_cmd()
+        cmd = None if (_port_listening() or not _ollama_local()) else _ollama_cmd()   # a remote brain isn't ours to start
         if cmd and time.time() - _OLLAMA_TRY["t"] > 30:
             _OLLAMA_TRY["t"] = time.time()
             import subprocess
@@ -506,7 +529,7 @@ CTX_CAP = int(CONFIG.get("max_ctx") or 65536)        # never ask any engine for 
 def model_max_ctx(tag):
     """The context length the model itself supports (Ollama tags)."""
     try:
-        for t in requests.get(OLLAMA + "/api/tags", timeout=3).json().get("models", []):
+        for t in ollama_tags():
             if t["name"] == tag:
                 return int((t.get("details") or {}).get("context_length") or 0)
     except Exception:
@@ -519,6 +542,19 @@ def engine_window(tag):
     PC (a window that crashed it or spilled it off the GPU is remembered in CTX_OK)."""
     mx = model_max_ctx(tag) or 16384
     return max(2048, min(mx, CTX_CAP, CTX_OK.get(tag) or 10 ** 9))
+
+
+SHARED_CTX = 16384                                  # until MirAI's chat has learned what this GPU holds (CTX_OK)
+KEEP_ALIVE = "5m"
+
+
+def engine_ctx(tag):
+    """The ONE context window every local call (Director, prompt writer, MirAI chat once learned, Live Voice, Social)
+    uses for this engine. Ollama reloads the whole model whenever num_ctx changes, so the Director at 4K, the prompt
+    writer at the Modelfile default and chat at 64K reloaded an 8 GB model 2-3 times per Auto-mode message."""
+    if tag in CTX_OK:
+        return CTX_OK[tag]
+    return max(8192, min(engine_window(tag), SHARED_CTX))
 
 
 def fit_window(tag, win, load):
@@ -599,7 +635,7 @@ def engine_post(path, body, **kw):
             return r
         ENGINE_BROKEN.add(body["model"])
         try:
-            tags = [m["name"] for m in requests.get(OLLAMA + "/api/tags", timeout=3).json().get("models", [])]
+            tags = ollama_names()
         except Exception:
             tags = []
         nxt = engine_twin(body["model"], tags)
@@ -627,7 +663,7 @@ def engine_model():
     if want in LEGACY_ENGINES:
         want = DEFAULT_ENGINE
     try:
-        tags = [m["name"] for m in requests.get(OLLAMA + "/api/tags", timeout=3).json().get("models", [])]
+        tags = ollama_names()
     except Exception:
         return want
     if want in ENGINE_BROKEN:
@@ -682,7 +718,7 @@ def vision_model():
     if engine_sees(m) and not m.startswith("gemma4"):
         return m
     try:
-        tags = [t["name"] for t in requests.get(OLLAMA + "/api/tags", timeout=3).json().get("models", [])]
+        tags = ollama_names()
     except Exception:
         return None
     for t in list(VISION_PREF) + tags:
@@ -707,12 +743,15 @@ def ask(prompt, system, timeout=120, images=None, want_json=False, role="prompt"
     gpu_wait("engine")
     ensure_ollama()
     model = engine_model()
-    body = {"model": model, "prompt": prompt, "system": system, "stream": False, "think": False}
+    body = {"model": model, "prompt": prompt, "system": system, "stream": False, "think": False, "keep_alive": KEEP_ALIVE}
+    if want_json:
+        body["format"] = "json"              # callers parse one JSON object; without this a local model often answered in prose
     if images:
         vm = vision_model()
         if vm:
             body["model"] = model = vm       # pictures go to an engine that can actually see them
             body["images"] = images
+    body["options"] = {"num_ctx": engine_ctx(model)}   # same window as the Director and chat: no reload between steps
     r = engine_post("/api/generate", body, timeout=timeout)
     if r.status_code >= 500 and ("loading model" in r.text or "llama-server" in r.text):
         # the engine couldn't load: ComfyUI still holds the GPU from the last render. Free it and try once more —
