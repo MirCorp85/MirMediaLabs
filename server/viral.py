@@ -797,7 +797,7 @@ def start():
         threading.Thread(target=_loop, daemon=True, name="viral-desk").start()
 
 
-# ── routes (/mlab/api/viral/*) ───────────────────────────────────────────────────────────────────────────────────
+# ── routes (/api/viral/*) ───────────────────────────────────────────────────────────────────────────────────
 def register(app, hk):
     from flask import request, jsonify, abort
 
