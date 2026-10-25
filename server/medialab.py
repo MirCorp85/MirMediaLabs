@@ -1261,6 +1261,7 @@ def _pull_engine(tag):
         try:
             core.ensure_ollama()
             core.requests.post(core.OLLAMA + "/api/pull", json={"model": tag, "stream": False}, timeout=3600)
+            core._TAGS["t"] = 0.0                 # cached model list: show the new engine now, not in 10 s
         except Exception as e:
             print("pull %s failed: %s" % (tag, e))
         finally:
