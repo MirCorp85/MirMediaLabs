@@ -39,7 +39,7 @@ if (-not (Test-Path $py)) {
 & $py -c "import yt_dlp" 2>$null
 if ($LASTEXITCODE) { & (Join-Path $tools 'uv.exe') pip install --python $py "yt-dlp[default]" }
 # phase-2 tools: Design's websocket bridge (flask-sock + websockets), Kinetic + Studio stage pixel passes (numpy + OpenCV)
-& $py -c "import flask_sock, websockets, numpy, cv2" 2>$null
+& $py -c "import importlib.util as u, sys; sys.exit(0 if all(u.find_spec(m) for m in ('flask_sock', 'websockets', 'numpy', 'cv2')) else 1)"
 if ($LASTEXITCODE) { & (Join-Path $tools 'uv.exe') pip install --python $py flask-sock websockets numpy opencv-python-headless }
 if (-not (Test-Path (Join-Path $here 'pc_version.json'))) { '{"version": "1.0.0"}' | Set-Content -Encoding ascii (Join-Path $here 'pc_version.json') }
 if ($Bump) { & $py (Join-Path $here 'build_tool.py') bump }
