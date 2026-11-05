@@ -74,6 +74,8 @@ New-Item -ItemType Directory -Force (Join-Path $stage 'updates') | Out-Null
 Copy-Item $dist (Join-Path $stage 'app') -Recurse
 # flask watermark logo next to the compiled watermark module (watermark.MARK = <app>\mark.png)
 Copy-Item (Join-Path $root 'server\mark.png') (Join-Path $stage 'app\mark.png')
+# ALTER kit (MIT scripts run by alter.py with the engine's Python) next to the compiled alter module
+Copy-Item (Join-Path $root 'server\alter_kit') (Join-Path $stage 'app\alter_kit') -Recurse
 # MIR MOTION engine source (Remotion daemon + scenes + prebuilt player/schema); the wizard installs Node + npm ci
 $mo = Join-Path $stage 'motion'
 New-Item -ItemType Directory -Force $mo | Out-Null

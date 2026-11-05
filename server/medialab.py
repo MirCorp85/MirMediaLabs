@@ -43,6 +43,7 @@ import muse_talk
 import router
 import watermark
 import workflows
+import alter
 
 app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = 600 * 1024 * 1024
@@ -374,12 +375,25 @@ def _pipeline_steps(job, base):
     plan = job.get("plan") or []
     meta = {}                                    # carried forward: style · lyrics · bpm · key (latest step wins)
     n = len(job["steps"])
+    work, alt = base, man.get("alter")
+    if alt:                                      # ALTER: edit-ready clip + its first frame (the target frame's source)
+        vid = next((r for r in base if core.kind_of(r) == "video"), None)
+        vpath = core.in_dir(core.REFS, vid) if vid else None
+        if not vpath:
+            raise RuntimeError("ALTER needs your clip attached")
+        job["stage"] = "ALTER · preparing your clip"
+        clip_p, frame_p = alter.prep(job, vpath, knobs.get("secs") or 8, lambda m: renderers.log(job, m))
+        cref, fref = _store_ref("alter_clip", ".mp4", owner), _store_ref("alter_frame", ".png", owner)
+        shutil.copy2(clip_p, core.safe_path(os.path.join(core.REFS, cref)))
+        shutil.copy2(frame_p, core.safe_path(os.path.join(core.REFS, fref)))
+        work = [fref] + [cref if r == vid else r for r in base]
+        job["alter"] = dict(alt)
     for i, st in enumerate(job["steps"], 1):
         if job.get("_cancel"):
             raise comfy.Cancelled()
         row = plan[i - 1] if i - 1 < len(plan) else {}
         mdl = skills.model_for(st["role"])        # role → today's engine for that role
-        refs = skills.resolve_inputs(st, base, outs, core.kind_of, _ref_seconds)
+        refs = skills.resolve_inputs(st, work, outs, core.kind_of, _ref_seconds)
         has_img = i == 1 and any(core.kind_of(r) == "image" for r in refs)
         if job.get("literal") and job.get("input"):   # My words: every step that takes a prompt gets yours, as written
             prompt = job["input"] if st.get("tpl") else ""
@@ -392,6 +406,8 @@ def _pipeline_steps(job, base):
         if st.get("mode"):
             po["mode"] = st["mode"]
         po.update(over)
+        if job.get("mask_what") and "mask_what" in po:      # "What gets replaced" from the recipe card
+            po["mask_what"] = job["mask_what"]
         if st.get("mode") == "voice" and sum(1 for r in refs if core.kind_of(r) == "audio") < 2:
             raise RuntimeError(skills.missing(man, [core.kind_of(r) for r in base]) or
                                "the voice swap needs the song AND a voice recording")
@@ -427,6 +443,14 @@ def _pipeline_steps(job, base):
         if row:
             row.update(status="done", files=list(res["files"]))
         _persist()
+    if alt:                                      # ALTER: QA against the clip, trim the drift, the clip's sound back
+        render = next((f for f in reversed(files) if core.kind_of(f) == "video"), None)
+        rpath = core.in_dir(core.LIB, render) if render else None
+        if rpath:
+            job["stage"] = "ALTER · checking the render against your clip"
+            extra, report = alter.finish(job, clip_p, rpath, alt.get("check", "swap"), lambda m: renderers.log(job, m))
+            files = extra + files
+            texts.append("── ALTER check ──" + chr(10) + report)
     return {"files": files, "text": chr(10).join(texts)}
 
 
@@ -461,7 +485,7 @@ def worker():
             res = _run_pipeline(job) if job.get("steps") else _run_once(job)
             if job.get("keep_clean") and res["files"]:   # SERIES: unmarked reference copy (the next shot builds on it)
                 _keep_clean(res["files"], job.get("user") or "owner")
-            if watermark.enabled() and res["files"]:
+            if watermark.enabled() and res["files"] and not job.get("clean"):
                 job["stage"] = "watermarking"
                 if watermark.apply(res["files"], lambda m: console.emit("LAB", m, job, "warn")):
                     console.emit("LAB", "watermarked · " + watermark.text(), job)
@@ -613,7 +637,8 @@ def _route(job):
         kv = skills.knob_values(sk, d.get("knobs"))
         over, add = skills.knob_effects(sk, kv, None, model)
         filled = prompt if job.get("literal") and prompt else skills.fill(sk["tpl"], prompt, has_img)
-        job.update(model=model, skill=sk["name"], prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
+        job.update(model=model, skill=sk["name"], skill_id=sk["id"], skill_input=prompt or "",
+                   prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
                    params=params.get(model, override=dict(skills.overrides(sk, model), **over), uid=owner))
     else:
         model = skills.model_for(d["role"])
@@ -1118,11 +1143,14 @@ def generate():
         filled = prompt if job.get("literal") and prompt else skills.fill(sk["tpl"], prompt, sk["role"] == "image" and any(core.kind_of(r) == "image" for r in refs))
         mine = params.get(model, uid=uid())
         keep = {k: mine[k] for k in ("res", "quality", "seed", "swap_quality", "face_pass") if k in mine}
-        job.update(skill=sk["name"], prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
+        job.update(skill=sk["name"], skill_id=sk["id"], skill_input=prompt,
+                   prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
                    params=params.get(model, override=dict(keep, **po), uid=uid(), saved_ok=False))
     elif pl:
         job.update(pipeline=pl["name"], pipeline_id=pl["id"], steps=pl["steps"], step="0/%d" % len(pl["steps"]),
                    plan=skills.plan_for(pl), knobs=skills.knob_values(pl, body.get("knobs")))
+        if isinstance(body.get("mask_what"), str) and body["mask_what"].strip():
+            job["mask_what"] = body["mask_what"].strip()[:120]      # ALTER "What gets replaced"
     if sel and model != "auto" and not pl:          # direct request: LoRAs + trigger words go in now (Auto: after MirAI picks)
         _lora_apply(job, model, _what(model))
     if model == "auto":

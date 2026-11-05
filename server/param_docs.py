@@ -55,6 +55,9 @@ COMMON = {
 
 DOCS = {
     "h3": {
+        "easycache": {"label": "Speed boost", "tech": "EasyCache",
+                      "desc": "Reuses work between steps that barely change. Faster on high-step (Full quality) renders; does nothing on Turbo.",
+                      "opts": {"off": {"label": "Off"}, "0.2": {"label": "Light", "tech": "0.2"}, "0.3": {"label": "Strong", "tech": "0.3"}}},
         # basics
         "mode": {"label": "What to make from", "tech": "mode",
                  "desc": "Text only, a starting picture, start+end pictures, references, a storyboard, or extending a clip.",
@@ -209,9 +212,9 @@ DOCS = {
         "fps": {"label": "Smoothness", "tech": "frame rate", "desc": "More frames per second = smoother motion (extra frames are created).",
                 "opts": {"24": {"label": "Cinematic", "tech": "24 fps", "desc": "Natural film look."},
                          "30": {"label": "Standard video", "tech": "30 fps"},
-                         "48": {"label": "Smooth", "tech": "48 fps interpolated"},
-                         "60": {"label": "Ultra smooth", "tech": "60 fps interpolated", "desc": "Sports / gaming look."}}},
-        "upscale": {"label": "Enlarge", "tech": "upscale", "desc": "Makes the final video bigger in pixels.",
+                         "48": {"label": "Smooth", "tech": "48 fps · FILM AI in-betweens"},
+                         "60": {"label": "Ultra smooth", "tech": "60 fps · FILM AI in-betweens", "desc": "Sports / gaming look."}}},
+        "upscale": {"label": "Enlarge", "tech": "upscale", "desc": "Makes the final video bigger with SeedVR2, an AI upscaler that restores real detail (clips up to 20 s; longer ones get a sharp resize).",
                     "opts": {"off": {"label": "Off"}, "1.5": {"label": "1.5× bigger"}, "2": {"label": "2× bigger"}}},
         "loop": {"label": "Loop", "desc": "Plays forward then backward for a seamless loop.",
                  "opts": {"off": {"label": "Off"}, "boomerang": {"label": "Boomerang"}}},
@@ -282,6 +285,12 @@ DOCS = {
         "size": {"label": "Size", "tech": "megapixels", "desc": "Bigger is sharper but slower.",
                  "opts": {"standard": {"label": "Standard", "tech": "~1 MP"}, "hd": {"label": "HD", "tech": "~2 MP"},
                           "max": {"label": "Maximum", "tech": "~4 MP", "desc": "Slow."}}},
+        "model": {"label": "Model", "tech": "Qwen-Image 2.1 Base / Turbo",
+                  "desc": "Base follows your description most closely. Turbo is the official quick-draft version — faster but can skip details.",
+                  "opts": {"base": {"label": "Base (recommended)", "tech": "25–40 steps"},
+                           "turbo": {"label": "Turbo — quick drafts", "tech": "8 steps"}}},
+        "turbo_steps": {"label": "Turbo steps", "tech": "sampling steps (Turbo)", "desc": "8 is the official value. More rarely helps."},
+        "steps": {"label": "Base steps", "tech": "sampling steps (Base)", "desc": "Only used with the Base model. 25 is quick, 40 is the model card's best."},
         "cfg": {"desc": "Above 1 the 'Avoid' box starts working. Qwen likes low values (1–4)."},
         "enhance": {"label": "Expand my prompt", "tech": "prompt rewriter",
                     "desc": "On: rewrites your idea into the detailed description Qwen likes.",
@@ -293,8 +302,8 @@ DOCS = {
         "negative": {"label": "Avoid", "tech": "negative prompt",
                      "desc": "Things you don't want (e.g. blurry, text). Needs strictness above 1."},
         "seed": {"advanced": False},
-        "upscale": {"label": "Enlarge", "tech": "upscale", "desc": "Makes the final picture bigger in pixels.",
-                    "opts": {"off": {"label": "Off"}, "1.5": {"label": "1.5× bigger"}, "2": {"label": "2× bigger"}}},
+        "upscale": {"label": "Enlarge", "tech": "upscale", "desc": "Makes the final picture bigger with SeedVR2, an AI upscaler that restores real detail.",
+                    "opts": {"off": {"label": "Off"}, "1.5": {"label": "1.5× bigger"}, "2": {"label": "2× bigger"}, "4": {"label": "4× bigger"}}},
     },
     "ace": {
         "mode": {"label": "What to make", "tech": "mode", "desc": "A new track, or a new take on audio you attached.",
@@ -352,14 +361,17 @@ _ASPECT = {"1:1": "Square — feeds and profile posts.", "3:2": "Classic photo l
            "4:3": "Old-TV / tablet shape.", "3:4": "Portrait tablet shape — good for full-body characters.",
            "4:5": "Tall feed post (Instagram portrait).", "5:4": "Nearly square landscape.",
            "21:9": "Extra-wide cinema strip.", "2:1": "Wide banner.", "1:2": "Tall banner / phone wallpaper."}
-_UPSCALE = {"off": "Keep the rendered size.", "1.5": "50% bigger — a quick sharp resize after rendering.",
-            "2": "Double the size — a quick sharp resize after rendering (no new detail is invented)."}
+_UPSCALE = {"off": "Keep the rendered size.", "1.5": "50% bigger — SeedVR2 AI upscale (2×) then a clean resize to 1.5×.",
+            "2": "Double the size — SeedVR2 AI upscale: restores real detail instead of just stretching pixels.",
+            "4": "Four times the size — SeedVR2 AI upscale (pictures only)."}
 _WF = {"builtin": "The lab's own tested pipeline — the safe choice."}
 OPT_DESC = {
     "*": {"quality": {"V0": "Best quality, variable size.", "320k": "High quality, fixed size.",
                       "128k": "Smallest file — fine for previews and phones."},
           "upscale": _UPSCALE, "workflow": _WF},
     "h3": {
+        "easycache": {"off": "Every step is computed in full.", "0.2": "Skips a few near-identical steps — small speed-up, safest.",
+                      "0.3": "Skips more steps — biggest speed-up, may soften fine motion or audio."},
         "aspect": {"4:3": _ASPECT["4:3"], "3:4": _ASPECT["3:4"]},
         "extend_anchor": {"22": "The new part starts from the last ~1 s of motion — the smoothest continuation.",
                           "5": "Starts from the last few frames — follows on, with more freedom to change.",
@@ -408,7 +420,9 @@ OPT_DESC = {
                     "off": "Your words are used exactly as written."},
     },
     "qimg": {
-        "mode": {"generate": "Make a new picture from your words.", "cutout": "Removes the background from your picture."},
+        "mode": {"generate": "Make a new picture from your words.", "cutout": "Removes the background from your picture (BiRefNet: a clean transparent PNG in seconds)."},
+        "model": {"base": "The full model — follows every detail you describe (about 20 seconds).",
+                  "turbo": "The official quick-draft version — about 13 seconds, but it can skip parts of your description."},
         "aspect": _ASPECT,
         "size": {"standard": "About 1 megapixel — fast and sharp enough for most uses.",
                  "hd": "About 2 megapixels — finer detail, roughly twice as slow."},

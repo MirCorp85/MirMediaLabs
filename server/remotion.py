@@ -187,7 +187,15 @@ def _wait(jid, dj, job, base, span):
             except Exception:
                 pass
             raise RuntimeError("cancelled")
-        s = _http("job/" + dj, timeout=10)
+        try:                                       # a heavy render saturates the CPU and the daemon answers slowly — be patient
+            s = _http("job/" + dj, timeout=30)
+            job.pop("_miss", None)
+        except Exception as e:
+            job["_miss"] = job.get("_miss", 0) + 1
+            if job["_miss"] > 8:                    # ~4+ minutes without an answer = really gone
+                raise RuntimeError("the motion engine stopped answering: %s" % e)
+            time.sleep(3)
+            continue
         job["pct"] = round(base + span * (s.get("pct") or 0) / 100.0, 1)
         if s.get("status") == "done":
             return
@@ -212,7 +220,7 @@ def render(jid, p, out, codec, crf, on_done):
         if codec != "mp4" or total <= SEG_S * 1.5:
             job["stage"] = "rendering"
             dj = jid + "_" + uuid.uuid4().hex[:4]
-            _http("render", {"id": dj, "project": p, "out": out, "codec": codec, "crf": crf})
+            _http("render", {"id": dj, "project": p, "out": out, "codec": codec, "crf": crf}, timeout=120)
             _wait(jid, dj, job, 0, 100)
         else:
             nf = int(round(total * fps))
@@ -234,7 +242,7 @@ def render(jid, p, out, codec, crf, on_done):
                     continue
                 dj = "%s_s%d" % (jid, i)
                 tmp = seg[:-4] + ".part.mp4"
-                _http("render", {"id": dj, "project": p, "out": tmp, "codec": "mp4", "crf": crf, "frameRange": [a, b], "muted": True})
+                _http("render", {"id": dj, "project": p, "out": tmp, "codec": "mp4", "crf": crf, "frameRange": [a, b], "muted": True}, timeout=120)
                 _wait(jid, dj, job, span * i, span)
                 os.replace(tmp, seg)
             lst = os.path.join(CACHE, jid + "_list.txt")
@@ -247,7 +255,7 @@ def render(jid, p, out, codec, crf, on_done):
                 job["stage"] = "audio"
                 wav = os.path.join(CACHE, jid + "_audio.wav")
                 dj = jid + "_aud"
-                _http("render", {"id": dj, "project": p, "out": wav, "codec": "wav"})
+                _http("render", {"id": dj, "project": p, "out": wav, "codec": "wav"}, timeout=120)
                 _wait(jid, dj, job, 85, 12)
                 _ff(["-i", video, "-i", wav, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", out])
                 os.remove(wav)
@@ -430,30 +438,11 @@ def register(app, hk):
         if bad:
             return jsonify({"error": "media not available: " + ", ".join(sorted(bad)[:5])}), 400
         me = hk["uid"]()
-        with _JLOCK:
-            if sum(1 for j in JOBS.values() if j.get("user") == me and j.get("status") == "running") >= 2:
-                return jsonify({"error": "two motion renders are already running — wait or cancel one"}), 409
-        codec = b.get("codec") if b.get("codec") in CODEC_EXT else "mp4"
-        crf = int(_num(b.get("crf"), 20, 12, 36))
-        name = core.new_name("motion", CODEC_EXT[codec])
-        out = os.path.join(core.LIB, name)
         sid = hk["session"](b.get("session") if "session" in b else p.get("session")) or ""
-        jid = "m" + uuid.uuid4().hex[:10]
-        JOBS[jid] = {"id": jid, "status": "running", "stage": "starting", "pct": 0.0, "user": me, "started": time.time(),
-                     "name": name, "project": p.get("id"), "dur": round(duration(p), 2), "codec": codec, "purpose": b.get("purpose") or ""}
-
-        def done(job):
-            meta = {"model": "motion", "prompt": str(p.get("name") or "Motion")[:2000], "job": jid, "created": time.time(),
-                    "user": me, "mode": "motion", "size": "%sx%s" % (p["w"], p["h"]), "project": p.get("id"),
-                    "secs": round(duration(p), 2), "codec": codec}
-            if sid:
-                meta["session"] = sid
-            core.index_add(name, meta)
-            job["url"] = "media/" + name
-            job["src"] = "lib:" + name
-            prune_cache()
-        threading.Thread(target=render, args=(jid, p, out, codec, crf, done), daemon=True).start()
-        return jsonify(JOBS[jid])
+        try:
+            return jsonify(start_job(p, me, sid, b.get("codec"), b.get("crf"), b.get("purpose") or ""))
+        except RuntimeError as e:
+            return jsonify({"error": str(e)}), 409
 
     @app.route("/api/motion/jobs")
     def mo_jobs():
@@ -543,6 +532,53 @@ def register(app, hk):
         if not s.get("tracks"):
             return jsonify({"error": "the writer returned no scenes — try rephrasing", "raw": str(raw)[:500]}), 500
         return jsonify(clean(dict(s, w=(cur or {}).get("w") or 1280, h=(cur or {}).get("h") or 720, fps=(cur or {}).get("fps") or 30)))
+
+
+def start_job(p, me, sid="", codec="mp4", crf=20, purpose="", prefix="motion", after=None):
+    """Queue a library render of a cleaned + ownership-checked project -> the JOBS entry. after(job) runs once it's in the library."""
+    with _JLOCK:
+        if sum(1 for j in JOBS.values() if j.get("user") == me and j.get("status") == "running") >= 2:
+            raise RuntimeError("two motion renders are already running — wait or cancel one")
+    codec = codec if codec in CODEC_EXT else "mp4"
+    crf = int(_num(crf, 20, 12, 36))
+    name = core.new_name(prefix, CODEC_EXT[codec])
+    out = os.path.join(core.LIB, name)
+    jid = "m" + uuid.uuid4().hex[:10]
+    JOBS[jid] = {"id": jid, "status": "running", "stage": "starting", "pct": 0.0, "user": me, "started": time.time(),
+                 "name": name, "project": p.get("id"), "dur": round(duration(p), 2), "codec": codec, "purpose": purpose}
+
+    def done(job):
+        meta = {"model": "motion", "prompt": str(p.get("name") or "Motion")[:2000], "job": jid, "created": time.time(),
+                "user": me, "mode": "motion", "size": "%sx%s" % (p["w"], p["h"]), "project": p.get("id"),
+                "secs": round(duration(p), 2), "codec": codec}
+        if sid:
+            meta["session"] = sid
+        core.index_add(name, meta)
+        job["url"] = "media/" + name
+        job["src"] = "lib:" + name
+        prune_cache()
+        if after:
+            try:
+                after(job)
+            except Exception as e:
+                job["after_error"] = str(e)[:300]
+    threading.Thread(target=render, args=(jid, p, out, codec, crf, done), daemon=True).start()
+    return JOBS[jid]
+
+
+def save_project(uid, d):
+    """Write a project into uid's Motion Studio list (so generated reels stay editable) -> pid."""
+    d = clean(d)
+    pid = str(d.get("id") or "")
+    if not _ID_RE.match(pid):
+        pid = uuid.uuid4().hex[:12]
+    d.update(id=pid, name=str(d.get("name") or "Untitled motion")[:120], updated=time.time())
+    d.setdefault("created", time.time())
+    pd = os.path.join(PROJ, re.sub(r"[^A-Za-z0-9_-]", "_", str(uid)))
+    os.makedirs(pd, exist_ok=True)
+    with open(os.path.join(pd, pid + ".json"), "w", encoding="utf-8") as f:
+        json.dump(d, f)
+    return pid
 
 
 # ── builders other modules use (Series, Producer, Editor, MUSE tools) ─────────────────────────────────────────────

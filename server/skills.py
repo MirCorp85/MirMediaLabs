@@ -475,6 +475,97 @@ PIPELINES = [
 def _nostep(k):
     return dict(k, to={x: y for x, y in k["to"].items() if x != "step"})
 
+# ── ALTER: change ONE thing in your clip, keep the performance (blueprint runs alter.prep before step 1 → the clip's
+# first frame is "picture 1"; alter.finish after the last step → QA vs the clip, drifted tail trimmed, the clip's own
+# sound laid back, side-by-side). Step 1 always builds the TARGET FRAME: that first frame with the change already
+# photographed in, so the video engine copies a finished example (scenario-alter method, local engines only).
+_ALEN = {"k": "secs", "label": "Length", "type": "select", "def": "8", "opts": [["5", "5 s"], ["8", "8 s"], ["10", "10 s"]],
+         "to": {"step": 2, "param": "seconds"}}
+_ALOOK = {"k": "look", "label": "Look", "type": "select", "def": "", "opts": [["", "as described"],
+          ["a hand-drawn 2D anime feature film: clean ink lines, flat cel shading, hand-painted backgrounds", "anime"],
+          ["a 3D animated feature film: stylised characters, soft global illumination, a stylised 3D set", "3D feature"],
+          ["stop-motion claymation: plasticine puppets with thumbprints, a handmade miniature set", "claymation"],
+          ["inked comic-book art: bold outlines, halftone shading, flat colour", "comic"],
+          ["a moving watercolour painting on textured paper, visible brush strokes", "watercolour"],
+          ["1940s black-and-white film noir: hard key light, deep shadows, heavy grain", "film noir"],
+          ["16-bit pixel art: crisp pixels, a limited palette", "pixel art"]],
+          "to": {"step": 1, "add": "Style: {v}."}}
+_AKEEP = ("Keep the photograph in picture 1 exactly as it is: same framing, same people, same hands and fingers, same light, "
+          "background, focus and grain. ")
+PIPELINES += [
+    {"id": "alterswap", "name": "ALTER · Swap One Thing", "icon": "box", "alter": {"kind": "object", "check": "swap"},
+     "desc": "Swap a product, prop, outfit or device in your clip — same take, same motion, the clip's own sound",
+     "when": "a clip is attached and the person wants ONE object / product / prop / piece of clothing in it replaced by "
+             "another (optionally shown in an attached picture), keeping everything else exactly as shot",
+     "needs": {"video": 1}, "slotnames": {"video": ["Your clip"], "image": ["New item (optional)"]},
+     "knobs": [_ALEN],
+     "steps": [{"role": "image", "does": "Target frame: your clip's first frame with the new item photographed in.",
+                "inputs": ["user:image"],
+                "tpl": "Photo retouch. " + _AKEEP + "Only one thing changes: {input} (the exact item from picture 2 when "
+                       "given), held or worn the same way at the same size. It is a real object photographed in this light: "
+                       "highlights, shadows, reflections and the fingers overlapping it match the scene. It must look "
+                       "photographed, not pasted on. No text, no letters, no logos.",
+                "params": {"qimg": {"mode": "edit"}}},
+               {"role": "video", "does": "Only that item is repainted through the clip, starting from the target frame.",
+                "inputs": ["user:video", "step1:image"],
+                "tpl": "{input}. Exactly as in the first frame: a real object photographed in this light, moving with the "
+                       "hands exactly as the original did, same size. No text, no letters, no logos.",
+                "params": {"h3": {"mode": "swap", "mask_what": "object", "mask_grow": 14, "swap_secs": 0,
+                                  "face_pass": "off"}}}]},
+    {"id": "alterrecast", "name": "ALTER · Recast", "icon": "user", "alter": {"kind": "person", "check": "recast"},
+     "desc": "A different person performs your clip — same clothes, moves, timing and sound",
+     "when": "a clip is attached and the person wants someone else (described, or in an attached picture) to perform it, "
+             "same clothes and place",
+     "needs": {"video": 1}, "slotnames": {"video": ["Your clip"], "image": ["New person (optional)"]},
+     "knobs": [_ALEN],
+     "steps": [{"role": "image", "does": "Target frame: the first frame with the new person, in the clip's clothes.",
+                "inputs": ["user:image"],
+                "tpl": "Photo retouch. Keep the photograph in picture 1 exactly as it is: same framing, pose, clothes, light, "
+                       "background and grain. Only the person changes: {input} (the person from picture 2 when given), "
+                       "wearing exactly the same clothes in the same pose. Real skin texture, an ordinary person, not a "
+                       "model. No text, no logos.",
+                "params": {"qimg": {"mode": "edit"}}},
+               {"role": "video", "does": "The new person performs exactly the clip's movement.",
+                "inputs": ["user:video", "step1:image"],
+                "tpl": "{input}. The person from the reference picture, same clothes, performs exactly the movements, "
+                       "expressions and timing of the original clip.",
+                "params": {"h3": {"mode": "swap", "mask_what": "person", "mask_grow": 20, "swap_secs": 0}}}]},
+    {"id": "alterplace", "name": "ALTER · New Place", "icon": "globe", "alter": {"kind": "place", "check": "motion"},
+     "desc": "Move your clip somewhere new — same performer, moves and camera path",
+     "when": "a clip is attached and the person wants the SAME performance moved to a different location / world / time",
+     "needs": {"video": 1}, "slotnames": {"video": ["Your clip"]},
+     "knobs": [_ALEN],
+     "steps": [{"role": "image", "does": "Target frame: the performer kept, the whole place around them changed.",
+                "inputs": ["user:image"],
+                "tpl": "Keep the person in picture 1 exactly as they are: same face, clothes, pose, same size and position "
+                       "in the frame, same camera height and lens. Change the whole place around them: {input}. Their light "
+                       "and shadows match the new place. No text, no signs, no letters, no logos.",
+                "params": {"qimg": {"mode": "edit"}}},
+               {"role": "video", "does": "The performer does the clip's exact movement in the new place.",
+                "inputs": ["user:video", "step1:image"],
+                "tpl": "{input}. The person from the reference picture, same clothes, performs exactly the body movement, "
+                       "poses and timing of the control video, in the place shown in the reference picture; same camera "
+                       "path, light from the new place.",
+                "params": {"h3": {"mode": "control", "control": "pose", "replace": "whole", "control_audio": "clip",
+                                  "control_people": 2, "seconds": 8}}}]},
+    {"id": "alterstyle", "name": "ALTER · Restyle", "icon": "palette", "alter": {"kind": "style", "check": "restyle"},
+     "desc": "Your clip redrawn as anime, 3D, clay, comic… — same motion and timing, nothing photographic left",
+     "when": "a clip is attached and the person wants the whole clip turned into a drawn / animated / painted style",
+     "needs": {"video": 1}, "slotnames": {"video": ["Your clip"]},
+     "knobs": [_ALOOK, _ALEN],
+     "steps": [{"role": "image", "does": "Target frame: the first frame fully redrawn in the style.",
+                "inputs": ["user:image"],
+                "tpl": "Redraw the photograph completely as a frame of {input}. Same composition and framing, same people "
+                       "in the same poses, same hair and clothes. Everything is redrawn in that style, the background too: "
+                       "nothing photographic remains. No text, no letters.",
+                "params": {"qimg": {"mode": "edit"}}},
+               {"role": "video", "does": "The clip redrawn like the target frame, same motion and timing.",
+                "inputs": ["user:video", "step1:image"],
+                "tpl": "The same scene, action, motion, camera move and timing as the control video, redrawn completely "
+                       "like the reference picture: {input}. The background is art too, nothing photographic.",
+                "params": {"h3": {"mode": "control", "control": "canny", "control_audio": "clip", "seconds": 8}}}]},
+]
+
 
 _SKILL_KNOBS = {"song": [_LEN, _BPM], "beat": [_LEN, _BPM], "lofi": [_LEN, _BPM], "jingle": [_BPM],
                 "cinematic": [_SECS], "animate": [_SECS], "reel": [_SECS], "spin": [_SECS],

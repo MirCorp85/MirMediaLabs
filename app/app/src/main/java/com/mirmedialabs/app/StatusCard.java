@@ -108,6 +108,9 @@ final class StatusCard extends LinearLayout {
             case "h3": return "film";
             case "music3": return "mic";
             case "qimg": return "image";
+            case "klein": return "wand";
+            case "ltx": return "video";
+            case "layers": return "layers";
             case "ace": return "drum";
             case "llama": return "type";
             default: return "sparkle";
@@ -272,7 +275,15 @@ final class StatusCard extends LinearLayout {
                 add.accept("note", "instrumental".equals(p.optString("lyrics")) ? "instrumental" : "lyrics " + p.optString("lyrics"));
                 break;
             case "qimg":
+            case "klein":
                 add.accept("wand", mode); add.accept("expand", p.optString("aspect")); add.accept("image", p.optString("size"));
+                break;
+            case "ltx":
+                add.accept("wand", mode); add.accept("expand", p.optString("aspect"));
+                add.accept("clock", p.optString("seconds").isEmpty() ? "" : p.optString("seconds") + "s");
+                break;
+            case "layers":
+                add.accept("layers", p.optString("layers").isEmpty() ? "" : p.optString("layers") + " layers");
                 break;
             case "ace":
                 add.accept("wand", "voice".equals(mode) ? "voice swap" : mode);

@@ -29,7 +29,7 @@ import java.util.Set;
 
 /** Shell: header + 3 pages (CREATE · LIBRARY · QUEUE) + shared state and polling. */
 public class MainActivity extends Activity {
-    static final String[] ORDER = {"auto", "h3", "music3", "qimg", "ace", "llama"};
+    static final String[] ORDER = {"auto", "h3", "ltx", "music3", "qimg", "klein", "layers", "ace", "llama"};
     static final int PICK = 41;
 
     Api api;
@@ -402,6 +402,9 @@ public class MainActivity extends Activity {
             case "h3": return "H3";
             case "music3": return "MUSIC 3";
             case "qimg": return "QWEN";
+            case "klein": return "KLEIN";
+            case "ltx": return "LTX";
+            case "layers": return "LAYERS";
             case "ace": return "ACE";
             case "llama": return "MirAI";
             default: return "";

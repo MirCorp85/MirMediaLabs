@@ -73,3 +73,54 @@ textarea.t{min-height:90px;resize:vertical}
 .card .pvw{position:relative;cursor:pointer;flex:none}
 .card .pvw .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;background:rgba(0,0,0,.25);border-radius:10px;opacity:.85}
 .card .pvw:hover .play{opacity:1;background:rgba(0,0,0,.4)}
+/* ── Oct 29 2026 redesign: grouped tabs, pipeline, sparkline tiles, progress stepper ── */
+.so-tabs{gap:0;align-items:stretch}
+.so-tabs .tg{display:flex;align-items:center;padding:0 6px 0 12px;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);white-space:nowrap;border-left:1px solid var(--line);margin-left:6px}
+.so-tabs .tg:first-child{border-left:0;margin-left:0;padding-left:4px}
+h2.sec{display:flex;align-items:center;gap:8px;margin:4px 0 10px;font-size:13px;font-weight:600;letter-spacing:.04em;color:var(--ink)}
+h2.sec .mi{color:var(--acc)}h2.sec .hint{margin-left:4px}
+.pipe{display:flex;align-items:stretch;gap:6px;margin-bottom:20px}
+.pipe .arr{display:flex;align-items:center;color:var(--faint)}
+.stage{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:10px;transition:border-color .15s,transform .15s}
+.stage:hover{border-color:var(--acc);transform:translateY(-1px)}
+.stage .sh{display:flex;align-items:center;gap:7px;color:var(--dim);font-size:12px}.stage .sh span{flex:1}
+.stage .sh b{font-size:22px;color:var(--ink);line-height:1}
+.stage.has.draft{border-color:color-mix(in srgb,var(--warn) 55%,var(--line));background:color-mix(in srgb,var(--warn) 7%,var(--panel))}
+.stage.has.draft .sh .mi{color:var(--warn)}.stage.scheduled .sh .mi{color:var(--acc)}.stage.published .sh .mi{color:var(--ok)}
+.stage.has.preparing .sh .mi{color:var(--acc);animation:sopulse 1.4s ease-in-out infinite}
+.stage .th{display:flex;gap:5px;min-height:56px}.stage .th img{width:32px;height:56px;object-fit:cover;border-radius:6px;background:#000}
+.stage .th .none{color:var(--faint);align-self:center}
+.prep{height:4px;border-radius:4px;background:var(--panel2);overflow:hidden;position:relative}
+.prep i{position:absolute;inset:0 auto 0 0;width:35%;background:var(--acc);border-radius:4px;animation:soslide 1.3s ease-in-out infinite}
+@keyframes soslide{0%{left:-35%}100%{left:100%}}@keyframes sopulse{50%{opacity:.35}}
+.kpi{position:relative;overflow:hidden;border-top:3px solid var(--kc,var(--line))}
+.kpi small .mi{width:13px;height:13px;vertical-align:-2px;color:var(--acc)}
+.kpi em{display:block;margin:2px 0 0;color:var(--faint)}
+.kpi .spk{display:block;width:100%;height:28px;margin-top:6px;opacity:.9}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.g3>.box{margin-bottom:14px}
+.g2.wide{grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr)}
+.pc{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:1px 6px;margin-right:4px;border-radius:10px;color:var(--pc);border:1px solid color-mix(in srgb,var(--pc) 55%,transparent)}
+.tl{display:flex;flex-direction:column}
+.ti{display:flex;gap:10px;padding:0 0 12px 0;position:relative}
+.ti .dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--acc);margin-top:4px;box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent)}
+.ti:not(:last-child)::before{content:"";position:absolute;left:4.5px;top:16px;bottom:0;width:1px;background:var(--line2)}
+.ti b{font-size:12px}.ti .tt{color:var(--dim);font-size:12px;margin:2px 0}
+.spot{display:flex;gap:12px}.spot img{width:84px;aspect-ratio:9/16;object-fit:cover;border-radius:10px;background:#000;flex:none}
+.spot .big{font-size:28px;font-weight:700;margin:6px 0 4px}.spot .big small{font-size:12px;color:var(--faint);font-weight:400}
+.more{display:block;margin-top:8px;color:var(--acc);font-size:12px}
+.cal{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,15px);gap:3px;overflow-x:auto;padding-bottom:4px}
+.cal i{width:15px;height:15px}.cal i,.lg i.l0,.lg i.l1,.lg i.l2,.lg i.l3{display:block;aspect-ratio:1;border-radius:3px;background:var(--panel2)}
+.lg i.l0,.lg i.l1,.lg i.l2,.lg i.l3{display:inline-block;width:10px;height:10px;margin:0 1px}
+.cal i.l1,.lg i.l1{background:color-mix(in srgb,var(--ok) 40%,var(--panel2))}.cal i.l2,.lg i.l2{background:color-mix(in srgb,var(--ok) 70%,var(--panel2))}.cal i.l3,.lg i.l3{background:var(--ok)}
+.cal i.fut{background:transparent}
+.steps{display:flex;gap:3px;margin-bottom:2px}.steps span{flex:1;max-width:34px;height:4px;border-radius:3px;background:var(--panel2)}
+.steps span.done{background:color-mix(in srgb,var(--ok) 70%,var(--panel2))}.steps span.now{background:var(--acc)}.steps span.now.bad{background:var(--bad)}
+.st.preparing{color:var(--acc)}
+.card{transition:border-color .15s}.card:hover{border-color:var(--line2)}
+@media (max-width:760px){.pipe{flex-wrap:wrap}.pipe .arr{display:none}.stage{flex:1 1 calc(50% - 6px)}.g2.wide{grid-template-columns:1fr}}
+
+/* one video = one card: reposts of it sit inside as compact rows */
+.fam{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.fam>.card{border:0;border-radius:0}.fam:hover{border-color:var(--line2)}
+.fam>.card.sub{border-top:1px dashed var(--line2)}
+.card.sub .meta{padding:8px 10px 0}.card.sub .act{border-top:0;padding:6px 10px 10px}

@@ -484,6 +484,8 @@ body.lcol-off .lrail{display:flex}
 .mmo .kd{font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mmo .st{font-size:10.5px;color:var(--dim);white-space:nowrap;display:flex;align-items:center;gap:3px}.mmo.on .st{color:var(--mc)}.mmo .st.warn{color:var(--faint,var(--dim))}
 .mmo .s{grid-column:2/4;font-size:11.5px;color:var(--dim);line-height:1.35}
+.mmo .bf{grid-column:2/4;font-size:11.5px;line-height:1.4;opacity:.9;border-left:2px solid var(--mc);padding-left:7px;margin-top:2px}
+.mmo .bf b{color:var(--mc);font-weight:600}
 .mmo .k{grid-column:2/4;display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
 .mmo .g{grid-column:4;grid-row:1/span 3;align-self:center;width:30px;height:30px;border-radius:9px;border:1px solid var(--line2);background:var(--panel2);color:var(--dim);display:grid;place-items:center;cursor:pointer}
 .mmo .g:hover{color:var(--ink);border-color:var(--mc)}
@@ -1089,7 +1091,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 .wfrow{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:9px}
 .wfrow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wfrow small{color:var(--faint)}
 </style>
-<link rel="stylesheet" href="static/lab_c.css?v=202610171233">
+<link rel="stylesheet" href="static/lab_c.css?v=202611021200">
 </head>
 <body data-tab="create">
 <script>/* CREATE CENTER from the first paint (lab_c.js finishes the dock at the end of the page) */try{if(!/[?&]classic=1/.test(location.search)&&localStorage.getItem('mml.layout')!=='classic')document.body.classList.add('labc')}catch(e){document.body.classList.add('labc')}</script>
@@ -1168,7 +1170,7 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
                 <button data-x="loras"><i class="mi" data-ic="layers"></i> LoRA samples<small>browse + apply community LoRAs</small></button>
                 <button data-x="skills"><i class="mi" data-ic="sparkle"></i> Skills &amp; pipelines<small>tuned renders and chains</small></button>
                 <button data-x="book"><i class="mi" data-ic="book"></i> Command book<small>every slash command</small></button>
-                <button data-x="editor"><i class="mi" data-ic="film"></i> Video editor<small>timeline · cuts · titles · music</small></button><button data-x="series"><i class="mi" data-ic="tv"></i> Series studio<small>cast · world · episodes · songs</small></button><button data-x="motion"><i class="mi" data-ic="sparkle"></i> Motion studio<small>titles · captions · lyric &amp; long videos</small></button><button data-x="flow"><i class="mi" data-ic="chain"></i> Node flow<small>wire engines + tools into a pipeline</small></button><button data-x="grab"><i class="mi" data-ic="download"></i> Downloader<small>YouTube &amp; links → MP3 / MP4</small></button>
+                <button data-x="editor"><i class="mi" data-ic="film"></i> Video editor<small>timeline · cuts · titles · music</small></button><button data-x="series"><i class="mi" data-ic="tv"></i> Series studio<small>cast · world · episodes · songs</small></button><button data-x="motion"><i class="mi" data-ic="sparkle"></i> Motion studio<small>launch films · titles · captions on the beat</small></button><button data-x="flow"><i class="mi" data-ic="chain"></i> Node flow<small>wire engines + tools into a pipeline</small></button><button data-x="grab"><i class="mi" data-ic="download"></i> Downloader<small>YouTube &amp; links → MP3 / MP4</small></button>
               </div>
             </div>
             <textarea class="prompt" id="prompt" rows="1" placeholder="Message the lab…"></textarea>
@@ -1184,7 +1186,6 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
             </div>
             <button class="go" id="b-go"><span class="gt">SEND </span><i class="mi" data-ic="send"></i></button>
           </div>
-          <div class="hint" id="hint"></div>
           <input type="file" id="file" multiple hidden accept="image/*,video/*,audio/*,.txt,.md,.lrc,.srt,.json,.csv">
         </div>
       </div>
@@ -1226,13 +1227,13 @@ canvas.mb-dna{display:block;width:100%;height:40px;margin-top:6px}
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ICON={image:MI.html('image'),video:MI.html('video'),audio:MI.html('music'),text:MI.html('note')};
-const SHORT={auto:'AUTO',vace:'VACE SWAP',h3:'H3',music3:'MUSIC 3',qimg:'QWEN',ace:'ACE',llama:'MirAI'};
+const SHORT={auto:'AUTO',vace:'VACE SWAP',h3:'H3',ltx:'LTX',music3:'MUSIC 3',qimg:'QWEN',klein:'KLEIN',layers:'LAYERS',ace:'ACE',llama:'MirAI'};
 /* MirAI hand-off: lines in a reply that start with a lab command get a Use button */
 const MUSE_SKIP=['/help','/skills','/clear','/commands'];
 function museLines(t){return (t||'').split('\n').map(l=>l.trim().replace(/^(?:[-*•]|\d+[.)])\s+/,'')).filter(l=>/^\/[a-z0-9]{2,20}\s+\S/i.test(l)&&!MUSE_SKIP.includes(l.split(/\s/)[0].toLowerCase()))}
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-let openModel=null, MODELS={}, ORDER=['auto','h3','music3','qimg','ace','llama'], cur=LS.get('mml.model2','auto'), atts=LS.get('mml.atts',[]);
-if(!['auto','h3','music3','qimg','ace'].includes(cur))cur='auto';
+let openModel=null, MODELS={}, ORDER=['auto','h3','ltx','music3','qimg','klein','layers','ace','llama'], cur=LS.get('mml.model2','auto'), atts=LS.get('mml.atts',[]);
+if(!['auto','h3','ltx','music3','qimg','klein','layers','ace'].includes(cur))cur='auto';
 /* chat session (project) in view — set before the first chat poll */
 var SESS={id:'',name:'General',list:[],all:false};
 try{SESS.id=localStorage.getItem('mml.session')||'';SESS.all=localStorage.getItem('mml.libscope')==='all'}catch(e){}
@@ -1279,8 +1280,8 @@ function refLabel(r){const p=String(r).split('_');return p.length>2&&p[0]==='ref
   document.getElementById('lcol-open').onclick=()=>setL(false);
   document.getElementById('lcol-skills').onclick=()=>{setL(false);window.openSkills&&openSkills()};})();
 /* models rail */
-const PICK=['auto','h3','music3','qimg','ace'];   /* the generative models (MirAI still answers chat through Auto) */
-const PICKN={auto:'Picks the right model, skill or pipeline for you — and answers questions',h3:'Video',vace:'Put someone in a clip',music3:'Song with vocals',qimg:'Image',ace:'Music / instrumental'};
+const PICK=['auto','h3','ltx','music3','qimg','klein','layers','ace'];   /* the generative models (MirAI still answers chat through Auto) */
+const PICKN={auto:'Picks the right model, skill or pipeline for you — and answers questions',h3:'Video',ltx:'Video with sound · talking picture',klein:'Image · fast edits',layers:'Split a picture into layers',vace:'Put someone in a clip',music3:'Song with vocals',qimg:'Image',ace:'Music / instrumental'};
 function renderModels(){
   const st=(status.comfy||{}).models||{},m=MODELS[cur]||MODELS.auto;if(!m)return;
   const b=$('#b-model');
@@ -1294,6 +1295,7 @@ function renderModels(){
         <span class="d ${k!=='auto'&&ok===false?'bad':''}"></span><span class="tt"><b>${esc(x.label)}</b><span class="kd">${esc(PICKN[k]||'')}</span></span>
         <span class="st ${k!=='auto'&&ok!==true?'warn':''}">${k===cur?MI.html('check','sm')+' ':''}${sv}</span>
         <span class="s">${esc(x.desc||'')}</span>
+        ${x.best?`<span class="bf"><b>Best for:</b> ${esc(x.best.replace(/^Best for:\s*/,''))}</span>`:''}
         <span class="k">${Object.keys(x.accepts||{}).map(a=>`<span class="tag">${ICON[a]||''} ${a}</span>`).join('')}</span>
         ${k==='auto'?'':`<button class="g" data-g="${k}" title="${esc(x.label)} parameters">${MI.html('sliders','sm')}</button>`}</div>`}).join('');
 }
@@ -1310,19 +1312,14 @@ const PH={auto:'Just say what you want — MirAI picks the tool… e.g. a neon c
   vace:'Attach your picture + the clip — the person in the clip becomes you. Optional notes…',
   music3:'Ask Music 3 for a song… e.g. uplifting synth-pop anthem, bright female vocal --90s',
   qimg:'Ask Qwen for an image… e.g. neon jazz club poster, the sign reads "BLUE NOTE"',
+  klein:'Ask FLUX-3 Klein for an image… e.g. product shot of a ceramic mug on linen, soft window light (attach pictures to edit)',
+  ltx:'Ask LTX for a video with sound… e.g. waves crash on black rocks at dusk, gulls overhead --8s (attach a picture to animate it)',
+  layers:'Attach a picture — Qwen splits it into transparent layers… optional: describe it --layers 4',
   ace:'Ask ACE for a track… e.g. lo-fi beat, dusty drums, warm Rhodes --30s (attach audio to remix)',
   llama:'Talk to MirAI — ideas, lyrics, scripts, prompts… e.g. write a song about a midnight train'};
 function renderHint(){
   const m=MODELS[cur];if(!m)return;
   $('#prompt').placeholder=PH[cur]||'Message the lab…';
-  const v=m.values||{};let b='';
-  if(cur==='auto')b='MirAI picks the model, skill or pipeline';
-  if(cur==='h3')b=`<b>${esc(v.mode)}</b> · ${esc(v.aspect)} · ${esc(v.res)} · ${esc(v.seconds)}s · ${esc(v.quality)}`;
-  if(cur==='music3')b=`≤${esc(v.duration)}s · lyrics ${esc(v.lyrics)} · ${esc(v.steps)} steps`;
-  if(cur==='qimg')b=`<b>${esc(v.mode)}</b> · ${esc(v.aspect)} · ${esc(v.size)} · ${esc(v.steps)} steps`;
-  if(cur==='ace')b=`<b>${esc(v.mode)}</b> · ${esc(v.duration)}s · ${esc(v.steps)} steps · bpm ${esc(v.bpm||'auto')} · ${esc(v.key)}`;
-  const acc=Object.entries(m.accepts).map(([k,t])=>`${ICON[k]} ${esc(t)}`).join(' &nbsp;·&nbsp; ');
-  $('#hint').innerHTML=`<span>→ <b>${esc(m.label)}</b> · ${MI.html('sliders','sm')} ${b}</span><span>${MI.html('attach','sm')} ${acc}</span><span>Enter to send · Shift+Enter new line</span>`;
 }
 
 /* attachments */
@@ -1380,14 +1377,16 @@ const go_send=go;$('#b-go').onclick=go;
 
 /* mascot: the atom mirrors the lab live */
 /* mascot status card — model icon + colour, MirAI's pick, pipeline steps, live stage, and the tags the prompt is using */
-const MICON={auto:'sparkle',vace:'user',h3:'film',music3:'mic',qimg:'image',ace:'drum',llama:'type'};
+const MICON={auto:'sparkle',vace:'user',h3:'film',ltx:'video',music3:'mic',qimg:'image',klein:'wand',layers:'layers',ace:'drum',llama:'type'};
 const ROLE_IC={image:'image',video:'film',song:'mic',music:'drum',text:'type'};
 function mcTags(j){const p=j.params||{},m=j.model,t=[],seen=new Set();
   const add=(ic,v)=>{v=v==null?'':String(v).trim();if(!v||/^(auto|none|undefined|null|s|≤s)$/i.test(v)||seen.has(v.toLowerCase()))return;seen.add(v.toLowerCase());t.push([ic,v])};
   if(j.pipeline)add('chain',j.pipeline);else if(j.skill)add('sparkle',j.skill);
   if(m==='h3'){add('wand',p.mode);add('expand',p.aspect);add('clock',p.seconds?p.seconds+'s':'');add('bolt',p.quality);add('image',p.res)}
   if(m==='music3'){add('clock',p.duration?'up to '+p.duration+'s':'');add('note',p.lyrics==='instrumental'?'instrumental':'lyrics '+(p.lyrics||''))}
-  if(m==='qimg'){add('wand',p.mode);add('expand',p.aspect);add('image',p.size)}
+  if(m==='qimg'||m==='klein'){add('wand',p.mode);add('expand',p.aspect);add('image',p.size)}
+  if(m==='ltx'){add('wand',p.mode);add('expand',p.aspect);add('clock',p.seconds?p.seconds+'s':'')}
+  if(m==='layers'){add('layers',p.layers?p.layers+' layers':'')}
   if(m==='ace'){add('wand',p.mode==='voice'?'voice swap':p.mode);if(p.mode==='text')add('clock',p.duration?p.duration+'s':'');add('drum',p.bpm?p.bpm+' BPM':'');add('music',p.key);
     if(p.mode==='voice')add('mic','voice match '+(+p.voice).toFixed(2))}
   if(m==='llama'){add('type',p.mode);add('note',p.length)}
@@ -1558,8 +1557,9 @@ function renderRecipe(){const R=$('#recipe');if(!R)return;
                 :`<span class="slot miss" data-slot="${k}">${MI.html(k==='audio'?'mic':'attach','sm')} ${esc(nm)} — ${k==='audio'?'tap the mic or attach':'attach one'}</span>`}).join('')}).join('');
     const knobs=(o.knobs||[]).map(rcpKnob).join('');
     const vatt=atts.find(a=>!a.uploading&&kindOf(a.name||'')==='video');
-    const masky=o.id==='swapin'?`<div class="rc-mask"><label>${MI.html('user','sm')} Who gets replaced <input id="rc-who" value="${esc(MASKW)}" placeholder="person · man in red shorts · woman on the left"></label>
-      <button class="btn sm" id="rc-chk" ${vatt?'':'disabled title="attach the clip first"'}>${MI.html('eye','sm')} Check who</button></div>`:'';
+    const isAlt=o.id==='alterswap';
+    const masky=(o.id==='swapin'||isAlt)?`<div class="rc-mask"><label>${MI.html(isAlt?'box':'user','sm')} ${isAlt?'What gets replaced':'Who gets replaced'} <input id="rc-who" value="${esc(isAlt&&MASKW==='person'?'':MASKW)}" placeholder="${isAlt?'white paper cup · red hoodie · phone in his hand':'person · man in red shorts · woman on the left'}"></label>
+      <button class="btn sm" id="rc-chk" ${vatt?'':'disabled title="attach the clip first"'}>${MI.html('eye','sm')} ${isAlt?'Check what':'Check who'}</button></div>`:'';
     const steps=o.type==='pipeline'&&o.manual?`<div class="steps">${o.manual.map(s=>`<span>${esc(s)}</span>`).join('')}</div>`:'';
     R.innerHTML=`<div class="rcp${rcpMin?' min':''}"><div class="rc-h">${MI.html(o.type==='pipeline'?'chain':o.icon,'sm')} <b>${esc(o.name)}</b><span class="rc-flow">${rcpFlow(o)}</span>
       ${slots||knobs||steps?`<button class="rc-more" id="rc-min" title="Show / hide the details">${rcpMin?'details':'hide'}</button>`:''}<button class="rc-x" id="unarm" title="Cancel">${MI.html('close')}</button></div>
@@ -1627,7 +1627,8 @@ async function go(){
   const miss=rcpMissing();if(miss){renderRecipe();return toast(miss)}
   $('#b-go').disabled=true;closeAC();
   const body={model:cur,prompt,refs:atts.map(a=>a.name),loras:(typeof loraSel!=='undefined'?loraSel.map(l=>({file:l.file,strength:l.strength})):[])};
-  if(ARMED){body[ARMED.type]=ARMED.id;body.knobs=KNOBV;if(ARMED.id==='swapin')body.mask_what=MASKW||'person'}
+  if(ARMED){body[ARMED.type]=ARMED.id;body.knobs=KNOBV;if(ARMED.id==='swapin')body.mask_what=MASKW||'person';
+    if(ARMED.id==='alterswap'){if(!MASKW||MASKW==='person'){$('#b-go').disabled=false;renderRecipe();return toast('Say what gets replaced in your clip (e.g. white paper cup)')}body.mask_what=MASKW}}
   if(SOC)body.social=SOC;
   if(LITERAL)body.literal=true;
   body.session=SESS.id;
@@ -2713,7 +2714,9 @@ function mmlMotion(q){
   try{closeLB()}catch(e){}
 }
 window.addEventListener('message',function(e){var d=e.data||{};
+  if(d.mml==='motion-session'){try{if(d.session&&d.session!==SESS.id){sessLoad().then(()=>sessOpen(d.session))}}catch(x){}return;}
   if(['motion-close','motion-editor','motion-attach','editor-motion'].indexOf(d.mml)<0)return;
+  if(d.mml==='motion-close'&&d.session&&d.session!==SESS.id){try{sessLoad().then(()=>{sessOpen(d.session);setTab('create')})}catch(x){}}
   if(d.mml==='editor-motion'){mmlMotion(d.src?{add:d.src}:null);return;}
   var f=document.getElementById('mml-mo');if(f)f.remove();
   if(d.mml==='motion-editor')mmlEditor(d.src||'');
@@ -2743,7 +2746,8 @@ window.addEventListener('message',function(e){var d=e.data||{};
   try{loadLib()}catch(x){}
 });
 </script>
-<script src="static/lab_c.js?v=202610171233"></script>
+<script src="static/lab_c.js?v=202611051800"></script>
+<script src="static/lib_hub.js?v=202611051800"></script>
 <script type="module" src="static/muse_orb.js"></script>
 <script src="static/muse_voice.js?v=talk1"></script>
 <script src="static/settings_hub.js"></script>

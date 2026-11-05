@@ -306,6 +306,9 @@ final class CreatePage extends LinearLayout {
             case "h3": return "Ask H3 for a video…";
             case "music3": return "Ask Music 3 for a song…";
             case "qimg": return "Ask Qwen for an image…";
+            case "klein": return "Ask FLUX-3 Klein for an image… (attach pictures to edit)";
+            case "ltx": return "Ask LTX for a video with sound… (attach a picture to animate it)";
+            case "layers": return "Attach a picture — Qwen splits it into layers…";
             case "ace": return "Ask ACE for a track…";
             case "llama": return "Talk to MirAI — ideas, lyrics, scripts…";
             default: return "Message the lab…";
@@ -318,9 +321,10 @@ final class CreatePage extends LinearLayout {
     View modelPane() { return modelRow; }
 
     /** The generative models (MirAI still answers chat through Auto). */
-    static final String[] PICK = {"auto", "h3", "music3", "qimg", "ace"};
-    static final String[] PICK_ICON = {"sparkle", "video", "music", "image", "drum"};
-    static final String[] PICK_KIND = {"picks the right model for you", "video", "song with vocals", "image", "music / instrumental"};
+    static final String[] PICK = {"auto", "h3", "ltx", "music3", "qimg", "klein", "layers", "ace"};
+    static final String[] PICK_ICON = {"sparkle", "video", "video", "music", "image", "wand", "layers", "drum"};
+    static final String[] PICK_KIND = {"picks the right model for you", "video", "video with sound · talking picture", "song with vocals",
+                                       "image", "image · fast edits", "split a picture into layers", "music / instrumental"};
 
     /** The composer's model chip: colour dot · name · chevron. Tap = picker, long-press = parameters. */
     void renderModels() {

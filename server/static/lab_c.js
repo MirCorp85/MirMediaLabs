@@ -27,7 +27,7 @@
   // ── right: production timeline ─────────────────────────────────────────────────────────────────────────────────
   var prod = document.createElement('div'); prod.className = 'card lc-prod'; prod.id = 'lc-prod';
   prod.innerHTML = '<div class="lc-empty">Loading productions…</div>';
-  if (right) right.appendChild(prod);
+  // panel no longer mounted (Nov 2 2026) — drawProd still drives the header state chip
   var ICON = { done: 'check-circle', now: 'hourglass', wait: 'bell', fail: 'warn', todo: 'dot' };
   var STATE = { running: ['working', 'run'], waiting: ['needs your OK', 'wait'], paused: ['stopped — needs you', 'fail'], done: ['finished', 'ok'] };
   var CUR = null, PIN = null;
@@ -45,7 +45,7 @@
         prod.innerHTML = '<div class="h">' + mi('film') + ' Production</div><div class="lc-empty">No production yet. Ask MirAI in the chat — e.g. ' +
           '<i>“make a kids musical about a brave little turtle, 3 characters”</i> — and the whole pipeline (cast, world, song, shots, edit, post) shows up here.</div>' +
           '<button class="lc-btn" id="lc-new-series">' + mi('tv') + ' Or build a series by hand</button>';
-        $('#lc-new-series').onclick = function () { window.mmlSeries && mmlSeries(); };
+        $('#lc-new-series', prod).onclick = function () { window.mmlSeries && mmlSeries(); };
         return;
       }
       return J('api/produce/' + live.id + '/project').then(function (p) {
@@ -69,7 +69,7 @@
             return '<a data-pin="' + o.id + '"><span>' + esc(o.title) + '</span><small style="color:var(--dim)">' + esc((STATE[o.state] || [o.state])[0]) + '</small></a>'; }).join('') + '</div>' : '');
         prod.querySelectorAll('[data-a]').forEach(function (b) { b.onclick = function () { act(p.id, b.dataset.a); }; });
         prod.querySelectorAll('[data-pin]').forEach(function (a) { a.onclick = function () { PIN = a.dataset.pin; try { localStorage.setItem('mml.prodpin', PIN); } catch (e) { } drawProd(); }; });
-        $('#lc-open').onclick = function () { mmlProjects(p.id); };
+        $('#lc-open', prod).onclick = function () { mmlProjects(p.id); };
       });
     }).catch(function () { });
   }
@@ -235,4 +235,128 @@
   }
 
   window.MI && MI.fill && MI.fill(document.body);
+})();
+
+/* ── LIBRARY SIDE PANEL: while Motion Studio is open (wide screens), the home page's own library
+   card pins to a left column beside the tool. Drag a tile into the tool (it arrives as a real file drop), or click it to
+   send it to the tool's first matching input. The tools are same-origin iframes, so the bridge runs from here. ──── */
+(function () {
+  'use strict';
+  var TOOLS = { 'mml-mo': 'motion' };
+  var W = 276, card = document.querySelector('.card.lib');
+  if (!card) return;
+  var home = document.createComment('lib-home');
+  var mi = function (n) { return window.MI ? MI.html(n, 'sm') : ''; };
+  var wide = function () { return window.matchMedia('(min-width: 861px)').matches; };
+  var hidden = function () { try { return localStorage.getItem('mml.libside') === '0'; } catch (e) { return false; } };
+  var say = function (t) { try { toast(t); } catch (e) { } };
+  var kindOf = function (n) { return /\.(mp4|webm|mov|m4v|mkv)$/i.test(n) ? 'video' : /\.(mp3|wav|flac|ogg|m4a|aac)$/i.test(n) ? 'audio' : 'image'; };
+
+  var tab = document.createElement('button');
+  tab.id = 'lc-sidetab'; tab.type = 'button';
+  tab.onclick = function () { try { localStorage.setItem('mml.libside', hidden() ? '1' : '0'); } catch (e) { } layout(); };
+  document.body.appendChild(tab);
+  // a clear Hide button in the library's own header (only while it sits beside a tool)
+  var hideBtn = document.createElement('button');
+  hideBtn.id = 'lc-sidehide'; hideBtn.type = 'button'; hideBtn.className = 'btn sm'; hideBtn.title = 'Hide the library (bring it back with the Library tab on the left edge)';
+  hideBtn.onclick = function (e) { e.stopPropagation(); try { localStorage.setItem('mml.libside', '0'); } catch (x) { } layout(); };
+  var head = card.querySelector('.h'); if (head) head.appendChild(hideBtn);
+
+  function open() { for (var id in TOOLS) { var e = document.getElementById(id); if (e) return e; } return null; }
+  function frameOf(o) { return o && (o.tagName === 'IFRAME' ? o : o.querySelector('iframe')); }
+
+  function layout() {
+    var o = open(), on = !!o && wide(), show = on && !hidden();
+    document.body.classList.toggle('lc-side', on);
+    if (show && card.parentNode !== document.body) { card.parentNode.insertBefore(home, card); document.body.appendChild(card); }
+    if (!show && home.parentNode) { home.parentNode.insertBefore(card, home); home.remove(); }
+    card.classList.toggle('lc-sidecard', show);
+    tab.innerHTML = mi('chevron-right') + '<span>Library</span>';
+    tab.title = 'Show the library';
+    tab.classList.toggle('shut', !show);
+    hideBtn.innerHTML = mi('chevron-left') + 'Hide';
+    for (var id in TOOLS) {
+      var e = document.getElementById(id); if (!e) continue;
+      var off = show ? W : on ? 24 : 0;                          // hidden: leave room for the slim Library tab
+      e.style.left = off + 'px'; e.style.width = off ? 'calc(100% - ' + off + 'px)' : '100%'; e.style.right = 'auto';
+      if (on) hook(e);
+    }
+  }
+  new MutationObserver(function (m) {
+    if (m.some(function (r) { return [].some.call(r.addedNodes, isTool) || [].some.call(r.removedNodes, isTool); })) layout();
+  }).observe(document.body, { childList: true });
+  function isTool(n) { return n && n.id && TOOLS[n.id]; }
+  addEventListener('resize', layout);
+  setInterval(function () {                                      // new results land while a tool is open
+    if (card.classList.contains('lc-sidecard') && !document.hidden && !card.matches(':hover')) try { loadLib(true); } catch (e) { }
+  }, 20000);
+
+  // drag out of the library
+  card.addEventListener('mouseover', function (e) { var t = e.target.closest('.th'); if (t && !t.draggable) t.draggable = true; });
+  card.addEventListener('dragstart', function (e) {
+    var t = e.target.closest('.th'); if (!t) return;
+    e.dataTransfer.setData('text/mml-lib', t.dataset.n);
+    e.dataTransfer.setData('text/uri-list', location.origin + '/media/' + encodeURIComponent(t.dataset.n));
+    e.dataTransfer.effectAllowed = 'copy';
+  });
+  // click a tile while a tool is open → into the tool
+  card.addEventListener('click', function (e) {
+    if (!card.classList.contains('lc-sidecard')) return;
+    var t = e.target.closest('.th'); if (!t || e.target.closest('button')) return;
+    e.preventDefault(); e.stopPropagation(); send(t.dataset.n);
+  }, true);
+
+  function send(name) {
+    var o = open(); if (!o) return;
+    var kind = TOOLS[o.id], f = frameOf(o), w = f && f.contentWindow;
+    if (!w) return;
+    if (kind === 'motion') { w.postMessage({ mml: 'motion-add', src: 'lib:' + name }, '*'); return say('Sent to Motion'); }
+    toInput(w, name).then(function (ok) { say(ok ? 'Added ' + name : 'Drag it onto the spot you want in the tool'); });
+  }
+  function fileFor(w, name) {
+    return w.fetch('/media/' + encodeURIComponent(name), { credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob();
+    }).then(function (b) { return new w.File([b], name, { type: b.type || (kindOf(name) + '/*') }); });
+  }
+  function accepts(inp, kind) { var a = (inp.accept || '').toLowerCase(); return !a || a.indexOf(kind + '/') >= 0 || a.indexOf('*') >= 0 && a.indexOf('/') < 0; }
+  function setFile(w, inp, file) {
+    var dt = new w.DataTransfer(); dt.items.add(file); inp.files = dt.files;
+    inp.dispatchEvent(new w.Event('input', { bubbles: true })); inp.dispatchEvent(new w.Event('change', { bubbles: true }));
+  }
+  function toInput(w, name, near) {
+    var doc = w.document, kind = kindOf(name);
+    var all = [].slice.call(doc.querySelectorAll('input[type=file]')).filter(function (i) { return accepts(i, kind) && !i.disabled; });
+    if (near) { var lab = near.closest('label,.drop,[class*=drop],[class*=upload]'); var mine = lab && lab.querySelector('input[type=file]'); if (mine) all = [mine]; }
+    var inp = all.filter(function (i) { return !i.files || !i.files.length; })[0] || all[0];
+    if (!inp) return Promise.resolve(false);
+    return fileFor(w, name).then(function (file) { setFile(w, inp, file); return true; }).catch(function () { return false; });
+  }
+  // drop into a tool: turn the library drag into a real file drop on whatever is under the pointer
+  function hook(o) {
+    var f = frameOf(o); if (!f) return;
+    var go = function () {
+      var w = f.contentWindow; if (!w || w.__mmlLib) return;
+      try { w.__mmlLib = 1; } catch (e) { return; }
+      var has = function (e) { return e.dataTransfer && [].indexOf.call(e.dataTransfer.types || [], 'text/mml-lib') >= 0; };
+      ['dragenter', 'dragover'].forEach(function (ev) { w.addEventListener(ev, function (e) { if (has(e)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } }, true); });
+      w.addEventListener('drop', function (e) {
+        if (!has(e)) return;
+        e.preventDefault(); e.stopImmediatePropagation();
+        var name = e.dataTransfer.getData('text/mml-lib'), target = e.target, x = e.clientX, y = e.clientY;
+        if (TOOLS[o.id] === 'motion') { w.postMessage({ mml: 'motion-add', src: 'lib:' + name }, '*'); return; }
+        fileFor(w, name).then(function (file) {
+          if (target.matches && target.matches('input[type=file]')) return setFile(w, target, file);
+          var dt = new w.DataTransfer(), handled = false; dt.items.add(file);
+          ['dragenter', 'dragover', 'drop'].forEach(function (ev) {
+            var de = new w.DragEvent(ev, { bubbles: true, cancelable: true, composed: true, dataTransfer: dt, clientX: x, clientY: y });
+            target.dispatchEvent(de); if (ev === 'drop') handled = de.defaultPrevented;
+          });
+          if (!handled) toInput(w, name, target).then(function (ok) { if (!ok) say('This spot does not take files'); });
+        }).catch(function () { say('Could not load ' + name); });
+      }, true);
+    };
+    try { if (f.contentDocument && f.contentDocument.readyState !== 'loading' && f.contentWindow.location.href !== 'about:blank') go(); } catch (e) { }
+    if (!f.__mmlHooked) { f.__mmlHooked = 1; f.addEventListener('load', function () { try { f.contentWindow.__mmlLib = 0; } catch (e) { } go(); }); }
+  }
+  layout();
 })();

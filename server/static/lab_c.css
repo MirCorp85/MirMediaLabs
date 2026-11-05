@@ -11,8 +11,12 @@ body.labc .lc-state { font-size: 11px; padding: 3px 9px; border-radius: 20px; bo
 body.labc .lc-state.run { color: #7aa7ff; border-color: #7aa7ff } body.labc .lc-state.wait { color: #e3a949; border-color: #e3a949 }
 body.labc .lc-state.fail { color: #e5484d; border-color: #e5484d } body.labc .lc-state.ok { color: #5fd38d; border-color: #5fd38d }
 @media (min-width: 861px) {
-  body.labc .main { grid-template-columns: 250px minmax(0, 1fr) 320px !important; padding-bottom: 0 }
+  body.labc .main { grid-template-columns: 250px minmax(0, 1fr) !important; padding-bottom: 0 }
+  body.labc.lcol-off .main { grid-template-columns: 46px minmax(0, 1fr) !important }
+  body.labc.lcol-hide .main { grid-template-columns: minmax(0, 1fr) !important }
   body.labc.lc-libwide .main { grid-template-columns: minmax(0, 1fr) !important }
+/* no right column: production lives in Projects / Tools */
+body.labc .main > .col.right { display: none !important }
 /* LIBRARY tab = its own full screen: every creation in a big grid (chat + production timeline step aside) */
 body.labc.lc-libwide .main > .col.center, body.labc.lc-libwide .main > .col.right { display: none !important }
 body.labc.lc-libwide .main > .col.left { max-width: none !important; width: 100% !important }
@@ -84,3 +88,22 @@ body .col.left > .card.skl.sk-float .seg { display: flex !important; }
 .rc-mask label { flex:1; min-width:200px; display:flex; flex-direction:column; gap:4px; font-size:12px; opacity:.9; }
 .rc-mask input { width:100%; padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); color:inherit; }
 body.labc:not(.lc-ready) nav.tabs { visibility: hidden }   /* no classic tab bar flash before the dock is built */
+
+/* library side panel beside Studio / Design / Motion / CopyCat (lab_c.js) */
+.card.lib.lc-sidecard{position:fixed!important;left:0;top:0;bottom:0;width:276px!important;max-width:none!important;height:auto!important;margin:0!important;
+  z-index:10005;border-radius:0!important;border:0!important;border-right:1px solid var(--line2)!important;background:var(--chrome,var(--bg))!important;
+  display:flex!important;flex-direction:column;overflow:hidden}
+.card.lib.lc-sidecard .grid{flex:1;overflow:auto;grid-template-columns:1fr 1fr!important}
+.card.lib.lc-sidecard .th{cursor:grab}
+#lc-sidetab,#lc-sidehide{display:none}
+.card.lib.lc-sidecard #lc-sidehide{display:inline-flex;align-items:center;gap:4px;margin-left:6px}
+/* hidden: a slim Library tab high on the left edge brings it back */
+body.lc-side #lc-sidetab.shut{display:flex;position:fixed;z-index:10006;left:0;top:72px;writing-mode:vertical-rl;
+  align-items:center;gap:6px;padding:12px 5px;border-radius:0 9px 9px 0;border:1px solid var(--line2);border-left:0;background:var(--panel2);
+  color:var(--ink);cursor:pointer;font:600 11px var(--sans,system-ui);letter-spacing:.08em;text-transform:uppercase;box-shadow:2px 0 10px #0005}
+body.lc-side #lc-sidetab.shut .mi{writing-mode:horizontal-tb}
+body.lc-side #lc-sidetab.shut:hover{color:var(--acc)}
+/* phone dock: 12 tools no longer fit, so it scrolls sideways instead of squeezing labels */
+@media (max-width:860px){body.labc nav.tabs{overflow-x:auto!important;justify-content:flex-start!important;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  body.labc nav.tabs::-webkit-scrollbar{display:none}
+  body.labc nav.tabs button{flex:0 0 62px!important;min-width:62px!important;white-space:nowrap}}

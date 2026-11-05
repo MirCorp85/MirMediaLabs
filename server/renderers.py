@@ -35,7 +35,7 @@ def guide_note(job, key, c):
         job["log"] = (job.get("log") or "") + "official guide differs: " + ", ".join(diff) + "\n"
 
 
-_SRC = {"h3": "VID", "music3": "SONG", "qimg": "IMG", "ace": "SONG", "llama": "MirAI"}
+_SRC = {"h3": "VID", "music3": "SONG", "qimg": "IMG", "ace": "SONG", "llama": "MirAI", "klein": "IMG", "ltx": "VID", "layers": "IMG"}
 
 
 def _purge_frames():
@@ -441,6 +441,10 @@ def h3_graph(cond_node, unet, lora, c, seed, sched, silent, guide=None, cn=None)
         if cn.get("mask"):           # ControlNet inpaint keeps the new person aligned with the masked one
             g["cnapply"]["inputs"].update(mask=cn["mask"], source_video=cn["source"])
         model = ["cnapply", 0]
+    if str(c.get("easycache") or "off") != "off" and int(c["steps"]) > 8:   # Oct 31: native ComfyUI step-reuse cache
+        g["easycache"] = {"class_type": "EasyCache", "inputs": {"model": model, "reuse_threshold": float(c["easycache"]),
+                          "start_percent": 0.2, "end_percent": 0.9, "verbose": False}}
+        model = ["easycache", 0]
     g["clip"] = {"class_type": "CLIPLoader", "inputs": {"clip_name": H3["clip"], "type": "minimax", "device": "default"}}
     g["vvae"] = {"class_type": "VAELoader", "inputs": {"vae_name": H3["vae"]}}
     g["avae"] = {"class_type": "VAELoader", "inputs": {"vae_name": H3["audio_vae"]}}
@@ -546,8 +550,363 @@ _GRADE = {"warm": "colorbalance=rs=.08:gs=.02:bs=-.08:rm=.05:bm=-.05", "cool": "
           "vintage": "curves=preset=vintage", "vivid": "eq=saturation=1.35:contrast=1.06", "contrast": "eq=contrast=1.25"}
 
 
+def _studio_ready(app_id):
+    try:
+        import freefield
+        return freefield.ready(app_id)
+    except Exception:
+        return False
+
+
+def _studio_swap(job, app_id, values, path, keep_audio=True):
+    """Run a Studio engine on `path` and put its result in place (the original sound is muxed back)."""
+    import freefield
+    entry = freefield.run_inline(app_id, values, job)[0]
+    tmp, out = path + ".ai.mp4", path + ".aiout.mp4"
+    comfy.fetch(entry, tmp)
+    if keep_audio and has_audio(path):
+        ffmpeg(["-i", tmp, "-i", path, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "copy", "-shortest", out], 300)
+        os.replace(out, path)
+        os.remove(tmp)
+    else:
+        os.replace(tmp, path)
+
+
+# ── Studio engines that REPLACE older lab skills (user, Nov 4 2026: "replace every old overlap with the new repos tools").
+# Each route runs when its Studio app is installed; any failure falls back to the old engine so nothing breaks.
+#   Put Me In This Clip → Recast (SCAIL-2 + SAM 3.1)      Copy The Movement → Motion Transfer (Wan Animate 2)
+#   Talking Photo       → Talking Avatar (LTX-2.5)         Copy This Camera Move → Camera Copy (LTX IC-LoRA)
+#   Re-imagine My Clip  → Mixed Media (Klein + LTX)        Restyle / single-photo edit → Edit (FLUX-3 Klein)
+WAN_FPS, WAN_FRAMES = 16, 81                      # Wan 2.x native: 81 frames at 16 fps ≈ 5 s per pass
+
+
+def _ltx_orient(pic):
+    """Graph patch: LTX apps hard-code a 960×544 landscape canvas → match the picture's shape, same pixel budget."""
+    wh = core.media_size(pic) or (16, 9)
+    r = wh[0] / float(wh[1] or 1)
+    w, h = (960, 544) if r > 1.15 else ((544, 960) if r < 0.87 else (736, 736))
+
+    def patch(graph):
+        for n in graph.values():
+            if n.get("class_type") == "EmptyLTXVLatentVideo":
+                n["inputs"]["width"], n["inputs"]["height"] = w, h
+    return patch
+
+
+def _studio_out(job, app_id, values, prefix, extra, keep_secs=None, pick=-1, patch=None):
+    """run_inline → one declared output (pick: index, default last) into the library (trimmed to keep_secs) → name."""
+    import freefield
+    entry = freefield.run_inline(app_id, values, job, patch=patch)[pick]
+    name = core.new_name(prefix, ".mp4")
+    path = os.path.join(core.LIB, name)
+    if keep_secs:
+        tmp = _tmp("ffout")
+        comfy.fetch(entry, tmp)
+        ffmpeg(["-i", tmp, "-t", "%.3f" % keep_secs, "-c:v", "libx264", "-crf", "15", "-pix_fmt", "yuv420p", "-c:a", "aac",
+                "-movflags", "+faststart", path], 600)
+        os.remove(tmp)
+    else:
+        comfy.fetch(entry, path)
+    meta = {"model": job["model"], "prompt": (job.get("prompt") or "")[:2000], "job": job["id"], "created": time.time(),
+            "user": job.get("user") or "owner", "engine": "ff:" + app_id}
+    if job.get("session"):
+        meta["session"] = job["session"]
+    meta.update(extra or {})
+    core.index_add(name, meta)
+    return name
+
+
+def _clip_part(src, start, secs, fps=None, pad_frames=0):
+    """A section of a clip (no audio), optionally at a fixed fps and padded (last frame held) to pad_frames."""
+    out = _tmp("ffclip")
+    vf = []
+    if fps:
+        vf.append("fps=%d" % fps)
+    if pad_frames:
+        vf.append("tpad=stop_mode=clone:stop=%d" % pad_frames)
+    args = ["-ss", "%.3f" % start, "-t", "%.3f" % secs, "-i", src] + (["-vf", ",".join(vf)] if vf else [])
+    args += (["-frames:v", str(pad_frames)] if pad_frames else []) + ["-an", "-c:v", "libx264", "-crf", "14", "-pix_fmt", "yuv420p", out]
+    ffmpeg(args, 600)
+    return out
+
+
+def _mux_audio(job, path, src, start, secs):
+    """Put the source clip's sound (start..start+secs) back under a rendered video."""
+    if not has_audio(src):
+        return
+    out = path + ".mux.mp4"
+    ffmpeg(["-i", path, "-ss", "%.3f" % start, "-t", "%.3f" % secs, "-i", src, "-map", "0:v", "-map", "1:a", "-c:v", "copy",
+            "-c:a", "aac", "-shortest", "-movflags", "+faststart", out], 300)
+    os.replace(out, path)
+
+
+def _crop_to(pic, ref):
+    """Centre-crop a picture to the reference clip's aspect ratio (LTX first-frame apps drift or cut to the
+    reference's content when the photo's shape doesn't match). Returns a temp png, or pic if already close."""
+    pw, ph = core.media_size(pic) or (0, 0)
+    rw, rh = core.media_size(ref) or (0, 0)
+    if not (pw and ph and rw and rh) or abs(pw / ph - rw / rh) < 0.03:
+        return pic
+    out = _tmp("ffcrop", ".png")
+    ffmpeg(["-i", pic, "-vf", "crop='min(iw,ih*%d/%d)':'min(ih,iw*%d/%d)'" % (rw, rh, rh, rw), "-frames:v", "1", out], 120)
+    return out
+
+
+def _wh_for(path, land=(896, 512), port=(512, 896), sq=(640, 640)):
+    wh = core.media_size(path) or (16, 9)
+    r = wh[0] / float(wh[1] or 1)
+    return land if r > 1.15 else (port if r < 0.87 else sq)
+
+
+def _studio_words(job, text, fallback):
+    w = core.clean_ws(job.get("skill_input") or "") if job.get("skill_id") else ""
+    return w or core.clean_ws(text or "") or fallback
+
+
+def studio_route(job, c, text, imgs, vids, auds):
+    """H3 job → the Studio engine that replaced its skill, or None (old engine handles it)."""
+    sid, mode = job.get("skill_id") or "", c.get("mode")
+    alt = (job.get("alter") or {}).get("kind")      # ALTER: object swaps + new places stay on the masked / H3 engines
+    routes = []
+    if mode == "swap" and imgs and vids and alt != "object":
+        routes.append(("recast", _run_recast))
+    if (sid == "motioncopy" or (mode == "control" and c.get("control") == "pose" and c.get("replace") == "whole")) \
+            and len(imgs) == 1 and vids and alt != "place":
+        routes.append(("motion-transfer", _run_motion_transfer))
+    if (sid == "talk" or (mode == "sing" and c.get("lip") == "speak")) and imgs and auds and not vids \
+            and media_seconds(auds[0]) <= 20.5:
+        routes.append(("talking", _run_talking))
+    if sid == "cameracopy" and imgs and vids:
+        routes.append(("camera-copy", _run_camera_copy))
+    if sid == "reimagine" and vids:
+        routes.append(("mixed-media", _run_mixed_media))
+    for app_id, fn in routes:
+        if not _studio_ready(app_id):
+            continue
+        try:
+            prepare_gpu(job)
+            try:
+                return fn(job, c, text, imgs, vids, auds)
+            except comfy.Cancelled:
+                raise
+            except Exception as e:
+                if "out of memory" not in str(e).lower():
+                    raise
+                # 14B video models need the whole card: something else (an LLM reload, the last engine) still held VRAM
+                log(job, "Studio %s ran out of VRAM — freeing the card and trying once more" % app_id)
+                core.evict_ollama()
+                comfy.free()
+                time.sleep(5)
+                return fn(job, c, text, imgs, vids, auds)
+        except comfy.Cancelled:
+            raise
+        except Exception as e:
+            log(job, "Studio %s failed (%s) — using the previous engine" % (app_id, str(e)[:300]))
+            console.emit("LAB", "Studio %s fell back: %s" % (app_id, str(e)[:200]), job)
+    return None
+
+
+def _run_recast(job, c, text, imgs, vids, auds):
+    """Put Me In This Clip on SCAIL-2: 16 fps, 81-frame passes (same picture + seed), joined, sound back, FILM to 32 fps."""
+    src = vids[0]
+    want = float(c.get("swap_secs") if c.get("swap_secs") not in (None, "") else 5) or SWAP_MAX_S
+    total = max(1.0, min(want, media_seconds(src) or want, SWAP_MAX_S))
+    seg = WAN_FRAMES / float(WAN_FPS)
+    n = int((total - 0.01) // seg) + 1
+    seed = seed_of(c.get("seed"))
+    w, h = _wh_for(src)
+    words = _studio_words(job, text, "the person moves exactly as in the clip, natural light, realistic")
+    log(job, "Recast (SCAIL-2 + SAM 3.1) · %.1fs in %d pass%s · %dx%d · tracking '%s'" % (
+        total, n, "" if n == 1 else "es", w, h, c.get("mask_what") or "person"))
+    parts, t0 = [], time.time()
+    import freefield
+    try:
+        for i in range(n):
+            if job.get("_cancel"):
+                raise comfy.Cancelled()
+            st, ln = i * seg, min(seg, total - i * seg)
+            log(job, "▶ pass %d/%d (%.1fs → %.1fs)" % (i + 1, n, st, st + ln))
+            part = _clip_part(src, st, ln, WAN_FPS, WAN_FRAMES)
+            entry = freefield.run_inline("recast", {"clip": {"path": part}, "character": {"path": imgs[0]}, "prompt": words,
+                                                    "target": c.get("mask_what") or "person", "mode": True, "fast": True,
+                                                    "width": w, "height": h, "seed": seed}, job)[-1]
+            os.remove(part)
+            raw, cut = _tmp("rcraw"), _tmp("rccut")
+            comfy.fetch(entry, raw)
+            ffmpeg(["-i", raw, "-t", "%.3f" % ln, "-an", "-c:v", "libx264", "-crf", "15", "-pix_fmt", "yuv420p", cut], 300)
+            os.remove(raw)
+            parts.append(cut)
+        name = core.new_name("swap", ".mp4")
+        path = os.path.join(core.LIB, name)
+        if len(parts) == 1:
+            os.replace(parts.pop(), path)
+        else:
+            lst = _tmp("rclist", ".txt")
+            with open(lst, "w", encoding="utf-8") as f:
+                f.write("".join("file '%s'\n" % p_.replace("\\", "/") for p_ in parts))
+            ffmpeg(["-f", "concat", "-safe", "0", "-i", lst, "-c", "copy", path], 600)
+            os.remove(lst)
+    finally:
+        for p_ in parts:
+            try:
+                os.remove(p_)
+            except OSError:
+                pass
+    if _studio_ready("smooth"):
+        log(job, "FILM in-betweens 16 → 32 fps …")
+        _studio_swap(job, "smooth", {"clip": {"path": path}, "factor": 2, "mode": True}, path, keep_audio=False)
+    _mux_audio(job, path, src, 0, total)
+    core.index_add(name, {"model": job["model"], "prompt": (job.get("prompt") or "")[:2000], "job": job["id"],
+                          "created": time.time(), "user": job.get("user") or "owner", "mode": "swap", "seed": seed,
+                          "engine": "ff:recast", "size": "%dx%d" % (w, h),
+                          **({"session": job["session"]} if job.get("session") else {})})
+    return {"files": [name], "text": "Recast (SCAIL-2) subject swap · %.1fs in %d pass%s · %dx%d · seed %d · %.1f min\n\nPROMPT:\n%s" % (
+        total, n, "" if n == 1 else "es", w, h, seed, (time.time() - t0) / 60, words)}
+
+
+def _run_motion_transfer(job, c, text, imgs, vids, auds):
+    """Copy The Movement on Wan Animate 2: your character performs the clip's motion. One pass = 81 frames at Wan's
+    native 16 fps (~5 s): the clip is resampled + padded to exactly that (it renders 81 frames at the CLIP's fps, so an
+    8 fps clip came out 10 s long and a 30 fps one would use only its first 2.7 s), then trimmed and FILM'd to 32 fps."""
+    src = vids[0]
+    one = WAN_FRAMES / float(WAN_FPS)
+    secs = max(1.0, min(one, float(c.get("seconds") or 5), media_seconds(src) or one))
+    if (media_seconds(src) or 0) > one + 0.5:
+        log(job, "Motion Transfer takes one ~5 s pass — using the first %.1fs of your clip" % secs)
+    part = _clip_part(src, 0, secs, WAN_FPS, WAN_FRAMES)
+    words = _studio_words(job, text, "dancing energetically")
+    log(job, "Motion Transfer (Wan Animate 2) · %.1fs of movement" % secs)
+    t0 = time.time()
+    try:   # outputs: [0] the clean result, [1] a side-by-side comparison panel
+        name = _studio_out(job, "motion-transfer", {"character": {"path": imgs[0]}, "motion": {"path": part},
+                                                    "character_prompt": "The character from the picture, exact look and outfit. " + words,
+                                                    "action_prompt": words}, "motioncopy", {"mode": "motion-transfer"},
+                           keep_secs=secs, pick=0)
+    finally:
+        os.remove(part)
+    path = os.path.join(core.LIB, name)
+    if _studio_ready("smooth"):
+        log(job, "FILM in-betweens 16 → 32 fps …")
+        _studio_swap(job, "smooth", {"clip": {"path": path}, "factor": 2, "mode": True}, path, keep_audio=False)
+    if (c.get("control_audio") or "h3") != "off":
+        _mux_audio(job, os.path.join(core.LIB, name), src, 0, secs)
+    return {"files": [name], "text": "Motion Transfer (Wan Animate 2) · %.1fs · %.1f min\n\n%s" % (secs, (time.time() - t0) / 60, words)}
+
+
+def _run_talking(job, c, text, imgs, vids, auds):
+    """Talking Photo on LTX-2.5 audio → video (the portrait speaks your recording, 2-20 s)."""
+    secs = max(2.0, min(20.0, media_seconds(auds[0]) or 5))
+    words = _studio_words(job, text, "The person speaks warmly to the camera with natural head movement and expressions")
+    log(job, "Talking Avatar (LTX-2.5) · %.1fs" % secs)
+    t0 = time.time()
+    name = _studio_out(job, "talking", {"portrait": {"path": imgs[0]}, "audio": {"path": auds[0]}, "prompt": words,
+                                        "start": 0, "duration": round(secs, 1), "seed": seed_of(c.get("seed"))},
+                       "talk", {"mode": "talking"}, patch=_ltx_orient(imgs[0]))
+    return {"files": [name], "text": "Talking Avatar (LTX-2.5) · %.1fs · %.1f min\n\n%s" % (secs, (time.time() - t0) / 60, words)}
+
+
+def _run_camera_copy(job, c, text, imgs, vids, auds):
+    """Copy This Camera Move on LTX IC-LoRA Cameraman (reference clip 2-8 s)."""
+    src = vids[0]
+    secs = max(2.0, min(8.0, media_seconds(src) or 8.0))
+    part = _clip_part(src, 0, secs)
+    words = _studio_words(job, text, "")
+    if len(words.split()) < 6 or re.search(r"\b(copy|this|camera move|my photo|my picture)\b", words, re.I) and len(words.split()) < 12:
+        words = "The same scene from the photo, filmed with a smooth cinematic camera move, everything stays consistent"
+    pic = _crop_to(imgs[0], part)
+    log(job, "Camera Copy (LTX IC-LoRA) · %.1fs move" % secs)
+    t0 = time.time()
+    try:
+        name = _studio_out(job, "camera-copy", {"image": {"path": pic}, "clip": {"path": part}, "prompt": words,
+                                                "seed": seed_of(c.get("seed"))}, "cameracopy", {"mode": "camera-copy"})
+    finally:
+        os.remove(part)
+        if pic != imgs[0]:
+            os.remove(pic)
+    return {"files": [name], "text": "Camera Copy (LTX IC-LoRA) · %.1fs · %.1f min\n\n%s" % (secs, (time.time() - t0) / 60, words)}
+
+
+def _run_mixed_media(job, c, text, imgs, vids, auds):
+    """Re-imagine My Clip on Mixed Media (Klein redraws frame 1 in the look, LTX carries the motion; 2-8 s)."""
+    import freefield
+    words = _studio_words(job, text, "")
+    opts = [o["value"] for i in freefield.get("mixed-media")["inputs"] if i["id"] == "style" for o in i.get("options") or []]
+    low = words.lower()
+    style = next((o for o in opts if o.replace("-", " ") in low or o.split("-")[0] in low), None)
+    if not style and "clay" in low:
+        style = next((o for o in opts if "clay" in o), None)
+    if not style:
+        raise RuntimeError("no Mixed Media look named in '%s' (looks: %s)" % (words[:80], ", ".join(opts)))
+    src = vids[0]
+    secs = max(2.0, min(8.0, media_seconds(src) or 8.0))
+    part = _clip_part(src, 0, secs)
+    log(job, "Mixed Media · %s look · %.1fs" % (style, secs))
+    t0 = time.time()
+    try:
+        name = _studio_out(job, "mixed-media", {"clip": {"path": part}, "style": style, "details": words,
+                                                "seed": seed_of(c.get("seed"))}, "reimagine", {"mode": "mixed-media", "style": style})
+    finally:
+        os.remove(part)
+    if (c.get("control_audio") or "clip") != "off":
+        _mux_audio(job, os.path.join(core.LIB, name), src, 0, secs)
+    return {"files": [name], "text": "Mixed Media · %s · %.1fs · %.1f min\n\n%s" % (style, secs, (time.time() - t0) / 60, words)}
+
+
+def _studio_image_edit(job, text, pic, c, seed):
+    """Restyle / single-photo edit on FLUX-3 Klein."""
+    words = _studio_words(job, text, "Improve this image: sharper detail, better lighting, keep the subject identical")
+    log(job, "editing with FLUX-3 Klein (Studio engine) …")
+    t0 = time.time()
+    import freefield
+    entry = freefield.run_inline("edit", {"image": {"path": pic}, "instruction": words, "seed": seed}, job)[0]
+    name = save(entry, "qimg_edit", ".png", job, {"mode": "edit", "engine": "ff:edit", "seed": seed, "prompt_used": words[:3000]})
+    name = _ai_upscale_image(job, name, c) or name
+    return {"files": [name], "text": "FLUX-3 Klein edit · seed %d · %.1f s\n\nINSTRUCTION:\n%s" % (seed, time.time() - t0, words)}
+
+
+def _ai_upscale_image(job, name, c):
+    """Image Upscale option → SeedVR2 (Studio engine) when installed. In place. → name or None (not done)."""
+    k = str(c.get("upscale") or "off")
+    if k not in ("1.5", "2", "4") or not _studio_ready("upscale"):
+        return None
+    import freefield
+    p_ = os.path.join(core.LIB, name)
+    log(job, "upscaling %s× with SeedVR2 (AI) …" % k)
+    entry = freefield.run_inline("upscale", {"image": {"path": p_}, "scale": 4 if k == "4" else 2}, job)[0]
+    tmp = p_ + ".sv.png"
+    comfy.fetch(entry, tmp)
+    if k == "1.5":                                          # SeedVR2 makes 2×; 1.5× = 2× then a clean 0.75 downscale
+        ffmpeg(["-i", tmp, "-vf", "scale=trunc(iw*0.75/2)*2:trunc(ih*0.75/2)*2:flags=lanczos", tmp + ".png"], 300)
+        os.replace(tmp + ".png", tmp)
+    os.replace(tmp, p_)
+    core.index_add(name, dict(core.index().get(name, {}), upscaled="SeedVR2 %s×" % k))
+    return name
+
+
+def _ai_video_post(job, path, c):
+    """Video Upscale + 48/60 fps → SeedVR2 / FILM (Studio engines) when installed; → c minus the steps done here."""
+    c = dict(c)
+    if c.get("upscale") in ("1.5", "2") and _studio_ready("upscale-video") and (media_seconds(path) or 99) <= 20:
+        log(job, "upscaling 2× with SeedVR2 (AI) …")
+        _studio_swap(job, "upscale-video", {"clip": {"path": path}}, path)
+        c["upscale"] = "0.75" if c["upscale"] == "1.5" else "off"
+    fps = str(c.get("fps") or "24")
+    if fps in ("48", "60") and _studio_ready("smooth"):
+        log(job, "smoothing to %s fps with FILM (AI) …" % fps)
+        _studio_swap(job, "smooth", {"clip": {"path": path}, "factor": 2 if fps == "48" else 3, "mode": True}, path)
+        c["fps"] = "24" if fps == "48" else "60r"         # 72 fps from FILM → resampled to 60
+    return c
+
+
 def post_video(job, path, c):
-    """⚙ Post effects with ffmpeg, in place. Every choice at its default = untouched."""
+    """⚙ Post effects with ffmpeg, in place. Every choice at its default = untouched.
+    Upscale and 48/60 fps use the Studio AI engines (SeedVR2, FILM) when installed, else ffmpeg."""
+    try:
+        c = _ai_video_post(job, path, c)
+    except comfy.Cancelled:
+        raise
+    except Exception as e:
+        log(job, "AI post step skipped (%s) — using ffmpeg" % str(e)[:120])
     speed = float(c.get("speed") or 1)
     vf, af = [], []
     if speed != 1:
@@ -561,12 +920,14 @@ def post_video(job, path, c):
         vf.append("noise=alls=%d:allf=t" % (7 if c["grain"] == "light" else 16))
     if c.get("vignette") == "on":
         vf.append("vignette=PI/5")
-    if c.get("upscale") in ("1.5", "2"):
+    if c.get("upscale") in ("1.5", "2", "0.75"):
         k = float(c["upscale"])
         vf.append("scale=trunc(iw*%.2f/2)*2:trunc(ih*%.2f/2)*2:flags=lanczos" % (k, k))
     fps = str(c.get("fps") or "24")
     if fps == "30":
         vf.append("fps=30")
+    elif fps == "60r":
+        vf.append("fps=60")
     elif fps in ("48", "60"):
         vf.append("minterpolate=fps=%s:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1" % fps)
     fade = c.get("fade", "none")
@@ -639,7 +1000,11 @@ def run_h3(job):
     text = text or "a slow cinematic flight through a glowing neon city at night"
     imgs, vids, auds = refs["image"], refs["video"], refs["audio"]
     mode = c["mode"]
-    if mode == "swap":                     # whole-body subject swap → the Wan VACE engine
+    if not job.get("ctlcheck") and not ((job.get("override") or {}).get("maskcheck") or job.get("maskcheck")):
+        routed = studio_route(job, c, text, imgs, vids, auds)   # newer Studio engines replaced these skills
+        if routed:
+            return routed
+    if mode == "swap":                     # whole-body subject swap → the Wan VACE engine (fallback)
         return run_vace_swap(job, c, text if not script else text, imgs, vids, literal)
     if job.get("ctlcheck"):                 # Pose Preview: the control video H3 would follow, no render
         if not vids:
@@ -755,7 +1120,8 @@ def run_h3(job):
         if built:
             p = built + ("\nCAMERA NOTE: steady camera, level horizon, upright framing." if steady else "")
         else:
-            p = "" if literal else "Cinematic, photorealistic, smooth natural motion, detailed lighting. "
+            p = "" if literal else ("Smooth natural motion. " if (job.get("alter") or {}).get("kind") == "style"   # a restyle: never ask for photoreal
+                                    else "Cinematic, photorealistic, smooth natural motion, detailed lighting. ")
             if steady and not literal:
                 p += "Steady camera, level horizon, upright framing. "
             if cont:
@@ -1361,9 +1727,22 @@ def _vace_section(job, c, text, imgs, vids, literal=False):
         ffmpeg(["-i", full, "-vf", "crop=%d:%d:%d:%d,scale=%d:%d:flags=lanczos" % (cw, ch, ox, oy, rw, rh), "-an",
                 "-c:v", "libx264", "-crf", "12", "-pix_fmt", "yuv420p", crop], 300)
         prepped.append(crop)
-        ref = _clean_reference(job, c, imgs[0], prepped)
+        alt_obj = (job.get("alter") or {}).get("kind") == "object" and not c.get("_start")
+        if alt_obj:
+            # ALTER target frame = the clip's first frame with the new thing already in it: cut to the same box, it is
+            # both VACE's reference AND frame 0 of the control (unmasked), so the render starts from a finished,
+            # photographed example and carries it through the motion
+            ref = _tmp("vace_tgt", ".png")
+            ffmpeg(["-i", imgs[0], "-vf", "scale=%d:%d:flags=lanczos,crop=%d:%d:%d:%d,scale=%d:%d:flags=lanczos" % (
+                W, H, cw, ch, ox, oy, rw, rh), "-frames:v", "1", ref], 60)
+            prepped.append(ref)
+            log(job, "ALTER: target frame anchors frame 1 of the swap")
+        else:
+            ref = _clean_reference(job, c, imgs[0], prepped)
         # ── the prompt: who (from the picture, in words) doing what (from the clip)
         who, scene = "the person from the reference picture", ""
+        if alt_obj:
+            literal = True
         if not literal and core.can_see():
             try:
                 log(job, "engine reading your picture and the clip …")
@@ -1402,6 +1781,18 @@ def _vace_section(job, c, text, imgs, vids, literal=False):
                      "width": rw, "height": rh, "length": length, "batch_size": 1, "strength": 1.0,
                      "control_video": ["ctl", 0], "control_masks": ["mskf", 0], "reference_image": ["ref", 0]}},
         })
+        if alt_obj and length > 1:   # frame 0 = the target frame, nothing masked there
+            g.update({
+                "t0": {"class_type": "LoadImage", "inputs": {"image": comfy.upload(ref)}},
+                "crest": {"class_type": "ImageFromBatch", "inputs": {"image": ["ctl", 0], "batch_index": 1, "length": length - 1}},
+                "ctl2": {"class_type": "ImageBatch", "inputs": {"image1": ["t0", 0], "image2": ["crest", 0]}},
+                "mimg": {"class_type": "MaskToImage", "inputs": {"mask": ["mskf", 0]}},
+                "mrest": {"class_type": "ImageFromBatch", "inputs": {"image": ["mimg", 0], "batch_index": 1, "length": length - 1}},
+                "m0": {"class_type": "SolidMask", "inputs": {"value": 0.0, "width": rw, "height": rh}},
+                "m0i": {"class_type": "MaskToImage", "inputs": {"mask": ["m0", 0]}},
+                "mcat": {"class_type": "ImageBatch", "inputs": {"image1": ["m0i", 0], "image2": ["mrest", 0]}},
+                "msk2": {"class_type": "ImageToMask", "inputs": {"image": ["mcat", 0], "channel": "red"}}})
+            g["vace"]["inputs"].update(control_video=["ctl2", 0], control_masks=["msk2", 0])
         model = ["unet", 0]
         if turbo:
             g["lora"] = {"class_type": "LoraLoaderModelOnly", "inputs": {"model": model, "lora_name": VACE["lora"], "strength_model": 0.7}}
@@ -1434,7 +1825,7 @@ def _vace_section(job, c, text, imgs, vids, literal=False):
         args += (["-map", "0:a", "-c:a", "aac"] if has_audio(full) else []) + \
             ["-c:v", "libx264", "-crf", "15", "-shortest", "-movflags", "+faststart", path]
         ffmpeg(args, 1200)
-        if c.get("face_pass", "off") == "on":
+        if c.get("face_pass", "on") == "on" and not (job.get("alter") or {}).get("kind") == "object":
             face_pass(job, imgs[0], path, prepped)
         if c.get("_chunk"):
             return {"path": path, "prompt": p, "dt": dt, "w": W, "h": H}
@@ -1549,6 +1940,7 @@ def run_music3(job):
 
 # ══ QWEN IMAGE 2.1 — t2i · edit · cutout ═══════════════════════════════════
 QIMG = {"dit": "qwen_image_2.1_int8_convrot.safetensors", "te": "qwen3vl_8b_int8_convrot.safetensors",
+        "turbo": "qwen_image_2.1_turbo_int8_convrot.safetensors",   # Oct 31: official 8-step distill (cfg 1)
         "vae": "qwen_image_2.1_vae_bf16.safetensors"}
 core.apply_model_overrides(QIMG)
 QIMG_ASPECT = {"1:1": (1024, 1024), "16:9": (1344, 768), "9:16": (768, 1344), "4:3": (1152, 896), "3:4": (896, 1152),
@@ -1565,8 +1957,10 @@ def qimg_render(job, prompt, c, aspect, steps, seed, ref_imgs, tag):
     n = len(ref_imgs or [])
     res = int(c["edit_res"]) if c["edit_res"] != "auto" else (1024 if n <= 2 else 896 if n <= 3 else 768 if n <= 5 else 640 if n <= 7 else 512)
     cfg = float(c["cfg"])
+    have = comfy.models("diffusion_models")
+    dit = QIMG["turbo"] if c.get("model") == "turbo" and (not have or QIMG["turbo"] in have) else QIMG["dit"]
     g = {
-        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": QIMG["dit"], "weight_dtype": "default"}},
+        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": dit, "weight_dtype": "default"}},
         "2": {"class_type": "QwenImage21Cache", "inputs": {"model": ["1", 0], "device": c["cache"], "dtype": "default"}},
         "3": {"class_type": "CLIPLoader", "inputs": {"clip_name": QIMG["te"], "type": "qwen_image", "device": "default"}},
         "4": {"class_type": "VAELoader", "inputs": {"vae_name": QIMG["vae"]}},
@@ -1590,7 +1984,7 @@ def qimg_render(job, prompt, c, aspect, steps, seed, ref_imgs, tag):
     g["7"] = {"class_type": "KSampler", "inputs": {"model": ["2", 0], "positive": ["5", 0], "negative": ["5", 1],
               "latent_image": latent, "seed": seed, "steps": steps, "cfg": cfg, "sampler_name": c["sampler"],
               "scheduler": c["scheduler"], "denoise": 1.0}}
-    log(job, "rendering%s · %d steps …" % ("" if ref_imgs else " %dx%d" % (w, h), steps))
+    log(job, "rendering%s · %s · %d steps …" % ("" if ref_imgs else " %dx%d" % (w, h), "turbo" if dit == QIMG["turbo"] else "base", steps))
     entry, dt = comfy.run(g, "image", job, 30 * 60)
     comfy.free()
     return entry, dt, (w, h)
@@ -1609,9 +2003,13 @@ def run_qimg(job):
         aspect, aspect_set = "9:16", True
     elif re.search(r"\b(widescreen|landscape|banner|thumbnail)\b", raw, re.I):
         aspect, aspect_set = "16:9", True
-    steps = int(c["steps"])
+    turbo = c.get("model") == "turbo"
+    if turbo and QIMG["turbo"] not in (comfy.models("diffusion_models") or [QIMG["turbo"]]):
+        turbo = False   # turbo weights missing → base model at base steps
+    c = dict(c, model="turbo" if turbo else "base")
+    steps = int(c.get("turbo_steps", 8) if turbo else c["steps"])
     if "--hq" in raw:
-        steps, raw = 40, raw.replace("--hq", "")
+        steps, raw, c = 40, raw.replace("--hq", ""), dict(c, model="base")
     if "--hd" in raw:
         c = dict(c, size="hd")
         raw = raw.replace("--hd", "")
@@ -1644,6 +2042,23 @@ def run_qimg(job):
     if wf:
         return wf
     comfy.ensure()
+    if mode == "cutout" and _studio_ready("remove-bg"):      # BiRefNet: a real alpha matte in seconds (Studio engine)
+        prepare_gpu(job)
+        log(job, "cutting out with BiRefNet (Studio engine) …")
+        t0 = time.time()
+        import freefield
+        entry = freefield.run_inline("remove-bg", {"image": {"path": pics[0]}}, job)[0]
+        name = save(entry, "cutout", ".png", job, {"mode": "cutout", "engine": "BiRefNet"})
+        name = _ai_upscale_image(job, name, c) or name
+        return {"files": [name], "text": "BiRefNet · background removed (transparent PNG) · %.1f s" % (time.time() - t0)}
+    if mode == "edit" and len(pics) == 1 and _studio_ready("edit"):    # FLUX-3 Klein replaced the Qwen single-photo edit
+        try:
+            prepare_gpu(job)
+            return _studio_image_edit(job, text, pics[0], c, seed)
+        except comfy.Cancelled:
+            raise
+        except Exception as e:
+            log(job, "FLUX-3 Klein edit failed (%s) — Qwen edit instead" % str(e)[:300])
     if comfy.models("diffusion_models") and QIMG["dit"] not in comfy.models("diffusion_models"):
         raise RuntimeError("Qwen-Image 2.1 weights missing in ComfyUI models/diffusion_models")
     if mode == "cutout":
@@ -1671,7 +2086,10 @@ def run_qimg(job):
     entry, dt, wh = qimg_render(job, prompt, c, aspect, steps, seed, use, {"generate": "qimg", "edit": "qimg_edit", "cutout": "qimg_cutout"}[mode])
     name = save(entry, {"generate": "qimg", "edit": "qimg_edit", "cutout": "qimg_cutout"}[mode], ".png", job,
                 {"mode": mode, "seed": seed, "prompt_used": prompt[:3000]})
-    if c.get("upscale") in ("1.5", "2"):
+    up_ai = _ai_upscale_image(job, name, c)
+    if up_ai:
+        wh = core.media_size(os.path.join(core.LIB, name)) or wh
+    elif c.get("upscale") in ("1.5", "2", "4"):
         log(job, "upscaling %s× …" % c["upscale"])
         p_ = os.path.join(core.LIB, name)
         k = float(c["upscale"])
@@ -1830,4 +2248,203 @@ def run_vace(job):
     return run_vace_swap(job, c, text, refs["image"], refs["video"], bool(job.get("literal")))
 
 
-RUNNERS = {"vace": run_vace, "h3": run_h3, "music3": run_music3, "qimg": run_qimg, "ace": run_ace, "llama": llm.run_llama}
+# ── NEW PICKER MODELS (Nov 5 2026, user: "add all the new compatible models to the model picker") ──────────────────
+# FLUX-3 Klein (image), LTX-2.5 (video + sound) and Qwen-Image-Layered (picture -> layers) were installed for Studio /
+# Design; these runners expose them as first-class lab models next to H3 / Music 3 / Qwen / ACE.
+KLEIN = {"dit": "flux3-image-klein-int8-convrot.safetensors", "te": "qwen3vl_4b_int8_convrot.safetensors",
+         "vae": "flux2-vae.safetensors"}
+core.apply_model_overrides(KLEIN)
+LAYERED = {"dit": "qwen_image_layered_bf16.safetensors|qwen_image_layered_fp8mixed.safetensors",
+           "te": "qwen_2.5_vl_7b_fp8_scaled.safetensors", "vae": "qwen_image_layered_vae.safetensors"}
+LTX_ASPECT = {"16:9": "16:9 (Widescreen)", "9:16": "9:16 (Portrait Widescreen)", "1:1": "1:1 (Square)",
+              "4:3": "4:3 (Standard)", "3:4": "3:4 (Portrait Standard)", "21:9": "21:9 (Ultrawide)"}
+_SIZE_MUL = {"standard": 1.0, "hd": 1.41, "max": 2.0}
+
+
+def _aspect_from(raw, c, default="1:1"):
+    aspect = c.get("aspect") if c.get("aspect") not in (None, "", "auto") else None
+    m = re.search(r"\b(1:1|16:9|9:16|4:3|3:4|3:2|2:3|21:9|2:1|1:2|4:5|5:4)\b", raw)
+    if m:
+        aspect, raw = m.group(1), raw.replace(m.group(0), "")
+    elif not aspect and re.search(r"\b(vertical|portrait|story|reel|phone wallpaper)\b", raw, re.I):
+        aspect = "9:16"
+    elif not aspect and re.search(r"\b(widescreen|landscape|banner|thumbnail)\b", raw, re.I):
+        aspect = "16:9"
+    return aspect or default, raw
+
+
+def klein_graph(prompt, w, h, steps, seed, pics):
+    g = {"1": {"class_type": "UNETLoader", "inputs": {"unet_name": KLEIN["dit"], "weight_dtype": "default"}},
+         "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": KLEIN["te"], "type": "flux3", "device": "default"}},
+         "3": {"class_type": "VAELoader", "inputs": {"vae_name": KLEIN["vae"]}},
+         "4": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["2", 0]}},
+         "5": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["4", 0]}},
+         "8": {"class_type": "VAEDecode", "inputs": {"samples": ["7", 0], "vae": ["3", 0]}},
+         "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": comfy.OUT_PREFIX + "/klein", "images": ["8", 0]}}}
+    ks = {"seed": seed, "steps": steps, "cfg": 1, "sampler_name": "euler", "scheduler": "simple", "denoise": 1,
+          "model": ["1", 0]}
+    if pics:                                       # edit: every attached picture is a reference (FLUX-3 multi-reference)
+        ref = {"positive": ["4", 0], "negative": ["5", 0], "vae": ["3", 0], "resolution": "resize",
+               "resolution.megapixels": 1}
+        for i, p in enumerate(pics):
+            g["20%d" % i] = {"class_type": "LoadImage", "inputs": {"image": comfy.upload(p)}}
+            ref["images.image%d" % i] = ["20%d" % i, 0]
+        g["17"] = {"class_type": "ReferenceMultiLatent", "inputs": ref}
+        ks.update(positive=["17", 0], negative=["17", 1], latent_image=["17", 2])
+    else:
+        g["6"] = {"class_type": "EmptyFlux2LatentImage", "inputs": {"width": w, "height": h, "batch_size": 1}}
+        ks.update(positive=["4", 0], negative=["5", 0], latent_image=["6", 0])
+    g["7"] = {"class_type": "KSampler", "inputs": ks}
+    return g
+
+
+def run_klein(job):
+    """FLUX-3 Klein: text -> image, or edit / combine up to 6 attached pictures."""
+    refs = split_refs(job)
+    c = job["params"]
+    raw = job.get("prompt") or ""
+    aspect, raw = _aspect_from(raw, c)
+    s, raw = flag(raw, r"--steps\s+(\d{1,2})", int)
+    steps = max(4, min(40, s or int(c.get("steps") or 16)))
+    s, raw = flag(raw, r"--seed\s+(\d+)", int)
+    seed = seed_of(s if s is not None else c.get("seed"))
+    text = core.clean_ws(raw)
+    extra = attached_text(refs["text"])
+    if extra:
+        text = (text + "\n" + extra).strip()
+    pics = (refs["image"] + [video_frame(v) for v in refs["video"][:2]])[:6]
+    mode = c.get("mode") or "auto"
+    mode = ("edit" if pics else "generate") if mode == "auto" else mode
+    if mode == "edit" and not pics:
+        log(job, "no picture attached — making it from your words (text → image)")
+        mode = "generate"
+    if mode == "generate" and pics:
+        log(job, "your attached picture%s switch text → image to edit" % ("" if len(pics) == 1 else "s"))
+        mode = "edit"
+    if not text:
+        if mode == "generate":
+            raise RuntimeError("describe the image to generate")
+        text = "Improve this image: sharper detail, better lighting, keep the subject identical"
+    if comfy.models("diffusion_models") and KLEIN["dit"] not in comfy.models("diffusion_models"):
+        raise RuntimeError("FLUX-3 Klein weights missing in ComfyUI models/diffusion_models")
+    bw, bh = QIMG_ASPECT.get(aspect, (1024, 1024))
+    k = _SIZE_MUL.get(c.get("size") or "standard", 1.0)
+    w, h = int(bw * k) // 16 * 16, int(bh * k) // 16 * 16
+    prepare_gpu(job)
+    log(job, "FLUX-3 Klein · %s · %s · %d steps" % (mode, "%d picture%s" % (len(pics), "" if len(pics) == 1 else "s")
+                                                    if mode == "edit" else "%s %d×%d" % (aspect, w, h), steps))
+    t0 = time.time()
+    entry, _ = comfy.run(klein_graph(text, w, h, steps, seed, pics if mode == "edit" else []), "image", job, 30 * 60)
+    name = save(entry, "klein_edit" if mode == "edit" else "klein", ".png", job,
+                {"mode": mode, "engine": "FLUX-3 Klein", "seed": seed, "aspect": aspect, "prompt_used": text[:3000]})
+    name = _ai_upscale_image(job, name, c) or name
+    return {"files": [name], "text": "FLUX-3 Klein · %s · seed %d · %.1f s\n\n%s" % (mode, seed, time.time() - t0, text)}
+
+
+def run_ltx(job):
+    """LTX-2.5: text -> video, picture -> video, or picture + voice -> talking video — all with generated sound."""
+    refs = split_refs(job)
+    c = job["params"]
+    raw = job.get("prompt") or ""
+    aspect, raw = _aspect_from(raw, c, "16:9")
+    s, raw = flag(raw, r"--(\d{1,2})s\b", int)
+    secs = max(2, min(10, s or int(c.get("seconds") or 5)))
+    s, raw = flag(raw, r"--seed\s+(\d+)", int)
+    seed = seed_of(s if s is not None else c.get("seed"))
+    text = core.clean_ws(raw)
+    extra = attached_text(refs["text"])
+    if extra:
+        text = (text + "\n" + extra).strip()
+    imgs = refs["image"] + [video_frame(v) for v in refs["video"][:1]]
+    auds = refs["audio"]
+    mode = c.get("mode") or "auto"
+    if mode == "auto":
+        mode = "talk" if imgs and auds else ("i2v" if imgs else "t2v")
+    if mode in ("i2v", "talk") and not imgs:
+        log(job, "no picture attached — text → video instead")
+        mode = "t2v"
+    if mode == "talk" and not auds:
+        mode = "i2v"
+    enhance = (c.get("enhance") or "on") == "on" and not job.get("literal")
+    prepare_gpu(job)
+    if mode == "talk":
+        return _run_talking(job, dict(c, seed=seed), text, imgs, [], auds)
+    if not text and imgs:
+        text = "The scene comes alive with natural motion and ambient sound"
+    if not text:
+        raise RuntimeError("describe the video to make")
+    t0 = time.time()
+    if mode == "i2v":
+        log(job, "LTX-2.5 picture → video · %ds" % secs)
+        name = _studio_out(job, "video", {"image": {"path": imgs[0]}, "prompt": text, "duration": secs, "enhance": enhance,
+                                          "seed": seed}, "ltx", {"mode": "i2v", "engine": "LTX-2.5", "seed": seed},
+                           patch=_ltx_orient(imgs[0]))
+    else:
+        log(job, "LTX-2.5 text → video · %s · %ds" % (aspect, secs))
+        name = _studio_out(job, "video-t2v", {"prompt": text, "duration": secs, "enhance": enhance, "seed": seed,
+                                              "aspect": LTX_ASPECT.get(aspect, LTX_ASPECT["16:9"])},
+                           "ltx", {"mode": "t2v", "engine": "LTX-2.5", "seed": seed, "aspect": aspect})
+    return {"files": [name], "text": "LTX-2.5 · %s · %ds with sound · seed %d · %.1f min\n\n%s"
+            % (mode, secs, seed, (time.time() - t0) / 60, text)}
+
+
+def _layered_graph(pic, prompt, layers, steps, seed):
+    have = comfy.models("diffusion_models")
+    dit = next((x for x in LAYERED["dit"].split("|") if x in have), LAYERED["dit"].split("|")[-1])
+    return {
+        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": dit, "weight_dtype": "default"}},
+        "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": LAYERED["te"], "type": "qwen_image", "device": "default"}},
+        "3": {"class_type": "VAELoader", "inputs": {"vae_name": LAYERED["vae"]}},
+        "4": {"class_type": "LoadImage", "inputs": {"image": comfy.upload(pic)}},
+        "5": {"class_type": "ImageScaleToMaxDimension", "inputs": {"image": ["4", 0], "upscale_method": "lanczos",
+                                                                    "largest_size": 640}},
+        "6": {"class_type": "GetImageSize", "inputs": {"image": ["5", 0]}},
+        "7": {"class_type": "VAEEncode", "inputs": {"pixels": ["5", 0], "vae": ["3", 0]}},
+        "8": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["2", 0]}},
+        "9": {"class_type": "CLIPTextEncode", "inputs": {"text": "", "clip": ["2", 0]}},
+        "10": {"class_type": "ReferenceLatent", "inputs": {"conditioning": ["8", 0], "latent": ["7", 0]}},
+        "11": {"class_type": "ReferenceLatent", "inputs": {"conditioning": ["9", 0], "latent": ["7", 0]}},
+        "12": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["1", 0], "shift": 1}},
+        "13": {"class_type": "EmptyQwenImageLayeredLatentImage", "inputs": {"width": ["6", 0], "height": ["6", 1],
+                                                                            "layers": layers, "batch_size": 1}},
+        "14": {"class_type": "KSampler", "inputs": {"model": ["12", 0], "positive": ["10", 0], "negative": ["11", 0],
+                                                    "latent_image": ["13", 0], "seed": seed, "steps": steps, "cfg": 2.5,
+                                                    "sampler_name": "euler", "scheduler": "simple", "denoise": 1}},
+        "15": {"class_type": "LatentCut", "inputs": {"samples": ["14", 0], "dim": "t", "index": 1, "amount": 16384}},
+        "16": {"class_type": "LatentCutToBatch", "inputs": {"samples": ["15", 0], "dim": "t", "slice_size": 1}},
+        "17": {"class_type": "VAEDecode", "inputs": {"samples": ["16", 0], "vae": ["3", 0]}},
+        "18": {"class_type": "SaveImage", "inputs": {"images": ["17", 0], "filename_prefix": comfy.OUT_PREFIX + "/layers"}},
+    }
+
+
+def run_layers(job):
+    """Qwen-Image-Layered: split an attached picture into separate transparent layers (background + subjects)."""
+    refs = split_refs(job)
+    c = job["params"]
+    pics = refs["image"] + [video_frame(v) for v in refs["video"][:1]]
+    if not pics:
+        raise RuntimeError("attach the picture to split into layers")
+    raw = job.get("prompt") or ""
+    s, raw = flag(raw, r"--layers\s+(\d)", int)
+    layers = max(2, min(6, s or int(c.get("layers") or 2)))
+    s, raw = flag(raw, r"--seed\s+(\d+)", int)
+    seed = seed_of(s if s is not None else c.get("seed"))
+    steps = max(8, min(50, int(c.get("steps") or 20)))
+    text = core.clean_ws(raw) or "a picture"
+    prepare_gpu(job)
+    log(job, "Qwen-Image-Layered · %d layers · %d steps" % (layers, steps))
+    t0 = time.time()
+    first, _ = comfy.run(_layered_graph(pics[0], text, layers, steps, seed), "image", job, 30 * 60)
+    try:
+        pid = job["comfy_pid"]
+        hist = comfy.requests.get(comfy.BASE + "/history/" + pid, timeout=30).json()[pid]
+        entries = [i for o in hist.get("outputs", {}).values() for i in o.get("images", []) if i.get("type") == "output"]
+    except Exception:
+        entries = []
+    names = [save(e, "layer%d" % (i + 1), ".png", job, {"mode": "layers", "engine": "Qwen-Image-Layered", "layer": i + 1,
+                                                        "seed": seed}) for i, e in enumerate(entries or [first])]
+    return {"files": names, "text": "Qwen-Image-Layered · %d layers (transparent PNGs, back → front) · %.1f s"
+            % (len(names), time.time() - t0)}
+
+
+RUNNERS = {"vace": run_vace, "h3": run_h3, "music3": run_music3, "qimg": run_qimg, "ace": run_ace, "klein": run_klein, "ltx": run_ltx, "layers": run_layers, "llama": llm.run_llama}

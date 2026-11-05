@@ -15,8 +15,8 @@ android {
         applicationId "com.mirmedialabs.app"
         minSdk 24
         targetSdk 34
-        versionCode 63
-        versionName "2.36"
+        versionCode 64
+        versionName "2.37"
     }
 
     buildFeatures { buildConfig true }

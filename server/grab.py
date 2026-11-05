@@ -68,6 +68,11 @@ def _js_runtimes():
     for name in ("deno", "node", "bun"):
         if shutil.which(name):
             out[name] = {}
+    if "deno" not in out:      # winget puts deno outside the PATH an already-running lab sees
+        import glob
+        hit = glob.glob(os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft", "WinGet", "Packages", "DenoLand.Deno_*", "deno.exe"))
+        if hit:
+            out = {"deno": {"path": hit[0]}, **out}
     return out
 
 
@@ -91,7 +96,72 @@ def _clean_url(u):
         ip = ipaddress.ip_address(a.split("%")[0])
         if not ip.is_global or ip.is_multicast:
             raise ValueError("that link points at this network, not a website")
-    return u
+    return _ig_url(u)
+
+
+# Instagram: share links come as instagr.am / m.instagram.com with ?igsh= tracking — yt-dlp only knows www.instagram.com.
+# A carousel post is a "playlist" of slides (photos + videos); ?img_index=N (what the app's share sheet adds) picks a slide.
+IG_HOSTS = ("instagram.com", "www.instagram.com", "m.instagram.com", "instagr.am", "www.instagr.am")
+IG_COOKIES = os.path.join(core.DATA, "instagram_cookies.txt")   # optional Netscape cookies.txt → private / rate-limited posts
+
+
+def _is_ig(u):
+    from urllib.parse import urlsplit
+    return (urlsplit(u).hostname or "").lower() in IG_HOSTS
+
+
+def _ig_url(u):
+    from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+    if not _is_ig(u):
+        return u
+    sp = urlsplit(u)
+    keep = [(k, v) for k, v in parse_qsl(sp.query) if k == "img_index"]   # drop igsh / utm_* — keep the slide pick
+    return urlunsplit(("https", "www.instagram.com", sp.path, urlencode(keep), ""))
+
+
+def _ig_slide(u):
+    """1-based slide from ?img_index=, else None."""
+    from urllib.parse import urlsplit, parse_qs
+    try:
+        return max(1, int(parse_qs(urlsplit(u).query).get("img_index", [""])[0]))
+    except ValueError:
+        return None
+
+
+def _has_video(e):
+    return any((f.get("vcodec") or "") != "none" for f in (e.get("formats") or [])) or bool(e.get("url") and e.get("ext") == "mp4")
+
+
+def _pick_slide(info, url):
+    """An Instagram carousel → (1-based index, entry) of the slide to grab: the linked slide if it's a video, else the
+    first video slide. Raises when the post is photos only. Anything else → (None, info) untouched."""
+    if info.get("_type") != "playlist" or not _is_ig(url) or not isinstance(info.get("entries"), list):
+        return None, info
+    ents = info["entries"]
+    want = _ig_slide(url)
+    if want and want <= len(ents) and _has_video(ents[want - 1]):
+        return want, ents[want - 1]
+    for i, e in enumerate(ents, 1):
+        if _has_video(e):
+            return i, e
+    raise ValueError("there is no video in this post (photos only)")
+
+
+def _ig_title(info):
+    """Instagram titles are always "Video by <user>" — name the file after the caption's first line instead."""
+    t, cap = info.get("title") or "", (info.get("description") or "").strip()
+    if re.match(r"^(Video|Post) by ", t) and cap:
+        line = re.sub(r"\s+", " ", cap.splitlines()[0]).strip()[:70]
+        return "%s — %s" % (info.get("channel") or info.get("uploader") or t[9:], line) if line else t
+    return t
+
+
+def _site_opts(o, url):
+    if _is_ig(url):
+        o["http_headers"] = {**o.get("http_headers", {}), "Referer": "https://www.instagram.com/"}
+        if os.path.isfile(IG_COOKIES):
+            o["cookiefile"] = IG_COOKIES
+    return o
 
 
 def _secs(v):
@@ -124,7 +194,7 @@ def _opts(job, outdir, hook):
         o["format"] = "bv*+ba/b"
         o["format_sort"] = (["res:%d" % h] if h else []) + ["vcodec:h264", "acodec:m4a", "ext:mp4"]
         o["merge_output_format"] = "mp4"
-    return o
+    return _site_opts(o, job["url"])
 
 
 def _ffmpeg(args, timeout=1800):
@@ -178,8 +248,14 @@ def _run(job):
                     job["stage"] = "joining audio + video" if job["mode"] != "mp3" else "converting"
 
             with yt_dlp.YoutubeDL(_opts(job, outdir, hook)) as y:
-                info = y.extract_info(job["url"], download=True)
-            job["title"] = (info or {}).get("title") or job.get("title")
+                raw = y.extract_info(job["url"], download=False, process=False)   # one fetch; resolve, then download
+                slide, _e = _pick_slide(raw or {}, job["url"])
+                if slide:                                                      # carousel → just the video slide
+                    y.params["playlist_items"] = str(slide)
+                info = y.process_ie_result(raw, download=True)
+                if slide and (info or {}).get("entries"):
+                    info = {**info, **(list(info["entries"])[0] or {})}
+            job["title"] = _ig_title(info or {}) or job.get("title")
             job["duration"] = (info or {}).get("duration")
             got = [os.path.join(outdir, f) for f in os.listdir(outdir) if f.startswith("src.") and not f.endswith((".part", ".ytdl"))]
             if not got:
@@ -255,6 +331,12 @@ def _convert(job, src):
 
 def _friendly(msg):
     m = msg.lower()
+    if "instagram" in m and ("empty media" in m or "rate-limit" in m or "login" in m or "cookies" in m):
+        return ("Instagram won't share that post without a sign-in (private account, age-gated, or Instagram is "
+                "rate-limiting this PC). Public reels work; for others save your Instagram cookies.txt as "
+                + IG_COOKIES)
+    if "no video in this post" in m or "photos only" in m:
+        return "that post is photos only — there's no video to grab"
     if "private video" in m or "sign in" in m or "login" in m:
         return "that video is private or needs a sign-in — only public links work"
     if "age" in m and "confirm" in m:
@@ -391,12 +473,22 @@ def register(app, hk):
             js = _js_runtimes()
             if js:
                 o["js_runtimes"] = js
-            with yt_dlp.YoutubeDL(o) as y:
-                i = y.extract_info(url, download=False) or {}
+            with yt_dlp.YoutubeDL(_site_opts(o, url)) as y:
+                raw = y.extract_info(url, download=False, process=False) or {}
+                slide, _e = _pick_slide(raw, url)
+                if slide:
+                    y.params["playlist_items"] = str(slide)
+                i = y.process_ie_result(raw, download=False) or {}
+                if slide and i.get("entries"):
+                    i = {**i, **(list(i["entries"])[0] or {})}
+                    i.pop("_type", None)
         except Exception as e:
             return oops(_friendly(re.sub(r"\x1b\[[0-9;]*m", "", str(e)).replace("ERROR: ", "")))
         if i.get("_type") == "playlist":
             return oops("that's a playlist — paste a link to one video")
+        i["title"] = _ig_title(i)
+        if slide:
+            i["title"] = "%s (slide %d)" % (i.get("title") or "Instagram post", slide)
         return jsonify({"title": i.get("title"), "duration": i.get("duration"), "thumb": i.get("thumbnail"),
                         "uploader": i.get("uploader") or i.get("channel"), "site": i.get("extractor_key"),
                         "license": i.get("license"), "live": bool(i.get("is_live")),

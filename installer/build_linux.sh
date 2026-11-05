@@ -72,6 +72,7 @@ PKG="$BUILD/pkg/MirMediaLabs"
 rm -rf "$BUILD/pkg"
 mkdir -p "$PKG/updates"
 cp -r "$APPOUT/app_main.dist" "$PKG/app"
+cp -r "$ROOT/server/alter_kit" "$PKG/app/alter_kit"   # ALTER kit (MIT scripts, run with the engine's Python)
 cp "$ROOT/linux/install.sh" "$PKG/install.sh"
 cp "$ROOT/linux/engine_setup.py" "$PKG/engine_setup.py"
 cp "$ROOT/MirMediaLabs-icon-1024.png" "$PKG/"
