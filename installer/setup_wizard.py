@@ -715,6 +715,16 @@ class Installer:
         requirements go into the engine's Python. One pack failing never stops the others."""
         cn = os.path.join(self.comfy, "custom_nodes")
         base = [self.uv, "pip", "install", "--python", self.py]
+        # pin the engine's PyTorch: a pack's requirements must never swap the CUDA build Setup installed
+        pins = run_quiet([self.py, "-c", "import importlib.metadata as m\n"
+                                         "for p in ('torch', 'torchvision', 'torchaudio'):\n"
+                                         "    try: print(p + '==' + m.version(p))\n"
+                                         "    except Exception: pass"], 60)
+        con = os.path.join(self.cache, "engine-pins.txt")
+        os.makedirs(self.cache, exist_ok=True)
+        with open(con, "w", encoding="utf-8") as f:
+            f.write("\n".join(l for l in pins.splitlines() if "==" in l) + "\n")
+        base += ["-c", con]
         for name, url in NODE_PACKS:
             self.check()
             try:
