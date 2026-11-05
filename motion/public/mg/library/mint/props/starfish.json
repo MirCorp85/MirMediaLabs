@@ -1,0 +1,409 @@
+{
+ "id": "starfish",
+ "kind": "prop",
+ "name": "Starfish",
+ "desc": "A chunky five-armed orange-red starfish lying flat on a low grey rock in the sand. It has ",
+ "tags": [
+  "beach",
+  "shore",
+  "sea",
+  "starfish",
+  "small",
+  "prop",
+  "filler",
+  "coast",
+  "rock"
+ ],
+ "w": 0.7,
+ "d": 0.6,
+ "h": 0.4,
+ "shapes": [
+  {
+   "s": "ellipse",
+   "x": 0.0,
+   "y": -2.0,
+   "rx": 40.0,
+   "ry": 8.0,
+   "rot": 0.0,
+   "fill": "black",
+   "a": 0.22
+  },
+  {
+   "s": "ellipse",
+   "x": -4.0,
+   "y": -3.0,
+   "rx": 38.0,
+   "ry": 6.0,
+   "rot": 0.0,
+   "fill": "sand",
+   "a": 0.9
+  },
+  {
+   "s": "ellipse",
+   "x": 2.0,
+   "y": -12.0,
+   "rx": 30.0,
+   "ry": 8.0,
+   "rot": 0.0,
+   "fill": [
+    "stone",
+    "stone2"
+   ]
+  },
+  {
+   "s": "ellipse",
+   "x": -22.0,
+   "y": -5.0,
+   "rx": 12.0,
+   "ry": 5.0,
+   "rot": 0.0,
+   "fill": [
+    "stone",
+    "stone2"
+   ]
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -24.0,
+     -15.0
+    ],
+    [
+     2.0,
+     -21.0
+    ],
+    [
+     28.0,
+     -15.0
+    ]
+   ],
+   "stroke": "stone2",
+   "lw": 1.0,
+   "a": 0.8
+  },
+  {
+   "s": "ellipse",
+   "x": 2.0,
+   "y": -13.0,
+   "rx": 20.0,
+   "ry": 5.5,
+   "rot": 0.0,
+   "fill": "black",
+   "a": 0.18
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     2.0,
+     -24.5
+    ],
+    [
+     9.0,
+     -18.9
+    ],
+    [
+     22.0,
+     -17.2
+    ],
+    [
+     13.4,
+     -12.1
+    ],
+    [
+     14.3,
+     -5.5
+    ],
+    [
+     2.0,
+     -8.0
+    ],
+    [
+     -10.3,
+     -5.5
+    ],
+    [
+     -9.4,
+     -12.1
+    ],
+    [
+     -18.0,
+     -17.2
+    ],
+    [
+     -5.0,
+     -18.9
+    ]
+   ],
+   "fill": "#8e2418"
+  },
+  {
+   "s": "circle",
+   "x": 13.6,
+   "y": -6.6,
+   "r": 3.0,
+   "fill": "#8e2418"
+  },
+  {
+   "s": "circle",
+   "x": -9.6,
+   "y": -6.6,
+   "r": 3.0,
+   "fill": "#8e2418"
+  },
+  {
+   "s": "circle",
+   "x": 20.6,
+   "y": -16.8,
+   "r": 3.0,
+   "fill": "#8e2418"
+  },
+  {
+   "s": "circle",
+   "x": -16.6,
+   "y": -16.8,
+   "r": 3.0,
+   "fill": "#8e2418"
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     2.0,
+     -26.5
+    ],
+    [
+     9.0,
+     -20.9
+    ],
+    [
+     22.0,
+     -19.2
+    ],
+    [
+     13.4,
+     -14.1
+    ],
+    [
+     14.3,
+     -7.5
+    ],
+    [
+     2.0,
+     -10.0
+    ],
+    [
+     -10.3,
+     -7.5
+    ],
+    [
+     -9.4,
+     -14.1
+    ],
+    [
+     -18.0,
+     -19.2
+    ],
+    [
+     -5.0,
+     -20.9
+    ]
+   ],
+   "fill": "#f06a2e"
+  },
+  {
+   "s": "circle",
+   "x": 2.0,
+   "y": -25.2,
+   "r": 3.0,
+   "fill": "#f06a2e"
+  },
+  {
+   "s": "circle",
+   "x": 20.6,
+   "y": -18.8,
+   "r": 3.0,
+   "fill": "#f06a2e"
+  },
+  {
+   "s": "circle",
+   "x": 13.6,
+   "y": -8.6,
+   "r": 3.0,
+   "fill": "#f06a2e"
+  },
+  {
+   "s": "circle",
+   "x": -9.6,
+   "y": -8.6,
+   "r": 3.0,
+   "fill": "#f06a2e"
+  },
+  {
+   "s": "circle",
+   "x": -16.6,
+   "y": -18.8,
+   "r": 3.0,
+   "fill": "#f06a2e"
+  },
+  {
+   "s": "ellipse",
+   "x": 2.0,
+   "y": -16.0,
+   "rx": 6.0,
+   "ry": 3.0,
+   "rot": 0.0,
+   "fill": "#ffad5c",
+   "a": 0.45
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     2.0,
+     -16.0
+    ],
+    [
+     2.4,
+     -19.7
+    ],
+    [
+     2.0,
+     -23.35
+    ]
+   ],
+   "stroke": "#ffad5c",
+   "lw": 1.2,
+   "a": 0.5
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     2.0,
+     -16.0
+    ],
+    [
+     9.0,
+     -17.6
+    ],
+    [
+     16.0,
+     -18.24
+    ]
+   ],
+   "stroke": "#ffad5c",
+   "lw": 1.2,
+   "a": 0.5
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     2.0,
+     -16.0
+    ],
+    [
+     6.6,
+     -12.6
+    ],
+    [
+     10.61,
+     -10.05
+    ]
+   ],
+   "stroke": "#ffad5c",
+   "lw": 1.2,
+   "a": 0.5
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     2.0,
+     -16.0
+    ],
+    [
+     -2.6,
+     -12.6
+    ],
+    [
+     -6.61,
+     -10.05
+    ]
+   ],
+   "stroke": "#ffad5c",
+   "lw": 1.2,
+   "a": 0.5
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     2.0,
+     -16.0
+    ],
+    [
+     -5.0,
+     -17.6
+    ],
+    [
+     -12.0,
+     -18.24
+    ]
+   ],
+   "stroke": "#ffad5c",
+   "lw": 1.2,
+   "a": 0.5
+  },
+  {
+   "s": "circle",
+   "x": 2.0,
+   "y": -22.3,
+   "r": 1.4,
+   "fill": "#b0361f"
+  },
+  {
+   "s": "circle",
+   "x": 14.0,
+   "y": -17.92,
+   "r": 1.4,
+   "fill": "#b0361f"
+  },
+  {
+   "s": "circle",
+   "x": 9.38,
+   "y": -10.9,
+   "r": 1.4,
+   "fill": "#b0361f"
+  },
+  {
+   "s": "circle",
+   "x": -5.38,
+   "y": -10.9,
+   "r": 1.4,
+   "fill": "#b0361f"
+  },
+  {
+   "s": "circle",
+   "x": -10.0,
+   "y": -17.92,
+   "r": 1.4,
+   "fill": "#b0361f"
+  }
+ ],
+ "review": {
+  "score": 6.0,
+  "round": 3,
+  "problems": [
+   "The orange star with round balls on every point reads as a sheriff's badge or a gear knob, not a starfish. Real starfish arms taper to soft points. They don't end in knobs.",
+   "The arms are short and stubby compared with the body. The inner corners sit about 8\u201310 px from the centre and the tips about 20 px out (ratio about 0.5), so the shape looks like a fat badge star instead of a creature with five limbs.",
+   "The rock is mostly hidden under the star and the sand patch is larger than the rock. At the wide shot it reads as a small orange blob on a brown puddle, and the rock isn't readable.",
+   "The middle fill-light ellipse (#ffad5c, rx 6) plus the five spokes add to the badge or emblem look."
+  ]
+ },
+ "for": "Chunky five-armed starfish in orange and red, resting on the sand and rocks. Its small, bright, readable shape suits the isometric view and fills empty ground.",
+ "source": "minted",
+ "created": "2026-11-02"
+}

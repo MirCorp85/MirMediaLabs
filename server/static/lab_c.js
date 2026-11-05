@@ -95,9 +95,30 @@
     if (d.mml === 'prod-close') drawProd();
   });
 
+  // ── STUDIO (freefield.py / static/studio.html): open-weights apps; results land in the library ──────────────
+  window.mmlStudio = function (appId) {
+    var f = document.getElementById('mml-st'); if (f) return;
+    f = document.createElement('iframe'); f.id = 'mml-st'; f.src = 'studio' + (appId ? '?app=' + encodeURIComponent(appId) : ''); f.allow = 'autoplay; fullscreen; clipboard-write';
+    f.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:10000;background:#000'; document.body.appendChild(f);
+    try { closeLB(); } catch (e) { }
+  };
+  window.addEventListener('message', function (e) {
+    var d = e.data || {}; if (['studio-close', 'studio-editor', 'studio-attach'].indexOf(d.mml) < 0) return;
+    var f = document.getElementById('mml-st'); if (f) f.remove();
+    try { loadLib(); } catch (x) { }
+    if (d.mml === 'studio-editor') try { mmlEditor(d.src || ''); } catch (x) { }
+    if (d.mml === 'studio-attach' && d.ref) try { atts.push(d.ref); saveAtts(); renderAtts(); setTab('create'); toast('Attached — ready for your next request'); } catch (x) { }
+  });
+
   // ── Tools: everything that isn't a main feature ────────────────────────────────────────────────────────────────
   function tools() {
-    var T = [['sparkle', 'Motion studio', 'Remotion titles · captions · lyric & long videos', function () { mmlMotion(); }],
+    var T = [['diamond', 'Studio', 'open-weights apps · image · video · audio', function () { mmlStudio(); }],
+             ['sparkle', 'Motion studio', 'Remotion titles · captions · lyric & long videos', function () { mmlMotion(); }],
+             ['bolt', 'Kinetic editor', 'kinetic type on a beat grid · effects', function () { mmlMotion({ editor: 1 }); }],
+             ['radar', 'MIR EXPLAINED', 'trending topic → research → script', function () { mmlExplained(); }],
+             ['star', 'Rank Reel', 'viral ranking Shorts · moments → clips → render', function () { mmlRankReel(); }],
+             ['pencil', 'Design', 'layered canvas · posters · mockups · Edit Elements', function () { mmlDesign(); }],
+             ['user', 'CopyCat', 'swap a person in a video · copy a dance', function () { mmlCopyCat(); }],
              ['download', 'Downloader', 'links → MP3 / MP4', function () { mmlGrab(); }],
              ['tv', 'Series studio', 'build a series by hand', function () { mmlSeries(); }],
              ['layers', 'LoRA library', 'styles & characters', function () { lOpen(); }],
@@ -116,8 +137,8 @@
   // ── bottom dock (desktop) / tab bar (phone): the six main features ──────────────────────────────────────────────
   var nav = $('nav.tabs');
   if (nav) {
-    nav.innerHTML = [['create', 'lab', 'Create'], ['projects', 'layers', 'Projects'], ['library', 'grid', 'Library'], ['editor', 'scissors', 'Editor'], ['motion', 'sparkle', 'Motion'], ['flow', 'chain', 'Flow'],
-                     ['publish', 'globe', 'Publish'], ['tools', 'wand', 'Tools']]
+    nav.innerHTML = [['create', 'lab', 'Create'], ['projects', 'layers', 'Projects'], ['library', 'grid', 'Library'], ['editor', 'scissors', 'Editor'], ['studio', 'diamond', 'Studio'], ['design', 'pencil', 'Design'], ['motion', 'sparkle', 'Motion'], ['copycat', 'user', 'CopyCat'], ['flow', 'chain', 'Flow'],
+                     ['explained', 'radar', 'Explained'], ['rankreel', 'star', 'Rank Reel'], ['publish', 'globe', 'Publish'], ['tools', 'wand', 'Tools']]
       .map(function (b) { return '<button data-t="' + b[0] + '"' + (b[0] === 'create' ? ' class="on"' : '') + '>' + mi(b[1]) + b[2] + '</button>'; }).join('');
     var wide = function () { return window.matchMedia('(min-width: 861px)').matches; };
     nav.querySelectorAll('button').forEach(function (b) {
@@ -128,6 +149,11 @@
         if (t === 'editor') return mmlEditor();
         if (t === 'motion') return mmlMotion();
         if (t === 'flow') return mmlFlow();
+        if (t === 'studio') return mmlStudio();
+        if (t === 'design') return mmlDesign();
+        if (t === 'copycat') return mmlCopyCat();
+        if (t === 'explained') return mmlExplained();
+        if (t === 'rankreel') return mmlRankReel();
         if (t === 'tools') return tools();
         if (t === 'create') return goHome();
         if (t === 'library' && wide()) { document.body.classList.toggle('lc-libwide'); b.classList.toggle('on', document.body.classList.contains('lc-libwide')); return; }
@@ -138,7 +164,7 @@
   document.body.classList.add('lc-ready');
   // Create = home: close every studio overlay, panel and sheet, show the chat
   window.goHome = function () {
-    ['mml-ed', 'mml-pr', 'mml-gr', 'mml-se', 'mml-so', 'mml-mo', 'mml-fl'].forEach(function (id) { var f = document.getElementById(id); if (f) f.remove(); });
+    ['mml-ed', 'mml-pr', 'mml-gr', 'mml-se', 'mml-so', 'mml-mo', 'mml-fl', 'mml-ds', 'mml-cc', 'mml-st', 'mml-ex', 'mml-rr'].forEach(function (id) { var f = document.getElementById(id); if (f) f.remove(); });
     document.querySelectorAll('.lc-tools').forEach(function (x) { x.remove(); });
     document.body.classList.remove('lc-libwide');
     try { if (document.getElementById('sheet').classList.contains('on')) closeSheet(); } catch (e) { }
@@ -237,12 +263,12 @@
   window.MI && MI.fill && MI.fill(document.body);
 })();
 
-/* ── LIBRARY SIDE PANEL: while Motion Studio is open (wide screens), the home page's own library
+/* ── LIBRARY SIDE PANEL: while Studio / Design / Motion / CopyCat is open (wide screens), the home page's own library
    card pins to a left column beside the tool. Drag a tile into the tool (it arrives as a real file drop), or click it to
    send it to the tool's first matching input. The tools are same-origin iframes, so the bridge runs from here. ──── */
 (function () {
   'use strict';
-  var TOOLS = { 'mml-mo': 'motion' };
+  var TOOLS = { 'mml-st': 'studio', 'mml-ds': 'design', 'mml-mo': 'motion', 'mml-cc': 'copycat' };
   var W = 276, card = document.querySelector('.card.lib');
   if (!card) return;
   var home = document.createComment('lib-home');
@@ -310,6 +336,7 @@
     var o = open(); if (!o) return;
     var kind = TOOLS[o.id], f = frameOf(o), w = f && f.contentWindow;
     if (!w) return;
+    if (kind === 'studio') return w.postMessage({ mml: 'studio-lib', name: name }, '*');
     if (kind === 'motion') { w.postMessage({ mml: 'motion-add', src: 'lib:' + name }, '*'); return say('Sent to Motion'); }
     toInput(w, name).then(function (ok) { say(ok ? 'Added ' + name : 'Drag it onto the spot you want in the tool'); });
   }
@@ -343,6 +370,7 @@
         if (!has(e)) return;
         e.preventDefault(); e.stopImmediatePropagation();
         var name = e.dataTransfer.getData('text/mml-lib'), target = e.target, x = e.clientX, y = e.clientY;
+        if (TOOLS[o.id] === 'studio') { w.postMessage({ mml: 'studio-lib', name: name, at: [x, y] }, '*'); return; }
         if (TOOLS[o.id] === 'motion') { w.postMessage({ mml: 'motion-add', src: 'lib:' + name }, '*'); return; }
         fileFor(w, name).then(function (file) {
           if (target.matches && target.matches('input[type=file]')) return setFile(w, target, file);
@@ -354,9 +382,20 @@
           if (!handled) toInput(w, name, target).then(function (ok) { if (!ok) say('This spot does not take files'); });
         }).catch(function () { say('Could not load ' + name); });
       }, true);
+      if (TOOLS[o.id] === 'copycat') theme(w);
     };
     try { if (f.contentDocument && f.contentDocument.readyState !== 'loading' && f.contentWindow.location.href !== 'about:blank') go(); } catch (e) { }
     if (!f.__mmlHooked) { f.__mmlHooked = 1; f.addEventListener('load', function () { try { f.contentWindow.__mmlLib = 0; } catch (e) { } go(); }); }
   }
+  // CopyCat wears the current lab theme (its own build ships a lime accent)
+  function theme(w) {
+    var cs = getComputedStyle(document.documentElement), v = function (k) { return cs.getPropertyValue(k).trim(); };
+    var css = ':root{--bg:' + v('--bg') + ';--panel:' + v('--panel') + ';--panel-2:' + v('--panel2') + ';--line:' + v('--line2') + ';--text:' + v('--ink') +
+      ';--muted:' + v('--dim') + ';--accent:' + v('--acc') + ';--accent-ink:' + v('--bg') + ';--danger:' + v('--red') + '}' +
+      'body{background:var(--bg)!important;font-family:' + (v('--sans') || 'system-ui,sans-serif') + '}';
+    var d = w.document, s = d.getElementById('mml-theme') || d.head.appendChild(Object.assign(d.createElement('style'), { id: 'mml-theme' }));
+    s.textContent = css;
+  }
+  window.addEventListener('message', function (e) { if ((e.data || {}).mml === 'studio-lib-miss') say('Open an app in Studio first'); });
   layout();
 })();

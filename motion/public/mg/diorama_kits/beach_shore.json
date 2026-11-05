@@ -1,0 +1,189 @@
+{
+ "id": "beach_shore",
+ "world": "beach",
+ "name": "Beach",
+ "about": "a sunny beach: sand, waves, parasols, towels, a lifeguard tower and palms - holidays, summer, swimming, freedom",
+ "tags": [
+  "beach",
+  "sea",
+  "ocean",
+  "summer",
+  "holiday",
+  "vacation",
+  "swim",
+  "surf",
+  "sand",
+  "coast",
+  "waves",
+  "sun"
+ ],
+ "floor": "sand",
+ "walls": "none",
+ "props": [
+  {
+   "t": "patch",
+   "x": 0.0,
+   "y": 0.0,
+   "kind": "water",
+   "w": 4,
+   "d": 1.2
+  },
+  {
+   "t": "parasol",
+   "x": 1.3,
+   "y": 1.9,
+   "col": "gold"
+  },
+  {
+   "t": "patch",
+   "x": 1.0,
+   "y": 2.3,
+   "kind": "tile",
+   "w": 0.5,
+   "d": 1.0
+  },
+  {
+   "t": "parasol",
+   "x": 2.8,
+   "y": 2.6,
+   "col": "ember"
+  },
+  {
+   "t": "palm",
+   "x": 0.3,
+   "y": 3.0,
+   "h": 2.6
+  },
+  {
+   "t": "tower",
+   "x": 3.3,
+   "y": 1.4,
+   "w": 0.5,
+   "d": 0.5,
+   "h": 1.6,
+   "col": "silver"
+  },
+  {
+   "t": "crate",
+   "x": 2.2,
+   "y": 3.4,
+   "w": 0.4,
+   "d": 0.4,
+   "h": 0.3
+  }
+ ],
+ "st": {
+  "water": [
+   [
+    2.0,
+    1.4
+   ],
+   1,
+   [
+    2.0,
+    0.5,
+    0.1
+   ]
+  ],
+  "parasol": [
+   [
+    1.8,
+    2.5
+   ],
+   -1,
+   [
+    1.3,
+    1.9,
+    1.3
+   ]
+  ],
+  "tower": [
+   [
+    3.0,
+    2.0
+   ],
+   -1,
+   [
+    3.5,
+    1.6,
+    1.6
+   ]
+  ],
+  "palm": [
+   [
+    0.9,
+    3.1
+   ],
+   1,
+   [
+    0.5,
+    3.1,
+    2
+   ]
+  ],
+  "center": [
+   [
+    2.4,
+    3.2
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.2,
+   2.8
+  ],
+  [
+   2.6,
+   1.6
+  ],
+  [
+   3.4,
+   3.2
+  ],
+  [
+   0.8,
+   1.8
+  ]
+ ],
+ "regulars": [
+  [
+   0,
+   "stand",
+   {
+    "gender": "woman",
+    "outfit": "tshirt",
+    "color": "gold",
+    "skin": "tan"
+   }
+  ],
+  [
+   2,
+   "sit",
+   {
+    "gender": "man",
+    "outfit": "tshirt",
+    "color": "teal",
+    "skin": "deep"
+   }
+  ]
+ ],
+ "animals": [
+  [
+   "pigeon",
+   2.2,
+   2.2,
+   "eat"
+  ],
+  [
+   "dog",
+   3.0,
+   3.5,
+   "run"
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

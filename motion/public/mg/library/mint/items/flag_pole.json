@@ -1,0 +1,322 @@
+{
+ "id": "flag_pole",
+ "kind": "item",
+ "name": "Lunar Flag Pole",
+ "desc": "A tall brushed-steel pole with a stiff crossbar holding a champagne flag out flat in the a",
+ "tags": [
+  "flag",
+  "pole",
+  "moon",
+  "plant",
+  "claim",
+  "explorer",
+  "banner",
+  "space"
+ ],
+ "shapes": [
+  {
+   "s": "rect",
+   "x": -4.0,
+   "y": -170.0,
+   "w": 8.0,
+   "h": 292.0,
+   "r": 3.0,
+   "fill": [
+    "silver",
+    "steel2"
+   ],
+   "stroke": "char0",
+   "lw": 1.5
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -4.0,
+     121.0
+    ],
+    [
+     4.0,
+     121.0
+    ],
+    [
+     0.0,
+     138.0
+    ]
+   ],
+   "fill": "steel",
+   "stroke": "char0",
+   "lw": 1.5
+  },
+  {
+   "s": "rect",
+   "x": -6.0,
+   "y": 96.0,
+   "w": 12.0,
+   "h": 7.0,
+   "r": 2.0,
+   "fill": "brass",
+   "stroke": "char0",
+   "lw": 1.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -1.5,
+     -164.0
+    ],
+    [
+     -1.5,
+     92.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 1.5,
+   "a": 0.55
+  },
+  {
+   "s": "rect",
+   "x": -6.0,
+   "y": -14.0,
+   "w": 12.0,
+   "h": 28.0,
+   "r": 4.0,
+   "fill": "char1",
+   "stroke": "char0",
+   "lw": 1.5
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -6.0,
+     -5.0
+    ],
+    [
+     6.0,
+     -5.0
+    ]
+   ],
+   "stroke": "graph",
+   "lw": 1.5
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -6.0,
+     5.0
+    ],
+    [
+     6.0,
+     5.0
+    ]
+   ],
+   "stroke": "graph",
+   "lw": 1.5
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     4.0,
+     -165.0
+    ],
+    [
+     112.0,
+     -165.0
+    ],
+    [
+     112.0,
+     -96.0
+    ],
+    [
+     84.0,
+     -99.0
+    ],
+    [
+     58.0,
+     -94.0
+    ],
+    [
+     30.0,
+     -99.0
+    ],
+    [
+     4.0,
+     -96.0
+    ]
+   ],
+   "fill": [
+    "pale",
+    "champ"
+   ],
+   "stroke": "char1",
+   "lw": 2.0,
+   "anim": {
+    "k": "sway",
+    "sp": 0.6,
+    "amp": 0.02,
+    "px": 0.0,
+    "py": -165.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     4.0,
+     -112.0
+    ],
+    [
+     112.0,
+     -112.0
+    ],
+    [
+     112.0,
+     -96.0
+    ],
+    [
+     84.0,
+     -99.0
+    ],
+    [
+     58.0,
+     -94.0
+    ],
+    [
+     30.0,
+     -99.0
+    ],
+    [
+     4.0,
+     -96.0
+    ]
+   ],
+   "fill": "gold",
+   "anim": {
+    "k": "sway",
+    "sp": 0.6,
+    "amp": 0.02,
+    "px": 0.0,
+    "py": -165.0
+   }
+  },
+  {
+   "s": "circle",
+   "x": 46.0,
+   "y": -139.0,
+   "r": 15.0,
+   "fill": "char1",
+   "anim": {
+    "k": "sway",
+    "sp": 0.6,
+    "amp": 0.02,
+    "px": 0.0,
+    "py": -165.0
+   }
+  },
+  {
+   "s": "circle",
+   "x": 53.0,
+   "y": -143.0,
+   "r": 13.0,
+   "fill": "champ",
+   "anim": {
+    "k": "sway",
+    "sp": 0.6,
+    "amp": 0.02,
+    "px": 0.0,
+    "py": -165.0
+   }
+  },
+  {
+   "s": "circle",
+   "x": 82.0,
+   "y": -138.0,
+   "r": 4.0,
+   "fill": "gold",
+   "anim": {
+    "k": "pulse",
+    "sp": 1.2,
+    "amp": 0.15,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "rect",
+   "x": 0.0,
+   "y": -171.0,
+   "w": 114.0,
+   "h": 6.0,
+   "r": 3.0,
+   "fill": [
+    "silver",
+    "steel"
+   ],
+   "stroke": "char0",
+   "lw": 1.5
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     6.0,
+     -169.5
+    ],
+    [
+     110.0,
+     -169.5
+    ]
+   ],
+   "stroke": "white",
+   "lw": 1.0,
+   "a": 0.6
+  },
+  {
+   "s": "circle",
+   "x": 0.0,
+   "y": -175.0,
+   "r": 7.0,
+   "fill": [
+    "champ",
+    "gold"
+   ],
+   "stroke": "char0",
+   "lw": 1.5
+  }
+ ],
+ "review": {
+  "score": 6.0,
+  "round": 1,
+  "problems": [
+   "The object reads instantly as a flag on a pole: tall steel pole, crossbar holding the flag out stiff for the moon, a spike at the bottom for planting it, and house colours (steel, champagne, gold, charcoal). The design itself is good.",
+   "Scale against the person is wrong. When held, the whole pole is only about as tall as the character's head-to-knee. A flag meant for planting should stand clearly taller than the explorer, about 1.3\u20131.5\u00d7 their height.",
+   "The grip is in the middle of the pole (grip band at y -14..14), so the flag sits right at head height. In the 'both hands' pose the flag and crossbar cover the face and the pole runs straight down in front of the head and body. That reads wrong.",
+   "In the 'both hands' pose only one hand reaches the pole. The other hand floats off to the side, so the two-hand grip doesn't read. The grip area is too short to give two hands a place on the pole.",
+   "In the one-hand pose the pole tilts across the body with the flag at shoulder height. That's acceptable, but because of the mid-pole grip there's almost no pole below the hand, so it doesn't look like something about to be pushed down into the ground."
+  ]
+ },
+ "for": "a flag on a tall pole, to be planted into the ground",
+ "source": "minted",
+ "created": "2026-11-02",
+ "sprite": {
+  "w": 116.7,
+  "h": 380,
+  "ax": 0.5,
+  "ay": 0.74,
+  "src": "mg/library/mint/sprites/flag_pole.png"
+ },
+ "sprite_review": {
+  "score": 5.0,
+  "problems": [
+   "The flag on a pole reads right away. Brushed-steel pole, white flag and gold star all fit the house look.",
+   "A heap of grey rocks is baked into the bottom of the pole. When the person holds it, a rock lump hangs at the hand and waist and looks like a stray floating shape. It also contradicts 'to be planted into the ground': the pole should end where it goes into the ground, not on its own pile of rubble.",
+   "The spec asks for a stiff crossbar holding the flag out flat, because there is no wind on the moon. There's no crossbar: the flag hangs from the top only and its edges curl slightly. The moon-flag look is missing.",
+   "The pole has a ball cap but no clear bottom tip, so nothing shows it's meant to be pushed into the ground.",
+   "Size against the person is fine: when held, the flag sits above head height and the pole is about 1.3\u00d7 the person's height."
+  ]
+ }
+}

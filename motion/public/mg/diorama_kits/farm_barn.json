@@ -1,0 +1,202 @@
+{
+ "id": "farm_barn",
+ "name": "Farm barn",
+ "about": "Stories of farming, harvest, animals, food and rural life in a warm lantern-lit wooden barn.",
+ "tags": [
+  "farm",
+  "barn",
+  "hay",
+  "harvest",
+  "tractor",
+  "animals",
+  "rural",
+  "food",
+  "lantern",
+  "countryside"
+ ],
+ "floor": "wood",
+ "walls": "both",
+ "wallH": 3,
+ "props": [
+  {
+   "t": "box",
+   "w": 0.8,
+   "d": 0.8,
+   "h": 0.8,
+   "x": 0.2,
+   "y": 0.2,
+   "col": "champ"
+  },
+  {
+   "t": "box",
+   "w": 0.8,
+   "d": 0.8,
+   "h": 0.8,
+   "x": 1.05,
+   "y": 0.2,
+   "col": "champ"
+  },
+  {
+   "t": "car",
+   "w": 0.7,
+   "d": 1.6,
+   "h": 0.9,
+   "x": 3.0,
+   "y": 0.3,
+   "col": "bronze"
+  },
+  {
+   "t": "crate",
+   "w": 0.5,
+   "d": 0.5,
+   "h": 0.5,
+   "x": 2.1,
+   "y": 0.25,
+   "col": "bronze"
+  },
+  {
+   "t": "crate",
+   "w": 0.5,
+   "d": 0.5,
+   "h": 0.5,
+   "x": 2.1,
+   "y": 0.8,
+   "col": "brass"
+  },
+  {
+   "t": "box",
+   "w": 0.9,
+   "d": 0.4,
+   "h": 0.4,
+   "x": 0.2,
+   "y": 1.2,
+   "col": "steel2"
+  },
+  {
+   "t": "patch",
+   "w": 1.5,
+   "d": 1.5,
+   "x": 0.2,
+   "y": 1.8,
+   "kind": "sand"
+  },
+  {
+   "t": "rail",
+   "w": 1.5,
+   "d": 0.06,
+   "h": 0.5,
+   "x": 0.2,
+   "y": 3.3,
+   "col": "bronze"
+  },
+  {
+   "t": "rail",
+   "w": 0.06,
+   "d": 1.5,
+   "h": 0.5,
+   "x": 1.65,
+   "y": 1.8,
+   "col": "bronze"
+  },
+  {
+   "t": "window",
+   "wall": "left",
+   "w": 1.0,
+   "y": 0.4,
+   "z": 1.0,
+   "h": 0.8
+  },
+  {
+   "t": "light",
+   "x": 2.0,
+   "y": 1.8,
+   "z": 2.3,
+   "col": "gold"
+  },
+  {
+   "t": "bush",
+   "x": 3.5,
+   "y": 3.5
+  }
+ ],
+ "st": {
+  "tractor": [
+   [
+    2.5,
+    2.1
+   ],
+   1,
+   [
+    3.35,
+    1.1,
+    0.9
+   ]
+  ],
+  "hay": [
+   [
+    1.6,
+    1.45
+   ],
+   -1,
+   [
+    1.4,
+    0.6,
+    0.8
+   ]
+  ],
+  "pen": [
+   [
+    2.3,
+    2.9
+   ],
+   -1,
+   [
+    1.0,
+    2.5,
+    0.5
+   ]
+  ],
+  "center": [
+   [
+    2.7,
+    2.6
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.0,
+   3.6
+  ],
+  [
+   2.1,
+   3.5
+  ],
+  [
+   3.4,
+   2.5
+  ],
+  [
+   3.4,
+   3.2
+  ]
+ ],
+ "regulars": [
+  [
+   2,
+   "stand",
+   {
+    "gender": "man",
+    "outfit": "apron",
+    "color": "bronze",
+    "skin": "medium",
+    "hair": "short"
+   }
+  ]
+ ],
+ "source": "generated",
+ "created": "2026-10-28",
+ "world": "countryside"
+}

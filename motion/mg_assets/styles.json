@@ -1,0 +1,341 @@
+{
+ "signature": {
+  "name": "Signature · Pure",
+  "tag": "Cinematic studio — calm, expensive, confident",
+  "desc": "The Signature look as pure graphics: charcoal showroom, giant thin numerals, an amber rule with a flare, silver line art, film grain.",
+  "palette": {
+   "bg": "#08080A",
+   "bg2": "#3A3A40",
+   "ink": "#F2F6FA",
+   "mute": "#9AA0A8",
+   "acc": "#FFB547",
+   "acc2": "#E6EBF0",
+   "acc3": "#FFF3DC",
+   "line": "#E6EBF0",
+   "dark": "#08080A"
+  },
+  "fonts": {
+   "display": [
+    "Segoe UI Variable Display",
+    200
+   ],
+   "head": [
+    "Bahnschrift",
+    400
+   ],
+   "body": [
+    "Bahnschrift",
+    300
+   ],
+   "label": [
+    "Consolas",
+    400
+   ],
+   "num": [
+    "Segoe UI Variable Display",
+    200
+   ],
+   "hand": [
+    "Bahnschrift",
+    400
+   ]
+  },
+  "case": "upper",
+  "track": 0.06,
+  "motion": {
+   "ease": [
+    0.22,
+    1,
+    0.36,
+    1
+   ],
+   "enter": 0.9,
+   "stagger": 0.08,
+   "overshoot": 0,
+   "step": 0,
+   "boil": 0,
+   "push": 0.035,
+   "float": 0.004,
+   "transition": "fade",
+   "trans": 0.55
+  },
+  "icon": "line",
+  "caption": "subtle",
+  "art": "{s}, premium 3D studio render sculpted from brushed dark graphite and polished silver metal with a single warm amber glowing accent, elegant minimal product-shot lighting, rim light, high detail, centered and fully visible, isolated on a pure flat white background, no text, no logo, no watermark",
+  "sfx": {
+   "whoosh": "air",
+   "hit": "boom",
+   "pop": "tick",
+   "tick": "tick"
+  }
+ },
+ "grid": {
+  "name": "Kinetic Grid",
+  "tag": "Swiss poster in motion — bold, punchy, rhythmic",
+  "desc": "Editorial Swiss poster language: off-white paper, black type, one vermilion accent, mask reveals, rolling numbers, block wipes on a 12-column grid.",
+  "palette": {
+   "bg": "#EFEBE3",
+   "bg2": "#E4DED2",
+   "ink": "#111111",
+   "mute": "#8B877F",
+   "acc": "#FF3B1F",
+   "acc2": "#111111",
+   "acc3": "#FFFFFF",
+   "line": "#111111",
+   "dark": "#111111"
+  },
+  "fonts": {
+   "display": [
+    "MG Archivo",
+    400
+   ],
+   "head": [
+    "MG Archivo",
+    400
+   ],
+   "body": [
+    "MG JB Mono",
+    500
+   ],
+   "label": [
+    "MG JB Mono",
+    700
+   ],
+   "num": [
+    "MG Archivo",
+    400
+   ],
+   "hand": [
+    "MG JB Mono",
+    700
+   ]
+  },
+  "case": "upper",
+  "track": 0,
+  "motion": {
+   "ease": "backOut",
+   "enter": 0.5,
+   "stagger": 0.06,
+   "overshoot": 1.7,
+   "step": 0,
+   "boil": 0,
+   "push": 0,
+   "float": 0,
+   "transition": "block",
+   "trans": 0.44
+  },
+  "icon": "bold",
+  "caption": "block",
+  "art": "{s}, bold flat graphic poster illustration in Swiss modernist style, solid black and vermilion red shapes with crisp clean edges, a few halftone dot accents, strong geometric silhouette, centered and fully visible, isolated on a pure flat white background, no text, no logo, no watermark",
+  "sfx": {
+   "whoosh": "swipe",
+   "hit": "snap",
+   "pop": "click",
+   "tick": "click"
+  }
+ },
+ "liquid": {
+  "name": "Liquid Orbit",
+  "tag": "Soft, bouncy, friendly — kids content and Shorts",
+  "desc": "Deep indigo with drifting aurora glows, glossy rounded 3D objects, springy letter-by-letter pops and blob-burst transitions.",
+  "palette": {
+   "bg": "#120F26",
+   "bg2": "#1E1A3D",
+   "ink": "#FFFFFF",
+   "mute": "#C9C2FF",
+   "acc": "#FF6FB5",
+   "acc2": "#7B5CFF",
+   "acc3": "#FFC85C",
+   "acc4": "#5CF2C4",
+   "line": "#FFFFFF",
+   "dark": "#120F26"
+  },
+  "fonts": {
+   "display": [
+    "MG Outfit",
+    800
+   ],
+   "head": [
+    "MG Outfit",
+    700
+   ],
+   "body": [
+    "MG Outfit",
+    300
+   ],
+   "label": [
+    "MG Outfit",
+    700
+   ],
+   "num": [
+    "MG Outfit",
+    800
+   ],
+   "hand": [
+    "MG Outfit",
+    700
+   ]
+  },
+  "case": "lower",
+  "track": 0,
+  "motion": {
+   "ease": "spring",
+   "enter": 0.8,
+   "stagger": 0.035,
+   "overshoot": 0,
+   "step": 0,
+   "boil": 0,
+   "push": 0,
+   "float": 0.02,
+   "transition": "blob",
+   "trans": 0.7
+  },
+  "icon": "glow",
+  "caption": "pill",
+  "art": "{s} as a cute glossy 3D icon, soft rounded inflated clay shapes, smooth pastel gradients of violet, pink, gold and mint, gentle glow, playful premium 3D render, centered and fully visible, isolated on a pure flat white background, no text, no logo, no watermark",
+  "sfx": {
+   "whoosh": "bubble",
+   "hit": "bloom",
+   "pop": "pop",
+   "tick": "pop"
+  }
+ },
+ "paper": {
+  "name": "Paper Cut",
+  "tag": "Handmade cut paper — warm, tactile, storybook",
+  "desc": "Kraft paper, layered cut-paper shapes with hard shadows, handwritten notes, animated on twos with a gentle line boil.",
+  "palette": {
+   "bg": "#E8D6B9",
+   "bg2": "#DCC7A4",
+   "ink": "#2A2118",
+   "mute": "#6B5A45",
+   "acc": "#E2553A",
+   "acc2": "#264B6B",
+   "acc3": "#F2B84B",
+   "acc4": "#FBF4E6",
+   "line": "#2A2118",
+   "dark": "#2A2118"
+  },
+  "fonts": {
+   "display": [
+    "MG Bricolage",
+    800
+   ],
+   "head": [
+    "MG Bricolage",
+    800
+   ],
+   "body": [
+    "MG Bricolage",
+    800
+   ],
+   "label": [
+    "MG Caveat",
+    400
+   ],
+   "num": [
+    "MG Bricolage",
+    800
+   ],
+   "hand": [
+    "MG Caveat",
+    400
+   ]
+  },
+  "case": "title",
+  "track": 0,
+  "motion": {
+   "ease": "backOut",
+   "enter": 0.45,
+   "stagger": 0.083,
+   "overshoot": 1.3,
+   "step": 12,
+   "boil": 1,
+   "push": 0,
+   "float": 0,
+   "transition": "sheet",
+   "trans": 0.6
+  },
+  "icon": "paper",
+  "caption": "note",
+  "art": "{s} made of layered cut paper craft, handmade paper diorama with visible paper fibre texture and soft shadows between the layers, colours tomato red, deep blue, mustard yellow and cream, centered and fully visible, isolated on a pure flat white background, no text, no logo, no watermark",
+  "sfx": {
+   "whoosh": "paper",
+   "hit": "thud",
+   "pop": "tap",
+   "tick": "tap"
+  }
+ },
+ "dusk": {
+  "name": "Ember & Teal",
+  "tag": "Story films — teal nights, ember lights, characters living the scene",
+  "family": "signature",
+  "desc": "Cinematic animated storytelling in your own palette: deep teal nights, ember-orange windows and lamps, warm cream highlights, silhouette characters with an ember rim light, depth of field and grain.",
+  "palette": {
+   "bg": "#071A1E",
+   "bg2": "#14424A",
+   "ink": "#FFF4E6",
+   "mute": "#9FC4C4",
+   "acc": "#FF7A3D",
+   "acc2": "#E8463A",
+   "acc3": "#FFC870",
+   "acc4": "#3FD1C1",
+   "line": "#FFE0C2",
+   "dark": "#04110F"
+  },
+  "fonts": {
+   "display": [
+    "MG Archivo",
+    400
+   ],
+   "head": [
+    "MG Archivo",
+    400
+   ],
+   "body": [
+    "MG Outfit",
+    300
+   ],
+   "label": [
+    "MG Outfit",
+    700
+   ],
+   "num": [
+    "MG Archivo",
+    400
+   ],
+   "hand": [
+    "MG Outfit",
+    700
+   ]
+  },
+  "case": "upper",
+  "track": 0.02,
+  "motion": {
+   "ease": [
+    0.22,
+    1,
+    0.36,
+    1
+   ],
+   "enter": 0.7,
+   "stagger": 0.05,
+   "overshoot": 0,
+   "step": 0,
+   "boil": 0,
+   "push": 0.03,
+   "float": 0.004,
+   "transition": "fade",
+   "trans": 0.45
+  },
+  "icon": "line",
+  "caption": "subtle",
+  "art": "{s}, cinematic stylized 3D illustration at night, deep teal shadows and warm ember-orange key light, cream highlights, soft rim light on the edges, centered and fully visible, isolated on a pure flat white background, no text, no logo, no watermark",
+  "sfx": {
+   "whoosh": "air",
+   "hit": "boom",
+   "pop": "tick",
+   "tick": "tick"
+  }
+ }
+}

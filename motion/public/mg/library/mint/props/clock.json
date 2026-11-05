@@ -1,0 +1,431 @@
+{
+ "id": "clock",
+ "kind": "prop",
+ "name": "Dilation Clock",
+ "desc": "A chunky pedestal clock on a brushed-steel plinth with a warm glowing face. Its hands turn",
+ "tags": [
+  "clock",
+  "time",
+  "dilation",
+  "pedestal",
+  "landmark",
+  "glow",
+  "metal",
+  "gold"
+ ],
+ "w": 1.0,
+ "d": 1.0,
+ "h": 2.7,
+ "shapes": [
+  {
+   "s": "ellipse",
+   "x": 0.0,
+   "y": 0.0,
+   "rx": 46.0,
+   "ry": 10.0,
+   "rot": 0.0,
+   "fill": "black",
+   "a": 0.3
+  },
+  {
+   "s": "rect",
+   "x": -42.0,
+   "y": -20.0,
+   "w": 84.0,
+   "h": 20.0,
+   "r": 4.0,
+   "fill": [
+    "steel",
+    "graph2"
+   ],
+   "stroke": "char0",
+   "lw": 2.0
+  },
+  {
+   "s": "rect",
+   "x": -32.0,
+   "y": -36.0,
+   "w": 64.0,
+   "h": 18.0,
+   "r": 3.0,
+   "fill": [
+    "silver2",
+    "steel2"
+   ],
+   "stroke": "char0",
+   "lw": 2.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -38.0,
+     -17.0
+    ],
+    [
+     38.0,
+     -17.0
+    ]
+   ],
+   "stroke": "silver",
+   "lw": 1.5,
+   "a": 0.6
+  },
+  {
+   "s": "rect",
+   "x": -13.0,
+   "y": -166.0,
+   "w": 26.0,
+   "h": 132.0,
+   "r": 3.0,
+   "fill": [
+    "graph",
+    "char0"
+   ],
+   "stroke": "char1",
+   "lw": 2.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -7.0,
+     -160.0
+    ],
+    [
+     -7.0,
+     -40.0
+    ]
+   ],
+   "stroke": "steel2",
+   "lw": 2.0,
+   "a": 0.5
+  },
+  {
+   "s": "rect",
+   "x": -18.0,
+   "y": -46.0,
+   "w": 36.0,
+   "h": 8.0,
+   "r": 2.0,
+   "fill": [
+    "champ",
+    "bronze"
+   ]
+  },
+  {
+   "s": "rect",
+   "x": -18.0,
+   "y": -166.0,
+   "w": 36.0,
+   "h": 8.0,
+   "r": 2.0,
+   "fill": [
+    "champ",
+    "bronze"
+   ]
+  },
+  {
+   "s": "circle",
+   "x": 0.0,
+   "y": -212.0,
+   "r": 62.0,
+   "fill": "light",
+   "a": 0.18,
+   "anim": {
+    "k": "pulse",
+    "sp": 0.8,
+    "amp": 0.12,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "circle",
+   "x": 0.0,
+   "y": -212.0,
+   "r": 50.0,
+   "fill": [
+    "graph",
+    "char0"
+   ],
+   "stroke": "gold",
+   "lw": 4.0
+  },
+  {
+   "s": "circle",
+   "x": 0.0,
+   "y": -212.0,
+   "r": 40.0,
+   "fill": [
+    "#fff6dc",
+    "#e9c46f"
+   ],
+   "stroke": "bronze",
+   "lw": 2.0
+  },
+  {
+   "s": "circle",
+   "x": 0.0,
+   "y": -212.0,
+   "r": 40.0,
+   "fill": "light",
+   "a": 0.25,
+   "anim": {
+    "k": "flicker",
+    "sp": 0.6,
+    "amp": 0.15,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     0.0,
+     -250.0
+    ],
+    [
+     0.0,
+     -243.0
+    ]
+   ],
+   "stroke": "char0",
+   "lw": 3.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     0.0,
+     -181.0
+    ],
+    [
+     0.0,
+     -174.0
+    ]
+   ],
+   "stroke": "char0",
+   "lw": 3.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     31.0,
+     -212.0
+    ],
+    [
+     38.0,
+     -212.0
+    ]
+   ],
+   "stroke": "char0",
+   "lw": 3.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -38.0,
+     -212.0
+    ],
+    [
+     -31.0,
+     -212.0
+    ]
+   ],
+   "stroke": "char0",
+   "lw": 3.0
+  },
+  {
+   "s": "arc",
+   "x": 0.0,
+   "y": -212.0,
+   "r": 26.0,
+   "a0": 7,
+   "a1": 7,
+   "stroke": "bronze",
+   "lw": 1.5,
+   "a": 0.6
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     0.0,
+     -212.0
+    ],
+    [
+     0.0,
+     -192.0
+    ]
+   ],
+   "stroke": "char0",
+   "lw": 5.0,
+   "anim": {
+    "k": "spin",
+    "sp": 0.15,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": -212.0
+   }
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     0.0,
+     -212.0
+    ],
+    [
+     0.0,
+     -242.0
+    ]
+   ],
+   "stroke": "char1",
+   "lw": 3.5,
+   "anim": {
+    "k": "spin",
+    "sp": 0.6,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": -212.0
+   }
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     0.0,
+     -204.0
+    ],
+    [
+     0.0,
+     -246.0
+    ]
+   ],
+   "stroke": "red",
+   "lw": 1.5,
+   "anim": {
+    "k": "spin",
+    "sp": 2.4,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": -212.0
+   }
+  },
+  {
+   "s": "circle",
+   "x": 0.0,
+   "y": -212.0,
+   "r": 4.5,
+   "fill": "gold",
+   "stroke": "char0",
+   "lw": 1.0
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -40.0,
+     -232.0
+    ],
+    [
+     -30.0,
+     -256.0
+    ],
+    [
+     -6.0,
+     -260.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 2.5,
+   "a": 0.55
+  },
+  {
+   "s": "rect",
+   "x": -10.0,
+   "y": -268.0,
+   "w": 20.0,
+   "h": 8.0,
+   "r": 2.0,
+   "fill": [
+    "champ",
+    "bronze"
+   ]
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -8.0,
+     -268.0
+    ],
+    [
+     0.0,
+     -284.0
+    ],
+    [
+     8.0,
+     -268.0
+    ]
+   ],
+   "fill": [
+    "gold",
+    "brass"
+   ],
+   "stroke": "bronze",
+   "lw": 1.0
+  },
+  {
+   "s": "circle",
+   "x": 0.0,
+   "y": -286.0,
+   "r": 3.5,
+   "fill": "light",
+   "anim": {
+    "k": "blink",
+    "sp": 1.0,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": 0.0
+   }
+  }
+ ],
+ "review": {
+  "score": 7.0,
+  "round": 1,
+  "problems": [
+   "You can tell at a glance it's a street or pedestal clock: a gold-rimmed glowing face, a dark column, a steel plinth and a gold finial. The colours fit the house look. In the scene it stands a little taller than the person, which is about right for a landmark.",
+   "It doesn't look 'chunky'. The column is only 26 wide under a face 100 across, so from a distance it reads like a thin lamppost. The 84-wide plinth also looks small under the face.",
+   "The arc at (0,-212) has a0=7 and a1=7, so its length is zero and it draws nothing. The idea of a slow-zone or dilation marker on the dial never appears.",
+   "Nothing in a single frame shows time dilation. The cue depends only on how fast the hands spin, so a still frame looks like any ordinary clock.",
+   "The halo circle (r62, alpha 0.18) makes a flat grey disc behind the face that looks a little muddy against the dark background."
+  ]
+ },
+ "for": "Chunky pedestal clock with a glowing face whose hands tick slower near the beam and faster far away. It gives the world a visual cue for time dilation.",
+ "source": "minted",
+ "created": "2026-11-05",
+ "sprite": {
+  "w": 105.0,
+  "h": 163.2,
+  "ax": 0.5,
+  "ay": 0.97,
+  "sway": 0,
+  "src": "mg/library/mint/sprites/clock.png"
+ },
+ "sprite_review": {
+  "score": 5.0,
+  "problems": [
+   "Scale is wrong. The spec says h 2.7, but in the scene the clock comes up only to the person's waist or chest, about 1 m. It looks like a garden ornament, not a chunky city landmark.",
+   "The material doesn't match the brief. The plinth and the clock-head rim are rough, chipped grey stone, not brushed steel. The look is a rustic, mossy texture instead of the clean-shaded charcoal, brushed metal and gold house style.",
+   "There are stray shapes: a seashell on the ground at the bottom left, a clump of fern and grass, and loose rubble stones at the base. None of these belong to a city prop, and the shell reads as random clutter.",
+   "The face doesn't glow. It's a flat cream dial with no light coming off it, so the 'warm glowing face' never appears and the clock won't stand out at wide scale.",
+   "Nothing hints at time dilation. It's an ordinary Roman-numeral clock with no beam-facing cue and no motion streaks on the hands, so it can't carry the idea that time runs at different speeds.",
+   "The base is busy and uneven. Rocks and plants break the footprint, so the base doesn't sit as one clean, grounded block."
+  ]
+ }
+}

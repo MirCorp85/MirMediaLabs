@@ -5,6 +5,9 @@ import {AbsoluteFill, Audio, Img, OffthreadVideo, Video, getRemotionEnvironment,
 import {useAudioData, visualizeAudio} from '@remotion/media-utils';
 import {AnimText} from './AnimText';
 import {DEF_PAL, Project, TEXT_ANIMS, ease, fontFamily, pop, src} from './lib';
+import {SIG_SCENES} from './signature/scenes';
+import {RANK_SCENES} from './rank/RankReel';
+import {MG_SCENES} from './mg/scenes';
 
 export type Field = {k: string; t: 'text' | 'long' | 'num' | 'color' | 'select' | 'bool' | 'media' | 'medias' | 'list' | 'json'; label: string; opts?: string[]; min?: number; max?: number; step?: number; accept?: string; d?: any};
 type SP = {p: Record<string, any>; proj: Project; durF: number};
@@ -406,6 +409,9 @@ const Split: React.FC<SP> = (a) => {
 };
 
 export const SCENES: Record<string, Scene> = {
+	...SIG_SCENES, // Signature — studio explainer look (EXPLAINED)
+	...RANK_SCENES, // RANK REEL — viral ranking Short
+	...(MG_SCENES as any), // MOTION STUDIO — motion styles + Diorama, word-cued visuals
 	background: {label: 'Background', group: 'Basics', icon: 'layers', dur: 5, track: 'scene', C: Background, fields: [{k: 'style', t: 'select', label: 'Style', opts: ['solid', 'gradient', 'radial', 'animated', 'grid'], d: 'gradient'}, {k: 'angle', t: 'num', label: 'Angle', min: 0, max: 360, d: 135}, ...colors]},
 	title: {label: 'Title card', group: 'Text', icon: 'type', dur: 4, track: 'scene', C: Title, fields: [{k: 'text', t: 'text', label: 'Title', d: 'Your title'}, {k: 'sub', t: 'text', label: 'Subtitle', d: ''}, anim, {k: 'size', t: 'num', label: 'Size', min: 30, max: 300, d: 120}, {k: 'align', t: 'select', label: 'Align', opts: ['center', 'left', 'right'], d: 'center'}, {k: 'valign', t: 'select', label: 'Vertical', opts: ['center', 'flex-start', 'flex-end'], d: 'center'}, {k: 'speed', t: 'num', label: 'Speed', min: 0.25, max: 4, step: 0.25, d: 1}, {k: 'transparent', t: 'bool', label: 'Transparent (overlay)', d: false}, ...colors]},
 	lowerthird: {label: 'Lower third', group: 'Text', icon: 'user', dur: 5, track: 'overlay', C: LowerThird, fields: [{k: 'name', t: 'text', label: 'Name', d: 'Name'}, {k: 'role', t: 'text', label: 'Role / line 2', d: 'Role'}, {k: 'side', t: 'select', label: 'Side', opts: ['left', 'right'], d: 'left'}, anim, ...colors]},

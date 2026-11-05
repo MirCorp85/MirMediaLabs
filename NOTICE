@@ -14,8 +14,25 @@ NOT licensed under the GPL. See TRADEMARK.md.
 The Android app includes ZXing "core" (https://github.com/zxing/zxing), Copyright (C) ZXing
 authors, licensed under the Apache License 2.0, used to read invite QR codes.
 
-AI models (MiniMax H3, MiniMax Music 3.0, Qwen-Image, ACE-Step, Ollama models, ComfyUI and
-any LoRAs) are NOT part of this program. They are downloaded separately by the user and are
+Bundled third-party parts (each keeps its own license; full texts sit next to the files):
+  * MIR KINETIC effects (kinetic/engine/fx) adapt OpenKatana, Apache License 2.0
+    (kinetic/engine/fx/LICENSE-OpenKatana + NOTICE-OpenKatana).
+  * Kinetic fonts Archivo, Instrument Sans and JetBrains Mono, SIL Open Font License 1.1
+    (kinetic/engine/fonts/OFL-*.txt).
+  * The OpenField Studio pack (server/studio_packs/openfield) is ported from wexloops/openfield, MIT
+    (server/studio_packs/openfield/LICENSE-OpenField).
+  * Motion graphics glyphs (motion/public/mg/icons.json) come from Lucide, ISC
+    (motion/public/mg/ICONS_LICENSE_lucide.txt).
+  * The CopyCat overlay (installer/copycat) modifies files of D3voz/openjutsu, MIT.
+
+Downloaded by Setup, never bundled: neuregex/freefield (MIT, the Studio apps), D3voz/openjutsu
+(MIT, CopyCat), jtydhr88/ComfyArt (MIT, Design), comfy-api-proxy, Node.js packages, and the
+ComfyUI node packs listed in installer/setup_wizard.py (NODE_PACKS, each under its own license).
+CopyCat's "Fix faces" step is not installed (its face models are non-commercial / AGPL). The
+expressive narrator (Chatterbox, MIT) is optional and installed by the user.
+
+AI models (MiniMax H3, MiniMax Music 3.0, Qwen-Image, ACE-Step, FLUX Klein, LTX-2.5, Qwen-Image-Layered,
+BiRefNet, Ollama models, ComfyUI and any LoRAs) are NOT part of this program. They are downloaded separately by the user and are
 subject to their own licenses and terms of use.
 
 Contact: mirmedialabs@gmail.com

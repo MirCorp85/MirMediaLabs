@@ -1,0 +1,636 @@
+{
+ "id": "dolphin",
+ "kind": "species",
+ "name": "Dolphin",
+ "h": 190.0,
+ "len": 480.0,
+ "parts": [
+  {
+   "move": "tail",
+   "pivot": [
+    -150.0,
+    -72.0
+   ],
+   "shapes": [
+    {
+     "s": "poly",
+     "p": [
+      [
+       -140.0,
+       -90.0
+      ],
+      [
+       -170.0,
+       -84.0
+      ],
+      [
+       -196.0,
+       -76.0
+      ],
+      [
+       -202.0,
+       -72.0
+      ],
+      [
+       -196.0,
+       -68.0
+      ],
+      [
+       -170.0,
+       -62.0
+      ],
+      [
+       -140.0,
+       -58.0
+      ]
+     ],
+     "fill": [
+      "#5a6d7e",
+      "#6f8394"
+     ]
+    },
+    {
+     "s": "poly",
+     "p": [
+      [
+       -195.0,
+       -76.0
+      ],
+      [
+       -205.0,
+       -86.0
+      ],
+      [
+       -222.0,
+       -98.0
+      ],
+      [
+       -238.0,
+       -102.0
+      ],
+      [
+       -232.0,
+       -88.0
+      ],
+      [
+       -222.0,
+       -76.0
+      ],
+      [
+       -212.0,
+       -72.0
+      ],
+      [
+       -222.0,
+       -68.0
+      ],
+      [
+       -232.0,
+       -56.0
+      ],
+      [
+       -238.0,
+       -42.0
+      ],
+      [
+       -222.0,
+       -46.0
+      ],
+      [
+       -205.0,
+       -58.0
+      ],
+      [
+       -195.0,
+       -68.0
+      ]
+     ],
+     "fill": "#44566a",
+     "stroke": "#3a4a58",
+     "lw": 2.5
+    },
+    {
+     "s": "line",
+     "p": [
+      [
+       -208.0,
+       -72.0
+      ],
+      [
+       -226.0,
+       -90.0
+      ],
+      [
+       -236.0,
+       -99.0
+      ]
+     ],
+     "stroke": "#9fb2c0",
+     "lw": 2.0,
+     "a": 0.5
+    }
+   ]
+  },
+  {
+   "move": "body",
+   "pivot": [
+    0.0,
+    -75.0
+   ],
+   "shapes": [
+    {
+     "s": "poly",
+     "p": [
+      [
+       -170.0,
+       -80.0
+      ],
+      [
+       -120.0,
+       -98.0
+      ],
+      [
+       -60.0,
+       -122.0
+      ],
+      [
+       0.0,
+       -132.0
+      ],
+      [
+       60.0,
+       -136.0
+      ],
+      [
+       110.0,
+       -132.0
+      ],
+      [
+       140.0,
+       -124.0
+      ],
+      [
+       150.0,
+       -118.0
+      ],
+      [
+       162.0,
+       -100.0
+      ],
+      [
+       168.0,
+       -90.0
+      ],
+      [
+       190.0,
+       -84.0
+      ],
+      [
+       212.0,
+       -78.0
+      ],
+      [
+       222.0,
+       -72.0
+      ],
+      [
+       220.0,
+       -66.0
+      ],
+      [
+       200.0,
+       -62.0
+      ],
+      [
+       168.0,
+       -62.0
+      ],
+      [
+       150.0,
+       -56.0
+      ],
+      [
+       110.0,
+       -38.0
+      ],
+      [
+       50.0,
+       -26.0
+      ],
+      [
+       0.0,
+       -22.0
+      ],
+      [
+       -60.0,
+       -32.0
+      ],
+      [
+       -120.0,
+       -56.0
+      ],
+      [
+       -170.0,
+       -64.0
+      ]
+     ],
+     "fill": [
+      "#5a6d7e",
+      "#8da1b0"
+     ],
+     "stroke": "#3a4a58",
+     "lw": 2.5
+    },
+    {
+     "s": "poly",
+     "p": [
+      [
+       -160.0,
+       -65.0
+      ],
+      [
+       -120.0,
+       -54.0
+      ],
+      [
+       -60.0,
+       -34.0
+      ],
+      [
+       0.0,
+       -25.0
+      ],
+      [
+       50.0,
+       -28.0
+      ],
+      [
+       110.0,
+       -40.0
+      ],
+      [
+       150.0,
+       -57.0
+      ],
+      [
+       168.0,
+       -63.0
+      ],
+      [
+       200.0,
+       -63.0
+      ],
+      [
+       218.0,
+       -67.0
+      ],
+      [
+       200.0,
+       -69.0
+      ],
+      [
+       168.0,
+       -70.0
+      ],
+      [
+       140.0,
+       -70.0
+      ],
+      [
+       100.0,
+       -76.0
+      ],
+      [
+       50.0,
+       -66.0
+      ],
+      [
+       0.0,
+       -64.0
+      ],
+      [
+       -60.0,
+       -68.0
+      ],
+      [
+       -120.0,
+       -72.0
+      ],
+      [
+       -160.0,
+       -70.0
+      ]
+     ],
+     "fill": "#eef3f6",
+     "a": 0.92
+    },
+    {
+     "s": "poly",
+     "p": [
+      [
+       -110.0,
+       -56.0
+      ],
+      [
+       -60.0,
+       -38.0
+      ],
+      [
+       0.0,
+       -28.0
+      ],
+      [
+       50.0,
+       -32.0
+      ],
+      [
+       110.0,
+       -44.0
+      ],
+      [
+       140.0,
+       -60.0
+      ],
+      [
+       100.0,
+       -56.0
+      ],
+      [
+       50.0,
+       -48.0
+      ],
+      [
+       0.0,
+       -46.0
+      ],
+      [
+       -60.0,
+       -52.0
+      ]
+     ],
+     "fill": "white",
+     "a": 0.35
+    },
+    {
+     "s": "curve",
+     "p": [
+      [
+       -90.0,
+       -100.0
+      ],
+      [
+       0.0,
+       -122.0
+      ],
+      [
+       95.0,
+       -122.0
+      ]
+     ],
+     "stroke": "white",
+     "lw": 3.0,
+     "a": 0.3
+    }
+   ]
+  },
+  {
+   "move": "fin",
+   "pivot": [
+    -10.0,
+    -126.0
+   ],
+   "shapes": [
+    {
+     "s": "poly",
+     "p": [
+      [
+       24.0,
+       -127.0
+      ],
+      [
+       14.0,
+       -146.0
+      ],
+      [
+       0.0,
+       -166.0
+      ],
+      [
+       -16.0,
+       -178.0
+      ],
+      [
+       -34.0,
+       -184.0
+      ],
+      [
+       -30.0,
+       -170.0
+      ],
+      [
+       -32.0,
+       -152.0
+      ],
+      [
+       -38.0,
+       -138.0
+      ],
+      [
+       -46.0,
+       -126.0
+      ]
+     ],
+     "fill": [
+      "#4a5c6b",
+      "#5f7385"
+     ],
+     "stroke": "#3a4a58",
+     "lw": 2.5
+    }
+   ]
+  },
+  {
+   "move": "fin",
+   "pivot": [
+    45.0,
+    -50.0
+   ],
+   "shapes": [
+    {
+     "s": "poly",
+     "p": [
+      [
+       60.0,
+       -52.0
+      ],
+      [
+       40.0,
+       -54.0
+      ],
+      [
+       20.0,
+       -36.0
+      ],
+      [
+       2.0,
+       -12.0
+      ],
+      [
+       0.0,
+       -6.0
+      ],
+      [
+       18.0,
+       -14.0
+      ],
+      [
+       38.0,
+       -26.0
+      ],
+      [
+       56.0,
+       -40.0
+      ]
+     ],
+     "fill": [
+      "#4f6272",
+      "#667a8b"
+     ],
+     "stroke": "#3a4a58",
+     "lw": 2.5
+    }
+   ]
+  },
+  {
+   "move": "head",
+   "pivot": [
+    110.0,
+    -90.0
+   ],
+   "shapes": [
+    {
+     "s": "curve",
+     "p": [
+      [
+       100.0,
+       -120.0
+      ],
+      [
+       135.0,
+       -128.0
+      ],
+      [
+       152.0,
+       -114.0
+      ]
+     ],
+     "stroke": "white",
+     "lw": 3.0,
+     "a": 0.35
+    },
+    {
+     "s": "circle",
+     "x": 130.0,
+     "y": -78.0,
+     "r": 8.0,
+     "fill": "#14191f"
+    },
+    {
+     "s": "circle",
+     "x": 133.0,
+     "y": -81.0,
+     "r": 3.0,
+     "fill": "white"
+    },
+    {
+     "s": "curve",
+     "p": [
+      [
+       160.0,
+       -66.0
+      ],
+      [
+       185.0,
+       -62.0
+      ],
+      [
+       206.0,
+       -68.0
+      ]
+     ],
+     "stroke": "#27323c",
+     "lw": 2.5
+    }
+   ]
+  },
+  {
+   "move": "jaw",
+   "pivot": [
+    165.0,
+    -62.0
+   ],
+   "shapes": [
+    {
+     "s": "poly",
+     "p": [
+      [
+       165.0,
+       -63.0
+      ],
+      [
+       212.0,
+       -64.0
+      ],
+      [
+       216.0,
+       -60.0
+      ],
+      [
+       202.0,
+       -56.0
+      ],
+      [
+       168.0,
+       -55.0
+      ]
+     ],
+     "fill": "#eef3f6",
+     "stroke": "#3a4a58",
+     "lw": 1.5
+    }
+   ]
+  }
+ ],
+ "tags": "dolphin bottlenose sea ocean swim mammal reef friendly",
+ "swim": true,
+ "alt": 170.0,
+ "review": {
+  "score": 7.0,
+  "round": 3,
+  "problems": [
+   "It reads as a bottlenose dolphin at a glance. The silhouette has a beak, a curved dorsal fin, a pale belly and a grey back, so nothing reads wrong.",
+   "The tail flukes are small and spindly for a 480-long body. The peduncle (tail stalk) narrows to about 30 units, and there is a visible seam where the tail part meets the body at x\u2248-140/-170.",
+   "The idle, walking and walking-later frames are almost identical. The tail and body barely move, so the swim cycle is hard to see.",
+   "The beak and mouth line are faint. The dark mouth curve and the small pale jaw wedge look like a slight overbite rather than a smile, so the face is only mildly friendly.",
+   "In the scale frame the dolphin is semi-transparent and hovers at the person's waist. That is acceptable for a swimmer, but its length is only about 1.1x the person's height. It should be about 1.4x."
+  ]
+ },
+ "for": "a friendly bottlenose dolphin swimming: beak snout, curved dorsal fin, tail flukes, grey back and pale belly",
+ "source": "minted",
+ "created": "2026-11-02",
+ "sprite": {
+  "w": 480.0,
+  "h": 220.0,
+  "ax": 0.5,
+  "ay": 0.97,
+  "src": "mg/library/mint/sprites/dolphin.png"
+ },
+ "sprite_review": {
+  "score": 8.0,
+  "problems": [
+   "The tail flukes are small and thin compared with the body. At thumbnail size the tail reads more like a fish tail than a broad dolphin fluke.",
+   "The dolphin is a little short next to the person: its body is about 1.2 times the person's height, while a real bottlenose is about 1.4 to 1.6 times. This is minor.",
+   "The dolphin looks completely flat in side view. There is no depth or shadow to sit it in the isometric world, though that is acceptable for a swimming sprite."
+  ]
+ }
+}

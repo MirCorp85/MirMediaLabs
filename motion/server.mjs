@@ -45,7 +45,7 @@ async function ensureBundle(force = false) {
 	return bundling;
 }
 
-const prep = (project) => ({...project, mediaBase: BASE + 'lib/', fontBase: BASE + 'fonts/'});
+const prep = (project) => ({...project, mediaBase: BASE + 'lib/', fontBase: BASE + 'fonts/', mgBase: BASE + 'mg/'});
 
 const CODECS = {
 	mp4: {codec: 'h264', ext: 'mp4'},
@@ -122,7 +122,7 @@ async function pump() {
 }
 
 // ── static media with Range support (the renderer's compositor seeks videos over HTTP) ──
-const MIME = {'.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.mkv': 'video/x-matroska', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.ogg': 'audio/ogg', '.flac': 'audio/flac', '.woff2': 'font/woff2', '.ttf': 'font/ttf'};
+const MIME = {'.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.mkv': 'video/x-matroska', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.ogg': 'audio/ogg', '.flac': 'audio/flac', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.svg': 'image/svg+xml', '.json': 'application/json'};
 function sendFile(req, res, root, rel) {
 	const p = path.resolve(root, rel);
 	if (!p.toLowerCase().startsWith(path.resolve(root).toLowerCase() + path.sep) || !fs.existsSync(p) || !fs.statSync(p).isFile()) {
@@ -176,6 +176,7 @@ const srv = http.createServer(async (req, res) => {
 			return sendFile(req, res, LIB, seg.slice(1).join('/'));
 		}
 		if (req.method === 'GET' && seg[0] === 'fonts') return sendFile(req, res, FONTS, seg.slice(1).join('/'));
+		if (req.method === 'GET' && seg[0] === 'mg') return sendFile(req, res, path.join(HERE, 'public', 'mg'), seg.slice(1).join('/')); // motion-graphics style library (icons, art, vec, library)
 		if (req.method === 'GET' && seg[0] === 'health')
 			return json(res, 200, {ok: true, bundled: !!serveUrl, queue: queue.length, busy, version: VERSION, conc: CONC});
 		if (req.method === 'GET' && seg[0] === 'job') {

@@ -1,0 +1,565 @@
+[
+ {
+  "id": "doctor",
+  "name": "Doctor",
+  "role": "medicine, hospitals",
+  "look": {
+   "gender": "woman",
+   "outfit": "labcoat",
+   "hair": "bun",
+   "skin": "medium",
+   "glasses": true
+  },
+  "act": "explain"
+ },
+ {
+  "id": "nurse",
+  "name": "Nurse",
+  "role": "care, hospitals",
+  "look": {
+   "gender": "woman",
+   "outfit": "scrubs",
+   "hair": "ponytail",
+   "skin": "deep"
+  },
+  "act": "stand"
+ },
+ {
+  "id": "surgeon",
+  "name": "Surgeon",
+  "role": "operations",
+  "look": {
+   "gender": "man",
+   "outfit": "scrubs",
+   "hat": "cap",
+   "skin": "light"
+  },
+  "act": "think"
+ },
+ {
+  "id": "scientist",
+  "name": "Scientist",
+  "role": "labs, discoveries",
+  "look": {
+   "gender": "man",
+   "outfit": "labcoat",
+   "hair": "bald",
+   "age": "older",
+   "glasses": true,
+   "skin": "tan"
+  },
+  "act": "point"
+ },
+ {
+  "id": "engineer",
+  "name": "Engineer",
+  "role": "building, machines",
+  "look": {
+   "gender": "woman",
+   "outfit": "overalls",
+   "hat": "hardhat",
+   "skin": "tan"
+  },
+  "act": "build"
+ },
+ {
+  "id": "builder",
+  "name": "Construction worker",
+  "role": "sites, building",
+  "look": {
+   "gender": "man",
+   "outfit": "overalls",
+   "hat": "hardhat",
+   "skin": "deep",
+   "beard": true
+  },
+  "act": "carry"
+ },
+ {
+  "id": "police",
+  "name": "Police officer",
+  "role": "law, safety",
+  "look": {
+   "gender": "man",
+   "outfit": "uniform",
+   "hat": "police",
+   "skin": "medium"
+  },
+  "act": "hips"
+ },
+ {
+  "id": "firefighter",
+  "name": "Firefighter",
+  "role": "rescue, fire",
+  "look": {
+   "gender": "man",
+   "outfit": "coat",
+   "color": "ember",
+   "hat": "hardhat",
+   "skin": "light"
+  },
+  "act": "pull"
+ },
+ {
+  "id": "soldier",
+  "name": "Soldier",
+  "role": "war, the army",
+  "look": {
+   "gender": "man",
+   "outfit": "military",
+   "hat": "helmet",
+   "skin": "tan"
+  },
+  "act": "soldier"
+ },
+ {
+  "id": "general",
+  "name": "General",
+  "role": "command, strategy",
+  "look": {
+   "gender": "man",
+   "outfit": "military",
+   "hat": "police",
+   "age": "older",
+   "beard": true
+  },
+  "act": "salute"
+ },
+ {
+  "id": "pilot",
+  "name": "Pilot",
+  "role": "planes, flying",
+  "look": {
+   "gender": "woman",
+   "outfit": "uniform",
+   "hat": "police",
+   "hair": "bun",
+   "skin": "light"
+  },
+  "act": "fly"
+ },
+ {
+  "id": "astronaut",
+  "name": "Astronaut",
+  "role": "space, the moon",
+  "look": {
+   "gender": "man",
+   "outfit": "space",
+   "skin": "medium"
+  },
+  "act": "wave"
+ },
+ {
+  "id": "chef",
+  "name": "Chef",
+  "role": "kitchens, food",
+  "look": {
+   "gender": "man",
+   "outfit": "chef",
+   "skin": "light",
+   "beard": true
+  },
+  "act": "cook"
+ },
+ {
+  "id": "waiter",
+  "name": "Barista / waiter",
+  "role": "cafes, service",
+  "look": {
+   "gender": "woman",
+   "outfit": "apron",
+   "color": "champagne",
+   "hair": "ponytail",
+   "skin": "medium"
+  },
+  "act": "give"
+ },
+ {
+  "id": "teacher",
+  "name": "Teacher",
+  "role": "school, lessons",
+  "look": {
+   "gender": "woman",
+   "outfit": "sweater",
+   "color": "bronze",
+   "glasses": true,
+   "skin": "light"
+  },
+  "act": "present"
+ },
+ {
+  "id": "student",
+  "name": "Student",
+  "role": "school, studying",
+  "look": {
+   "gender": "child",
+   "outfit": "hoodie",
+   "color": "steel",
+   "skin": "deep"
+  },
+  "act": "read"
+ },
+ {
+  "id": "kid",
+  "name": "Kid",
+  "role": "children, family",
+  "look": {
+   "gender": "child",
+   "outfit": "tshirt",
+   "color": "gold",
+   "hair": "curly",
+   "skin": "tan"
+  },
+  "act": "jump"
+ },
+ {
+  "id": "teen",
+  "name": "Teenager",
+  "role": "youth, phones",
+  "look": {
+   "gender": "man",
+   "outfit": "hoodie",
+   "color": "charcoal",
+   "hair": "spiky",
+   "skin": "light"
+  },
+  "act": "text"
+ },
+ {
+  "id": "mom",
+  "name": "Mom",
+  "role": "family, home",
+  "look": {
+   "gender": "woman",
+   "outfit": "sweater",
+   "color": "champagne",
+   "hair": "long",
+   "skin": "medium"
+  },
+  "act": "phone"
+ },
+ {
+  "id": "dad",
+  "name": "Dad",
+  "role": "family, home",
+  "look": {
+   "gender": "man",
+   "outfit": "sweater",
+   "color": "steel",
+   "skin": "tan",
+   "beard": true
+  },
+  "act": "hug"
+ },
+ {
+  "id": "grandma",
+  "name": "Grandma",
+  "role": "family, wisdom",
+  "look": {
+   "gender": "woman",
+   "outfit": "dress",
+   "color": "bronze",
+   "hair": "bun",
+   "age": "older",
+   "glasses": true,
+   "skin": "light"
+  },
+  "act": "sit"
+ },
+ {
+  "id": "grandpa",
+  "name": "Grandpa",
+  "role": "family, memories",
+  "look": {
+   "gender": "man",
+   "outfit": "coat",
+   "color": "graphite",
+   "hair": "bald",
+   "age": "older",
+   "skin": "deep"
+  },
+  "act": "think"
+ },
+ {
+  "id": "ceo",
+  "name": "CEO",
+  "role": "business, money",
+  "look": {
+   "gender": "woman",
+   "outfit": "suit",
+   "color": "charcoal",
+   "hair": "bun",
+   "skin": "light"
+  },
+  "act": "present"
+ },
+ {
+  "id": "businessman",
+  "name": "Businessman",
+  "role": "deals, offices",
+  "look": {
+   "gender": "man",
+   "outfit": "suit",
+   "skin": "medium"
+  },
+  "act": "handshake"
+ },
+ {
+  "id": "programmer",
+  "name": "Programmer",
+  "role": "code, tech",
+  "look": {
+   "gender": "man",
+   "outfit": "hoodie",
+   "color": "graphite",
+   "glasses": true,
+   "skin": "tan"
+  },
+  "act": "sitdesk"
+ },
+ {
+  "id": "reporter",
+  "name": "Reporter",
+  "role": "news, TV",
+  "look": {
+   "gender": "woman",
+   "outfit": "blazer",
+   "color": "gold",
+   "hair": "long",
+   "skin": "deep"
+  },
+  "act": "sing"
+ },
+ {
+  "id": "judge",
+  "name": "Judge",
+  "role": "courts, law",
+  "look": {
+   "gender": "man",
+   "outfit": "robe",
+   "age": "older",
+   "glasses": true,
+   "skin": "light"
+  },
+  "act": "think"
+ },
+ {
+  "id": "lawyer",
+  "name": "Lawyer",
+  "role": "courts, cases",
+  "look": {
+   "gender": "woman",
+   "outfit": "suit",
+   "color": "graphite",
+   "hair": "ponytail",
+   "skin": "medium"
+  },
+  "act": "point"
+ },
+ {
+  "id": "farmer",
+  "name": "Farmer",
+  "role": "farms, harvest",
+  "look": {
+   "gender": "man",
+   "outfit": "overalls",
+   "hat": "cowboy",
+   "skin": "tan",
+   "beard": true
+  },
+  "act": "dig"
+ },
+ {
+  "id": "athlete",
+  "name": "Footballer",
+  "role": "soccer, sport",
+  "look": {
+   "gender": "man",
+   "outfit": "jersey",
+   "num": "10",
+   "skin": "deep"
+  },
+  "act": "kick"
+ },
+ {
+  "id": "runner",
+  "name": "Runner",
+  "role": "races, fitness",
+  "look": {
+   "gender": "woman",
+   "outfit": "jersey",
+   "num": "7",
+   "hair": "ponytail",
+   "skin": "medium"
+  },
+  "act": "run"
+ },
+ {
+  "id": "boxer",
+  "name": "Boxer",
+  "role": "fights, training",
+  "look": {
+   "gender": "man",
+   "outfit": "tshirt",
+   "color": "ember",
+   "hair": "bald",
+   "skin": "tan"
+  },
+  "act": "box"
+ },
+ {
+  "id": "king",
+  "name": "King",
+  "role": "kingdoms, history",
+  "look": {
+   "gender": "man",
+   "outfit": "robe",
+   "color": "gold",
+   "hat": "crown",
+   "beard": true,
+   "age": "older"
+  },
+  "act": "explain"
+ },
+ {
+  "id": "queen",
+  "name": "Queen",
+  "role": "kingdoms, history",
+  "look": {
+   "gender": "woman",
+   "outfit": "gown",
+   "hat": "crown",
+   "hair": "long",
+   "skin": "light"
+  },
+  "act": "wave"
+ },
+ {
+  "id": "knight",
+  "name": "Knight",
+  "role": "castles, battles",
+  "look": {
+   "gender": "man",
+   "outfit": "military",
+   "color": "steel",
+   "hat": "helmet"
+  },
+  "act": "sword"
+ },
+ {
+  "id": "pirate",
+  "name": "Pirate",
+  "role": "ships, treasure",
+  "look": {
+   "gender": "man",
+   "outfit": "coat",
+   "color": "bronze",
+   "hat": "tophat",
+   "beard": true
+  },
+  "act": "point"
+ },
+ {
+  "id": "explorer",
+  "name": "Explorer",
+  "role": "jungles, expeditions",
+  "look": {
+   "gender": "woman",
+   "outfit": "tshirt",
+   "color": "olive",
+   "hat": "cowboy",
+   "skin": "tan"
+  },
+  "act": "look"
+ },
+ {
+  "id": "detective",
+  "name": "Detective",
+  "role": "mysteries, clues",
+  "look": {
+   "gender": "man",
+   "outfit": "coat",
+   "color": "champagne",
+   "hat": "tophat"
+  },
+  "act": "search"
+ },
+ {
+  "id": "artist",
+  "name": "Artist",
+  "role": "painting, studios",
+  "look": {
+   "gender": "woman",
+   "outfit": "apron",
+   "color": "steel",
+   "hair": "afro",
+   "skin": "deep"
+  },
+  "act": "paint"
+ },
+ {
+  "id": "musician",
+  "name": "Musician",
+  "role": "music, stages",
+  "look": {
+   "gender": "man",
+   "outfit": "tshirt",
+   "color": "charcoal",
+   "hair": "long",
+   "skin": "light"
+  },
+  "act": "guitar"
+ },
+ {
+  "id": "driver",
+  "name": "Driver",
+  "role": "cars, deliveries",
+  "look": {
+   "gender": "man",
+   "outfit": "tshirt",
+   "color": "navy",
+   "hat": "cap",
+   "skin": "medium"
+  },
+  "act": "drive"
+ },
+ {
+  "id": "graduate",
+  "name": "Graduate",
+  "role": "school, success",
+  "look": {
+   "gender": "woman",
+   "outfit": "robe",
+   "hat": "grad",
+   "hair": "long",
+   "skin": "tan"
+  },
+  "act": "cheer"
+ },
+ {
+  "id": "villager",
+  "name": "Villager",
+  "role": "medieval towns",
+  "look": {
+   "gender": "woman",
+   "outfit": "apron",
+   "color": "bronze",
+   "hair": "braids",
+   "skin": "light"
+  },
+  "act": "carry"
+ },
+ {
+  "id": "camper",
+  "name": "Camper",
+  "role": "forests, camping",
+  "look": {
+   "gender": "man",
+   "outfit": "coat",
+   "color": "olive",
+   "hat": "beanie",
+   "beard": true
+  },
+  "act": "campfire"
+ }
+]

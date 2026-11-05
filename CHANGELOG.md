@@ -1,5 +1,18 @@
 # Changelog
 
+## PC setup v1.0.39 + Android app 2.38 - Studio, Kinetic, MIR EXPLAINED, Rank Reel, CopyCat, Design
+- **Studio:** 100+ one-tap apps (relight, restyle, camera moves, talking photos, upscale, cutouts…) from the freefield catalogue plus the OpenField pack, run on your own ComfyUI. Missing models download from inside each app; gated ones use your Hugging Face token (Settings → AI).
+- **Motion Studio wizard:** one sentence → a narrated Diorama / Signature film, with the shared **Motion Library** (places, characters, objects, animals) at `/motion/library`.
+- **Kinetic editor** (`/motion/editor`): beat-synced kinetic type with film effects, rendered locally in headless Chrome.
+- **MIR EXPLAINED:** topic → research → script → assets → render → posts. Research runs on your own optional research engine (any OpenAI-compatible URL + key you run, e.g. a Kaggle notebook), else the cloud brain, else the local engine. Nothing is bundled.
+- **Rank Reel:** top-N countdown Shorts built from real clips, each checked by the vision brain before use.
+- **CopyCat:** swap the people or things in any video (Openjutsu, MIT), installed and built by Setup; Fix faces is not included.
+- **Design:** ComfyArt layered canvas inside the lab, with live progress.
+- **Setup:** ComfyUI 0.42.5; new optional model sets FLUX Klein, LTX-2.5 (both gated: paste your Hugging Face token) and Qwen-Image-Layered + BiRefNet; Studio / Design / CopyCat node packs; the vector art library is built at install.
+- **Settings → AI:** Hugging Face token and research engine fields (secrets are never shown again).
+- Every add-on engine path is configurable (`mml_config.json` / Settings: `freefield_dir`, `copycat_dir`, `kinetic_dir`, `motion_dir`, `sfx_dir`, `expressive_python`, export folders).
+- **Android app 2.38:** Studio, Kinetic editor, MIR EXPLAINED, Rank reel, CopyCat and Design in the Media Lab menu, the + menu and the tablet side column.
+
 ## PC setup v1.0.38 + Android app 2.37 - new engines, ALTER, library hub
 - **New models in the picker:** FLUX-3 Klein (fast images and edits), LTX-2.5 (video with sound, talking pictures) and Qwen-Image-Layered (split a picture into transparent layers). They appear as soon as their weights are in ComfyUI's models folder; without them the lab works as before.
 - **Qwen-Image Turbo:** an 8-step quick-draft model next to Base (Image settings → Model). Falls back to Base when the Turbo weights are missing.

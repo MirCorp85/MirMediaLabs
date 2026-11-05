@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#262624">
+<title>MIR MEDIA LABS · Studio</title>
+<link rel="icon" href="static/icon-512.png">
+<link rel="stylesheet" href="static/studio.css">
+</head>
+<body>
+<div id="st" class="st">
+  <header class="st-top">
+    <button class="eb ic" data-a="close" title="Back to the lab"><i class="mi" data-ic="arrow-left"></i></button>
+    <div class="st-brand"><i class="mi" data-ic="wand"></i><b>STUDIO</b><small class="dim">open-weights apps on your GPU</small></div>
+    <span class="sp"></span>
+    <span id="st-engine" class="chip"></span>
+    <button class="eb" data-a="jobs"><i class="mi" data-ic="clock"></i><span>Runs</span><em id="st-busy" hidden></em></button>
+    <button class="eb" data-a="downloads"><i class="mi" data-ic="download"></i><span>Models</span><em id="st-dlc" hidden></em></button>
+  </header>
+  <nav class="st-bar">
+    <div class="st-tabs" id="st-tabs"></div>
+    <label class="st-search"><i class="mi" data-ic="search"></i><input id="st-q" placeholder="Search 120 apps…" autocomplete="off"></label>
+    <label class="st-ready"><input type="checkbox" id="st-only"> Ready on this PC</label>
+  </nav>
+  <div id="st-notice" class="st-notice" hidden></div>
+  <main class="st-main">
+    <section id="st-grid" class="st-grid"></section>
+  </main>
+</div>
+
+<!-- app panel -->
+<div id="ap" class="ap" hidden>
+  <div class="ap-card">
+    <header class="ap-top">
+      <button class="eb ic" data-a="back" title="Back"><i class="mi" data-ic="arrow-left"></i></button>
+      <div class="ap-title"><b id="ap-name"></b><small id="ap-sub" class="dim"></small></div>
+      <span class="sp"></span>
+      <span id="ap-ready" class="badge"></span>
+    </header>
+    <div class="ap-tabs"><button class="on" data-pt="form">Create</button><button data-pt="how">How it works</button></div>
+    <div class="ap-body">
+      <form id="ap-form" class="ap-form" autocomplete="off"></form>
+      <div id="ap-how" class="ap-how" hidden></div>
+      <aside class="ap-out">
+        <div id="ap-result" class="ap-result"><div class="empty dim"><i class="mi" data-ic="sparkle"></i><span>Your result shows up here</span></div></div>
+        <div id="ap-prog" class="ap-prog" hidden><div class="bar"><i></i></div><span></span></div>
+      </aside>
+    </div>
+    <footer class="ap-foot">
+      <span id="ap-msg" class="dim"></span><span class="sp"></span>
+      <button class="eb" type="button" data-a="getmodels" hidden><i class="mi" data-ic="download"></i><span>Get models</span></button>
+      <button class="eb" type="button" data-a="stop" hidden><i class="mi" data-ic="stop"></i>Stop</button>
+      <button class="eb pri" type="button" data-a="run"><i class="mi" data-ic="play"></i><span>Generate</span></button>
+    </footer>
+  </div>
+</div>
+
+<!-- drawers -->
+<div id="dr" class="dr" hidden><div class="dr-card"><header><b id="dr-title"></b><span class="sp"></span><button class="eb ic" data-a="drclose"><i class="mi" data-ic="close"></i></button></header><div id="dr-body" class="dr-body"></div></div></div>
+<!-- library picker -->
+<div id="lp" class="dr" hidden><div class="dr-card wide"><header><b>Pick from the library</b><span class="sp"></span><button class="eb ic" data-a="lpclose"><i class="mi" data-ic="close"></i></button></header><div id="lp-body" class="lp-grid"></div></div></div>
+<!-- mask painter -->
+<div id="mp" class="dr" hidden><div class="dr-card wide"><header><b>Paint the area to change</b><span class="sp"></span>
+  <label class="dim">Brush <input type="range" id="mp-size" min="8" max="160" value="48"></label>
+  <button class="eb" data-a="mpclear">Clear</button><button class="eb pri" data-a="mpdone">Use mask</button><button class="eb ic" data-a="mpclose"><i class="mi" data-ic="close"></i></button></header>
+  <div class="mp-wrap"><canvas id="mp-img"></canvas><canvas id="mp-mask"></canvas></div></div></div>
+
+<div id="st-toast" class="st-toast"></div>
+<input type="file" id="st-file" hidden>
+<script>
+(function () {
+  var mlab = false;
+  document.write('<script src="' + (mlab ? '/static/icons/mir-icons.js' : '/static/mir-icons.js') + '"><\/script>');
+})();
+</script>
+<script src="static/studio.js"></script>
+<script src="/static/fonts/mir/mirfont.js" data-vars="--sans"></script>
+</body>
+</html>

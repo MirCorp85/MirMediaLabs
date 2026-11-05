@@ -1,0 +1,78 @@
+{
+ "id": "lumen_relay",
+ "kind": "world",
+ "name": "Lumen Relay",
+ "hero": {
+  "outfit": "space",
+  "color": "gold",
+  "hat": "helmet"
+ },
+ "about": "A lunar relay station where beams of light race between prisms, mirror towers, signal dishes and rings",
+ "base": "moon",
+ "o": {
+  "ground": "#07080f",
+  "lot": "#23232e",
+  "edge": "rgba(0,0,0,0)",
+  "path": "#23232e",
+  "haze": "rgba(255,200,110,0.10)",
+  "sky": [
+   "#020208",
+   "#0b0f2a",
+   "#2a2350"
+  ],
+  "sun": false,
+  "moon": false,
+  "planet": true,
+  "stars": 200,
+  "fill": [
+   "props:prism,mirror,light",
+   "props:dish,tower,sphere",
+   "props:ring,rail,light",
+   "domes",
+   "props:console,screen,pipe",
+   "craters",
+   "props:prism,ring,lamp",
+   "rocket"
+  ],
+  "walk": {
+   "people": 4,
+   "look": {
+    "outfit": "space",
+    "hat": "helmet",
+    "color": "silver"
+   }
+  },
+  "amb": "speed",
+  "floor": "moon",
+  "water": ""
+ },
+ "tags": [
+  "light",
+  "speed",
+  "beam",
+  "prism",
+  "mirror",
+  "relay",
+  "laser",
+  "photon",
+  "signal",
+  "space",
+  "physics",
+  "velocity"
+ ],
+ "review": {
+  "score": 5.0,
+  "round": 1,
+  "problems": [
+   "The key idea, speed of light, doesn't come across. Nothing visible travels between the prisms, mirrors, dishes and rings. The spec promises 'beams of light race between' them, but the frames only show scattered orange glow dots and short gold streaks. At a glance this reads as a moonbase with a crystal-obelisk park, not a light relay.",
+   "The prism towers repeat in a regular grid of about 20 copies. They look like glass gravestones or obelisks, not prisms that split or bend light: no rainbow fan, no beam going in or coming out.",
+   "The mirror towers, signal dishes and rings are too small or missing. The two orange rings in the aerial frame are the only rings, and no dish visibly aims at anything.",
+   "The hero at ground level doesn't match the spec (space outfit, gold, helmet). He wears a green cap, an orange T-shirt and grey trousers, with no helmet and no suit. On a moon base this looks wrong.",
+   "Loose gold bars lie on the floor at ground level (at about x 1210-1280, y 200-245 of the sheet, and the diagonal sticks in the aerial frame). Nothing connects them, so they read as stray planks rather than beams or rails.",
+   "The orange glow blobs float at random spots on the paths and look like stray lamps or fire, not light pulses on a route."
+  ]
+ },
+ "for": "speed of light",
+ "source": "minted",
+ "created": "2026-11-05"
+}

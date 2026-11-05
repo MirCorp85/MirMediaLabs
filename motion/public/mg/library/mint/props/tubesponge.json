@@ -1,0 +1,755 @@
+{
+ "id": "tubesponge",
+ "kind": "prop",
+ "name": "Tube Sponge Cluster",
+ "desc": "Soft, finger-shaped yellow and orange tube sponges that swell and gently bend as they rise",
+ "tags": [
+  "underwater",
+  "sea",
+  "reef",
+  "sponge",
+  "seabed",
+  "organic",
+  "nature",
+  "coral_reef"
+ ],
+ "w": 1.3,
+ "d": 1.0,
+ "h": 1.8,
+ "shapes": [
+  {
+   "s": "ellipse",
+   "x": 0.0,
+   "y": -3.0,
+   "rx": 44.0,
+   "ry": 8.0,
+   "rot": 0.0,
+   "fill": [
+    "char1",
+    "steel"
+   ],
+   "a": 0.6
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -37.0,
+     -2.0
+    ],
+    [
+     -46.0,
+     -30.0
+    ],
+    [
+     -52.0,
+     -55.0
+    ],
+    [
+     -51.5,
+     -80.0
+    ],
+    [
+     -47.5,
+     -97.0
+    ],
+    [
+     -45.0,
+     -101.5
+    ],
+    [
+     -40.0,
+     -104.0
+    ],
+    [
+     -34.0,
+     -103.0
+    ],
+    [
+     -30.0,
+     -100.0
+    ],
+    [
+     -28.5,
+     -97.0
+    ],
+    [
+     -30.5,
+     -80.0
+    ],
+    [
+     -30.0,
+     -55.0
+    ],
+    [
+     -26.0,
+     -30.0
+    ],
+    [
+     -19.0,
+     -2.0
+    ]
+   ],
+   "fill": [
+    "#ffa53a",
+    "#b8541a"
+   ],
+   "stroke": "char0",
+   "lw": 2.0,
+   "anim": {
+    "k": "sway",
+    "sp": 0.8,
+    "amp": 3.0,
+    "px": -28.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -35.0,
+     -15.0
+    ],
+    [
+     -47.0,
+     -52.0
+    ],
+    [
+     -45.0,
+     -88.0
+    ]
+   ],
+   "stroke": "champ",
+   "lw": 2.0,
+   "a": 0.4,
+   "anim": {
+    "k": "sway",
+    "sp": 0.8,
+    "amp": 3.0,
+    "px": -28.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": -38.0,
+   "y": -96.5,
+   "rx": 9.0,
+   "ry": 4.0,
+   "rot": -7,
+   "fill": "#b8541a",
+   "anim": {
+    "k": "sway",
+    "sp": 0.8,
+    "amp": 3.0,
+    "px": -28.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": -38.0,
+   "y": -99.0,
+   "rx": 8.0,
+   "ry": 4.0,
+   "rot": -7,
+   "fill": "#3a1c0c",
+   "stroke": "gold",
+   "lw": 1.5,
+   "anim": {
+    "k": "sway",
+    "sp": 0.8,
+    "amp": 3.0,
+    "px": -28.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     10.0,
+     -3.0
+    ],
+    [
+     11.5,
+     -30.0
+    ],
+    [
+     15.5,
+     -60.0
+    ],
+    [
+     19.0,
+     -90.0
+    ],
+    [
+     22.0,
+     -110.0
+    ],
+    [
+     24.5,
+     -122.0
+    ],
+    [
+     27.0,
+     -127.0
+    ],
+    [
+     32.0,
+     -129.5
+    ],
+    [
+     38.0,
+     -129.5
+    ],
+    [
+     43.0,
+     -126.5
+    ],
+    [
+     45.5,
+     -120.0
+    ],
+    [
+     44.0,
+     -110.0
+    ],
+    [
+     43.0,
+     -90.0
+    ],
+    [
+     38.5,
+     -60.0
+    ],
+    [
+     32.5,
+     -30.0
+    ],
+    [
+     30.0,
+     -3.0
+    ]
+   ],
+   "fill": [
+    "#ff9a2e",
+    "#a8481a"
+   ],
+   "stroke": "char0",
+   "lw": 2.0,
+   "anim": {
+    "k": "sway",
+    "sp": 0.7,
+    "amp": 3.0,
+    "px": 20.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     14.0,
+     -28.0
+    ],
+    [
+     18.0,
+     -75.0
+    ],
+    [
+     26.0,
+     -112.0
+    ]
+   ],
+   "stroke": "champ",
+   "lw": 2.0,
+   "a": 0.4,
+   "anim": {
+    "k": "sway",
+    "sp": 0.7,
+    "amp": 3.0,
+    "px": 20.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": 35.0,
+   "y": -121.5,
+   "rx": 9.0,
+   "ry": 4.0,
+   "rot": 7,
+   "fill": "#a8481a",
+   "anim": {
+    "k": "sway",
+    "sp": 0.7,
+    "amp": 3.0,
+    "px": 20.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": 35.0,
+   "y": -124.0,
+   "rx": 8.0,
+   "ry": 4.0,
+   "rot": 7,
+   "fill": "#3a1c0c",
+   "stroke": "gold",
+   "lw": 1.5,
+   "anim": {
+    "k": "sway",
+    "sp": 0.7,
+    "amp": 3.0,
+    "px": 20.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -12.5,
+     -2.0
+    ],
+    [
+     -14.5,
+     -30.0
+    ],
+    [
+     -16.0,
+     -70.0
+    ],
+    [
+     -16.0,
+     -95.0
+    ],
+    [
+     -15.0,
+     -120.0
+    ],
+    [
+     -13.0,
+     -138.0
+    ],
+    [
+     -12.5,
+     -145.0
+    ],
+    [
+     -9.0,
+     -150.0
+    ],
+    [
+     -4.0,
+     -152.5
+    ],
+    [
+     0.0,
+     -153.0
+    ],
+    [
+     4.0,
+     -152.5
+    ],
+    [
+     9.0,
+     -150.0
+    ],
+    [
+     12.5,
+     -145.0
+    ],
+    [
+     13.0,
+     -138.0
+    ],
+    [
+     15.0,
+     -120.0
+    ],
+    [
+     16.0,
+     -95.0
+    ],
+    [
+     16.0,
+     -70.0
+    ],
+    [
+     14.5,
+     -30.0
+    ],
+    [
+     12.5,
+     -2.0
+    ]
+   ],
+   "fill": [
+    "#ffd84a",
+    "#c9861a"
+   ],
+   "stroke": "char0",
+   "lw": 2.0,
+   "anim": {
+    "k": "sway",
+    "sp": 0.6,
+    "amp": 2.5,
+    "px": 0.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -9.0,
+     -25.0
+    ],
+    [
+     -12.5,
+     -80.0
+    ],
+    [
+     -9.0,
+     -132.0
+    ]
+   ],
+   "stroke": "champ",
+   "lw": 2.0,
+   "a": 0.4,
+   "anim": {
+    "k": "sway",
+    "sp": 0.6,
+    "amp": 2.5,
+    "px": 0.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": 0.0,
+   "y": -142.5,
+   "rx": 11.0,
+   "ry": 5.0,
+   "rot": 0.0,
+   "fill": "#c9861a",
+   "anim": {
+    "k": "sway",
+    "sp": 0.6,
+    "amp": 2.5,
+    "px": 0.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": 0.0,
+   "y": -145.0,
+   "rx": 10.0,
+   "ry": 5.0,
+   "rot": 0.0,
+   "fill": "#3a2410",
+   "stroke": "gold",
+   "lw": 2.0,
+   "anim": {
+    "k": "sway",
+    "sp": 0.6,
+    "amp": 2.5,
+    "px": 0.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     28.0,
+     -2.0
+    ],
+    [
+     32.0,
+     -25.0
+    ],
+    [
+     33.0,
+     -45.0
+    ],
+    [
+     36.5,
+     -62.0
+    ],
+    [
+     38.5,
+     -70.0
+    ],
+    [
+     41.0,
+     -74.5
+    ],
+    [
+     46.0,
+     -76.0
+    ],
+    [
+     51.0,
+     -74.5
+    ],
+    [
+     53.5,
+     -70.0
+    ],
+    [
+     54.0,
+     -62.0
+    ],
+    [
+     51.0,
+     -45.0
+    ],
+    [
+     50.5,
+     -25.0
+    ],
+    [
+     44.0,
+     -2.0
+    ]
+   ],
+   "fill": [
+    "#ffe066",
+    "#c98a1e"
+   ],
+   "stroke": "char0",
+   "lw": 2.0,
+   "anim": {
+    "k": "sway",
+    "sp": 0.9,
+    "amp": 3.0,
+    "px": 36.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": 46.0,
+   "y": -70.0,
+   "rx": 7.0,
+   "ry": 3.0,
+   "rot": 7,
+   "fill": "#c98a1e",
+   "anim": {
+    "k": "sway",
+    "sp": 0.9,
+    "amp": 3.0,
+    "px": 36.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": 46.0,
+   "y": -72.0,
+   "rx": 6.0,
+   "ry": 3.0,
+   "rot": 7,
+   "fill": "#3a2410",
+   "stroke": "gold",
+   "lw": 1.5,
+   "anim": {
+    "k": "sway",
+    "sp": 0.9,
+    "amp": 3.0,
+    "px": 36.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -23.0,
+     -2.0
+    ],
+    [
+     -26.5,
+     -25.0
+    ],
+    [
+     -28.0,
+     -40.0
+    ],
+    [
+     -27.5,
+     -50.0
+    ],
+    [
+     -25.0,
+     -54.5
+    ],
+    [
+     -21.0,
+     -56.0
+    ],
+    [
+     -17.0,
+     -55.0
+    ],
+    [
+     -14.5,
+     -52.0
+    ],
+    [
+     -14.0,
+     -40.0
+    ],
+    [
+     -11.5,
+     -25.0
+    ],
+    [
+     -9.0,
+     -2.0
+    ]
+   ],
+   "fill": [
+    "#ffd84a",
+    "#b8741a"
+   ],
+   "stroke": "char0",
+   "lw": 2.0,
+   "anim": {
+    "k": "sway",
+    "sp": 1.0,
+    "amp": 2.5,
+    "px": -16.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": -21.0,
+   "y": -50.0,
+   "rx": 6.0,
+   "ry": 2.5,
+   "rot": -6.0,
+   "fill": "#b8741a",
+   "anim": {
+    "k": "sway",
+    "sp": 1.0,
+    "amp": 2.5,
+    "px": -16.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": -21.0,
+   "y": -52.0,
+   "rx": 5.0,
+   "ry": 2.5,
+   "rot": -6.0,
+   "fill": "#3a2410",
+   "stroke": "gold",
+   "lw": 1.2,
+   "anim": {
+    "k": "sway",
+    "sp": 1.0,
+    "amp": 2.5,
+    "px": -16.0,
+    "py": -2.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": -30.0,
+   "y": -2.0,
+   "rx": 9.0,
+   "ry": 4.0,
+   "rot": 0.0,
+   "fill": "char1",
+   "stroke": "steel",
+   "lw": 1.2
+  },
+  {
+   "s": "ellipse",
+   "x": -10.0,
+   "y": -1.0,
+   "rx": 7.0,
+   "ry": 3.0,
+   "rot": 0.0,
+   "fill": "char1",
+   "stroke": "steel",
+   "lw": 1.2
+  },
+  {
+   "s": "ellipse",
+   "x": 18.0,
+   "y": -2.0,
+   "rx": 8.0,
+   "ry": 3.5,
+   "rot": 0.0,
+   "fill": "char1",
+   "stroke": "steel",
+   "lw": 1.2
+  },
+  {
+   "s": "ellipse",
+   "x": 40.0,
+   "y": -2.0,
+   "rx": 10.0,
+   "ry": 4.5,
+   "rot": 0.0,
+   "fill": "char1",
+   "stroke": "steel",
+   "lw": 1.2
+  },
+  {
+   "s": "circle",
+   "x": 0.0,
+   "y": -162.0,
+   "r": 3.0,
+   "stroke": "silver",
+   "lw": 1.2,
+   "a": 0.6,
+   "anim": {
+    "k": "bob",
+    "sp": 1.2,
+    "amp": 3.0,
+    "px": 0.0,
+    "py": -162.0
+   }
+  },
+  {
+   "s": "circle",
+   "x": 3.0,
+   "y": -176.0,
+   "r": 2.0,
+   "stroke": "silver",
+   "lw": 1.0,
+   "a": 0.5,
+   "anim": {
+    "k": "bob",
+    "sp": 1.5,
+    "amp": 3.0,
+    "px": 3.0,
+    "py": -176.0
+   }
+  }
+ ],
+ "review": {
+  "score": 8.0,
+  "round": 3,
+  "problems": [
+   "The four dark rocks at the base (rx 7\u201310, char1 fill with a steel stroke) look a lot like the tube openings. At a glance they could be read as more holes in the seabed rather than stones.",
+   "The tubes are nearly straight cones. The spec asks for sponges that 'swell and gently bend', but the walls barely bulge, so the shape looks a little stiff next to branching coral.",
+   "The two bubbles (y -162 and y -176) float about 10\u201325 px above the tallest tube with no visual link to it. That is fine underwater, but they are faint and close to clutter."
+  ]
+ },
+ "for": "Cluster of hollow, finger-shaped yellow and orange tube sponges rising from the seabed. They add organic, rounded shapes that contrast with the branching coral.",
+ "source": "minted",
+ "created": "2026-11-02"
+}

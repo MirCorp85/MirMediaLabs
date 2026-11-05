@@ -38,6 +38,9 @@ if (-not (Test-Path $py)) {
 # the Downloader / Converter (grab.py) needs yt-dlp inside the binary — older build venvs get it added here
 & $py -c "import yt_dlp" 2>$null
 if ($LASTEXITCODE) { & (Join-Path $tools 'uv.exe') pip install --python $py "yt-dlp[default]" }
+# phase-2 tools: Design's websocket bridge (flask-sock + websockets), Kinetic + Studio stage pixel passes (numpy + OpenCV)
+& $py -c "import flask_sock, websockets, numpy, cv2" 2>$null
+if ($LASTEXITCODE) { & (Join-Path $tools 'uv.exe') pip install --python $py flask-sock websockets numpy opencv-python-headless }
 if (-not (Test-Path (Join-Path $here 'pc_version.json'))) { '{"version": "1.0.0"}' | Set-Content -Encoding ascii (Join-Path $here 'pc_version.json') }
 if ($Bump) { & $py (Join-Path $here 'build_tool.py') bump }
 $ver = (Get-Content (Join-Path $here 'pc_version.json') | ConvertFrom-Json).version
@@ -50,7 +53,7 @@ $src = Join-Path $build 'src'
 if ($LASTEXITCODE) { throw 'stage failed' }
 
 # 2. compile the app (standalone folder, no console)
-# short output path: deep SDK modules (anthropic.types.beta...) overflow Windows' 260-char path limit under installeruild
+# short output path: deep SDK modules (anthropic.types.beta...) overflow Windows' 260-char path limit under installer\build
 $appOut = if ($env:MML_APPOUT) { $env:MML_APPOUT } else { 'C:\mmb' }
 Remove-Item $appOut -Recurse -Force -ErrorAction SilentlyContinue
 $ico  = Join-Path $root 'MirMediaLabs.ico'
@@ -60,7 +63,7 @@ $lto = if ($env:MML_NOLTO) { "--lto=no" } else { "--lto=yes" }
 $common = @("-m", "nuitka", "--low-memory", "--nofollow-import-to=yt_dlp.extractor.lazy_extractors", "--assume-yes-for-downloads", "--windows-console-mode=disable", "--python-flag=no_docstrings", "--python-flag=no_asserts", $lto, "--deployment",
             "--windows-icon-from-ico=$ico", "--company-name=MirCorp", "--product-name=MIR MEDIA LABS",
             "--file-version=$ver.0", "--product-version=$ver.0", "--copyright=(c) 2026 MirCorp. GPL-3.0")
-$appArgs = $common + @("--standalone", "--include-package=openai", "--include-package=anthropic", "--include-package=yt_dlp", "--nofollow-import-to=imageio_ffmpeg", "--nofollow-import-to=tkinter", "--nofollow-import-to=PIL",
+$appArgs = $common + @("--standalone", "--include-package=openai", "--include-package=anthropic", "--include-package=yt_dlp", "--nofollow-import-to=imageio_ffmpeg", "--nofollow-import-to=tkinter", "--nofollow-import-to=PIL", "--include-package=flask_sock", "--include-package=simple_websocket", "--include-package=websockets",
                        "--output-filename=MirMediaLabs.exe", "--file-description=MIR MEDIA LABS",
                        "--output-dir=$appOut", (Join-Path $src 'app_main.py'))
 & $py @appArgs
@@ -80,7 +83,15 @@ Copy-Item (Join-Path $root 'server\alter_kit') (Join-Path $stage 'app\alter_kit'
 $mo = Join-Path $stage 'motion'
 New-Item -ItemType Directory -Force $mo | Out-Null
 foreach ($f in 'server.mjs', 'build_player.mjs', 'package.json', 'package-lock.json', 'tsconfig.json') { Copy-Item (Join-Path $root "motion\$f") $mo }
-foreach ($d in 'src', 'dist') { Copy-Item (Join-Path $root "motion\$d") (Join-Path $mo $d) -Recurse }
+foreach ($d in 'src', 'dist', 'public', 'episodes', 'mg_assets') { if (Test-Path (Join-Path $root "motion\$d")) { Copy-Item (Join-Path $root "motion\$d") (Join-Path $mo $d) -Recurse } }
+Copy-Item (Join-Path $root 'motion\explained_build.py') $mo                       # MIR EXPLAINED asset builder (engine Python)
+# generated at setup (node mg_assets/build_vectors.mjs) or per user — never shipped
+foreach ($d in 'public\mg\vec', 'public\mg\art', 'public\episodes', 'public\mg\_raw') { Remove-Item (Join-Path $mo $d) -Recurse -Force -ErrorAction SilentlyContinue }
+# phase-2 engines that ship with the lab: MIR KINETIC (Apache-2.0 FX + OFL fonts), the OpenField Studio pack (MIT),
+# and the CopyCat overlay that Setup lays over the Openjutsu (MIT) download
+Copy-Item (Join-Path $root 'kinetic') (Join-Path $stage 'kinetic') -Recurse
+Copy-Item (Join-Path $root 'server\studio_packs') (Join-Path $stage 'studio_packs') -Recurse
+Copy-Item (Join-Path $here 'copycat') (Join-Path $stage 'copycat_overlay') -Recurse
 if ($Public) {
     # public payload carries the MirCorp-signed release APK (never the private debug build)
     $rel = Join-Path $root 'MirMediaLabs-release.apk'

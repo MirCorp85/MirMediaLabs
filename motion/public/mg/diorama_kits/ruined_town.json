@@ -1,0 +1,141 @@
+{
+ "id": "ruined_town",
+ "world": "war",
+ "name": "Ruined town",
+ "about": "a bombed town street with broken buildings, rubble, a tank and fires - occupation, escape, civilians, liberation",
+ "tags": [
+  "ruins",
+  "bombed",
+  "war",
+  "town",
+  "tank",
+  "rubble",
+  "liberation",
+  "invasion",
+  "escape",
+  "refugee",
+  "civilians"
+ ],
+ "floor": "cobble",
+ "walls": "none",
+ "props": [
+  {
+   "t": "ruin",
+   "x": 0.2,
+   "y": 0.2,
+   "w": 1.6,
+   "d": 1.2,
+   "h": 2.0
+  },
+  {
+   "t": "ruin",
+   "x": 2.6,
+   "y": 0.3,
+   "w": 1.2,
+   "d": 1.0,
+   "h": 1.4
+  },
+  {
+   "t": "armor",
+   "x": 2.3,
+   "y": 1.7
+  },
+  {
+   "t": "rock",
+   "x": 1.0,
+   "y": 2.0,
+   "w": 0.6
+  },
+  {
+   "t": "rock",
+   "x": 1.4,
+   "y": 2.4,
+   "w": 0.4
+  },
+  {
+   "t": "crater",
+   "x": 0.4,
+   "y": 2.9,
+   "w": 0.9,
+   "d": 0.9
+  },
+  {
+   "t": "campfire",
+   "x": 3.4,
+   "y": 3.4
+  }
+ ],
+ "st": {
+  "ruins": [
+   [
+    1.2,
+    1.9
+   ],
+   1,
+   [
+    1.0,
+    0.8,
+    1.4
+   ]
+  ],
+  "tank": [
+   [
+    1.8,
+    3.0
+   ],
+   1,
+   [
+    2.9,
+    2.6,
+    0.8
+   ]
+  ],
+  "rubble": [
+   [
+    0.9,
+    3.3
+   ],
+   -1,
+   [
+    1.2,
+    2.2,
+    0.3
+   ]
+  ],
+  "center": [
+   [
+    2.6,
+    3.6
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.4,
+   3.6
+  ],
+  [
+   3.2,
+   2.0
+  ],
+  [
+   0.6,
+   2.3
+  ]
+ ],
+ "regulars": [
+  [
+   1,
+   "march",
+   {
+    "gender": "man",
+    "outfit": "military",
+    "hat": "helmet"
+   }
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

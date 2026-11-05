@@ -1,0 +1,546 @@
+{
+ "id": "prism",
+ "kind": "prop",
+ "name": "Rainbow Prism",
+ "desc": "Hero landmark: a tall faceted glass prism on a gold-trimmed stone plinth. A white beam ent",
+ "tags": [
+  "landmark",
+  "hero",
+  "glass",
+  "light",
+  "rainbow",
+  "monument",
+  "magic"
+ ],
+ "w": 3.0,
+ "d": 2.0,
+ "h": 3.4,
+ "shapes": [
+  {
+   "s": "ellipse",
+   "x": 20.0,
+   "y": 4.0,
+   "rx": 150.0,
+   "ry": 30.0,
+   "rot": 0.0,
+   "fill": "black",
+   "a": 0.25
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -160.0,
+     -250.0
+    ],
+    [
+     -14.0,
+     -178.0
+    ]
+   ],
+   "stroke": "light",
+   "lw": 14.0,
+   "a": 0.25,
+   "anim": {
+    "k": "pulse",
+    "sp": 1.2,
+    "amp": 0.3,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -160.0,
+     -250.0
+    ],
+    [
+     -14.0,
+     -178.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 4.0,
+   "anim": {
+    "k": "flicker",
+    "sp": 2.0,
+    "amp": 0.2,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     18.0,
+     -176.0
+    ],
+    [
+     150.0,
+     -34.0
+    ],
+    [
+     150.0,
+     -20.0
+    ]
+   ],
+   "fill": "#e5484d",
+   "a": 0.55,
+   "anim": {
+    "k": "pulse",
+    "sp": 1.0,
+    "amp": 0.15,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     18.0,
+     -176.0
+    ],
+    [
+     150.0,
+     -20.0
+    ],
+    [
+     148.0,
+     -6.0
+    ]
+   ],
+   "fill": "#f08a3c",
+   "a": 0.55,
+   "anim": {
+    "k": "pulse",
+    "sp": 1.0,
+    "amp": 0.15,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     18.0,
+     -176.0
+    ],
+    [
+     148.0,
+     -6.0
+    ],
+    [
+     144.0,
+     8.0
+    ]
+   ],
+   "fill": "#f2cf4a",
+   "a": 0.55,
+   "anim": {
+    "k": "pulse",
+    "sp": 1.0,
+    "amp": 0.15,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     18.0,
+     -176.0
+    ],
+    [
+     144.0,
+     8.0
+    ],
+    [
+     138.0,
+     20.0
+    ]
+   ],
+   "fill": "#4cc46a",
+   "a": 0.55,
+   "anim": {
+    "k": "pulse",
+    "sp": 1.0,
+    "amp": 0.15,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     18.0,
+     -176.0
+    ],
+    [
+     138.0,
+     20.0
+    ],
+    [
+     128.0,
+     31.0
+    ]
+   ],
+   "fill": "#3f8ee8",
+   "a": 0.55,
+   "anim": {
+    "k": "pulse",
+    "sp": 1.0,
+    "amp": 0.15,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     18.0,
+     -176.0
+    ],
+    [
+     128.0,
+     31.0
+    ],
+    [
+     116.0,
+     40.0
+    ]
+   ],
+   "fill": "#8a5cf0",
+   "a": 0.55,
+   "anim": {
+    "k": "pulse",
+    "sp": 1.0,
+    "amp": 0.15,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": 132.0,
+   "y": 4.0,
+   "rx": 26.0,
+   "ry": 40.0,
+   "rot": 0.0,
+   "fill": "light",
+   "a": 0.18,
+   "anim": {
+    "k": "pulse",
+    "sp": 1.4,
+    "amp": 0.4,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     18.0,
+     -176.0
+    ],
+    [
+     146.0,
+     -12.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 3.0,
+   "a": 0.8,
+   "anim": {
+    "k": "flow",
+    "sp": 2.2,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     18.0,
+     -176.0
+    ],
+    [
+     134.0,
+     24.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 3.0,
+   "a": 0.8,
+   "anim": {
+    "k": "flow",
+    "sp": 1.8,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "rect",
+   "x": -62.0,
+   "y": -56.0,
+   "w": 124.0,
+   "h": 56.0,
+   "r": 4.0,
+   "fill": [
+    "stone",
+    "stone2"
+   ],
+   "stroke": "char0",
+   "lw": 2.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -56.0,
+     -28.0
+    ],
+    [
+     56.0,
+     -28.0
+    ]
+   ],
+   "stroke": "char1",
+   "lw": 2.0,
+   "a": 0.5
+  },
+  {
+   "s": "rect",
+   "x": -70.0,
+   "y": -70.0,
+   "w": 140.0,
+   "h": 16.0,
+   "r": 3.0,
+   "fill": [
+    "steel",
+    "char1"
+   ],
+   "stroke": "char0",
+   "lw": 2.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -66.0,
+     -56.0
+    ],
+    [
+     66.0,
+     -56.0
+    ]
+   ],
+   "stroke": "gold",
+   "lw": 3.0
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -42.0,
+     -74.0
+    ],
+    [
+     42.0,
+     -74.0
+    ],
+    [
+     34.0,
+     -84.0
+    ],
+    [
+     -34.0,
+     -84.0
+    ]
+   ],
+   "fill": "brass",
+   "stroke": "bronze",
+   "lw": 2.0
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     0.0,
+     -340.0
+    ],
+    [
+     -38.0,
+     -84.0
+    ],
+    [
+     8.0,
+     -80.0
+    ]
+   ],
+   "fill": [
+    "#e8f6ff",
+    "#7fb6d8"
+   ],
+   "stroke": "silver",
+   "lw": 2.0,
+   "a": 0.85
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     0.0,
+     -340.0
+    ],
+    [
+     8.0,
+     -80.0
+    ],
+    [
+     38.0,
+     -84.0
+    ]
+   ],
+   "fill": [
+    "#a9d4ee",
+    "#3f6f92"
+   ],
+   "stroke": "silver",
+   "lw": 2.0,
+   "a": 0.85
+  },
+  {
+   "s": "ellipse",
+   "x": 4.0,
+   "y": -182.0,
+   "rx": 10.0,
+   "ry": 34.0,
+   "rot": 0.0,
+   "fill": "white",
+   "a": 0.5,
+   "anim": {
+    "k": "pulse",
+    "sp": 1.4,
+    "amp": 0.5,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -4.0,
+     -310.0
+    ],
+    [
+     -28.0,
+     -110.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 3.0,
+   "a": 0.7
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     0.0,
+     -340.0
+    ],
+    [
+     8.0,
+     -80.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 2.0,
+   "a": 0.6
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     20.0,
+     -250.0
+    ],
+    [
+     30.0,
+     -110.0
+    ]
+   ],
+   "stroke": "pale",
+   "lw": 2.0,
+   "a": 0.4
+  },
+  {
+   "s": "circle",
+   "x": 0.0,
+   "y": -340.0,
+   "r": 5.0,
+   "fill": "gold",
+   "stroke": "champ",
+   "lw": 1.5
+  },
+  {
+   "s": "circle",
+   "x": 0.0,
+   "y": -340.0,
+   "r": 12.0,
+   "fill": "light",
+   "a": 0.3,
+   "anim": {
+    "k": "blink",
+    "sp": 0.8,
+    "amp": 0.6,
+    "px": 0.0,
+    "py": 0.0
+   }
+  }
+ ],
+ "review": {
+  "score": 6.0,
+  "round": 1,
+  "problems": [
+   "The rainbow fan is the main story beat, but it barely shows. It's a narrow wedge, about 15\u00b0 wide, coming off the right side of the prism. In the 'in a place' and 'wide' shots it shrinks to a thin striped sliver beside the plinth. It does not read as a fan of colour spread across the ground.",
+   "The fan rises steeply through the air from y=-176 and only touches the floor at its far tip (x\u2248116\u2013150). The brief says the rainbow fans across the ground and light pulses visibly travel along the floor. Right now the 'flow' lines run down the steep fan edge, not along the floor, and the floor pool (ellipse at 132,4, a 0.18) can hardly be seen.",
+   "Stray shape: the 'pale' line from (20,-250) to (30,-110) at a 0.4 reads as a thin brown stick or wire floating beside the prism in the close-up. It is not attached to any facet.",
+   "The pulsing white ellipse in the middle of the prism (4,-182, rx10, ry34) reads as a floating blob or slot, not as an inner glow where the beam refracts.",
+   "For a hero landmark the prism is only about as tall as the person (\u2248340 vs a person of \u2248200\u2013220, which is acceptable). The plinth is low and thin: 56 tall plus a 16 cap. Next to the figure it reads like a small pedestal, not a monument base."
+  ]
+ },
+ "for": "Tall faceted glass prism on a stone plinth that splits a beam into a rainbow fan across the ground. It is the hero landmark, and its light pulses travel visibly",
+ "source": "minted",
+ "created": "2026-11-05",
+ "sprite": {
+  "w": 264.2,
+  "h": 544.0,
+  "ax": 0.5,
+  "ay": 0.97,
+  "sway": 0,
+  "src": "mg/library/mint/sprites/prism.png"
+ },
+ "sprite_review": {
+  "score": 4.0,
+  "problems": [
+   "The key story feature is missing. There is no white beam going in and no rainbow fan spreading across the ground, so it reads as a crystal obelisk or monument, not a prism that splits light.",
+   "There are green plants and leaves inside the glass, so it reads as a terrarium rather than clear faceted glass.",
+   "The plinth is a messy pile of rough boulders with weeds and a tiny arched wooden door. That is fantasy-cottage clutter, not a clean, gold-trimmed stone plinth in a charcoal city.",
+   "The silhouette is a tall thin obelisk with a pointed top. A triangular prism shape would make 'prism' clear at a glance.",
+   "Scale against the person is fine (about 1.6\u00d7 his height), and the sprite sits grounded with clean edges."
+  ]
+ }
+}

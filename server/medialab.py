@@ -90,6 +90,8 @@ def gate():
         return None
     if request.path.startswith("/social/tiktok/"):  # TikTok sign-in return (one-time state checked) + public legal pages
         return None
+    if request.path.startswith("/ffdrop/"):         # Studio phone drop box: one-time 15-min token, one clip (ffpack.py)
+        return None
     if request.path.startswith("/updates/pc/"):     # PC update channel: signed files + channel token
         return None if pcupdate.publisher_ok(request) else (jsonify({"error": "forbidden"}), 403)
     if not REMOTE["on"] and not _loopback():        # the host paused remote access
@@ -2124,6 +2126,80 @@ nodeflow.register(app, {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "sta
                         "session": lambda s: sessions.valid(uid(), s if s is not None else sessions.load(uid()).get("last")),
                         "submit": _series_submit, "job": _series_job, "cancel": _series_cancel,
                         "to_ref": _flow_to_ref, "text_ref": _flow_text_ref})
+
+
+
+# ── PHASE 2 TOOLS: Studio (freefield apps), Kinetic editor, Motion wizard + library, MIR EXPLAINED, Rank Reel, CopyCat, Design ──
+# Each module owns its pages + /api routes; engine folders are configurable (engines.py) and installed by Setup.
+import engines  # noqa: E402
+
+_SESS = lambda s: sessions.valid(uid(), s if s is not None else sessions.load(uid()).get("last"))
+_OWN = lambda: _loopback() or is_owner()
+_MOTION_HK = {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "static": _static, "session": _SESS,
+              "ask": _motion_ask, "words": _motion_words, "lib_list": _motion_lib, "is_owner": _OWN}
+
+
+def _phase2(name, hk):
+    """Register one add-on module; a missing optional dependency never takes the whole lab down."""
+    try:
+        mod = __import__(name)
+        mod.register(app, hk)
+    except Exception as e:                       # noqa: BLE001
+        print("[lab] %s not loaded: %s" % (name, e))
+
+
+_phase2("kinetic", _MOTION_HK)
+_phase2("motion_wizard", _MOTION_HK)            # also registers motion_library (/motion/library, /api/mglib)
+_phase2("rankreel", _MOTION_HK)
+_phase2("rankreel_wizard", _MOTION_HK)
+_phase2("freefield", {"uid": uid, "is_owner": _OWN, "static": _static, "session": _SESS})   # + ffpack (/studio-stage)
+_phase2("copycat", {"uid": uid, "is_owner": _OWN})
+_phase2("design", {"uid": uid, "is_owner": _OWN})
+_phase2("explainer", {"uid": uid, "push": events.push, "static": _static,
+                      "can_produce": lambda: None if _OWN() else "only the owner can run MIR EXPLAINED"})
+
+try:                                             # Design's live progress: /design/ws <-> ComfyUI /ws
+    from flask_sock import Sock  # noqa: E402
+    _sock = Sock(app)
+
+    @_sock.route("/design/ws")
+    def _design_ws(ws):
+        if not _OWN():
+            return
+        import design
+        design.ws_bridge(ws)
+except Exception as _e:                          # noqa: BLE001
+    print("[lab] Design live progress off (flask-sock missing: %s)" % _e)
+
+
+@app.route("/api/addon-keys", methods=["GET", "POST"])
+def addon_keys():
+    """Owner-only keys for add-ons: Hugging Face token (gated model downloads in Studio) and an optional research engine
+    (any OpenAI-compatible URL + key YOU run, e.g. a Kaggle notebook) for MIR EXPLAINED. GET never returns a secret."""
+    if not _OWN():
+        return jsonify({"error": "owner only"}), 403
+    hf_file = os.path.join(core.DATA, "hf_token.txt")
+    if request.method == "POST":
+        b = request.get_json(silent=True) or {}
+        if "hf_token" in b:
+            tok = str(b.get("hf_token") or "").strip()[:200]
+            if tok:
+                with open(core.safe_path(hf_file), "w", encoding="utf-8") as f:
+                    f.write(tok)
+            elif os.path.isfile(hf_file):
+                os.remove(hf_file)
+        if "research_url" in b:
+            url = str(b.get("research_url") or "").strip()[:300]
+            if url and not url.startswith(("http://", "https://")):
+                return jsonify({"error": "the research engine URL must start with http:// or https://"}), 400
+            core.save_pref("research_url", url)
+            core.save_pref("research_model", str(b.get("research_model") or "").strip()[:120])
+            if b.get("research_key") is not None and (str(b.get("research_key")).strip() or not url):
+                core.save_pref("research_key", str(b.get("research_key") or "").strip()[:300])
+    pr = core.prefs()
+    return jsonify({"hf_token": os.path.isfile(hf_file), "research_url": pr.get("research_url") or "",
+                    "research_model": pr.get("research_model") or "", "research_key": bool(pr.get("research_key")),
+                    "engines": engines.summary()})
 
 
 def main():

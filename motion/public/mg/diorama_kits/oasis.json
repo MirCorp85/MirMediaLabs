@@ -1,0 +1,149 @@
+{
+ "id": "oasis",
+ "world": "desert",
+ "name": "Desert oasis",
+ "about": "a palm oasis around a pool in the dunes - thirst, rescue, travellers, caravans, mirages",
+ "tags": [
+  "oasis",
+  "desert",
+  "water",
+  "palm",
+  "caravan",
+  "travel",
+  "camel",
+  "thirst",
+  "mirage",
+  "sand"
+ ],
+ "floor": "sand",
+ "walls": "none",
+ "props": [
+  {
+   "t": "patch",
+   "x": 1.1,
+   "y": 1.1,
+   "kind": "water",
+   "w": 1.6,
+   "d": 1.3
+  },
+  {
+   "t": "palm",
+   "x": 0.5,
+   "y": 0.5,
+   "h": 2.6
+  },
+  {
+   "t": "palm",
+   "x": 2.9,
+   "y": 0.7,
+   "h": 2.3
+  },
+  {
+   "t": "palm",
+   "x": 0.6,
+   "y": 2.8,
+   "h": 2.2
+  },
+  {
+   "t": "tent",
+   "x": 2.6,
+   "y": 2.4,
+   "col": "champ"
+  },
+  {
+   "t": "barrel",
+   "x": 2.3,
+   "y": 3.5
+  },
+  {
+   "t": "dune",
+   "x": 3.0,
+   "y": 0.0,
+   "w": 1.0,
+   "h": 0.5
+  }
+ ],
+ "st": {
+  "pool": [
+   [
+    1.9,
+    2.7
+   ],
+   -1,
+   [
+    1.9,
+    1.7,
+    0.1
+   ]
+  ],
+  "tent": [
+   [
+    2.5,
+    3.6
+   ],
+   -1,
+   [
+    3.2,
+    2.9,
+    0.8
+   ]
+  ],
+  "palms": [
+   [
+    1.2,
+    1.0
+   ],
+   1,
+   [
+    0.7,
+    0.7,
+    2
+   ]
+  ],
+  "center": [
+   [
+    1.5,
+    3.4
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.0,
+   2.4
+  ],
+  [
+   3.0,
+   1.9
+  ],
+  [
+   1.8,
+   3.6
+  ]
+ ],
+ "regulars": [
+  [
+   1,
+   "stand",
+   {
+    "gender": "man",
+    "outfit": "robe",
+    "color": "champagne",
+    "skin": "tan",
+    "beard": true
+   }
+  ]
+ ],
+ "animals": [
+  [
+   "camel",
+   3.4,
+   1.4,
+   "idle"
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

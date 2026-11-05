@@ -1,0 +1,52 @@
+{
+  "clip": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "gemma_3_12B_it_fp4_mixed.safetensors",
+      "type": "ltxv",
+      "device": "default"
+    }
+  },
+  "sys": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "You are a film director planning coverage. Split the user's scene into a shot list that tells it in order.\nUse 2 to 4 shots. Vary the framing from shot to shot.\nReply with JSON only, no prose and no code fences, exactly this shape:\n{\"shots\":[{\"framing\":\"...\",\"move\":\"...\",\"action\":\"...\",\"seconds\":3}]}\nframing is one of: wide, medium, close, ecu, ots, low, high, top.\nmove is one of: free, push-in, pull-back, orbit-left, orbit-right, crane-up, truck-left, handheld, static, rack-focus, dolly-zoom, crash-zoom, fpv-dive, whip-pan, aerial-pull, freeze-orbit, snorricam.\naction is one sentence in the present tense that stands on its own: who is in frame, where they are, and what they do. Describe the character and the place the same way in every shot.\nseconds is a whole number from 2 to 6."
+    }
+  },
+  "gen": {
+    "class_type": "TextGenerateLTX2Prompt",
+    "inputs": {
+      "clip": [
+        "clip",
+        0
+      ],
+      "prompt": "A lighthouse keeper climbs the stairs with a lantern as the storm hits. At the top he sees a ship breaking apart on the rocks.",
+      "max_length": 700,
+      "sampling_mode": "on",
+      "sampling_mode.temperature": 0.4,
+      "sampling_mode.top_k": 64,
+      "sampling_mode.top_p": 0.95,
+      "sampling_mode.min_p": 0.05,
+      "sampling_mode.repetition_penalty": 1.05,
+      "sampling_mode.seed": 42,
+      "thinking": false,
+      "use_default_template": true,
+      "mtp": "off",
+      "system_prompt": [
+        "sys",
+        0
+      ]
+    }
+  },
+  "save": {
+    "class_type": "SaveText",
+    "inputs": {
+      "text": [
+        "gen",
+        0
+      ],
+      "filename_prefix": "openfield/shotlist",
+      "format": "json"
+    }
+  }
+}

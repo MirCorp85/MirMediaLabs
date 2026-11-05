@@ -1,0 +1,187 @@
+{
+ "id": "ship_deck",
+ "world": "ocean",
+ "name": "Ship deck",
+ "about": "the wooden deck of a sailing ship at sea: masts, wheel, barrels, ropes - sailors, pirates, voyages, storms",
+ "tags": [
+  "ship",
+  "sailing",
+  "boat",
+  "pirate",
+  "pirates",
+  "sailor",
+  "voyage",
+  "captain",
+  "sea",
+  "ocean",
+  "deck",
+  "navy",
+  "storm"
+ ],
+ "floor": "deck",
+ "walls": "none",
+ "props": [
+  {
+   "t": "pillar",
+   "x": 1.8,
+   "y": 1.0,
+   "w": 0.25,
+   "d": 0.25,
+   "h": 3.4,
+   "col": "bronze"
+  },
+  {
+   "t": "pillar",
+   "x": 1.8,
+   "y": 2.8,
+   "w": 0.2,
+   "d": 0.2,
+   "h": 2.8,
+   "col": "bronze"
+  },
+  {
+   "t": "barrel",
+   "x": 0.4,
+   "y": 0.4
+  },
+  {
+   "t": "barrel",
+   "x": 0.8,
+   "y": 0.5
+  },
+  {
+   "t": "crate",
+   "x": 3.2,
+   "y": 0.4,
+   "w": 0.5,
+   "d": 0.5,
+   "h": 0.4
+  },
+  {
+   "t": "rail",
+   "x": 0.0,
+   "y": 3.9,
+   "w": 4
+  },
+  {
+   "t": "rail",
+   "x": 3.9,
+   "y": 0.0,
+   "w": 0.06,
+   "d": 4
+  },
+  {
+   "t": "ring",
+   "x": 2.9,
+   "y": 2.2,
+   "w": 0.6,
+   "d": 0.2,
+   "h": 0.7
+  },
+  {
+   "t": "flag",
+   "x": 1.75,
+   "y": 0.9,
+   "z": 3.3,
+   "col": "char0"
+  }
+ ],
+ "st": {
+  "wheel": [
+   [
+    2.9,
+    2.9
+   ],
+   -1,
+   [
+    2.95,
+    2.25,
+    0.6
+   ]
+  ],
+  "mast": [
+   [
+    2.3,
+    1.7
+   ],
+   -1,
+   [
+    1.9,
+    1.1,
+    1.6
+   ]
+  ],
+  "rail": [
+   [
+    1.0,
+    3.4
+   ],
+   1,
+   [
+    1.0,
+    3.9,
+    0.5
+   ]
+  ],
+  "barrels": [
+   [
+    1.1,
+    1.3
+   ],
+   -1,
+   [
+    0.6,
+    0.5,
+    0.5
+   ]
+  ],
+  "center": [
+   [
+    2.4,
+    3.4
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.2,
+   2.4
+  ],
+  [
+   3.2,
+   1.4
+  ],
+  [
+   0.8,
+   3.2
+  ],
+  [
+   2.6,
+   1.0
+  ]
+ ],
+ "regulars": [
+  [
+   0,
+   "pull",
+   {
+    "gender": "man",
+    "outfit": "tshirt",
+    "color": "navy",
+    "beard": true
+   }
+  ]
+ ],
+ "animals": [
+  [
+   "parrot",
+   3.3,
+   0.5,
+   "idle"
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

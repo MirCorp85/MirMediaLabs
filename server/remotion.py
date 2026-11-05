@@ -26,7 +26,8 @@ import core
 ENGINE = core.CONFIG.get("motion_dir") or os.environ.get("MML_MOTION_DIR") or os.path.join(core.ROOT, "motion")
 PORT = int(core.CONFIG.get("motion_port") or os.environ.get("MML_MOTION_PORT") or 5421)
 BASE = "http://127.0.0.1:%d/" % PORT
-FONTS = os.path.join(core.STATIC, "fonts", "mir")
+import engines  # noqa: E402
+FONTS = engines.static_dir(os.path.join("fonts", "mir"))
 MD = os.path.join(core.DATA, "motion")
 PROJ = os.path.join(MD, "projects")
 CACHE = os.path.join(MD, "cache")      # segment + still cache (keyed by content hash)
@@ -325,9 +326,7 @@ def register(app, hk):
                 bad.append(r)
         return bad
 
-    @app.route("/motion")
-    def motion_page():
-        return hk["static"]("motion.html")
+    # /motion (Motion Studio producer) is motion_wizard.py's; /motion/editor (MIR KINETIC) is kinetic.py's.
 
     @app.route("/motion/player.js")
     def motion_player():

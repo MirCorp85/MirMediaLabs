@@ -1,0 +1,169 @@
+{
+ "id": "courtroom",
+ "name": "Courtroom",
+ "about": "a courtroom with the judge's bench, a lectern and the gallery - trials, law, justice, verdicts, crime",
+ "tags": [
+  "court",
+  "courtroom",
+  "judge",
+  "trial",
+  "law",
+  "lawyer",
+  "justice",
+  "verdict",
+  "crime",
+  "jury",
+  "legal",
+  "witness"
+ ],
+ "floor": "wood",
+ "walls": "both",
+ "props": [
+  {
+   "t": "stage",
+   "x": 0.3,
+   "y": 0.25,
+   "w": 2.4,
+   "d": 0.9,
+   "h": 0.3
+  },
+  {
+   "t": "counter",
+   "x": 0.5,
+   "y": 0.5,
+   "w": 2.0,
+   "d": 0.45,
+   "h": 1.3,
+   "col": "bronze"
+  },
+  {
+   "t": "board",
+   "wall": "back",
+   "x": 2.9,
+   "w": 0.9,
+   "z": 1.1,
+   "h": 0.9,
+   "col": "gold"
+  },
+  {
+   "t": "window",
+   "wall": "left",
+   "y": 1.6,
+   "w": 1.6
+  },
+  {
+   "t": "podium",
+   "x": 2.0,
+   "y": 2.0
+  },
+  {
+   "t": "table",
+   "x": 0.4,
+   "y": 1.8,
+   "w": 1.1,
+   "d": 0.6,
+   "col": "brass"
+  },
+  {
+   "t": "bench",
+   "x": 0.4,
+   "y": 3.3,
+   "w": 1.4,
+   "d": 0.35,
+   "col": "bronze"
+  },
+  {
+   "t": "bench",
+   "x": 2.2,
+   "y": 3.3,
+   "w": 1.4,
+   "d": 0.35,
+   "col": "bronze"
+  },
+  {
+   "t": "light",
+   "x": 2.0,
+   "y": 1.5,
+   "z": 2.3
+  }
+ ],
+ "st": {
+  "bench": [
+   [
+    1.5,
+    1.45
+   ],
+   -1,
+   [
+    1.5,
+    0.7,
+    1.3
+   ]
+  ],
+  "lectern": [
+   [
+    2.3,
+    2.75
+   ],
+   -1,
+   [
+    2.25,
+    2.2,
+    1.1
+   ]
+  ],
+  "table": [
+   [
+    1.0,
+    2.75
+   ],
+   -1,
+   [
+    0.95,
+    2.1,
+    0.75
+   ]
+  ],
+  "center": [
+   [
+    3.1,
+    1.9
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   2.9,
+   1.5
+  ],
+  [
+   1.3,
+   3.05
+  ],
+  [
+   3.5,
+   2.6
+  ],
+  [
+   1.5,
+   0.3
+  ]
+ ],
+ "regulars": [
+  [
+   3,
+   "stand",
+   {
+    "gender": "man",
+    "age": "older",
+    "color": "charcoal",
+    "hair": "bald",
+    "glasses": true
+   }
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-28"
+}

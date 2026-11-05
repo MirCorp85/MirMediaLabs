@@ -1,0 +1,152 @@
+{
+ "id": "desert_road",
+ "world": "desert",
+ "name": "Desert highway",
+ "about": "an empty highway through the desert with a gas pump, a sign and cacti - road trips, breakdowns, the middle of nowhere",
+ "tags": [
+  "road",
+  "highway",
+  "road trip",
+  "desert",
+  "car",
+  "gas",
+  "nowhere",
+  "drive",
+  "route",
+  "breakdown"
+ ],
+ "floor": "sand",
+ "walls": "none",
+ "props": [
+  {
+   "t": "patch",
+   "x": 0.0,
+   "y": 1.5,
+   "kind": "concrete",
+   "w": 4,
+   "d": 1.0
+  },
+  {
+   "t": "car",
+   "x": 1.6,
+   "y": 1.3,
+   "w": 0.7,
+   "d": 1.6,
+   "col": "ember"
+  },
+  {
+   "t": "sign",
+   "x": 3.2,
+   "y": 0.6,
+   "h": 1.8,
+   "col": "gold"
+  },
+  {
+   "t": "machine",
+   "x": 0.4,
+   "y": 0.4,
+   "w": 0.5,
+   "d": 0.5,
+   "h": 1.2,
+   "col": "ember"
+  },
+  {
+   "t": "cactus",
+   "x": 3.2,
+   "y": 3.1
+  },
+  {
+   "t": "cactus",
+   "x": 0.5,
+   "y": 3.3,
+   "h": 1.0
+  },
+  {
+   "t": "rock",
+   "x": 2.6,
+   "y": 3.4
+  }
+ ],
+ "st": {
+  "road": [
+   [
+    2.6,
+    2.0
+   ],
+   1,
+   [
+    2.5,
+    2.0,
+    0.1
+   ]
+  ],
+  "car": [
+   [
+    1.3,
+    2.4
+   ],
+   1,
+   [
+    1.9,
+    2.0,
+    0.7
+   ]
+  ],
+  "pump": [
+   [
+    0.9,
+    1.2
+   ],
+   -1,
+   [
+    0.6,
+    0.6,
+    1.0
+   ]
+  ],
+  "sign": [
+   [
+    3.0,
+    1.3
+   ],
+   -1,
+   [
+    3.2,
+    0.6,
+    1.6
+   ]
+  ],
+  "center": [
+   [
+    2.0,
+    3.3
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   2.4,
+   3.0
+  ],
+  [
+   3.4,
+   2.6
+  ],
+  [
+   0.8,
+   2.9
+  ]
+ ],
+ "animals": [
+  [
+   "snake",
+   2.8,
+   3.5,
+   "walk"
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

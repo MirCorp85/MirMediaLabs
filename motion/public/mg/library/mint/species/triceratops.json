@@ -1,0 +1,640 @@
+{
+ "id": "triceratops",
+ "kind": "species",
+ "name": "Triceratops",
+ "h": 416.0,
+ "len": 768.0,
+ "parts": [
+  {
+   "move": "legB",
+   "pivot": [
+    -110.0,
+    -150.0
+   ],
+   "shapes": [
+    {
+     "s": "rect",
+     "x": -135.0,
+     "y": -165.0,
+     "w": 50.0,
+     "h": 160.0,
+     "r": 18.0,
+     "fill": "#55553a"
+    },
+    {
+     "s": "ellipse",
+     "x": -110.0,
+     "y": -8.0,
+     "rx": 30.0,
+     "ry": 10.0,
+     "fill": "#45452f"
+    }
+   ]
+  },
+  {
+   "move": "legA",
+   "pivot": [
+    70.0,
+    -140.0
+   ],
+   "shapes": [
+    {
+     "s": "rect",
+     "x": 48.0,
+     "y": -150.0,
+     "w": 46.0,
+     "h": 145.0,
+     "r": 16.0,
+     "fill": "#55553a"
+    },
+    {
+     "s": "ellipse",
+     "x": 71.0,
+     "y": -8.0,
+     "rx": 29.0,
+     "ry": 10.0,
+     "fill": "#45452f"
+    }
+   ]
+  },
+  {
+   "move": "tail",
+   "pivot": [
+    -170.0,
+    -160.0
+   ],
+   "shapes": [
+    {
+     "s": "poly",
+     "p": [
+      [
+       -150.0,
+       -200.0
+      ],
+      [
+       -230.0,
+       -160.0
+      ],
+      [
+       -280.0,
+       -122.0
+      ],
+      [
+       -290.0,
+       -110.0
+      ],
+      [
+       -240.0,
+       -112.0
+      ],
+      [
+       -150.0,
+       -122.0
+      ]
+     ],
+     "fill": "#6a6a45"
+    },
+    {
+     "s": "curve",
+     "p": [
+      [
+       -160.0,
+       -190.0
+      ],
+      [
+       -220.0,
+       -165.0
+      ],
+      [
+       -280.0,
+       -118.0
+      ]
+     ],
+     "stroke": "#8e8e62",
+     "lw": 2.5
+    }
+   ]
+  },
+  {
+   "move": "body",
+   "pivot": [
+    -20.0,
+    -160.0
+   ],
+   "shapes": [
+    {
+     "s": "ellipse",
+     "x": -20.0,
+     "y": -160.0,
+     "rx": 180.0,
+     "ry": 90.0,
+     "fill": [
+      "#80805a",
+      "#5f5f3e"
+     ]
+    },
+    {
+     "s": "ellipse",
+     "x": 95.0,
+     "y": -165.0,
+     "rx": 70.0,
+     "ry": 68.0,
+     "fill": "#76764f"
+    },
+    {
+     "s": "ellipse",
+     "x": -15.0,
+     "y": -102.0,
+     "rx": 145.0,
+     "ry": 30.0,
+     "fill": "#aca57f",
+     "a": 0.85
+    },
+    {
+     "s": "curve",
+     "p": [
+      [
+       -160.0,
+       -222.0
+      ],
+      [
+       -30.0,
+       -262.0
+      ],
+      [
+       110.0,
+       -222.0
+      ]
+     ],
+     "stroke": "#a3a374",
+     "lw": 3.0
+    },
+    {
+     "s": "ellipse",
+     "x": -60.0,
+     "y": -185.0,
+     "rx": 22.0,
+     "ry": 12.0,
+     "fill": "#6a6a45",
+     "a": 0.6
+    },
+    {
+     "s": "ellipse",
+     "x": 10.0,
+     "y": -200.0,
+     "rx": 18.0,
+     "ry": 10.0,
+     "fill": "#6a6a45",
+     "a": 0.6
+    },
+    {
+     "s": "ellipse",
+     "x": -110.0,
+     "y": -170.0,
+     "rx": 16.0,
+     "ry": 9.0,
+     "fill": "#6a6a45",
+     "a": 0.6
+    }
+   ]
+  },
+  {
+   "move": "legA",
+   "pivot": [
+    -90.0,
+    -140.0
+   ],
+   "shapes": [
+    {
+     "s": "ellipse",
+     "x": -95.0,
+     "y": -125.0,
+     "rx": 58.0,
+     "ry": 62.0,
+     "fill": "#72724b"
+    },
+    {
+     "s": "rect",
+     "x": -122.0,
+     "y": -115.0,
+     "w": 56.0,
+     "h": 110.0,
+     "r": 18.0,
+     "fill": "#72724b"
+    },
+    {
+     "s": "ellipse",
+     "x": -94.0,
+     "y": -8.0,
+     "rx": 35.0,
+     "ry": 11.0,
+     "fill": "#5f5f3e"
+    },
+    {
+     "s": "circle",
+     "x": -117.0,
+     "y": -5.0,
+     "r": 6.0,
+     "fill": "#e0d6b8"
+    },
+    {
+     "s": "circle",
+     "x": -95.0,
+     "y": -4.0,
+     "r": 6.0,
+     "fill": "#e0d6b8"
+    },
+    {
+     "s": "circle",
+     "x": -73.0,
+     "y": -5.0,
+     "r": 6.0,
+     "fill": "#e0d6b8"
+    },
+    {
+     "s": "line",
+     "p": [
+      [
+       -110.0,
+       -160.0
+      ],
+      [
+       -112.0,
+       -60.0
+      ]
+     ],
+     "stroke": "#8e8e62",
+     "lw": 2.0
+    }
+   ]
+  },
+  {
+   "move": "legB",
+   "pivot": [
+    100.0,
+    -135.0
+   ],
+   "shapes": [
+    {
+     "s": "rect",
+     "x": 76.0,
+     "y": -150.0,
+     "w": 50.0,
+     "h": 145.0,
+     "r": 18.0,
+     "fill": "#72724b"
+    },
+    {
+     "s": "ellipse",
+     "x": 101.0,
+     "y": -8.0,
+     "rx": 33.0,
+     "ry": 11.0,
+     "fill": "#5f5f3e"
+    },
+    {
+     "s": "circle",
+     "x": 82.0,
+     "y": -5.0,
+     "r": 6.0,
+     "fill": "#e0d6b8"
+    },
+    {
+     "s": "circle",
+     "x": 101.0,
+     "y": -4.0,
+     "r": 6.0,
+     "fill": "#e0d6b8"
+    },
+    {
+     "s": "circle",
+     "x": 120.0,
+     "y": -5.0,
+     "r": 6.0,
+     "fill": "#e0d6b8"
+    },
+    {
+     "s": "line",
+     "p": [
+      [
+       88.0,
+       -140.0
+      ],
+      [
+       88.0,
+       -40.0
+      ]
+     ],
+     "stroke": "#8e8e62",
+     "lw": 2.0
+    }
+   ]
+  },
+  {
+   "move": "head",
+   "pivot": [
+    120.0,
+    -175.0
+   ],
+   "shapes": [
+    {
+     "s": "ellipse",
+     "x": 122.0,
+     "y": -218.0,
+     "rx": 64.0,
+     "ry": 94.0,
+     "rot": -0.35,
+     "fill": "#86664a",
+     "stroke": "brass",
+     "lw": 4.0
+    },
+    {
+     "s": "ellipse",
+     "x": 124.0,
+     "y": -214.0,
+     "rx": 46.0,
+     "ry": 72.0,
+     "rot": -0.35,
+     "fill": "#a37f55"
+    },
+    {
+     "s": "ellipse",
+     "x": 110.0,
+     "y": -250.0,
+     "rx": 14.0,
+     "ry": 20.0,
+     "rot": -0.35,
+     "fill": "#86664a",
+     "a": 0.7
+    },
+    {
+     "s": "ellipse",
+     "x": 135.0,
+     "y": -200.0,
+     "rx": 12.0,
+     "ry": 17.0,
+     "rot": -0.35,
+     "fill": "#86664a",
+     "a": 0.7
+    },
+    {
+     "s": "poly",
+     "p": [
+      [
+       108.0,
+       -212.0
+      ],
+      [
+       175.0,
+       -218.0
+      ],
+      [
+       215.0,
+       -178.0
+      ],
+      [
+       236.0,
+       -132.0
+      ],
+      [
+       215.0,
+       -120.0
+      ],
+      [
+       160.0,
+       -120.0
+      ],
+      [
+       108.0,
+       -142.0
+      ]
+     ],
+     "fill": "#7d7d52"
+    },
+    {
+     "s": "ellipse",
+     "x": 145.0,
+     "y": -150.0,
+     "rx": 30.0,
+     "ry": 22.0,
+     "fill": "#6a6a45"
+    },
+    {
+     "s": "curve",
+     "p": [
+      [
+       130.0,
+       -210.0
+      ],
+      [
+       175.0,
+       -212.0
+      ],
+      [
+       212.0,
+       -180.0
+      ]
+     ],
+     "stroke": "#a3a374",
+     "lw": 2.0
+    },
+    {
+     "s": "poly",
+     "p": [
+      [
+       148.0,
+       -206.0
+      ],
+      [
+       168.0,
+       -213.0
+      ],
+      [
+       238.0,
+       -296.0
+      ]
+     ],
+     "fill": "#cbbf9e"
+    },
+    {
+     "s": "poly",
+     "p": [
+      [
+       164.0,
+       -200.0
+      ],
+      [
+       188.0,
+       -209.0
+      ],
+      [
+       264.0,
+       -286.0
+      ]
+     ],
+     "fill": "#efe6cc",
+     "stroke": "#b3a886",
+     "lw": 1.5
+    },
+    {
+     "s": "poly",
+     "p": [
+      [
+       203.0,
+       -160.0
+      ],
+      [
+       222.0,
+       -166.0
+      ],
+      [
+       224.0,
+       -202.0
+      ]
+     ],
+     "fill": "#efe6cc",
+     "stroke": "#b3a886",
+     "lw": 1.5
+    },
+    {
+     "s": "poly",
+     "p": [
+      [
+       214.0,
+       -152.0
+      ],
+      [
+       246.0,
+       -126.0
+      ],
+      [
+       220.0,
+       -118.0
+      ]
+     ],
+     "fill": "#3a3a2a"
+    },
+    {
+     "s": "ellipse",
+     "x": 212.0,
+     "y": -146.0,
+     "rx": 4.0,
+     "ry": 3.0,
+     "fill": "#3a3a2a"
+    },
+    {
+     "s": "circle",
+     "x": 172.0,
+     "y": -182.0,
+     "r": 7.5,
+     "fill": "#1c1c1c",
+     "anim": {
+      "k": "blink",
+      "sp": 0.4,
+      "amp": 1.0,
+      "px": 172.0,
+      "py": -182.0
+     }
+    },
+    {
+     "s": "circle",
+     "x": 174.5,
+     "y": -184.5,
+     "r": 2.4,
+     "fill": "white"
+    }
+   ]
+  },
+  {
+   "move": "jaw",
+   "pivot": [
+    160.0,
+    -125.0
+   ],
+   "shapes": [
+    {
+     "s": "poly",
+     "p": [
+      [
+       150.0,
+       -132.0
+      ],
+      [
+       220.0,
+       -124.0
+      ],
+      [
+       238.0,
+       -120.0
+      ],
+      [
+       215.0,
+       -103.0
+      ],
+      [
+       160.0,
+       -107.0
+      ]
+     ],
+     "fill": "#6a6a45"
+    },
+    {
+     "s": "poly",
+     "p": [
+      [
+       214.0,
+       -123.0
+      ],
+      [
+       238.0,
+       -120.0
+      ],
+      [
+       218.0,
+       -106.0
+      ]
+     ],
+     "fill": "#3a3a2a"
+    },
+    {
+     "s": "ellipse",
+     "x": 185.0,
+     "y": -110.0,
+     "rx": 22.0,
+     "ry": 5.0,
+     "fill": "#aca57f",
+     "a": 0.7
+    }
+   ]
+  }
+ ],
+ "tags": "triceratops dinosaur three horns frill herbivore prehistoric reptile quadruped",
+ "review": {
+  "score": 8.0,
+  "round": 1,
+  "problems": [
+   "Scale: in the beside-a-person frame the back only reaches the man's chest and the frill top is at shoulder height. A real triceratops is about 3 m tall at the frill and about twice a person's height, so here it reads more like a calf than an adult.",
+   "The frill is a plain flat brown oval with a brass rim. It reads a little like a separate disc stuck behind the head, because nothing ties it to the neck or gives it a bony edge. It still reads as a frill, just not as solidly as it could.",
+   "The nose horn (poly 203,-160 / 222,-166 / 224,-202) is small and gets lost against the long brow horns. That weakens the 'three horns' read at small size.",
+   "The far legs have no toenail dots while the near legs do. This is fine for depth, but in the walking frames the far front leg (legA at 70,-140) disappears behind the near one."
+  ]
+ },
+ "for": "a big three-horned plant-eating dinosaur with a bony neck frill, walking on four thick legs",
+ "source": "minted",
+ "created": "2026-11-02",
+ "sprite": {
+  "w": 998.4,
+  "h": 611.0,
+  "ax": 0.5,
+  "ay": 0.97,
+  "src": "mg/library/mint/sprites/triceratops.png"
+ },
+ "sprite_review": {
+  "score": 6.0,
+  "problems": [
+   "Scale: in the 'beside a person' frame the triceratops is shorter than the man. The top of its frill only reaches about his chest and its back is around his hip. A real triceratops stands about 3 m at the hips with a 9 m body, so it should be well over head height and several people long. At this size it reads as a pony-sized toy dinosaur.",
+   "Style: the skin has detailed painterly texture and slightly realistic shading, which is busier than the house look of clean, flat shading. The blue-grey and tan colours are acceptable for an animal that needs its own colour.",
+   "Minor: the frill-edge knobs and the toe claws are bright white dots that stand out more than the gold or brushed-metal highlights used elsewhere."
+  ]
+ }
+}

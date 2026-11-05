@@ -1,0 +1,166 @@
+{
+ "id": "river_bank",
+ "world": "forest",
+ "name": "River bank",
+ "about": "a forest river with rocks, reeds and a fallen log bridge - fishing, crossing, nature, calm, danger in the water",
+ "tags": [
+  "river",
+  "stream",
+  "fishing",
+  "water",
+  "bridge",
+  "nature",
+  "forest",
+  "crossing",
+  "bear",
+  "salmon"
+ ],
+ "floor": "grass",
+ "walls": "none",
+ "props": [
+  {
+   "t": "patch",
+   "x": 0.0,
+   "y": 1.3,
+   "kind": "water",
+   "w": 4,
+   "d": 1.3
+  },
+  {
+   "t": "log",
+   "x": 0.6,
+   "y": 1.2,
+   "w": 0.3,
+   "d": 1.5
+  },
+  {
+   "t": "rock",
+   "x": 2.4,
+   "y": 1.6
+  },
+  {
+   "t": "rock",
+   "x": 3.2,
+   "y": 2.0,
+   "w": 0.5
+  },
+  {
+   "t": "pine",
+   "x": 0.3,
+   "y": 0.2,
+   "w": 0.8,
+   "h": 2.4
+  },
+  {
+   "t": "pine",
+   "x": 3.1,
+   "y": 0.3,
+   "w": 0.8,
+   "h": 2.2
+  },
+  {
+   "t": "bush",
+   "x": 1.6,
+   "y": 3.2
+  },
+  {
+   "t": "stump",
+   "x": 3.3,
+   "y": 3.3
+  }
+ ],
+ "st": {
+  "shore": [
+   [
+    2.0,
+    3.0
+   ],
+   -1,
+   [
+    2.0,
+    2.2,
+    0.1
+   ]
+  ],
+  "log": [
+   [
+    0.75,
+    3.0
+   ],
+   -1,
+   [
+    0.75,
+    1.9,
+    0.3
+   ]
+  ],
+  "rocks": [
+   [
+    2.9,
+    2.9
+   ],
+   -1,
+   [
+    2.6,
+    1.8,
+    0.4
+   ]
+  ],
+  "trees": [
+   [
+    1.5,
+    0.9
+   ],
+   1,
+   [
+    0.7,
+    0.6,
+    1.6
+   ]
+  ],
+  "center": [
+   [
+    2.4,
+    3.5
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.2,
+   3.4
+  ],
+  [
+   3.0,
+   3.6
+  ],
+  [
+   1.6,
+   0.9
+  ]
+ ],
+ "animals": [
+  [
+   "fish",
+   1.8,
+   1.9,
+   "swim"
+  ],
+  [
+   "deer",
+   2.8,
+   0.9,
+   "eat"
+  ],
+  [
+   "frog",
+   3.0,
+   2.7,
+   "idle"
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

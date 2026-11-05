@@ -252,6 +252,7 @@ def main():
             return 1
 
     opts = {"dir": ROOT, "gpu": gpu, "components": comps, "engine": engine, "reuse": reuse,
+            "hf_token": os.environ.get("HF_TOKEN", ""),   # gated FLUX Klein / LTX-2.5 (your own token)
             "desktop": not ARGS.no_shortcuts and ask("Desktop shortcut?", True),
             "autostart": not ARGS.no_shortcuts and ask("Start the server when Windows starts?", False),
             "lan": ask("Allow phones/tablets on your Wi-Fi (opens port 5400 in the firewall)?", False)}

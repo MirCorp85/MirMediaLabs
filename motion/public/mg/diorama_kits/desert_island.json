@@ -1,0 +1,146 @@
+{
+ "id": "desert_island",
+ "world": "ocean",
+ "name": "Desert island",
+ "about": "a tiny island with a palm, a hut and a signal fire in the open sea - castaways, survival, rescue, loneliness",
+ "tags": [
+  "island",
+  "castaway",
+  "stranded",
+  "shipwreck",
+  "survival",
+  "rescue",
+  "tropical",
+  "alone",
+  "sos"
+ ],
+ "floor": "sand",
+ "walls": "none",
+ "props": [
+  {
+   "t": "patch",
+   "x": 0.0,
+   "y": 0.0,
+   "kind": "water",
+   "w": 4,
+   "d": 0.8
+  },
+  {
+   "t": "patch",
+   "x": 0.0,
+   "y": 0.0,
+   "kind": "water",
+   "w": 0.8,
+   "d": 4
+  },
+  {
+   "t": "palm",
+   "x": 1.5,
+   "y": 1.2,
+   "h": 2.6
+  },
+  {
+   "t": "hut",
+   "x": 2.6,
+   "y": 1.0,
+   "w": 1.0,
+   "d": 0.9,
+   "h": 1.2
+  },
+  {
+   "t": "campfire",
+   "x": 2.0,
+   "y": 2.7
+  },
+  {
+   "t": "log",
+   "x": 1.0,
+   "y": 3.0
+  },
+  {
+   "t": "sign",
+   "x": 3.3,
+   "y": 3.2,
+   "h": 1.0,
+   "col": "champ"
+  }
+ ],
+ "st": {
+  "palm": [
+   [
+    1.9,
+    2.0
+   ],
+   -1,
+   [
+    1.7,
+    1.4,
+    2
+   ]
+  ],
+  "hut": [
+   [
+    2.8,
+    2.3
+   ],
+   -1,
+   [
+    3.1,
+    1.4,
+    0.7
+   ]
+  ],
+  "fire": [
+   [
+    1.7,
+    3.3
+   ],
+   1,
+   [
+    2.1,
+    2.8,
+    0.4
+   ]
+  ],
+  "shore": [
+   [
+    1.3,
+    1.0
+   ],
+   1,
+   [
+    0.6,
+    0.6,
+    0.1
+   ]
+  ],
+  "center": [
+   [
+    2.6,
+    3.4
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.0,
+   2.2
+  ],
+  [
+   3.0,
+   3.0
+  ]
+ ],
+ "animals": [
+  [
+   "pigeon",
+   3.0,
+   2.0,
+   "eat"
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<base href="../">  <!-- served at /motion/editor; relative assets resolve from / -->
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#262624">
+<title>MIR MEDIA LABS · Motion Studio</title>
+<link rel="icon" href="static/icon-512.png">
+<link rel="stylesheet" href="static/motion.css">
+<link rel="stylesheet" href="static/kinetic.css">
+</head>
+<body>
+<div id="mo" class="mo kn">
+  <header class="mo-top">
+    <button class="eb ic" data-a="close" title="Back to the lab"><i class="mi" data-ic="arrow-left"></i></button>
+    <div class="mo-brand"><i class="mi" data-ic="sparkle"></i><b>MOTION STUDIO</b></div>
+    <input class="mo-name" id="kn-name" value="Untitled film" spellcheck="false" title="Film name">
+    <span class="mo-save" id="kn-save">saved</span>
+    <span class="mo-eng" id="kn-eng" title="Render engine: Chrome + ffmpeg on this PC"></span>
+    <span class="sp"></span>
+    <label class="kn-num" title="Tempo (beats per minute) — every cut is placed in beats, so changing it retimes the whole film">BPM <input type="number" id="kn-bpm" min="40" max="300" step="0.5"></label>
+    <label class="kn-num" title="Length in beats">BEATS <input type="number" id="kn-beats" min="4" max="4000"></label>
+    <select class="mo-sel" id="kn-fps" title="Frame rate"><option>24</option><option>30</option><option selected>60</option></select>
+    <select class="mo-sel" id="kn-size" title="Output size (the film is composed 16:9; vertical and square outputs centre it on black)">
+      <option value="1280x720">16:9 · 720p</option><option value="1920x1080" selected>16:9 · 1080p</option><option value="3840x2160">16:9 · 4K</option>
+      <option value="1080x1920">9:16 · vertical</option><option value="1080x1080">1:1 · square</option><option value="1080x1350">4:5 · portrait</option>
+    </select>
+    <button class="eb ic" data-a="undo" title="Undo (Ctrl+Z)"><i class="mi" data-ic="rewind"></i></button>
+    <button class="eb ic" data-a="redo" title="Redo (Ctrl+Y)"><i class="mi" data-ic="forward"></i></button>
+    <button class="eb" data-a="film" title="Palette, font, HUD, logo, music"><i class="mi" data-ic="palette"></i><span> Film</span></button>
+    <a class="eb" href="motion?wizard=1" title="Producer wizard: Diorama story films, EXPLAINED, series packs (Remotion)"><i class="mi" data-ic="film"></i><span> Producer</span></a>
+    <button class="eb" data-a="projects" title="Your films"><i class="mi" data-ic="folder"></i><span> Films</span></button>
+    <button class="eb ic" data-a="versions" title="Restore an earlier version"><i class="mi" data-ic="clock"></i></button>
+    <button class="eb pri" data-a="export" title="Render on this PC (Chrome + ffmpeg)"><i class="mi" data-ic="upload"></i><span> Render</span></button>
+  </header>
+  <div class="mo-body">
+    <aside class="mo-bin" id="kn-bin">
+      <div class="tabs"><button data-t="blocks" class="on">Blocks</button><button data-t="fx">Effects</button><button data-t="lib">Library</button><button data-t="ai">AI</button><button data-t="jobs">Renders</button></div>
+      <div class="pane" data-p="blocks"><div class="ai-h">Scene blocks on the beat grid. Click one to add it at the playhead.</div><div id="kn-blocks"></div></div>
+      <div class="pane" data-p="fx" hidden><div class="ai-h">OpenKatana effects, run on every rendered frame (and on the frame preview when paused).</div><input class="srch" id="kn-fxq" placeholder="Search effects…"><div id="kn-fxlist"></div></div>
+      <div class="pane" data-p="lib" hidden>
+        <div class="chips"><button data-k="image" class="on">Images</button><button data-k="audio">Music</button><button data-k="video">Video</button></div>
+        <div class="ai-h">Click a picture to add a Picture block; click a track to make it the music.</div>
+        <div class="grid" id="kn-lib"></div>
+      </div>
+      <div class="pane" data-p="ai" hidden>
+        <div class="ai-h">Describe the film — the writer lays out blocks, words, colour flips and effects on the beat grid.</div>
+        <div class="seg" id="kn-aimode"><button data-m="project" class="on">Whole film</button><button data-m="scene">Add a block</button><button data-m="props">Rewrite selected</button></div>
+        <textarea id="kn-aiprompt" rows="5" placeholder="e.g. a 20 second teaser for an indie game about a courier in a city of giant monsters, 172 BPM, yellow on navy, hard drop at beat 8"></textarea>
+        <label class="row">Target length <input type="number" id="kn-aisecs" min="0" max="600" value="0" title="0 = let the writer decide"> s</label>
+        <button class="eb pri wide" id="kn-aigo"><i class="mi" data-ic="sparkle"></i> Write it</button>
+        <div class="ai-h2">Templates</div>
+        <div id="kn-tpl"></div>
+      </div>
+      <div class="pane" data-p="jobs" hidden><div id="kn-jobs" class="jobs"><div class="dim">nothing rendering</div></div></div>
+    </aside>
+    <main class="mo-main">
+      <div class="mo-stagewrap" id="kn-stagewrap">
+        <div class="kn-stage" id="kn-stage">
+          <iframe id="kn-frame" src="kinetic/engine/film.html" title="film preview" allow="autoplay"></iframe>
+          <img id="kn-fxstill" alt="" hidden>
+          <div class="kn-badge" id="kn-fxbadge" hidden>FX preview</div>
+        </div>
+      </div>
+      <div class="mo-transport">
+        <button class="eb ic" data-a="bin" title="Blocks + effects + library + AI"><i class="mi" data-ic="grid"></i></button>
+        <button class="eb ic" data-a="start" title="Go to start (Home)"><i class="mi" data-ic="rewind"></i></button>
+        <button class="eb ic" data-a="stepb" title="One beat back (←)"><i class="mi" data-ic="chevron-left"></i></button>
+        <button class="eb ic big" data-a="play" id="kn-play" title="Play / pause (Space)"><i class="mi" data-ic="play"></i></button>
+        <button class="eb ic" data-a="stepf" title="One beat forward (→)"><i class="mi" data-ic="chevron-right"></i></button>
+        <button class="eb ic" data-a="end" title="Go to end (End)"><i class="mi" data-ic="forward"></i></button>
+        <button class="eb ic" data-a="loop" id="kn-loop" title="Loop the selected clip (L)"><i class="mi" data-ic="refresh"></i></button>
+        <span class="tc" id="kn-tc">0.00 s · beat 0.0</span>
+        <span class="sp"></span>
+        <button class="eb ic on" data-a="fxprev" id="kn-fxprev" title="Show effects on the paused frame (rendered on this PC)"><i class="mi" data-ic="wand"></i></button>
+        <button class="eb ic" data-a="still" title="Save a still of this frame"><i class="mi" data-ic="camera"></i></button>
+        <button class="eb ic" data-a="dup" title="Duplicate (Ctrl+D)"><i class="mi" data-ic="copy"></i></button>
+        <button class="eb ic" data-a="del" title="Delete (Del)"><i class="mi" data-ic="trash"></i></button>
+        <button class="eb ic on" data-a="snap" id="kn-snap" title="Snap to half beats"><i class="mi" data-ic="link"></i></button>
+        <input type="range" id="kn-zoom" min="6" max="120" value="28" title="Zoom (+ / −)">
+        <button class="eb ic" data-a="insp" title="Inspector"><i class="mi" data-ic="sliders"></i></button>
+      </div>
+      <div class="mo-tl kn-tl" id="kn-tl">
+        <div class="kn-heads" id="kn-heads"><div class="kn-head kn-rh"></div><div class="kn-head">Blocks</div><div class="kn-head">Effects</div><div class="kn-head">Captions</div><div class="kn-head">Music</div></div>
+        <div class="kn-scroll" id="kn-scroll">
+          <div class="kn-ruler" id="kn-ruler"></div>
+          <div class="kn-lane" data-lane="scenes" id="kn-lane-scenes"></div>
+          <div class="kn-lane" data-lane="fx" id="kn-lane-fx"></div>
+          <div class="kn-lane" data-lane="cap" id="kn-lane-cap"></div>
+          <div class="kn-lane kn-lane-music" data-lane="music" id="kn-lane-music"></div>
+          <div class="kn-ph" id="kn-ph"><i></i></div>
+        </div>
+      </div>
+    </main>
+    <aside class="mo-insp" id="kn-insp"><div class="dim pad">Select a block, effect or caption — or add one from the left.</div></aside>
+  </div>
+</div>
+<div id="kn-modal" class="mo-modal" hidden></div>
+<div id="kn-toast" class="mo-toast"></div>
+<script>
+(function () {
+  var mlab = false;
+  document.write('<script src="' + (mlab ? '/static/icons/mir-icons.js' : '/static/mir-icons.js') + '"><\/script>');
+})();
+</script>
+<script src="static/kinetic.js"></script>
+</body>
+</html>

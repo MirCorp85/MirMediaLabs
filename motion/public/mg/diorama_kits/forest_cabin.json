@@ -1,0 +1,157 @@
+{
+ "id": "forest_cabin",
+ "world": "forest",
+ "name": "Log cabin",
+ "about": "a cosy wooden cabin in the woods: fireplace, bed, table, window to the trees - hiding away, writing, winter nights, mystery",
+ "tags": [
+  "cabin",
+  "woods",
+  "lodge",
+  "fireplace",
+  "hideout",
+  "retreat",
+  "writer",
+  "mystery",
+  "hunter"
+ ],
+ "floor": "wood",
+ "walls": "both",
+ "wallH": 2.4,
+ "props": [
+  {
+   "t": "bed",
+   "x": 0.25,
+   "y": 0.25,
+   "w": 1.7,
+   "d": 0.9,
+   "col": "bronze"
+  },
+  {
+   "t": "campfire",
+   "x": 3.0,
+   "y": 0.3
+  },
+  {
+   "t": "table",
+   "x": 1.4,
+   "y": 1.9,
+   "w": 1.0,
+   "d": 0.8,
+   "col": "brass"
+  },
+  {
+   "t": "chair",
+   "x": 1.2,
+   "y": 2.8
+  },
+  {
+   "t": "window",
+   "x": 0,
+   "y": 1.4,
+   "wall": "left",
+   "w": 1.3
+  },
+  {
+   "t": "shelf",
+   "x": 3.4,
+   "y": 1.5,
+   "w": 0.45,
+   "d": 0.4,
+   "h": 1.5
+  },
+  {
+   "t": "barrel",
+   "x": 3.4,
+   "y": 3.2
+  },
+  {
+   "t": "light",
+   "x": 1.9,
+   "y": 2.3,
+   "z": 2.0
+  }
+ ],
+ "st": {
+  "bed": [
+   [
+    1.2,
+    1.5
+   ],
+   1,
+   [
+    1.0,
+    0.7,
+    0.6
+   ]
+  ],
+  "fire": [
+   [
+    2.9,
+    1.2
+   ],
+   -1,
+   [
+    3.3,
+    0.6,
+    0.5
+   ]
+  ],
+  "table": [
+   [
+    2.0,
+    3.0
+   ],
+   -1,
+   [
+    1.9,
+    2.3,
+    0.8
+   ]
+  ],
+  "window": [
+   [
+    0.6,
+    2.1
+   ],
+   -1,
+   [
+    0,
+    2.0,
+    1.4
+   ]
+  ],
+  "center": [
+   [
+    2.7,
+    2.6
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   2.4,
+   2.0
+  ],
+  [
+   1.0,
+   3.1
+  ],
+  [
+   3.2,
+   2.4
+  ]
+ ],
+ "regulars": [],
+ "animals": [
+  [
+   "dog",
+   3.0,
+   2.0,
+   "sleep"
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

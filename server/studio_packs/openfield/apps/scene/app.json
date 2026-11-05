@@ -1,0 +1,189 @@
+{
+  "id": "scene",
+  "status": "ready",
+  "pack": "openfield",
+  "credits": [
+    "Ported from wexloops/openfield (MIT, (c) 2026 David Wexler / Strangeloop Studios)"
+  ],
+  "origin": "openfield",
+  "name": "Scene · Shot List to Cut",
+  "section": "video",
+  "native": "scene",
+  "summary": "Write a scene; a local LLM (Gemma 3 12B in ComfyUI) plans 2-6 shots with framing and camera moves, LTX-2.5 renders each, and they are cut into one take.",
+  "requires_nodes": [
+    "TextGenerateLTX2Prompt",
+    "SaveText",
+    "LTXVDualCFGGuider",
+    "LTXVLatentUpsampler"
+  ],
+  "inputs": [
+    {
+      "id": "scene",
+      "type": "textarea",
+      "label": "The scene",
+      "required": true,
+      "default": "A lighthouse keeper climbs the stairs with a lantern as the storm hits. At the top he sees a ship's lights out in the rain."
+    },
+    {
+      "id": "shots",
+      "type": "slider",
+      "label": "Most shots",
+      "default": 4,
+      "min": 2,
+      "max": 6,
+      "step": 1
+    },
+    {
+      "id": "aspect",
+      "type": "select",
+      "label": "Shape",
+      "default": "16:9",
+      "options": [
+        {
+          "value": "16:9",
+          "label": "16:9"
+        },
+        {
+          "value": "9:16",
+          "label": "9:16"
+        },
+        {
+          "value": "1:1",
+          "label": "1:1"
+        }
+      ]
+    },
+    {
+      "id": "size",
+      "type": "select",
+      "label": "Size",
+      "default": "480p",
+      "options": [
+        {
+          "value": "480p",
+          "label": "480p · fast"
+        },
+        {
+          "value": "720p",
+          "label": "720p"
+        }
+      ]
+    },
+    {
+      "id": "era",
+      "type": "select",
+      "label": "Era look",
+      "default": 0,
+      "options": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1960,
+          "label": "1960s"
+        },
+        {
+          "value": 1970,
+          "label": "1970s"
+        },
+        {
+          "value": 1980,
+          "label": "1980s"
+        },
+        {
+          "value": 1990,
+          "label": "1990s"
+        },
+        {
+          "value": 2000,
+          "label": "2000s"
+        },
+        {
+          "value": 2010,
+          "label": "2010s"
+        },
+        {
+          "value": 2020,
+          "label": "2020s"
+        }
+      ]
+    },
+    {
+      "id": "plan_only",
+      "type": "toggle",
+      "label": "Only plan the shots (no render)",
+      "default": false
+    },
+    {
+      "id": "seed",
+      "type": "seed",
+      "label": "Seed",
+      "default": -1
+    }
+  ],
+  "outputs": [
+    {
+      "type": "video",
+      "label": "Scene"
+    }
+  ],
+  "models": [
+    {
+      "repo": "Lightricks/LTX-2.5",
+      "file": "diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+      "dir": "diffusion_models",
+      "gb": 21.5,
+      "phase": "denoise",
+      "gated": true,
+      "license": "LTX-2.x Community License"
+    },
+    {
+      "repo": "Lightricks/LTX-2.5",
+      "file": "text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+      "dir": "text_encoders",
+      "gb": 15.37,
+      "phase": "encode",
+      "gated": true,
+      "license": "LTX-2.x Community License"
+    },
+    {
+      "repo": "Lightricks/LTX-2.5",
+      "file": "vae/ltx-2.5-video-vae-bf16.safetensors",
+      "dir": "vae",
+      "gb": 1.47,
+      "phase": "decode",
+      "gated": true,
+      "license": "LTX-2.x Community License"
+    },
+    {
+      "repo": "Lightricks/LTX-2.5",
+      "file": "vae/ltx-2.5-audio-vae-bf16.safetensors",
+      "dir": "vae",
+      "gb": 0.36,
+      "phase": "decode",
+      "gated": true,
+      "license": "LTX-2.x Community License"
+    },
+    {
+      "repo": "Lightricks/LTX-2.5",
+      "file": "latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+      "dir": "latent_upscale_models",
+      "gb": 1.0,
+      "phase": "aux",
+      "gated": true,
+      "license": "LTX-2.x Community License"
+    },
+    {
+      "repo": "Comfy-Org/ltx-2",
+      "file": "split_files/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors",
+      "dir": "text_encoders",
+      "gb": 9.4,
+      "phase": "encode",
+      "license": "Gemma Terms of Use"
+    }
+  ],
+  "vram": {
+    "peak_gb": 22
+  }
+}
