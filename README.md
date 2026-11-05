@@ -13,9 +13,9 @@ Video with sound, full songs, music, images and writing, plus a timeline editor,
 <img src="https://img.shields.io/badge/renders-100%25%20local-5ee08a" alt="Renders 100% local">
 </p>
 
-<p align="center"><a href="docs/promo/mml-promo.mp4"><img src="docs/promo/1-hero.jpg" alt="MIR MEDIA LABS: chat it, render it" width="100%"></a></p>
+<p align="center"><a href="https://youtu.be/e2LByRfMfUk"><img src="docs/promo/1-hero.jpg" alt="MIR MEDIA LABS: chat it, render it" width="100%"></a></p>
 
-<p align="center"><b><a href="docs/promo/mml-promo.mp4">▶ Watch the 60-second promo video</a></b> · every render in it was made by MML itself on one RTX 5070</p>
+<p align="center"><b><a href="https://youtu.be/e2LByRfMfUk">▶ Watch the 60-second promo on YouTube</a></b> · every render in it was made by MML itself on one RTX 5070</p>
 
 <p align="center"><img src="docs/promo/6-studios.jpg" alt="New in MML: Video editor, Series studio, Downloader, Social desk, chat sessions and the model picker" width="100%"></p>
 
