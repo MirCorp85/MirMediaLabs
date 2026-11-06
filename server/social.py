@@ -44,7 +44,7 @@ GRAPH = "https://graph.facebook.com/v21.0"
 IG_GRAPH = "https://graph.instagram.com/v21.0"   # "Instagram API with Instagram Login" (Meta's current setup)
 IG_DAILY_CAP = 25                      # IG API allows 50/24h; stay well under it (account health)
 TT_API = "https://open.tiktokapis.com/v2"
-TT_SCOPES = "user.info.basic,user.info.profile,user.info.stats,video.publish,video.list"
+TT_SCOPES = "user.info.basic,user.info.profile,user.info.stats,video.publish,video.upload,video.list"
 TT_DAILY_CAP = 10                      # TikTok caps API posts per creator per day; stay under it
 TT_PRIVACY = ("PUBLIC_TO_EVERYONE", "MUTUAL_FOLLOW_FRIENDS", "FOLLOWER_OF_CREATOR", "SELF_ONLY")
 METRIC_AT = (3600, 6 * 3600, 86400, 3 * 86400, 7 * 86400)
@@ -73,15 +73,24 @@ def get(pid):
 
 
 def update(pid, **kw):
+    hit = None
     with _LOCK:
         ps = posts()
         for p in ps:
             if p["id"] == pid:
+                old_hook = p.get("hook")
+                if "status" in kw and kw["status"] != p.get("status"):
+                    p["status_at"] = time.time()   # when the status really changed; "updated" also moves on every stats pull
                 p.update(kw)
                 p["updated"] = time.time()
                 _save(ps)
-                return p
-    return None
+                hit = p
+                break
+    if hit and "hook" in kw and kw["hook"] != old_hook and (hit.get("captioned") or {}).get("mode") in ("hook", "both"):
+        vr = _viral()                                      # the burned-in hook must follow the text (no stale words on screen)
+        if vr and hasattr(vr, "rehook"):
+            vr.rehook(pid)
+    return hit
 
 
 def accounts():
@@ -111,7 +120,8 @@ def public_accounts():
                          "pages": fb.get("pages") or []},
             "instagram": {"connected": bool(ig.get("token") and ig.get("user_id")), "username": ig.get("username", ""),
                           "expires": ig.get("expires", 0), "api": ig.get("api", "fb" if ig.get("token") else "")},
-            "youtube": {"connected": bool(yt.get("refresh_token")), "channel": yt.get("channel", ""),
+            "youtube": {"connected": bool(yt.get("refresh_token")) and not yt.get("expired"), "channel": yt.get("channel", ""),
+                        "expired": bool(yt.get("expired")),
                         "has_client": bool(yt.get("client_id"))},
             "tiktok": {"connected": bool(tt.get("refresh_token")), "username": tt.get("username", ""),
                        "has_client": bool(tt.get("client_key")), "expires": tt.get("refresh_exp", 0),
@@ -293,10 +303,15 @@ def draft_copy(p):
                   '[8-15], "pinned_comment": first comment to pin that invites replies, "pillar": content pillar name, '
                   '"best_time": "HH:MM" local, "captions": "none" | "hook" (burn the hook on screen for the first 2.5 s) | '
                   '"speech" (word captions - only if people talk or sing) | "both", "why": one sentence on why this will '
-                  'travel}. Ground the hook in on_screen (what the frames really show); ride a live trend only if it fits.',
+                  'travel}. Ground the hook in on_screen (what the frames really show); ride a live trend only if it fits.'
+                  + (' STORY is the real content of this video (its narration, chapters, cast and how it was made): the title, '
+                     'description, caption and tags MUST be about what the STORY is about - its premise, its stakes, its '
+                     'payoff - in the words a viewer would search for. on_screen is only 3 sampled frames (the first one may '
+                     'be our MIR intro sting), so never build the copy around them. Describe how it was made exactly as '
+                     'STORY.made_with says - never call the visuals AI-generated unless it says so.' if p.get('story') else ''),
                   dict({"prompt": meta.get("prompt") or p.get("brief", ""), "model": meta.get("model", ""),
                         "duration": (p.get("media") or {}).get("duration"), "brief": p.get("brief", ""),
-                        "platforms": p.get("platforms")}, **_viral_ctx(p)))
+                        "platforms": p.get("platforms")}, **({"story": p["story"]} if p.get("story") else {}), **_viral_ctx(p)))
     kw = {k: d[k] for k in ("hook", "caption", "hashtags", "yt_title", "yt_description", "yt_tags", "pillar", "why",
                             "best_time", "tt_caption", "fb_caption", "pinned_comment", "captions") if d.get(k)}
     if str(kw.get("captions", "")).lower() not in ("none", "hook", "speech", "both"):
@@ -338,7 +353,12 @@ def next_slot(best="18:00"):
 
 
 # ── create / workflow ────────────────────────────────────────────────────────────────────────
-def create_draft(library_ref, platforms=PLATFORMS, brief="", owner="owner", fit="crop", auto_copy=True, kids=False):
+def create_draft(library_ref, platforms=PLATFORMS, brief="", owner="owner", fit="crop", auto_copy=True, kids=False, yt_format=None, captions=None, story=None):
+    """yt_format="short" keeps YouTube 9:16 (Rank Reels); captions="none" stops VIRAL burning a 2nd caption layer;
+    story = what the video really says (title, logline, chapters, narration, how it was made) so the copy is about the content."""
+    library_ref = str(library_ref or "")
+    if library_ref.startswith("lib:"):          # accept the "lib:<name>" form MIR MOTION uses everywhere
+        library_ref = library_ref[4:]
     src = core.in_dir(core.LIB, os.path.basename(library_ref))
     if not src or not os.path.isfile(src):
         raise ValueError("library item not found")
@@ -346,6 +366,10 @@ def create_draft(library_ref, platforms=PLATFORMS, brief="", owner="owner", fit=
     p = {"id": pid, "owner": owner, "library_ref": os.path.basename(library_ref), "platforms": list(platforms),
          "brief": brief, "status": "preparing", "created": time.time(), "updated": time.time(),
          "caption": "", "hashtags": [], "metrics": {}, "remote": {}, "log": [], "kids": bool(kids)}
+    if yt_format in ("short", "video"):
+        p["yt_format"] = yt_format
+    if isinstance(story, dict) and story:
+        p["story"] = story
     with _LOCK:
         ps = posts()
         ps.append(p)
@@ -359,6 +383,8 @@ def create_draft(library_ref, platforms=PLATFORMS, brief="", owner="owner", fit=
                 media["yt_file"], media["yt_cover"] = yt["file"], yt["cover"]
             update(pid, media=media)
             kw = draft_copy(get(pid)) if auto_copy else {}
+            if captions:
+                kw["captions"] = captions
             update(pid, status="draft", **kw)
             vr = _viral()
             if vr and auto_copy:
@@ -373,7 +399,7 @@ def create_draft(library_ref, platforms=PLATFORMS, brief="", owner="owner", fit=
 
 
 _REPOST_KEEP = ("caption", "hashtags", "hook", "yt_title", "yt_description", "yt_tags", "tt_caption", "fb_caption",
-                "pinned_comment", "yt_format", "pillar", "brief", "kids", "tiktok", "library_ref", "best_time", "why",
+                "pinned_comment", "yt_format", "pillar", "brief", "story", "kids", "tiktok", "library_ref", "best_time", "why",
                 "cover_at")
 
 
@@ -387,6 +413,12 @@ def _clone_file(name, pid, nid):
         return None
     new = nid + name[len(pid):] if name.startswith(pid) else nid + "_" + name
     dst = os.path.join(OUT, new)
+    if os.path.isfile(dst):              # file + yt_file can be the SAME name (16:9 long video) → already cloned
+        try:
+            if os.path.samefile(src, dst) or os.path.getsize(src) == os.path.getsize(dst):
+                return new
+        except OSError:
+            pass
     try:
         os.link(src, dst)
     except OSError:
@@ -394,10 +426,11 @@ def _clone_file(name, pid, nid):
     return new
 
 
-def repost(pid, platforms, when="draft", owner="owner"):
+def repost(pid, platforms, when="draft", owner="owner", tiktok=None):
     """An already-published post → a NEW post of the same video for other platform(s) (e.g. a YouTube video that
     never went to TikTok). Copies the media + all the copy, links back with repost_of. when: 'draft' (lands in the
-    queue to edit/approve), 'now' (approve + publish), 'best' (approve for VIRAL-Omega's next best slot) or a unix time."""
+    queue to edit/approve), 'now' (approve + publish), 'best' (approve for VIRAL-Omega's next best slot) or a unix time.
+    tiktok: the per-post TikTok choices made in the Repost dialog (privacy, interactions, disclosure, consent)."""
     p = get(pid)
     if not p:
         raise ValueError("post not found")
@@ -419,6 +452,10 @@ def repost(pid, platforms, when="draft", owner="owner"):
     n.update(id=nid, owner=owner or p.get("owner", "owner"), platforms=plats, status="draft", media=media,
              created=time.time(), updated=time.time(), metrics={}, remote={}, log=[], error="",
              repost_of=pid, repost_from=sorted((p.get("remote") or {}).keys()))
+    if "tiktok" in plats and isinstance(tiktok, dict):
+        t = {k: bool(tiktok.get(k)) for k in ("allow_comment", "allow_duet", "allow_stitch", "disclose", "brand_organic", "brand_content", "consent")}
+        t["privacy_level"] = tiktok.get("privacy_level") if tiktok.get("privacy_level") in TT_PRIVACY else ""
+        n["tiktok"] = t
     with _LOCK:
         ps = posts()
         ps.append(n)
@@ -456,7 +493,7 @@ def approve(pid, when=None):
     p = get(pid)
     if not p or p["status"] not in ("draft", "failed", "rejected", "scheduled"):
         raise ValueError("post is not awaiting approval")
-    if "tiktok" in (p.get("platforms") or []):
+    if "tiktok" in (p.get("platforms") or []) and tt_mode() == "direct":   # inbox: privacy etc. are chosen in the TikTok app
         tt_check(p.get("tiktok") or {})
     ts = float(when) if when else next_slot(p.get("best_time") or "18:00")
     return update(pid, status="scheduled", schedule_at=ts, approved_at=time.time(), error="")
@@ -766,6 +803,7 @@ def yt_callback(code, redirect):
     if "refresh_token" not in r:
         raise PubError(r.get("error_description") or "Google did not return a refresh token")
     yt.update(refresh_token=r["refresh_token"], access=r["access_token"], access_exp=time.time() + r.get("expires_in", 3600) - 60)
+    yt.pop("expired", None)
     save_accounts(a)
     try:
         ch = _yt("GET", "/youtube/v3/channels", params={"part": "snippet", "mine": "true"})["items"][0]
@@ -789,6 +827,10 @@ def _yt_token():
         "client_id": yt["client_id"], "client_secret": yt["client_secret"], "refresh_token": yt["refresh_token"],
         "grant_type": "refresh_token"}).json()
     if "access_token" not in r:
+        if r.get("error") == "invalid_grant":   # Google killed the refresh token (Testing-mode apps: 7 days) → flag it so the panel asks to reconnect
+            yt["expired"] = time.time()
+            save_accounts(a)
+            raise PubError("YouTube sign-in expired — Social → Accounts → Reconnect Google")
         raise PubError(r.get("error_description") or "YouTube token refresh failed")
     yt["access"], yt["access_exp"] = r["access_token"], time.time() + r.get("expires_in", 3600) - 60
     save_accounts(a)
@@ -831,8 +873,35 @@ def _yt_upload(p, privacy="public", short=False):
             yt = format_vertical(src, p["id"], "keep", "_yt")
             m["yt_file"], m["yt_cover"] = yt["file"], yt["cover"]
             update(p["id"], media=m)
-    return _yt_send(p, os.path.join(OUT, m.get("yt_file") or m["file"]), re.sub(r"\s*#shorts\b", "", (p.get("yt_title") or p.get("hook") or "MIR MEDIA LABS"), flags=re.I)[:95],
-                    os.path.join(OUT, m.get("yt_cover") or (p["id"] + ".jpg")), privacy, False)
+    src = os.path.join(OUT, m.get("yt_file") or m["file"])
+    up = _yt_1440(src)
+    try:
+        return _yt_send(p, up, re.sub(r"\s*#shorts\b", "", (p.get("yt_title") or p.get("hook") or "MIR MEDIA LABS"), flags=re.I)[:95],
+                        os.path.join(OUT, m.get("yt_cover") or (p["id"] + ".jpg")), privacy, False)
+    finally:
+        if up != src:
+            try:
+                os.remove(up)
+            except OSError:
+                pass
+
+
+def _yt_1440(src):
+    """16:9 YouTube uploads go up as 1440p. YouTube only builds VP9 streams above 360p for a small channel's 1080p
+    upload once it gets views, and Chrome / the YouTube app (which prefer VP9) then START at 360p. A 1440p upload
+    gets VP9 at every size from day one (Nov 2 2026). Temp file next to src; on any failure the 1080p file goes up."""
+    i = probe(src)
+    if not i["h"] or i["h"] >= 1440 or i["w"] < i["h"]:
+        return src
+    out = os.path.splitext(src)[0] + "_1440.mp4"
+    vf = "scale=2560:1440:flags=lanczos,format=yuv420p"
+    for enc in (["-c:v", "h264_nvenc", "-preset", "p5", "-rc", "vbr", "-cq", "19", "-b:v", "0", "-profile:v", "high"],
+                ["-c:v", "libx264", "-preset", "fast", "-crf", "18", "-profile:v", "high"]):
+        r = _ff(["-i", src, "-vf", vf] + enc + ["-c:a", "copy", "-movflags", "+faststart", out], timeout=2400)
+        if not r.returncode and os.path.isfile(out) and os.path.getsize(out) > 1024:
+            return out
+    _log("[social] 1440p upscale failed, uploading 1080p: %s" % r.stderr[-300:])
+    return src
 
 
 def _yt_send(p, path, title, cover, privacy, short):
@@ -853,6 +922,8 @@ def _yt_send(p, path, title, cover, privacy, short):
     if up.status_code >= 400:
         raise PubError("YouTube upload: " + up.text[:300])
     vid = up.json()["id"]
+    if not short and p.get("yt_thumb") and os.path.isfile(os.path.join(OUT, p["yt_thumb"])):
+        cover = os.path.join(OUT, p["yt_thumb"])          # VIRAL's designed thumbnail beats a raw frame
     if os.path.isfile(cover):
         try:
             with open(cover, "rb") as f:
@@ -864,7 +935,9 @@ def _yt_send(p, path, title, cover, privacy, short):
 
 
 def yt_metrics(vid):
-    it = _yt("GET", "/youtube/v3/videos", params={"part": "statistics", "id": vid}).get("items") or [{}]
+    it = _yt("GET", "/youtube/v3/videos", params={"part": "statistics", "id": vid}).get("items")
+    if not it:   # deleted/removed: an empty list used to be logged as 0 views forever — pull_metrics marks it gone
+        raise RuntimeError("youtube video %s not found (removed)" % vid)
     s = it[0].get("statistics", {})
     out = {"views": int(s.get("viewCount", 0)), "likes": int(s.get("likeCount", 0)), "comments": int(s.get("commentCount", 0))}
     try:   # YouTube Analytics (yt-analytics.readonly, already in YT_SCOPES): how much of the video people watched
@@ -891,6 +964,11 @@ def yt_account():
 # comment/duet/stitch are off unless the owner turns them on, commercial-content disclosure, AI-content label.
 # Until TikTok audits the app, posts only work as SELF_ONLY on a PRIVATE TikTok account.
 def tt_redirect():
+    # accounts.tiktok.redirect overrides the public address: TikTok's API firewall rejects a redirect_uri on dynamic-DNS
+    # domains (*.ddns.net → 403 Access Denied at /oauth/token/), so a relay on a real domain bounces the code back here.
+    ov = str((accounts().get("tiktok") or {}).get("redirect") or "").strip()
+    if ov.startswith("https://"):
+        return ov
     base = (_HK.get("public_base") or (lambda: ""))()
     if not base.startswith("https://"):
         raise PubError("TikTok needs the lab's public https address (Social → Accounts)")
@@ -976,9 +1054,59 @@ def _tt(method, path, **kw):
     except ValueError:
         raise PubError("TikTok: " + r.text[:300])
     e = d.get("error") or {}
-    if r.status_code >= 400 or (e.get("code") not in (None, "", "ok")):
-        raise PubError("TikTok: %s" % (e.get("message") or e.get("code") or r.text[:300]))
+    if r.status_code >= 400 or (e.get("code") not in (None, "", "ok")):     # code first: TikTok's messages are often generic
+        raise PubError("TikTok: %s%s" % ("[%s] " % e["code"] if e.get("code") else "", e.get("message") or r.text[:300]))
     return d.get("data") or {}
+
+
+def tt_mode():
+    """'inbox' = Upload to TikTok: the video lands in the creator's TikTok inbox and they pick privacy/interactions and
+    publish it in the TikTok app — the only PUBLIC route while our API client is unaudited (Direct Post from an
+    unaudited client = private accounts + SELF_ONLY only). Switch accounts.tiktok.post_mode to 'direct' after TikTok's audit."""
+    m = (accounts().get("tiktok") or {}).get("post_mode")
+    return m if m in ("inbox", "direct") else "inbox"
+
+
+def _tt_send(path, init_path, body):
+    """init (FILE_UPLOAD) → chunked PUT → publish_id. Chunks: one ≤64 MB, else 10 MB with the last taking the remainder."""
+    size = os.path.getsize(path)
+    MB = 1024 * 1024
+    chunk, n = (size, 1) if size <= 64 * MB else (10 * MB, size // (10 * MB))
+    body = dict(body, source_info={"source": "FILE_UPLOAD", "video_size": size, "chunk_size": chunk, "total_chunk_count": n})
+    d = _tt("POST", init_path, json=body)
+    pub_id, up = d["publish_id"], d["upload_url"]
+    with open(path, "rb") as f:
+        for i in range(n):
+            a = i * chunk
+            b = size - 1 if i == n - 1 else a + chunk - 1
+            f.seek(a)
+            buf = f.read(b - a + 1)
+            r = requests.put(up, data=buf, timeout=900, headers={"Content-Type": "video/mp4", "Content-Length": str(len(buf)),
+                                                                 "Content-Range": "bytes %d-%d/%d" % (a, b, size)})
+            if r.status_code not in (200, 201, 206):
+                raise PubError("TikTok upload: %s %s" % (r.status_code, r.text[:200]))
+    return pub_id
+
+
+def tt_inbox(p):
+    """Upload to the creator's TikTok inbox (draft). Done when TikTok reports SEND_TO_USER_INBOX."""
+    ci = tt_creator()
+    dur, maxd = (p.get("media") or {}).get("duration") or 0, ci.get("max_video_post_duration_sec") or 0
+    if maxd and dur > maxd:
+        raise PubError("TikTok: video is %ds, this account allows %ds" % (dur, maxd))
+    pub_id = _tt_send(os.path.join(OUT, p["media"]["file"]), "/post/publish/inbox/video/init/", {})
+    for _ in range(90):
+        st = _tt("POST", "/post/publish/status/fetch/", json={"publish_id": pub_id})
+        if st.get("status") in ("SEND_TO_USER_INBOX", "PUBLISH_COMPLETE"):
+            break
+        if st.get("status") == "FAILED":
+            raise PubError("TikTok processing failed: %s" % st.get("fail_reason", ""))
+        time.sleep(10)
+    else:
+        raise PubError("TikTok processing timed out (publish id %s)" % pub_id)
+    user = (accounts().get("tiktok") or {}).get("username", "")
+    return {"id": pub_id, "publish_id": pub_id, "inbox": True,
+            "url": "https://www.tiktok.com/@%s" % user if user else "https://www.tiktok.com/"}
 
 
 def tt_creator():
@@ -1001,16 +1129,14 @@ def tt_check(s, ci=None):
 
 
 def tt_publish(p):
+    if tt_mode() == "inbox":
+        return tt_inbox(p)
     s = p.get("tiktok") or {}
     ci = tt_creator()
     tt_check(s, ci)
     dur, maxd = (p.get("media") or {}).get("duration") or 0, ci.get("max_video_post_duration_sec") or 0
     if maxd and dur > maxd:
         raise PubError("TikTok: video is %ds, this account allows %ds" % (dur, maxd))
-    path = os.path.join(OUT, p["media"]["file"])
-    size = os.path.getsize(path)
-    MB = 1024 * 1024
-    chunk, n = (size, 1) if size <= 64 * MB else (10 * MB, size // (10 * MB))   # last chunk takes the remainder
     title = (p.get("tt_caption") or p.get("caption") or p.get("hook") or "").strip()
     if p.get("hashtags") and "#" not in title:
         title += "\n\n" + " ".join("#" + h for h in p["hashtags"])
@@ -1021,19 +1147,7 @@ def tt_publish(p):
             "video_cover_timestamp_ms": int(float(p.get("cover_at", 0.5)) * 1000),
             "brand_content_toggle": bool(s.get("brand_content")), "brand_organic_toggle": bool(s.get("brand_organic")),
             "is_aigc": True}
-    d = _tt("POST", "/post/publish/video/init/", json={"post_info": info, "source_info": {
-        "source": "FILE_UPLOAD", "video_size": size, "chunk_size": chunk, "total_chunk_count": n}})
-    pub_id, up = d["publish_id"], d["upload_url"]
-    with open(path, "rb") as f:
-        for i in range(n):
-            a = i * chunk
-            b = size - 1 if i == n - 1 else a + chunk - 1
-            f.seek(a)
-            buf = f.read(b - a + 1)
-            r = requests.put(up, data=buf, timeout=900, headers={"Content-Type": "video/mp4", "Content-Length": str(len(buf)),
-                                                                 "Content-Range": "bytes %d-%d/%d" % (a, b, size)})
-            if r.status_code not in (200, 201, 206):
-                raise PubError("TikTok upload: %s %s" % (r.status_code, r.text[:200]))
+    pub_id = _tt_send(os.path.join(OUT, p["media"]["file"]), "/post/publish/video/init/", {"post_info": info})
     vid = ""
     for _ in range(90):                          # processing: poll up to ~15 min
         st = _tt("POST", "/post/publish/status/fetch/", json={"publish_id": pub_id})
@@ -1050,6 +1164,45 @@ def tt_publish(p):
     url = ("https://www.tiktok.com/@%s/video/%s" % (user, vid)) if vid and user else \
           ("https://www.tiktok.com/@%s" % user if user else "https://www.tiktok.com/")
     return {"id": vid or pub_id, "publish_id": pub_id, "url": url, "privacy": s["privacy_level"]}
+
+
+def tt_resolve(p):
+    """A TikTok upload's id is a publish_id until the video is public: inbox uploads only get a real video id once the
+    creator posts them in the TikTok app (and private direct posts never do). Swap it in as soon as TikTok reports one."""
+    r = dict((p.get("remote") or {}).get("tiktok") or {})
+    if str(r.get("id", "")).isdigit() or not r.get("publish_id"):
+        return r
+    st = _tt("POST", "/post/publish/status/fetch/", json={"publish_id": r["publish_id"]})
+    ids = st.get("publicaly_available_post_id") or st.get("publicly_available_post_id") or []
+    if not ids:
+        ids = _tt_manual_match(p)                # inbox draft wouldn't open → owner uploaded it by hand in the app
+        if not ids:
+            return r
+        r["manual"] = True
+    user = (accounts().get("tiktok") or {}).get("username", "")
+    r.update(id=str(ids[0]), posted=True,
+             url=("https://www.tiktok.com/@%s/video/%s" % (user, ids[0])) if user else r.get("url", ""))
+    remote = dict(p.get("remote") or {}, tiktok=r)
+    update(p["id"], remote=remote)
+    p["remote"] = remote
+    return r
+
+
+def _tt_manual_match(p):
+    """The owner's own upload of this post's video (same length, posted after the draft, not already linked to another
+    post) from their newest TikTok videos — needs the video.list scope."""
+    dur = float((p.get("media") or {}).get("duration") or 0)
+    if not dur:
+        return []
+    taken = {str(((q.get("remote") or {}).get("tiktok") or {}).get("id", "")) for q in posts() if q["id"] != p["id"]}
+    since = (p.get("published_at") or p.get("created") or 0) - 600
+    try:
+        vids = _tt("POST", "/video/list/", params={"fields": "id,create_time,duration"}, json={"max_count": 20}).get("videos") or []
+    except Exception as e:
+        _log("[social] tiktok video.list: %s" % e)
+        return []
+    hit = [v for v in vids if str(v.get("id")) not in taken and v.get("create_time", 0) >= since and abs(float(v.get("duration") or 0) - dur) <= 1.5]
+    return [str(min(hit, key=lambda v: v["create_time"])["id"])] if len(hit) >= 1 else []
 
 
 def tt_metrics(vid):
@@ -1109,9 +1262,22 @@ def publish(pid):
     return get(pid)
 
 
-def pull_metrics(p):
+def pull_metrics(p, skip=None):
+    """Append a fresh stats row per platform. Returns [(platform, error)] for the ones that failed."""
     m = dict(p.get("metrics") or {})
+    fails = []
+    gone = set()
+    if "tiktok" in (p.get("remote") or {}) and not (skip and "tiktok" in skip):
+        try:
+            tt_resolve(p)
+        except Exception as e:
+            _log("[social] tiktok resolve: %s" % e)
     for plat, r in (p.get("remote") or {}).items():
+        if skip and plat in skip:
+            fails.append((plat, skip[plat]))
+            continue
+        if r.get("gone"):                  # deleted/archived on the platform: keep its history, stop polling it
+            continue
         try:
             row = {"instagram": ig_metrics, "youtube": yt_metrics, "tiktok": tt_metrics, "facebook": fb_metrics}[plat](r["id"])
             if not row:
@@ -1120,7 +1286,18 @@ def pull_metrics(p):
             m.setdefault(plat, []).append(row)
         except Exception as e:
             _log("[social] metrics %s: %s" % (plat, e))
-    update(p["id"], metrics=m, metrics_n=p.get("metrics_n", 0) + 1)
+            if "does not exist" in str(e) or "not found" in str(e).lower():
+                gone.add(plat)
+            else:
+                fails.append((plat, str(e)))
+    kw = {}
+    if gone:
+        rem = dict(p.get("remote") or {})
+        for plat in gone:
+            rem[plat] = dict(rem[plat], gone=time.time())
+        kw["remote"] = rem
+    update(p["id"], metrics=m, metrics_n=p.get("metrics_n", 0) + 1, **kw)
+    return fails
 
 
 def snapshot_accounts():
@@ -1147,6 +1324,10 @@ def snapshot_accounts():
 
 def _loop():
     last_acct = last_tok = last_idea = 0
+    for p in posts():   # a restart mid-upload orphans "publishing". NOT auto-requeued: the upload may have landed before
+        if p["status"] == "publishing":   # remote was saved (Oct 30 2026: auto-retry double-posted a YouTube Short)
+            update(p["id"], status="failed", error="interrupted by a restart mid-upload — check each platform for the "
+                   "post before retrying (it may already be live)")
     while True:
         try:
             now = time.time()
@@ -1472,7 +1653,7 @@ def register(app, hk):
         owner()
         b = body()
         try:
-            p, note = repost(pid, b.get("platforms") or [], b.get("when") or "draft", owner=hk["uid"]())
+            p, note = repost(pid, b.get("platforms") or [], b.get("when") or "draft", owner=hk["uid"](), tiktok=b.get("tiktok"))
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         d = out(p)
@@ -1515,15 +1696,31 @@ def register(app, hk):
         'Refresh all' button). pull_metrics already isolates per-platform failures, so one
         slow/broken account never blocks the rest."""
         owner()
-        done = errs = 0
-        for p in [p for p in posts() if p.get("remote")]:   # anything actually live on a platform
+        from concurrent.futures import ThreadPoolExecutor
+        live = [p for p in posts() if p.get("remote")]   # anything actually live on a platform
+        skip = {}
+        if any("youtube" in (p.get("remote") or {}) for p in live):
             try:
-                pull_metrics(p)
-                done += 1
+                _yt_token()          # refresh once up front, so the threads don't all race to refresh it
             except Exception as e:
-                errs += 1
+                skip["youtube"] = str(e)   # dead sign-in: report it once per post instead of 1 Google call each
+
+        def one(p):
+            try:
+                return pull_metrics(p, skip)
+            except Exception as e:
                 _log("[social] refresh-all %s: %s" % (p.get("id"), e))
-        return jsonify({"ok": True, "refreshed": done, "errors": errs})
+                return [("post", str(e))]
+
+        with ThreadPoolExecutor(max_workers=6) as ex:   # network-bound: ~6x faster than one post at a time
+            res = list(ex.map(one, live))
+        fails = [f for r in res for f in r]
+        by = {}
+        for plat, _ in fails:
+            by[plat] = by.get(plat, 0) + 1
+        return jsonify({"ok": True, "refreshed": sum(1 for r in res if not r), "posts": len(live),
+                        "errors": len(fails), "failed": by,
+                        "error": ("%s: %s" % fails[0])[:200] if fails else ""})
 
     @app.get("/api/social/stats")
     def social_stats():
@@ -1711,7 +1908,7 @@ def register(app, hk):
     def social_tt_creator():
         owner()
         try:
-            return jsonify(tt_creator())
+            return jsonify(dict(tt_creator(), post_mode=tt_mode()))
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 

@@ -1,0 +1,390 @@
+{
+ "id": "cloth",
+ "kind": "item",
+ "name": "Polishing Cloth",
+ "desc": "A palm-sized fold of soft warm-grey microfibre, bunched in the fist with one corner hangin",
+ "tags": [
+  "cloth",
+  "rag",
+  "polishing",
+  "microfibre",
+  "cleaning",
+  "handheld",
+  "soft",
+  "fabric",
+  "rubbing",
+  "duster"
+ ],
+ "shapes": [
+  {
+   "s": "ellipse",
+   "x": 2.0,
+   "y": 30.0,
+   "rx": 18.0,
+   "ry": 4.0,
+   "rot": 0.0,
+   "fill": "black",
+   "a": 0.15
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     4.0,
+     9.0
+    ],
+    [
+     12.0,
+     10.0
+    ],
+    [
+     14.0,
+     22.0
+    ],
+    [
+     10.0,
+     30.0
+    ],
+    [
+     6.0,
+     27.0
+    ],
+    [
+     2.0,
+     30.0
+    ],
+    [
+     0.0,
+     20.0
+    ]
+   ],
+   "fill": [
+    "#8a8f96",
+    "#5c6168"
+   ],
+   "stroke": "char0",
+   "lw": 1.4,
+   "anim": {
+    "k": "sway",
+    "sp": 1.6,
+    "amp": 4,
+    "px": 8.0,
+    "py": 10.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     3.0,
+     12.0
+    ],
+    [
+     4.0,
+     20.0
+    ],
+    [
+     4.0,
+     27.0
+    ]
+   ],
+   "stroke": "char0",
+   "lw": 1.2,
+   "a": 0.3,
+   "anim": {
+    "k": "sway",
+    "sp": 1.6,
+    "amp": 4,
+    "px": 8.0,
+    "py": 10.0
+   }
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     11.0,
+     12.0
+    ],
+    [
+     13.0,
+     21.0
+    ]
+   ],
+   "stroke": "#c9ccd1",
+   "lw": 1.2,
+   "a": 0.45,
+   "anim": {
+    "k": "sway",
+    "sp": 1.6,
+    "amp": 4,
+    "px": 8.0,
+    "py": 10.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -20.0,
+     2.0
+    ],
+    [
+     -21.0,
+     -6.0
+    ],
+    [
+     -16.0,
+     -12.0
+    ],
+    [
+     -8.0,
+     -15.0
+    ],
+    [
+     2.0,
+     -16.0
+    ],
+    [
+     11.0,
+     -15.0
+    ],
+    [
+     18.0,
+     -11.0
+    ],
+    [
+     21.0,
+     -4.0
+    ],
+    [
+     20.0,
+     4.0
+    ],
+    [
+     15.0,
+     9.0
+    ],
+    [
+     6.0,
+     11.0
+    ],
+    [
+     -4.0,
+     11.0
+    ],
+    [
+     -13.0,
+     9.0
+    ]
+   ],
+   "fill": [
+    "#8a8f96",
+    "#5c6168"
+   ],
+   "stroke": "char0",
+   "lw": 1.4,
+   "anim": {
+    "k": "bob",
+    "sp": 2.2,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -15.0,
+     -6.0
+    ],
+    [
+     -4.0,
+     -9.0
+    ],
+    [
+     8.0,
+     -8.0
+    ]
+   ],
+   "stroke": "char0",
+   "lw": 1.2,
+   "a": 0.35,
+   "anim": {
+    "k": "bob",
+    "sp": 2.2,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -12.0,
+     2.0
+    ],
+    [
+     0.0,
+     -1.0
+    ],
+    [
+     13.0,
+     0.0
+    ]
+   ],
+   "stroke": "char0",
+   "lw": 1.2,
+   "a": 0.35,
+   "anim": {
+    "k": "bob",
+    "sp": 2.2,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -6.0,
+     7.0
+    ],
+    [
+     4.0,
+     5.0
+    ],
+    [
+     12.0,
+     6.0
+    ]
+   ],
+   "stroke": "char0",
+   "lw": 1.2,
+   "a": 0.35,
+   "anim": {
+    "k": "bob",
+    "sp": 2.2,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -12.0,
+     9.0
+    ],
+    [
+     -4.0,
+     11.0
+    ],
+    [
+     6.0,
+     11.0
+    ]
+   ],
+   "stroke": "gold",
+   "lw": 1.2,
+   "a": 0.7,
+   "anim": {
+    "k": "bob",
+    "sp": 2.2,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -15.0,
+     -10.0
+    ],
+    [
+     -8.0,
+     -13.5
+    ],
+    [
+     0.0,
+     -14.0
+    ]
+   ],
+   "stroke": "#c9ccd1",
+   "lw": 2.0,
+   "a": 0.6,
+   "anim": {
+    "k": "bob",
+    "sp": 2.2,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     6.0,
+     -14.0
+    ],
+    [
+     12.0,
+     -13.0
+    ],
+    [
+     17.0,
+     -9.0
+    ]
+   ],
+   "stroke": "#c9ccd1",
+   "lw": 1.6,
+   "a": 0.6,
+   "anim": {
+    "k": "bob",
+    "sp": 2.2,
+    "amp": 1.0,
+    "px": 0.0,
+    "py": 0.0
+   }
+  }
+ ],
+ "review": {
+  "score": 5.0,
+  "round": 3,
+  "problems": [
+   "The silhouette reads as a mushroom (smooth dome cap on a centred stalk), or as a grey stone or brain. It does not read as a soft bunched cloth. The 'hanging corner' poly sits right under the middle of the mass, so it looks like a stem.",
+   "The fold lines are three near-parallel horizontal arcs evenly spaced over the dome. They read as ridges or gills on a hard shell, not as fabric creases gathered into a fist.",
+   "The outline is too smooth and symmetric. The 13-point poly is basically an ellipse with no lumps, pinches or puckers where a fist would squeeze it.",
+   "The gold line along the lower-left edge reads as a stray band or loose wire and is not tied to any feature. On a microfibre rag it is unmotivated.",
+   "The fill (#8a8f96\u2192#5c6168) is a cool metallic grey with glossy white highlight strokes along the top. It reads as brushed metal or stone, not warm-grey soft microfibre. Two highlights that strong make it look hard.",
+   "Held views: scale against the hand is fine and it sits at the hand. But at that size it becomes a grey blob with a spike that could be a tool or a small bell, so the cloth identity is lost."
+  ]
+ },
+ "for": "the object held while: Tom\u00e1s rubs a glass prism with a cloth in small circular strokes, leaning toward it, one hand steadying the glass",
+ "source": "minted",
+ "created": "2026-11-05",
+ "sprite": {
+  "w": 62.4,
+  "h": 110,
+  "ax": 0.5,
+  "ay": 0.5,
+  "src": "mg/library/mint/sprites/cloth.png"
+ },
+ "sprite_review": {
+  "score": 2.0,
+  "problems": [
+   "The picture is mostly a big clenched fist, not a cloth. The fist is drawn like grey stone or marble with gold cracks, so it looks like a statue hand. The cloth is only a small grey flap hanging below it.",
+   "Held in the character's hand, the sprite adds a second hand. A giant grey fist sits on top of Tom\u00e1s's own hand, about as wide as his head, so it reads as a glove or boxing fist rather than a polishing cloth.",
+   "Scale is wrong. A palm-sized cloth should be smaller than the character's hand, but the sprite (62x110) is roughly the size of his head and neck together.",
+   "Rendering style doesn't match. It is heavily textured and sculpted, not the flat, clean shading of the characters.",
+   "At a glance, nothing says 'cloth for polishing': no soft bunched fabric shape you can read as a whole."
+  ]
+ }
+}

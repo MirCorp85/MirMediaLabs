@@ -1,5 +1,1542 @@
 {
  "scenes": {
+  "sig-plate": {
+   "label": "Signature · studio plate",
+   "group": "Signature",
+   "icon": "film",
+   "dur": 6,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "src",
+     "t": "media",
+     "label": "Hero plate (studio shot)",
+     "accept": "video,image",
+     "d": ""
+    }
+   ]
+  },
+  "sig-number": {
+   "label": "Signature · big number",
+   "group": "Signature",
+   "icon": "trending-up",
+   "dur": 6,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "src",
+     "t": "media",
+     "label": "Hero plate (studio shot)",
+     "accept": "video,image",
+     "d": ""
+    },
+    {
+     "k": "value",
+     "t": "num",
+     "label": "Value",
+     "d": 0.81
+    },
+    {
+     "k": "decimals",
+     "t": "num",
+     "label": "Decimals",
+     "min": 0,
+     "max": 3,
+     "d": 2
+    },
+    {
+     "k": "unit",
+     "t": "text",
+     "label": "Unit",
+     "d": "s"
+    },
+    {
+     "k": "label",
+     "t": "text",
+     "label": "Label (amber caps)",
+     "d": "ZERO TO 60 MPH"
+    },
+    {
+     "k": "sub",
+     "t": "text",
+     "label": "Sub line",
+     "d": ""
+    },
+    {
+     "k": "plain",
+     "t": "bool",
+     "label": "Year (no comma, counts up 11)",
+     "d": false
+    }
+   ]
+  },
+  "sig-chapter": {
+   "label": "Signature · chapter card",
+   "group": "Signature",
+   "icon": "bookmark",
+   "dur": 2.6,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "src",
+     "t": "media",
+     "label": "Hero plate (studio shot)",
+     "accept": "video,image",
+     "d": ""
+    },
+    {
+     "k": "num",
+     "t": "num",
+     "label": "Chapter",
+     "min": 0,
+     "max": 99,
+     "d": 1
+    },
+    {
+     "k": "of",
+     "t": "num",
+     "label": "Of (0 = hide)",
+     "min": 0,
+     "max": 99,
+     "d": 0
+    },
+    {
+     "k": "title",
+     "t": "text",
+     "label": "Title",
+     "d": "The big idea"
+    }
+   ]
+  },
+  "sig-spec": {
+   "label": "Signature · schematic spec",
+   "group": "Signature",
+   "icon": "sliders",
+   "dur": 8,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "tag",
+     "t": "text",
+     "label": "Chapter tag (amber)",
+     "d": "01 — THE BIG IDEA"
+    },
+    {
+     "k": "title",
+     "t": "text",
+     "label": "Headline",
+     "d": "How it works"
+    },
+    {
+     "k": "rows",
+     "t": "json",
+     "label": "Spec rows [{k,v,hi}]",
+     "d": [
+      {
+       "k": "POWER",
+       "v": "1 MW"
+      },
+      {
+       "k": "VOLTAGE",
+       "v": "800 V"
+      },
+      {
+       "k": "CHARGE",
+       "v": "500 kW",
+       "hi": true
+      }
+     ]
+    },
+    {
+     "k": "src",
+     "t": "media",
+     "label": "Optional subject (shown dimmed, right)",
+     "accept": "video,image",
+     "d": ""
+    },
+    {
+     "k": "note",
+     "t": "text",
+     "label": "Footnote",
+     "d": ""
+    }
+   ]
+  },
+  "sig-bars": {
+   "label": "Signature · bars + verdict",
+   "group": "Signature",
+   "icon": "chart",
+   "dur": 8,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "tag",
+     "t": "text",
+     "label": "Chapter tag (amber)",
+     "d": "01 — THE BIG IDEA"
+    },
+    {
+     "k": "title",
+     "t": "text",
+     "label": "Headline",
+     "d": "Where it comes from"
+    },
+    {
+     "k": "bars",
+     "t": "json",
+     "label": "Bars [{label,value,color: silver|amber|ink}]",
+     "d": [
+      {
+       "label": "Tires",
+       "value": 1.75,
+       "color": "silver"
+      },
+      {
+       "label": "Thrusters",
+       "value": 1.65,
+       "color": "amber"
+      }
+     ]
+    },
+    {
+     "k": "unit",
+     "t": "text",
+     "label": "Unit",
+     "d": "g"
+    },
+    {
+     "k": "max",
+     "t": "num",
+     "label": "Scale max",
+     "d": 4
+    },
+    {
+     "k": "stamp",
+     "t": "text",
+     "label": "Verdict stamp (blank = none)",
+     "d": ""
+    }
+   ]
+  },
+  "sig-cards": {
+   "label": "Signature · comparison cards",
+   "group": "Signature",
+   "icon": "grid",
+   "dur": 10,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "tag",
+     "t": "text",
+     "label": "Chapter tag (amber)",
+     "d": "01 — THE BIG IDEA"
+    },
+    {
+     "k": "title",
+     "t": "text",
+     "label": "Headline",
+     "d": "Three options"
+    },
+    {
+     "k": "cards",
+     "t": "json",
+     "label": "Cards [{tag,name,line1,line2,label,value,foot,color: silver|amber|red}]",
+     "d": [
+      {
+       "tag": "ROAD READY",
+       "name": "Base",
+       "line1": "2 seats",
+       "line2": "",
+       "label": "PRICE",
+       "value": "$50,000",
+       "foot": "",
+       "color": "silver"
+      }
+     ]
+    }
+   ]
+  },
+  "sig-list": {
+   "label": "Signature · list (recap / questions)",
+   "group": "Signature",
+   "icon": "list",
+   "dur": 8,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "tag",
+     "t": "text",
+     "label": "Chapter tag (amber)",
+     "d": "01 — THE BIG IDEA"
+    },
+    {
+     "k": "title",
+     "t": "text",
+     "label": "Headline",
+     "d": "In four lines"
+    },
+    {
+     "k": "items",
+     "t": "list",
+     "label": "Items",
+     "d": [
+      "First point",
+      "Second point"
+     ]
+    },
+    {
+     "k": "kind",
+     "t": "select",
+     "label": "Icons",
+     "opts": [
+      "recap",
+      "questions"
+     ],
+     "d": "recap"
+    }
+   ]
+  },
+  "sig-formula": {
+   "label": "Signature · formula / calculation",
+   "group": "Signature",
+   "icon": "code",
+   "dur": 8,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "tag",
+     "t": "text",
+     "label": "Chapter tag (amber)",
+     "d": "01 — THE BIG IDEA"
+    },
+    {
+     "k": "title",
+     "t": "text",
+     "label": "Headline",
+     "d": "Check the math"
+    },
+    {
+     "k": "lines",
+     "t": "list",
+     "label": "Lines (last = result, amber)",
+     "d": [
+      "a = Δv / t",
+      "a ≈ 3.4 g"
+     ]
+    },
+    {
+     "k": "note",
+     "t": "text",
+     "label": "Note",
+     "d": ""
+    },
+    {
+     "k": "stamp",
+     "t": "text",
+     "label": "Verdict stamp",
+     "d": ""
+    }
+   ]
+  },
+  "sig-photo": {
+   "label": "Signature · real photo + credit",
+   "group": "Signature",
+   "icon": "image",
+   "dur": 6,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "src",
+     "t": "media",
+     "label": "Photo",
+     "accept": "image",
+     "d": ""
+    },
+    {
+     "k": "credit",
+     "t": "text",
+     "label": "Credit (required for real photos)",
+     "d": "IMAGE: SOURCE"
+    }
+   ]
+  },
+  "sig-brand": {
+   "label": "Signature · brand sting",
+   "group": "Signature",
+   "icon": "star",
+   "dur": 3.2,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "series",
+     "t": "text",
+     "label": "Series",
+     "d": "MIR EXPLAINED"
+    },
+    {
+     "k": "title",
+     "t": "text",
+     "label": "Episode title",
+     "d": "The big idea"
+    }
+   ]
+  },
+  "sig-endcard": {
+   "label": "Signature · end card (like + subscribe + app)",
+   "group": "Signature",
+   "icon": "heart",
+   "dur": 8,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "src",
+     "t": "media",
+     "label": "Hero plate (studio shot)",
+     "accept": "video,image",
+     "d": ""
+    },
+    {
+     "k": "series",
+     "t": "text",
+     "label": "Series",
+     "d": "MIR EXPLAINED"
+    },
+    {
+     "k": "title",
+     "t": "text",
+     "label": "Episode title",
+     "d": ""
+    }
+   ]
+  },
+  "sig-captions": {
+   "label": "Signature · captions (karaoke chunks)",
+   "group": "Signature",
+   "icon": "message",
+   "dur": 8,
+   "track": "captions",
+   "fields": [
+    {
+     "k": "text",
+     "t": "long",
+     "label": "Text (auto-timed) — or use Auto-caption",
+     "d": ""
+    },
+    {
+     "k": "words",
+     "t": "json",
+     "label": "Word timings [{w,s,e}]",
+     "d": []
+    }
+   ]
+  },
+  "rankreel": {
+   "label": "Rank Reel (ranking Short)",
+   "group": "Social",
+   "icon": "list",
+   "dur": 25,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "title",
+     "t": "long",
+     "label": "Title (2 lines — Enter splits)",
+     "d": "Ranking the best\nfootball moments"
+    },
+    {
+     "k": "keywords",
+     "t": "text",
+     "label": "Highlight words (comma)",
+     "d": "football moments"
+    },
+    {
+     "k": "kwColor",
+     "t": "color",
+     "label": "Keyword colour",
+     "d": "#2dd4bf"
+    },
+    {
+     "k": "items",
+     "t": "json",
+     "label": "Clips [{src,label,rank,trimIn,dur,verdict,vo,voDur}]",
+     "d": [
+      {
+       "rank": 1,
+       "label": "Instant Karma",
+       "dur": 5,
+       "verdict": "Number one. Nobody saw that coming."
+      },
+      {
+       "rank": 2,
+       "label": "Red Card",
+       "dur": 5,
+       "verdict": "The ref had seen enough."
+      },
+      {
+       "rank": 3,
+       "label": "Keeper Panic",
+       "dur": 5,
+       "verdict": ""
+      },
+      {
+       "rank": 4,
+       "label": "Own Goal",
+       "dur": 5,
+       "verdict": ""
+      },
+      {
+       "rank": 5,
+       "label": "Bicycle Kick",
+       "dur": 5,
+       "verdict": ""
+      }
+     ]
+    },
+    {
+     "k": "order",
+     "t": "select",
+     "label": "Play order",
+     "opts": [
+      "shuffle",
+      "countdown",
+      "custom"
+     ],
+     "d": "shuffle"
+    },
+    {
+     "k": "seed",
+     "t": "num",
+     "label": "Shuffle seed",
+     "min": 1,
+     "max": 9999,
+     "d": 7
+    },
+    {
+     "k": "intro",
+     "t": "num",
+     "label": "Hook intro (s)",
+     "min": 0,
+     "max": 3,
+     "step": 0.1,
+     "d": 0
+    },
+    {
+     "k": "hook",
+     "t": "text",
+     "label": "Hook text",
+     "d": "WAIT FOR #1"
+    },
+    {
+     "k": "captions",
+     "t": "bool",
+     "label": "Verdict captions",
+     "d": false
+    },
+    {
+     "k": "clipVolume",
+     "t": "num",
+     "label": "Clip volume",
+     "min": 0,
+     "max": 2,
+     "step": 0.05,
+     "d": 0.8
+    },
+    {
+     "k": "duckVolume",
+     "t": "num",
+     "label": "Clip volume under VO",
+     "min": 0,
+     "max": 1,
+     "step": 0.05,
+     "d": 0.25
+    },
+    {
+     "k": "voVolume",
+     "t": "num",
+     "label": "VO volume",
+     "min": 0,
+     "max": 3,
+     "step": 0.05,
+     "d": 1.6
+    },
+    {
+     "k": "sting",
+     "t": "media",
+     "label": "Rank sting sound",
+     "accept": "audio",
+     "d": ""
+    },
+    {
+     "k": "titleSize",
+     "t": "num",
+     "label": "Title size",
+     "min": 40,
+     "max": 140,
+     "d": 68
+    },
+    {
+     "k": "ladderSize",
+     "t": "num",
+     "label": "Ladder size",
+     "min": 30,
+     "max": 100,
+     "d": 70
+    },
+    {
+     "k": "verdictSize",
+     "t": "num",
+     "label": "Verdict caption size",
+     "min": 40,
+     "max": 110,
+     "d": 74
+    },
+    {
+     "k": "titleBand",
+     "t": "num",
+     "label": "Title band height",
+     "min": 0.12,
+     "max": 0.32,
+     "step": 0.01,
+     "d": 0.15
+    },
+    {
+     "k": "fit",
+     "t": "select",
+     "label": "Clip fit (auto: vertical fills, 16:9 shown whole on blur)",
+     "opts": [
+      "auto",
+      "cover",
+      "blur",
+      "contain"
+     ],
+     "d": "auto"
+    }
+   ]
+  },
+  "mg-title": {
+   "label": "MG · Title",
+   "group": "Motion Graphics",
+   "icon": "type",
+   "dur": 5,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "kicker",
+     "t": "text",
+     "label": "Kicker",
+     "d": "Chapter one"
+    },
+    {
+     "k": "title",
+     "t": "text",
+     "label": "Title",
+     "d": "The speed of light"
+    },
+    {
+     "k": "sub",
+     "t": "text",
+     "label": "Subtitle",
+     "d": ""
+    },
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    },
+    {
+     "k": "n",
+     "t": "num",
+     "label": "Beat #",
+     "min": 0,
+     "max": 999,
+     "d": 1
+    },
+    {
+     "k": "visuals",
+     "t": "json",
+     "label": "Visuals [{kind:art|icon|stat|text, id, label, at}]",
+     "d": []
+    },
+    {
+     "k": "words",
+     "t": "json",
+     "label": "Spoken words [{w,s,e}] (captions)",
+     "d": []
+    },
+    {
+     "k": "captions",
+     "t": "bool",
+     "label": "Show captions",
+     "d": true
+    }
+   ]
+  },
+  "mg-stat": {
+   "label": "MG · Big number",
+   "group": "Motion Graphics",
+   "icon": "trending-up",
+   "dur": 5,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "kicker",
+     "t": "text",
+     "label": "Kicker",
+     "d": ""
+    },
+    {
+     "k": "value",
+     "t": "num",
+     "label": "Value",
+     "d": 299792
+    },
+    {
+     "k": "prefix",
+     "t": "text",
+     "label": "Prefix",
+     "d": ""
+    },
+    {
+     "k": "suffix",
+     "t": "text",
+     "label": "Suffix",
+     "d": ""
+    },
+    {
+     "k": "label",
+     "t": "text",
+     "label": "Label",
+     "d": "kilometres per second"
+    },
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    },
+    {
+     "k": "n",
+     "t": "num",
+     "label": "Beat #",
+     "min": 0,
+     "max": 999,
+     "d": 1
+    },
+    {
+     "k": "visuals",
+     "t": "json",
+     "label": "Visuals [{kind:art|icon|stat|text, id, label, at}]",
+     "d": []
+    },
+    {
+     "k": "words",
+     "t": "json",
+     "label": "Spoken words [{w,s,e}] (captions)",
+     "d": []
+    },
+    {
+     "k": "captions",
+     "t": "bool",
+     "label": "Show captions",
+     "d": true
+    }
+   ]
+  },
+  "mg-visuals": {
+   "label": "MG · Visuals (1–4)",
+   "group": "Motion Graphics",
+   "icon": "grid",
+   "dur": 5,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "headline",
+     "t": "text",
+     "label": "Headline",
+     "d": ""
+    },
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    },
+    {
+     "k": "n",
+     "t": "num",
+     "label": "Beat #",
+     "min": 0,
+     "max": 999,
+     "d": 1
+    },
+    {
+     "k": "visuals",
+     "t": "json",
+     "label": "Visuals [{kind:art|icon|stat|text, id, label, at}]",
+     "d": []
+    },
+    {
+     "k": "words",
+     "t": "json",
+     "label": "Spoken words [{w,s,e}] (captions)",
+     "d": []
+    },
+    {
+     "k": "captions",
+     "t": "bool",
+     "label": "Show captions",
+     "d": true
+    }
+   ]
+  },
+  "mg-relation": {
+   "label": "MG · A → B",
+   "group": "Motion Graphics",
+   "icon": "chain",
+   "dur": 6,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "headline",
+     "t": "text",
+     "label": "Headline",
+     "d": ""
+    },
+    {
+     "k": "link",
+     "t": "text",
+     "label": "Link label",
+     "d": ""
+    },
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    },
+    {
+     "k": "n",
+     "t": "num",
+     "label": "Beat #",
+     "min": 0,
+     "max": 999,
+     "d": 1
+    },
+    {
+     "k": "visuals",
+     "t": "json",
+     "label": "Visuals [{kind:art|icon|stat|text, id, label, at}]",
+     "d": []
+    },
+    {
+     "k": "words",
+     "t": "json",
+     "label": "Spoken words [{w,s,e}] (captions)",
+     "d": []
+    },
+    {
+     "k": "captions",
+     "t": "bool",
+     "label": "Show captions",
+     "d": true
+    }
+   ]
+  },
+  "mg-list": {
+   "label": "MG · List",
+   "group": "Motion Graphics",
+   "icon": "layers",
+   "dur": 7,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "headline",
+     "t": "text",
+     "label": "Headline",
+     "d": ""
+    },
+    {
+     "k": "items",
+     "t": "json",
+     "label": "Items [{text, at, visual}]",
+     "d": [
+      {
+       "text": "First point"
+      },
+      {
+       "text": "Second point"
+      }
+     ]
+    },
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    },
+    {
+     "k": "n",
+     "t": "num",
+     "label": "Beat #",
+     "min": 0,
+     "max": 999,
+     "d": 1
+    },
+    {
+     "k": "visuals",
+     "t": "json",
+     "label": "Visuals [{kind:art|icon|stat|text, id, label, at}]",
+     "d": []
+    },
+    {
+     "k": "words",
+     "t": "json",
+     "label": "Spoken words [{w,s,e}] (captions)",
+     "d": []
+    },
+    {
+     "k": "captions",
+     "t": "bool",
+     "label": "Show captions",
+     "d": true
+    }
+   ]
+  },
+  "mg-compare": {
+   "label": "MG · Compare",
+   "group": "Motion Graphics",
+   "icon": "layers",
+   "dur": 6,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "headline",
+     "t": "text",
+     "label": "Headline",
+     "d": ""
+    },
+    {
+     "k": "a",
+     "t": "text",
+     "label": "Left title",
+     "d": "Before"
+    },
+    {
+     "k": "aval",
+     "t": "text",
+     "label": "Left value",
+     "d": ""
+    },
+    {
+     "k": "b",
+     "t": "text",
+     "label": "Right title",
+     "d": "After"
+    },
+    {
+     "k": "bval",
+     "t": "text",
+     "label": "Right value",
+     "d": ""
+    },
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    },
+    {
+     "k": "n",
+     "t": "num",
+     "label": "Beat #",
+     "min": 0,
+     "max": 999,
+     "d": 1
+    },
+    {
+     "k": "visuals",
+     "t": "json",
+     "label": "Visuals [{kind:art|icon|stat|text, id, label, at}]",
+     "d": []
+    },
+    {
+     "k": "words",
+     "t": "json",
+     "label": "Spoken words [{w,s,e}] (captions)",
+     "d": []
+    },
+    {
+     "k": "captions",
+     "t": "bool",
+     "label": "Show captions",
+     "d": true
+    }
+   ]
+  },
+  "mg-quote": {
+   "label": "MG · Quote",
+   "group": "Motion Graphics",
+   "icon": "message",
+   "dur": 6,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "text",
+     "t": "long",
+     "label": "Quote",
+     "d": ""
+    },
+    {
+     "k": "by",
+     "t": "text",
+     "label": "By",
+     "d": ""
+    },
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    },
+    {
+     "k": "n",
+     "t": "num",
+     "label": "Beat #",
+     "min": 0,
+     "max": 999,
+     "d": 1
+    },
+    {
+     "k": "visuals",
+     "t": "json",
+     "label": "Visuals [{kind:art|icon|stat|text, id, label, at}]",
+     "d": []
+    },
+    {
+     "k": "words",
+     "t": "json",
+     "label": "Spoken words [{w,s,e}] (captions)",
+     "d": []
+    },
+    {
+     "k": "captions",
+     "t": "bool",
+     "label": "Show captions",
+     "d": true
+    }
+   ]
+  },
+  "mg-intro": {
+   "label": "MG · MIR MEDIA LABS intro",
+   "group": "Motion Graphics",
+   "icon": "sparkle",
+   "dur": 3.4,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "title",
+     "t": "text",
+     "label": "Video title (under the logo)",
+     "d": ""
+    },
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    }
+   ]
+  },
+  "mg-action": {
+   "label": "MG · Animated character",
+   "group": "Motion Graphics",
+   "icon": "user",
+   "dur": 6,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "action",
+     "t": "select",
+     "label": "Action",
+     "opts": [
+      "speech",
+      "talk",
+      "wave",
+      "celebrate",
+      "dance",
+      "jump",
+      "lift",
+      "sad",
+      "think",
+      "walk",
+      "run",
+      "point",
+      "read",
+      "type",
+      "catch",
+      "react",
+      "evolve",
+      "score",
+      "shoot",
+      "throw",
+      "handshake",
+      "chat"
+     ],
+     "d": "speech"
+    },
+    {
+     "k": "who",
+     "t": "text",
+     "label": "Who (tag)",
+     "d": ""
+    },
+    {
+     "k": "headline",
+     "t": "text",
+     "label": "Headline",
+     "d": ""
+    },
+    {
+     "k": "figure",
+     "t": "json",
+     "label": "Figure {skin, hair, hairColor, outfit: suit|jersey|casual|dress|lab, color, number, accessory: tie|glasses|cap|crown|tophat|helmet, beard}",
+     "d": {
+      "outfit": "suit",
+      "hair": "side"
+     }
+    },
+    {
+     "k": "figure2",
+     "t": "json",
+     "label": "Second figure (handshake / chat)",
+     "d": null
+    },
+    {
+     "k": "at",
+     "t": "num",
+     "label": "Enters at (s)",
+     "min": 0,
+     "max": 30,
+     "step": 0.1,
+     "d": 0.1
+    },
+    {
+     "k": "set",
+     "t": "select",
+     "label": "Set (place) — empty = plain stage",
+     "opts": [
+      "",
+      "street",
+      "cafe",
+      "room",
+      "lab",
+      "field",
+      "stadium",
+      "track",
+      "city",
+      "nature",
+      "space",
+      "stage"
+     ],
+     "d": ""
+    },
+    {
+     "k": "shot",
+     "t": "select",
+     "label": "Camera shot",
+     "opts": [
+      "wide",
+      "medium",
+      "close",
+      "xclose"
+     ],
+     "d": "wide"
+    },
+    {
+     "k": "mood",
+     "t": "select",
+     "label": "Mood",
+     "opts": [
+      "",
+      "happy",
+      "surprised",
+      "angry",
+      "determined",
+      "sad",
+      "scared"
+     ],
+     "d": ""
+    },
+    {
+     "k": "overlay",
+     "t": "json",
+     "label": "Overlay {type: timer|distance|score|gauge|chain|label, value, unit, label, a, b, av, bv, ratio, items, text, at}",
+     "d": null
+    },
+    {
+     "k": "plate",
+     "t": "media",
+     "label": "AI-animated shot (replaces set + character)",
+     "accept": "video",
+     "d": ""
+    },
+    {
+     "k": "fx",
+     "t": "select",
+     "label": "FX",
+     "opts": [
+      "",
+      "slowmo",
+      "impact",
+      "freeze",
+      "flash"
+     ],
+     "d": ""
+    },
+    {
+     "k": "fxAt",
+     "t": "num",
+     "label": "FX at (s)",
+     "min": 0,
+     "max": 30,
+     "step": 0.1,
+     "d": 0.9
+    },
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    },
+    {
+     "k": "n",
+     "t": "num",
+     "label": "Beat #",
+     "min": 0,
+     "max": 999,
+     "d": 1
+    },
+    {
+     "k": "visuals",
+     "t": "json",
+     "label": "Visuals [{kind:art|icon|stat|text, id, label, at}]",
+     "d": []
+    },
+    {
+     "k": "words",
+     "t": "json",
+     "label": "Spoken words [{w,s,e}] (captions)",
+     "d": []
+    },
+    {
+     "k": "captions",
+     "t": "bool",
+     "label": "Show captions",
+     "d": true
+    }
+   ]
+  },
+  "mg-shot": {
+   "label": "MG · Continuous shot (beats as stations)",
+   "group": "Motion Graphics",
+   "icon": "film",
+   "dur": 15,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "move",
+     "t": "select",
+     "label": "Camera move",
+     "opts": [
+      "pan",
+      "crane",
+      "push"
+     ],
+     "d": "pan"
+    },
+    {
+     "k": "beats",
+     "t": "json",
+     "label": "Beats [{kind, dur, mark, …the beat props}]",
+     "d": []
+    },
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    },
+    {
+     "k": "n",
+     "t": "num",
+     "label": "First beat #",
+     "min": 0,
+     "max": 999,
+     "d": 1
+    },
+    {
+     "k": "captions",
+     "t": "bool",
+     "label": "Show captions",
+     "d": true
+    }
+   ]
+  },
+  "mg-endcard": {
+   "label": "MG · End card",
+   "group": "Motion Graphics",
+   "icon": "star",
+   "dur": 6,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "title",
+     "t": "text",
+     "label": "Title",
+     "d": "Thanks for watching"
+    },
+    {
+     "k": "line1",
+     "t": "text",
+     "label": "Line 1",
+     "d": "Like · Subscribe"
+    },
+    {
+     "k": "line2",
+     "t": "text",
+     "label": "Line 2",
+     "d": "Download the MIR MEDIA LABS app"
+    },
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    },
+    {
+     "k": "n",
+     "t": "num",
+     "label": "Beat #",
+     "min": 0,
+     "max": 999,
+     "d": 1
+    }
+   ]
+  },
+  "mg-diorama": {
+   "label": "MG · Diorama (whole story)",
+   "group": "Motion Graphics",
+   "icon": "film",
+   "dur": 20,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "beats",
+     "t": "json",
+     "label": "Beats [{t0, t1, line, station, pose, mood, camera, panel, sfx, fx, rings, cue}]",
+     "d": []
+    },
+    {
+     "k": "words",
+     "t": "json",
+     "label": "Words [{w, s, e}] (absolute seconds)",
+     "d": []
+    },
+    {
+     "k": "offset",
+     "t": "num",
+     "label": "Clock offset (s)",
+     "min": -30,
+     "max": 30,
+     "step": 0.1,
+     "d": 0
+    },
+    {
+     "k": "captions",
+     "t": "bool",
+     "label": "Captions",
+     "d": true
+    }
+   ]
+  },
+  "mg-demo": {
+   "label": "MG · Style demo",
+   "group": "Motion Graphics",
+   "icon": "sparkle",
+   "dur": 9,
+   "track": "scene",
+   "fields": [
+    {
+     "k": "style",
+     "t": "select",
+     "label": "Style",
+     "opts": [
+      "signature",
+      "grid",
+      "liquid",
+      "paper",
+      "dusk"
+     ],
+     "d": "signature"
+    },
+    {
+     "k": "accent",
+     "t": "color",
+     "label": "Accent override",
+     "d": ""
+    },
+    {
+     "k": "zap",
+     "t": "json",
+     "label": "zap icon nodes",
+     "d": []
+    }
+   ]
+  },
   "background": {
    "label": "Background",
    "group": "Basics",

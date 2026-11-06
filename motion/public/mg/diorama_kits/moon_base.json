@@ -1,0 +1,164 @@
+{
+ "id": "moon_base",
+ "world": "moon",
+ "name": "Moon base",
+ "about": "the inside of a lunar base: consoles, screens, an airlock, a window on the grey surface and Earth - astronauts, missions, isolation",
+ "tags": [
+  "moon",
+  "lunar",
+  "base",
+  "astronaut",
+  "space",
+  "mission",
+  "nasa",
+  "mars",
+  "station",
+  "colony",
+  "airlock"
+ ],
+ "floor": "tile",
+ "walls": "both",
+ "props": [
+  {
+   "t": "console",
+   "x": 0.3,
+   "y": 0.3,
+   "w": 1.6,
+   "d": 0.6
+  },
+  {
+   "t": "screen",
+   "x": 2.2,
+   "y": 0,
+   "wall": "back",
+   "w": 1.4,
+   "z": 1.1,
+   "h": 0.8
+  },
+  {
+   "t": "window",
+   "x": 0,
+   "y": 1.2,
+   "wall": "left",
+   "w": 1.8
+  },
+  {
+   "t": "tank",
+   "x": 3.3,
+   "y": 2.2,
+   "w": 0.6,
+   "d": 0.6,
+   "h": 1.6,
+   "col": "silver"
+  },
+  {
+   "t": "rack",
+   "x": 3.4,
+   "y": 0.4,
+   "w": 0.5,
+   "d": 0.5,
+   "h": 1.8
+  },
+  {
+   "t": "table",
+   "x": 1.4,
+   "y": 2.0,
+   "w": 1.0,
+   "d": 0.7
+  },
+  {
+   "t": "ring",
+   "x": 2.4,
+   "y": 3.6,
+   "w": 1.0,
+   "d": 0.3,
+   "h": 1.5
+  }
+ ],
+ "st": {
+  "console": [
+   [
+    1.1,
+    1.3
+   ],
+   -1,
+   [
+    1.1,
+    0.5,
+    1.0
+   ]
+  ],
+  "screen": [
+   [
+    2.9,
+    1.2
+   ],
+   -1,
+   [
+    2.9,
+    0,
+    1.5
+   ]
+  ],
+  "window": [
+   [
+    0.6,
+    2.1
+   ],
+   -1,
+   [
+    0,
+    2.1,
+    1.4
+   ]
+  ],
+  "airlock": [
+   [
+    2.6,
+    3.0
+   ],
+   1,
+   [
+    2.9,
+    3.7,
+    1
+   ]
+  ],
+  "center": [
+   [
+    1.8,
+    3.0
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.6,
+   1.4
+  ],
+  [
+   2.2,
+   2.6
+  ],
+  [
+   1.0,
+   3.4
+  ]
+ ],
+ "regulars": [
+  [
+   0,
+   "type",
+   {
+    "gender": "woman",
+    "outfit": "space",
+    "hat": "",
+    "skin": "medium"
+   }
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

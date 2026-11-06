@@ -1,0 +1,582 @@
+{
+ "id": "conch",
+ "kind": "prop",
+ "name": "Summoning Conch",
+ "desc": "A giant spiral conch shell resting on a low sandy mound, its flared lip opening toward the",
+ "tags": [
+  "conch",
+  "shell",
+  "beach",
+  "sand",
+  "prop",
+  "focal",
+  "sea",
+  "summon",
+  "pearl"
+ ],
+ "w": 2.0,
+ "d": 1.5,
+ "h": 1.8,
+ "shapes": [
+  {
+   "s": "ellipse",
+   "x": 4.0,
+   "y": -4.0,
+   "rx": 104.0,
+   "ry": 16.0,
+   "fill": "black",
+   "a": 0.25
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -98.0,
+     -4.0
+    ],
+    [
+     -72.0,
+     -24.0
+    ],
+    [
+     -30.0,
+     -34.0
+    ],
+    [
+     20.0,
+     -35.0
+    ],
+    [
+     64.0,
+     -28.0
+    ],
+    [
+     98.0,
+     -6.0
+    ],
+    [
+     60.0,
+     4.0
+    ],
+    [
+     -50.0,
+     4.0
+    ]
+   ],
+   "fill": [
+    "sand",
+    "stone"
+   ]
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -70.0,
+     -20.0
+    ],
+    [
+     -20.0,
+     -32.0
+    ],
+    [
+     40.0,
+     -28.0
+    ]
+   ],
+   "stroke": "pale",
+   "lw": 2.0,
+   "a": 0.5
+  },
+  {
+   "s": "circle",
+   "x": -80.0,
+   "y": -10.0,
+   "r": 3.0,
+   "fill": "stone2"
+  },
+  {
+   "s": "circle",
+   "x": 78.0,
+   "y": -12.0,
+   "r": 2.5,
+   "fill": "stone2"
+  },
+  {
+   "s": "ellipse",
+   "x": 0.0,
+   "y": -34.0,
+   "rx": 70.0,
+   "ry": 8.0,
+   "fill": "black",
+   "a": 0.18
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -92.0,
+     -168.0
+    ],
+    [
+     -60.0,
+     -150.0
+    ],
+    [
+     -20.0,
+     -152.0
+    ],
+    [
+     25.0,
+     -150.0
+    ],
+    [
+     60.0,
+     -132.0
+    ],
+    [
+     82.0,
+     -98.0
+    ],
+    [
+     78.0,
+     -58.0
+    ],
+    [
+     46.0,
+     -36.0
+    ],
+    [
+     -18.0,
+     -32.0
+    ],
+    [
+     -56.0,
+     -52.0
+    ],
+    [
+     -74.0,
+     -92.0
+    ],
+    [
+     -80.0,
+     -132.0
+    ]
+   ],
+   "fill": [
+    "pale",
+    "champ"
+   ],
+   "stroke": "bronze",
+   "lw": 2.5
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -92.0,
+     -168.0
+    ],
+    [
+     -66.0,
+     -162.0
+    ],
+    [
+     -62.0,
+     -140.0
+    ]
+   ],
+   "stroke": "bronze",
+   "lw": 2.0
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -82.0,
+     -150.0
+    ],
+    [
+     -50.0,
+     -150.0
+    ],
+    [
+     -46.0,
+     -120.0
+    ]
+   ],
+   "stroke": "bronze",
+   "lw": 2.0
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -76.0,
+     -128.0
+    ],
+    [
+     -30.0,
+     -140.0
+    ],
+    [
+     -24.0,
+     -96.0
+    ]
+   ],
+   "stroke": "bronze",
+   "lw": 2.0
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -70.0,
+     -100.0
+    ],
+    [
+     -10.0,
+     -128.0
+    ],
+    [
+     0.0,
+     -60.0
+    ]
+   ],
+   "stroke": "bronze",
+   "lw": 2.0,
+   "a": 0.8
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -56.0,
+     -56.0
+    ],
+    [
+     -10.0,
+     -80.0
+    ],
+    [
+     30.0,
+     -40.0
+    ]
+   ],
+   "stroke": "bronze",
+   "lw": 1.5,
+   "a": 0.6
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -40.0,
+     -150.0
+    ],
+    [
+     -34.0,
+     -170.0
+    ],
+    [
+     -26.0,
+     -151.0
+    ]
+   ],
+   "fill": "champ",
+   "stroke": "bronze",
+   "lw": 1.5
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -8.0,
+     -152.0
+    ],
+    [
+     0.0,
+     -176.0
+    ],
+    [
+     8.0,
+     -151.0
+    ]
+   ],
+   "fill": "champ",
+   "stroke": "bronze",
+   "lw": 1.5
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     22.0,
+     -150.0
+    ],
+    [
+     34.0,
+     -172.0
+    ],
+    [
+     40.0,
+     -144.0
+    ]
+   ],
+   "fill": "champ",
+   "stroke": "bronze",
+   "lw": 1.5
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     52.0,
+     -136.0
+    ],
+    [
+     70.0,
+     -150.0
+    ],
+    [
+     66.0,
+     -124.0
+    ]
+   ],
+   "fill": "champ",
+   "stroke": "bronze",
+   "lw": 1.5
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     32.0,
+     -152.0
+    ],
+    [
+     76.0,
+     -176.0
+    ],
+    [
+     110.0,
+     -130.0
+    ],
+    [
+     104.0,
+     -74.0
+    ],
+    [
+     78.0,
+     -36.0
+    ],
+    [
+     50.0,
+     -44.0
+    ],
+    [
+     64.0,
+     -96.0
+    ]
+   ],
+   "fill": [
+    "#fbe3dc",
+    "#e8b9b0"
+   ],
+   "stroke": "bronze",
+   "lw": 2.5
+  },
+  {
+   "s": "ellipse",
+   "x": 74.0,
+   "y": -100.0,
+   "rx": 20.0,
+   "ry": 50.0,
+   "rot": 0.25,
+   "fill": [
+    "#f6c6c4",
+    "#d98f97"
+   ]
+  },
+  {
+   "s": "ellipse",
+   "x": 70.0,
+   "y": -96.0,
+   "rx": 10.0,
+   "ry": 34.0,
+   "rot": 0.25,
+   "fill": "#b9707c",
+   "a": 0.7
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     76.0,
+     -170.0
+    ],
+    [
+     106.0,
+     -140.0
+    ],
+    [
+     102.0,
+     -82.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 2.5,
+   "a": 0.7
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     86.0,
+     -146.0
+    ],
+    [
+     96.0,
+     -120.0
+    ],
+    [
+     90.0,
+     -92.0
+    ]
+   ],
+   "stroke": "pink",
+   "lw": 1.5,
+   "a": 0.6
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -84.0,
+     -150.0
+    ],
+    [
+     -72.0,
+     -118.0
+    ],
+    [
+     -40.0,
+     -140.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 2.0,
+   "a": 0.55
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -30.0,
+     -145.0
+    ],
+    [
+     10.0,
+     -148.0
+    ],
+    [
+     46.0,
+     -136.0
+    ]
+   ],
+   "stroke": "gold",
+   "lw": 2.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -50.0,
+     -58.0
+    ],
+    [
+     30.0,
+     -40.0
+    ]
+   ],
+   "stroke": "gold",
+   "lw": 1.5,
+   "a": 0.7
+  },
+  {
+   "s": "circle",
+   "x": -92.0,
+   "y": -168.0,
+   "r": 3.5,
+   "fill": "gold"
+  },
+  {
+   "s": "ellipse",
+   "x": 72.0,
+   "y": -100.0,
+   "rx": 30.0,
+   "ry": 62.0,
+   "rot": 0.25,
+   "fill": "#ffd6d6",
+   "a": 0.15,
+   "anim": {
+    "k": "pulse",
+    "sp": 0.8,
+    "amp": 0.15,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "arc",
+   "x": 118.0,
+   "y": -118.0,
+   "r": 14.0,
+   "a0": -0.9,
+   "a1": 0.9,
+   "stroke": "champ",
+   "lw": 2.0,
+   "a": 0.5,
+   "anim": {
+    "k": "pulse",
+    "sp": 1.2,
+    "amp": 0.3,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "arc",
+   "x": 118.0,
+   "y": -118.0,
+   "r": 26.0,
+   "a0": -0.8,
+   "a1": 0.8,
+   "stroke": "champ",
+   "lw": 1.5,
+   "a": 0.3,
+   "anim": {
+    "k": "pulse",
+    "sp": 1.2,
+    "amp": 0.3,
+    "px": 0.0,
+    "py": 0.0
+   }
+  }
+ ],
+ "review": {
+  "score": 5.0,
+  "round": 1,
+  "problems": [
+   "Doesn't read as a spiral conch at a glance. The body is a jagged, faceted 12-point polygon with no stepped, tapering spire. In the person and wide views it reads as a croissant or a leaf-shaped lump.",
+   "The body curves at (-70..30, -168..-40) all fan out from the top-left corner, so they look like leaf veins or ribs, not spiral seams. No whorls are visible.",
+   "The pointed tip is just a blunt corner with a gold dot at (-92,-168), so the shell has no pointed end.",
+   "The lip at (32..110, -176..-36) is a hard hexagon pasted onto the side like a pink plate. It doesn't curve out from the body, so it doesn't read as a flared lip.",
+   "No siphonal canal (the narrow tapered spout at the base), which helps a conch silhouette read.",
+   "Spikes stand up in a straight row like a crown instead of following the curve of the shoulder."
+  ]
+ },
+ "for": "Giant spiral conch shell on a sandy mound. The diver blows it to summon the dolphins, so it is the story's focal prop. Pearly pink-cream interior and a flared l",
+ "source": "minted",
+ "created": "2026-11-02"
+}

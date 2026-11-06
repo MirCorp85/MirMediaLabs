@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08080A">
+<title>MIR EXPLAINED · Producer</title>
+<link rel="icon" href="static/icon-512.png">
+<script src="static/mir-icons.js"></script>
+<!-- EXPLAINED producer (server/explainer.py). Oct 24 redesign (user: "too crowded — simpler, organised, graphics"):
+     projects rail with thumbnails · hero + 6-phase pipeline · one "needs you" bar · tabs Overview / Script (storyboard) /
+     Research / Edit (category rail + scene grid with ONE editor panel) / Log. Scene thumbnails are drawn from the scene's own
+     data (glyph()). Signature look: charcoal, ink, amber. MIR ICONS only. Old page: explained.html.bak_pre_redesign -->
+<style>
+:root{--acc:#FFB547;--amb:#FFB547;--bg:#08080A;--panel:#111114;--panel2:#16161B;--raise:#1D1D23;--ink:#F2F6FA;--cyan:#5CE1E6;--ok:#5FD38D;--bad:#FF5A5F;
+  --dim:color-mix(in srgb,var(--ink) 64%,transparent);--faint:color-mix(in srgb,var(--ink) 40%,transparent);
+  --line:color-mix(in srgb,var(--ink) 9%,transparent);--line2:color-mix(in srgb,var(--ink) 18%,transparent);
+  --ambs:color-mix(in srgb,var(--amb) 14%,transparent);
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"Cascadia Mono",Consolas,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+a{color:var(--cyan)}
+.mi{display:inline-flex;width:15px;height:15px;vertical-align:-3px;flex:none}.mi svg{width:100%;height:100%}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px;border:2px solid var(--bg)}
+
+/* ── top bar ── */
+.top{display:flex;align-items:center;gap:10px;height:54px;padding:0 16px;border-bottom:1px solid var(--line);background:#0B0B0E}
+.logo{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--ambs);color:var(--amb);border:1px solid color-mix(in srgb,var(--amb) 35%,transparent)}
+.brand{font-weight:800;letter-spacing:.26em;font-size:12px}.brand em{font-style:normal;color:var(--amb)}
+.brand small{display:block;font-weight:600;letter-spacing:.16em;font-size:9px;color:var(--faint);margin-top:1px}
+.sp{flex:1}
+.b{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 13px;border-radius:9px;border:1px solid var(--line2);
+  background:var(--panel2);cursor:pointer;white-space:nowrap;transition:border-color .12s,background .12s}
+.b:hover{border-color:color-mix(in srgb,var(--amb) 70%,transparent)}.b:disabled{opacity:.35;cursor:default}
+.b.pri{background:var(--amb);border-color:transparent;color:#140E02;font-weight:700}.b.pri:hover{background:#ffc56e}
+.b.ghost{background:transparent;border-color:transparent;color:var(--dim)}.b.ghost:hover{color:var(--ink);background:var(--panel2)}
+.b.ico{width:34px;padding:0}.b.sm{height:28px;padding:0 10px;font-size:12px;border-radius:8px}.b.sm.ico{width:28px;padding:0}
+.b.bad{color:var(--bad)}.b.bad:hover{border-color:var(--bad)}
+
+/* ── layout ── */
+.app{display:grid;grid-template-columns:280px minmax(0,1fr);height:calc(100dvh - 54px)}
+.side{border-right:1px solid var(--line);overflow:auto;padding:12px 10px;display:flex;flex-direction:column;gap:6px;background:#0A0A0D}
+.side-hd{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 6px;font-size:10px;letter-spacing:.2em;color:var(--faint);font-weight:700}
+.run{position:relative;display:flex;gap:10px;align-items:center;padding:8px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:background .12s}
+.run:hover{background:var(--panel)}.run.on{background:var(--panel2);border-color:var(--line2)}
+.run.on::before{content:"";position:absolute;left:-10px;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--amb)}
+.rth{position:relative;width:72px;aspect-ratio:16/9;border-radius:7px;overflow:hidden;flex:none;background:var(--raise)}
+.rth img,.rth svg{width:100%;height:100%;object-fit:cover;display:block}
+.rtx{min-width:0;flex:1}.rtx b{display:block;font-size:13px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.rtx small{display:flex;align-items:center;gap:6px;color:var(--faint);font-size:11px;margin-top:3px}
+.rbar{height:3px;border-radius:3px;background:var(--line);margin-top:6px;overflow:hidden}.rbar i{display:block;height:100%;background:var(--amb);border-radius:3px}
+.s-done .rbar i{background:var(--ok)}.s-paused .rbar i,.s-cancelled .rbar i{background:var(--faint)}
+.racts{position:absolute;right:6px;top:6px;display:flex;gap:3px;opacity:0;transition:opacity .12s}
+.run:hover .racts{opacity:1}
+.racts .b{background:rgba(10,10,13,.92)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+.s-running .dot{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pu 1.6s ease-in-out infinite}
+.s-waiting .dot{background:var(--amb);box-shadow:0 0 8px var(--amb)}.s-paused .dot{background:var(--bad)}.s-cancelled .dot{background:var(--faint)}.s-done .dot{background:var(--ok)}
+@keyframes pu{50%{opacity:.35}}
+.main{overflow:auto;position:relative}
+.pg{max-width:1180px;margin:0 auto;padding:20px 26px 80px}
+
+/* ── hero ── */
+.hero{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line2);background:var(--panel)}
+.hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(36px) saturate(1.2);opacity:.32;transform:scale(1.2)}
+.hero-pat{position:absolute;inset:0;background:radial-gradient(600px 220px at 85% 0%,color-mix(in srgb,var(--amb) 16%,transparent),transparent 70%),
+  repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px 48px),repeating-linear-gradient(0deg,var(--line) 0 1px,transparent 1px 48px);opacity:.7}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(10,10,13,.75));pointer-events:none}
+.hero-in{position:relative;z-index:1;display:flex;gap:20px;align-items:center;padding:20px}
+.hero-th{width:212px;aspect-ratio:16/9;border-radius:11px;overflow:hidden;flex:none;background:var(--raise);box-shadow:0 12px 30px -10px #000;border:1px solid var(--line2)}
+.hero-th img,.hero-th svg{width:100%;height:100%;object-fit:cover;display:block}
+.hero-tx{flex:1;min-width:0}
+.kick{color:var(--amb);font-size:10px;letter-spacing:.24em;font-weight:800}
+h1{margin:4px 0 8px;font-size:26px;line-height:1.15;letter-spacing:-.015em;font-weight:750}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:20px;font-size:11px;background:rgba(0,0,0,.35);border:1px solid var(--line2);color:var(--dim)}
+.pill.st{color:var(--ink);font-weight:600}
+.hero-act{display:flex;gap:8px;align-items:center;align-self:flex-start}
+.pipe{position:relative;z-index:1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));padding:4px 20px 18px}
+.pn{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;min-width:0}
+.pn+.pn::before{content:"";position:absolute;top:16px;right:calc(50% + 20px);left:calc(-50% + 20px);height:2px;border-radius:2px;background:var(--line2)}
+.pn.done::before,.pn.now::before,.pn.wait::before,.pn.fail::before,.pn.halt::before{background:var(--ok)}
+.pc{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line2);background:var(--panel);color:var(--faint)}
+.pn b{font-size:12px;font-weight:600;color:var(--faint)}.pn small{font-size:10px;letter-spacing:.06em;color:var(--faint);height:14px}
+.pn.done .pc{background:color-mix(in srgb,var(--ok) 14%,var(--panel));border-color:var(--ok);color:var(--ok)}.pn.done b{color:var(--dim)}
+.pn.now .pc{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 0 5px color-mix(in srgb,var(--cyan) 12%,transparent)}.pn.now b{color:var(--ink)}.pn.now small{color:var(--cyan)}
+.pn.wait .pc{background:var(--amb);border-color:var(--amb);color:#140E02;box-shadow:0 0 0 5px var(--ambs),0 0 22px -4px var(--amb)}.pn.wait b,.pn.wait small{color:var(--amb)}
+.pn.fail .pc,.pn.halt .pc{border-color:var(--bad);color:var(--bad)}.pn.fail small,.pn.halt small{color:var(--bad)}.pn.fail b,.pn.halt b{color:var(--ink)}
+.pn.now .pc .mi{animation:pu 1.6s ease-in-out infinite}
+
+/* ── menu ── */
+.menu{position:relative}.menu>summary{list-style:none}.menu>summary::-webkit-details-marker{display:none}
+.mbox{position:absolute;right:0;top:40px;z-index:20;width:260px;padding:6px;border-radius:12px;border:1px solid var(--line2);background:#141418;box-shadow:0 18px 40px -8px #000}
+.mbox .mh{font-size:10px;letter-spacing:.18em;color:var(--faint);font-weight:700;padding:8px 10px 4px}
+.mi-r{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border-radius:8px;border:0;background:none;cursor:pointer;text-align:left}
+.mi-r:hover{background:var(--raise)}.mi-r.bad{color:var(--bad)}.mbox hr{border:0;border-top:1px solid var(--line);margin:5px 0}
+.mi-r input{accent-color:var(--amb);width:15px;height:15px;margin:0}
+
+/* ── needs-you bar ── */
+.apv{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:14px;padding:16px 18px;border-radius:16px;
+  border:1px solid color-mix(in srgb,var(--amb) 55%,transparent);background:linear-gradient(100deg,color-mix(in srgb,var(--amb) 15%,transparent),color-mix(in srgb,var(--amb) 4%,transparent))}
+.apv .ai{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--amb);color:#140E02;flex:none}.apv .ai .mi{width:20px;height:20px}
+.apv .at{flex:1;min-width:220px}.apv .at b{font-size:15px}.apv .at div{color:var(--dim);font-size:12px;margin-top:2px}
+.apv .ab{display:flex;gap:8px;flex-wrap:wrap}
+.apv textarea{flex-basis:100%}
+.err{display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:12px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--bad) 50%,transparent);background:color-mix(in srgb,var(--bad) 9%,transparent);color:#ffb3b5}
+
+/* ── tabs ── */
+.tabs{position:sticky;top:0;z-index:8;display:flex;gap:2px;margin:18px -26px 18px;padding:8px 26px 0;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{display:inline-flex;align-items:center;gap:7px;padding:10px 14px;cursor:pointer;color:var(--faint);border:0;background:none;border-bottom:2px solid transparent;white-space:nowrap;font-weight:600}
+.tab:hover{color:var(--dim)}.tab.on{color:var(--ink);border-color:var(--amb)}.tab.off{opacity:.35}
+.tab .n{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--raise);color:var(--dim);font-weight:600}
+
+/* ── shared blocks ── */
+.sec{margin-top:26px}.sec:first-child{margin-top:0}
+.sh{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:11px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;font-weight:700}
+.sh .sp{flex:1}.sh .x{letter-spacing:0;text-transform:none;font-weight:500;color:var(--faint)}
+.box{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:16px}
+.sub{color:var(--dim);font-size:12px}
+.empty{color:var(--faint);padding:34px 0;text-align:center}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:12px 14px;display:flex;gap:11px;align-items:center}
+.stat .si{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--raise);color:var(--amb);flex:none}
+.stat b{display:block;font:700 18px/1.1 var(--sans);letter-spacing:-.01em}.stat small{color:var(--faint);font-size:11px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line2);border-radius:20px;padding:2px 9px;margin:2px;font-size:11px;color:var(--dim)}
+.chip.k{border-color:transparent;background:var(--raise);color:var(--dim);font-size:10px;letter-spacing:.06em;margin:0}
+details.fold{border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-top:10px}
+details.fold>summary{cursor:pointer;padding:11px 14px;color:var(--dim);font-weight:600;display:flex;gap:8px;align-items:center}
+details.fold>summary::-webkit-details-marker{display:none}details.fold[open]>summary{border-bottom:1px solid var(--line)}
+details.fold>div{padding:12px 14px}
+textarea{width:100%;min-height:64px;background:rgba(0,0,0,.35);border:1px solid var(--line2);border-radius:10px;padding:10px 12px;resize:vertical}
+input.tx{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--line2);border-radius:9px;padding:9px 11px}
+textarea:focus,input.tx:focus,.fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-color:var(--amb)}
+
+/* ── overview ── */
+.player{border-radius:16px;overflow:hidden;background:#000;border:1px solid var(--line2)}
+.player video{display:block;width:100%;max-height:62vh;background:#000}
+.dlv{display:grid;grid-template-columns:1.6fr repeat(3,1fr);gap:12px;margin-top:12px;align-items:start}
+.dl{position:relative;border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:8px}
+.dl video,.dl img{display:block;width:100%;border-radius:9px;background:#000}
+.dl .dh{display:flex;align-items:center;gap:6px;padding:8px 4px 2px;font-size:12px;font-weight:600}.dl .dh .sp{flex:1}
+.topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.tp{position:relative;border:1px solid var(--line2);border-radius:16px;background:linear-gradient(160deg,var(--panel2),var(--panel));padding:18px;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+.tp .n{position:absolute;right:12px;top:-6px;font:200 76px/1 var(--sans);color:color-mix(in srgb,var(--amb) 22%,transparent)}
+.tp b{font-size:16px;line-height:1.3;padding-right:40px}.tp p{margin:0;color:var(--dim)}.tp .why{font-size:12px;color:var(--faint)}
+.tp .si{font-size:10px;letter-spacing:.14em;color:var(--cyan);text-transform:uppercase;font-weight:700}.tp .b{margin-top:auto;align-self:flex-start}
+.live{display:flex;gap:22px;align-items:center}
+.orb{width:120px;height:120px;flex:none;color:var(--amb)}
+.orb .r1{transform-origin:60px 60px;animation:spin 9s linear infinite}.orb .r2{transform-origin:60px 60px;animation:spin 6s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.live .lt{flex:1;min-width:0}.live .lt b{font-size:16px}
+.mlog{margin-top:10px;font:12px/1.7 var(--mono);color:var(--faint)}.mlog div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mlog div:first-child{color:var(--dim)}
+.social{display:flex;gap:10px;flex-wrap:wrap}
+.post{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:var(--raise);font-size:12px}
+
+/* ── assets tile ── */
+.ap-hd{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.ring{--p:0;width:82px;height:82px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:conic-gradient(var(--amb) calc(var(--p)*1%),color-mix(in srgb,var(--ink) 8%,transparent) 0)}
+.ring>div{width:66px;height:66px;border-radius:50%;background:var(--panel);display:grid;place-items:center;font:800 18px/1 var(--sans);text-align:center}
+.ring small{display:block;font:600 9px var(--sans);letter-spacing:.14em;color:var(--faint);margin-top:3px}
+.ap-hd .t{flex:1;min-width:200px}.ap-hd .t b{font-size:15px}.ap-hd .t div{color:var(--dim);font-size:12px;margin-top:3px}.ap-hd .resume{color:var(--ok)!important}
+.ph{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:16px}
+.ph>div{border:1px solid var(--line);border-radius:11px;padding:10px;background:var(--bg);min-width:0}
+.ph b{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph .c{font:700 16px/1.2 var(--mono);margin:6px 0}.ph .c small{color:var(--faint);font-size:11px}
+.bar2{height:4px;border-radius:3px;background:color-mix(in srgb,var(--ink) 8%,transparent);overflow:hidden}
+.bar2 i{display:block;height:100%;background:var(--ok);border-radius:3px;transition:width .6s}
+.ph .now{border-color:var(--amb);box-shadow:0 0 18px -6px var(--amb)}.ph .now b{color:var(--amb)}.ph .done b{color:var(--ok)}.ph .todo{opacity:.5}
+.ph .now .bar2 i{background:linear-gradient(90deg,var(--amb),#ffd79a,var(--amb));background-size:200% 100%;animation:sh 1.6s linear infinite}
+@keyframes sh{to{background-position:-200% 0}}
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-top:10px}
+.shot{position:relative;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:var(--bg);border:1px solid var(--line)}
+.shot img{width:100%;height:100%;object-fit:cover;display:block}
+.shot .tg{position:absolute;left:5px;bottom:4px;font:600 9px var(--mono);color:#fff;text-shadow:0 1px 3px #000;max-width:calc(100% - 26px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shot .ty{position:absolute;right:4px;top:4px;width:18px;height:18px;border-radius:5px;display:grid;place-items:center;background:rgba(0,0,0,.6);color:#fff}.shot .ty .mi{width:11px;height:11px}
+.shot.todo{border-style:dashed;border-color:var(--line2)}.shot.todo img{opacity:.18;filter:grayscale(1)}.shot.todo .tg{color:var(--faint);text-shadow:none}
+.shot.now{border-color:var(--amb);box-shadow:0 0 14px -4px var(--amb)}
+.shot.now::after{content:"MAKING";position:absolute;inset:0;display:grid;place-items:center;font:800 10px var(--sans);letter-spacing:.2em;color:var(--amb);
+  background:linear-gradient(110deg,transparent 30%,color-mix(in srgb,var(--amb) 22%,transparent) 50%,transparent 70%) 0 0/250% 100%;animation:sh 1.8s linear infinite}
+.wall-hd{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:18px;font-size:11px;color:var(--faint)}.wall-hd b{color:var(--dim);letter-spacing:.16em}
+
+/* ── script storyboard ── */
+.yt{display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:start}
+.yt .yth{border-radius:11px;overflow:hidden;aspect-ratio:16/9;background:var(--raise)}.yt .yth img,.yt .yth svg{width:100%;height:100%;object-fit:cover;display:block}
+.yt h2{margin:0 0 6px;font-size:18px;line-height:1.3}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;font-size:12px;margin-top:10px}.kv>span:nth-child(odd){color:var(--faint)}
+.ribbon{display:flex;gap:3px;height:46px;margin-top:4px}
+.rb{position:relative;border-radius:7px;padding:6px 8px;min-width:0;overflow:hidden;cursor:pointer;background:color-mix(in srgb,var(--amb) calc(10% + var(--o)*1%),var(--panel));border:1px solid var(--line)}
+.rb:hover{border-color:var(--amb)}.rb b{display:block;font:700 11px var(--mono);color:var(--amb)}.rb span{display:block;font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chap{margin-top:22px}
+.chap-h{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.chap-h .cn{font:200 30px/1 var(--sans);color:var(--amb)}.chap-h b{font-size:15px}.chap-h small{color:var(--faint);margin-left:auto}
+.bt{display:grid;grid-template-columns:144px 1fr;gap:14px;padding:8px;border-radius:12px}.bt:hover{background:var(--panel)}
+.bt .bv{position:relative;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:var(--raise);border:1px solid var(--line)}
+.bt .bv img,.bt .bv svg{width:100%;height:100%;object-fit:cover;display:block}
+.bt .bv .id{position:absolute;left:5px;top:4px;font:600 9px var(--mono);color:#fff;background:rgba(0,0,0,.55);padding:1px 5px;border-radius:4px}
+.bt p{margin:4px 0 0;color:var(--ink);line-height:1.55}.bt .gist{font-size:11px;color:var(--faint);margin-top:4px}
+
+/* ── research ── */
+.doc{max-width:780px;font-size:14px;line-height:1.7;color:color-mix(in srgb,var(--ink) 86%,transparent)}
+.doc h1{font-size:24px;margin:0 0 10px;color:var(--ink)}.doc h2{font-size:17px;margin:28px 0 8px;color:var(--amb)}.doc h3{font-size:14px;margin:20px 0 6px;color:var(--ink)}
+.doc p{margin:0 0 10px}.doc .li{padding-left:16px;position:relative;margin:3px 0}.doc .li::before{content:"";position:absolute;left:3px;top:.75em;width:5px;height:5px;border-radius:50%;background:var(--amb)}
+.doc table{border-collapse:collapse;margin:10px 0;width:100%;font-size:12px}.doc td,.doc th{border:1px solid var(--line);padding:6px 8px;vertical-align:top}
+.doc th{color:var(--amb);text-align:left;background:var(--panel)}.doc a{word-break:break-all}
+.cand{font-size:12px;color:var(--dim);columns:2;column-gap:24px}.cand div{break-inside:avoid;margin-bottom:4px}.cand small{color:var(--faint)}
+
+/* ── edit ── */
+.ed{display:grid;grid-template-columns:190px minmax(0,1fr);gap:20px;align-items:start}
+.cats{position:sticky;top:60px;display:flex;flex-direction:column;gap:2px}
+.cat{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;border:0;background:none;cursor:pointer;color:var(--dim);text-align:left;font-weight:600}
+.cat:hover{background:var(--panel);color:var(--ink)}.cat.on{background:var(--panel2);color:var(--ink);box-shadow:inset 2px 0 0 var(--amb)}
+.cat .n{margin-left:auto;font-size:10px;color:var(--faint);font-weight:600}
+.cat-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}.cat-hd .t{flex:1;min-width:200px}.cat-hd b{font-size:16px}.cat-hd div{color:var(--faint);font-size:12px}
+.tile{position:relative;border:1px solid var(--line);border-radius:13px;background:var(--panel);overflow:hidden}
+.tile .tm{position:relative;aspect-ratio:16/9;background:#000}.tile .tm img,.tile .tm video,.tile .tm svg{width:100%;height:100%;object-fit:cover;display:block}
+.tile .tm .rd{position:absolute;right:7px;top:7px;opacity:0;transition:opacity .12s}.tile:hover .tm .rd{opacity:1}
+.tile .tb{padding:9px 11px}.tile .tb b{display:block;font-size:12px}.tile .tb p{margin:3px 0 0;font-size:11px;color:var(--faint);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tile audio{width:100%;height:32px;margin-top:6px}
+.tile.tall .tm{aspect-ratio:9/16}
+.vo{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;padding:9px 10px;border-radius:10px}.vo:nth-child(odd){background:var(--panel)}
+.vo .vid{font:600 11px var(--mono);color:var(--cyan)}.vo audio{height:28px;margin-top:5px;max-width:100%}
+/* scenes: grid + one editor panel */
+.scx{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;align-items:start}
+.scg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sc{position:relative;border-radius:11px;overflow:hidden;border:1px solid var(--line);background:var(--panel);cursor:pointer;text-align:left;padding:0}
+.sc:hover{border-color:var(--line2)}.sc.on{border-color:var(--amb);box-shadow:0 0 0 1px var(--amb),0 8px 24px -10px var(--amb)}
+.sc .sv{aspect-ratio:16/9;background:#000}.sc .sv img,.sc .sv svg{width:100%;height:100%;object-fit:cover;display:block}
+.sc .sl{display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:11px}.sc .sl b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.sc .sl small{font:10px var(--mono);color:var(--faint)}
+.sc .ed-dot{position:absolute;left:7px;top:7px;width:8px;height:8px;border-radius:50%;background:var(--amb);box-shadow:0 0 8px var(--amb)}
+.sc.busy .sv{position:relative}.sc.busy .sv::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,color-mix(in srgb,var(--amb) 25%,transparent) 50%,transparent 70%) 0 0/250% 100%;animation:sh 1.6s linear infinite}
+.sce{position:sticky;top:60px;border:1px solid var(--line2);border-radius:16px;background:var(--panel);overflow:hidden;max-height:calc(100dvh - 140px);display:flex;flex-direction:column}
+.sce-m{background:#000;aspect-ratio:16/9;flex:none}.sce-m img,.sce-m video,.sce-m svg{width:100%;height:100%;object-fit:contain;display:block}
+.sce-h{display:flex;align-items:center;gap:6px;padding:12px 14px 0}.sce-h b{flex:1;font-size:15px}
+.sce-s{padding:2px 14px 0;font-size:11px;color:var(--faint)}
+.sce-b{padding:4px 14px 14px;overflow:auto;flex:1}
+.sce-f{display:flex;gap:6px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line);background:var(--panel2)}
+.fld{margin-top:12px}.fld label{display:block;font-size:12px;font-weight:600}.fld .h{font-size:11px;color:var(--faint);margin:1px 0 5px;line-height:1.4}
+.fld input:not([type=checkbox]),.fld select,.fld textarea{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--line2);border-radius:8px;padding:7px 10px;font-size:12px}
+.fld select option{background:var(--bg)}.fld textarea{min-height:0}.fld input::placeholder,.fld textarea::placeholder{color:var(--faint);opacity:.7}
+.fld input[type=checkbox]{accent-color:var(--amb);width:16px;height:16px;vertical-align:-3px}
+.gl text{font-family:var(--sans)}
+
+/* ── log ── */
+.lg{position:relative;padding-left:18px;font-size:12px}.lg::before{content:"";position:absolute;left:4px;top:6px;bottom:6px;width:1px;background:var(--line2)}
+.lg div{position:relative;padding:4px 0;color:var(--dim)}.lg div::before{content:"";position:absolute;left:-17px;top:11px;width:7px;height:7px;border-radius:50%;background:var(--line2)}
+.lg time{font:11px var(--mono);color:var(--faint);margin-right:8px}
+.lg .l-done::before{background:var(--ok)}.lg .l-warn{color:var(--amb)}.lg .l-warn::before{background:var(--amb)}.lg .l-error{color:var(--bad)}.lg .l-error::before{background:var(--bad)}.lg .l-need{color:var(--amb);font-weight:700}.lg .l-need::before{background:var(--amb)}
+
+/* ── welcome + new dialog ── */
+.hello{display:grid;place-items:center;text-align:center;min-height:70vh;padding:30px}.hello svg{width:260px;max-width:80%}
+.hello h2{margin:14px 0 6px;font-size:22px}.hello p{color:var(--dim);margin:0 0 18px;max-width:420px}
+dialog{border:1px solid var(--line2);border-radius:18px;background:#121216;color:var(--ink);padding:0;width:min(480px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+.nd{padding:22px}.nd h2{margin:0 0 4px;font-size:19px}.nd p{margin:0 0 16px;color:var(--dim)}
+.nd label.l{display:block;font-size:12px;font-weight:600;margin:12px 0 5px}.nd .or{display:flex;align-items:center;gap:10px;color:var(--faint);font-size:11px;margin:14px 0 2px}
+.nd .or::before,.nd .or::after{content:"";flex:1;border-top:1px solid var(--line)}
+.tg2{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:12px;border-radius:11px;background:var(--panel2);cursor:pointer}
+.tg2 input{accent-color:var(--amb);width:16px;height:16px;margin-top:2px}.tg2 small{display:block;color:var(--faint)}
+.nd .f{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+/* structure presets (explained_presets.py) */
+dialog.wide{width:min(720px,calc(100vw - 32px))}
+.sgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:min(46vh,420px);overflow:auto;padding:2px}
+.spc{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;padding:11px 12px;border-radius:12px;border:1px solid var(--line2);background:var(--panel2);cursor:pointer;min-width:0}
+.spc:hover{border-color:color-mix(in srgb,var(--amb) 45%,transparent)}.spc:focus-visible{outline:2px solid var(--amb);outline-offset:2px}
+.spc.on{border-color:var(--amb);background:color-mix(in srgb,var(--amb) 9%,var(--panel2))}
+.spc .sh1{display:flex;align-items:center;gap:7px;font-weight:600;font-size:13px}.spc .sh1 .mi{color:var(--amb)}
+.spc .sh1 em{margin-left:auto;font-style:normal;font-weight:400;font-size:10.5px;color:var(--faint);white-space:nowrap}
+.spc small{color:var(--dim);font-size:11.5px;line-height:1.35}
+.stbox{display:flex;align-items:center;gap:14px}.stbox .si2{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--amb) 12%,transparent);color:var(--amb)}
+.stbox .tx2{flex:1;min-width:0}.stbox .tx2 b{display:block}.stbox .tx2 small{color:var(--dim)}
+.vrow{display:flex;gap:8px}.vrow select{flex:1;min-width:0;height:36px;background:#0d0d10;color:var(--ink);border:1px solid var(--line2);border-radius:9px;padding:0 10px;font:inherit;color-scheme:dark}
+.vrow select:focus-visible{outline:2px solid var(--amb);outline-offset:1px}
+@media (max-width:760px){.sgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:420px){.sgrid{grid-template-columns:minmax(0,1fr)}}
+
+@media (max-width:1100px){.scx{grid-template-columns:1fr}.sce{position:static;max-height:none}.dlv{grid-template-columns:repeat(3,1fr)}.dlv .dl:first-child{grid-column:1/-1}}
+@media (max-width:760px){
+  .app{grid-template-columns:minmax(0,1fr);height:auto}.main{overflow:visible;min-width:0}
+  .side{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 12px;gap:8px}
+  .side-hd{display:none}.run{flex:none;width:230px;background:var(--panel)}.run.on::before{display:none}.racts{opacity:1}
+  .pg{padding:14px 16px 70px}.hero-in{flex-direction:column;align-items:stretch;padding:14px}.hero-th{width:100%}.hero-act{align-self:stretch}
+  h1{font-size:21px}.pipe{padding:4px 8px 14px}.pn b{font-size:10px}.pn small{display:none}.pc{width:28px;height:28px}.pn+.pn::before{top:13px;right:calc(50% + 17px);left:calc(-50% + 17px)}
+  .tabs{margin:16px -16px 14px;padding:6px 16px 0}.ed{grid-template-columns:1fr}.cats{position:static;flex-direction:row;overflow-x:auto}.cat{flex:none}
+  .yt{grid-template-columns:1fr}.bt{grid-template-columns:110px 1fr;gap:10px}.ph{grid-template-columns:repeat(3,minmax(0,1fr))}.cand{columns:1}
+  .dlv{grid-template-columns:1fr 1fr}.live{flex-direction:column;text-align:center}.brand small{display:none}.top .b.pri span{display:none}}
+</style>
+</head>
+<body>
+<div class="top">
+  <span class="logo"><i class="mi" data-ic="lab"></i></span>
+  <span class="brand">MIR <em>EXPLAINED</em><small>PRODUCER</small></span>
+  <span class="sp"></span>
+  <button class="b pri" onclick="openNew()"><i class="mi" data-ic="plus"></i><span>New episode</span></button>
+  <button class="b ico ghost" title="Refresh" onclick="refresh()"><i class="mi" data-ic="refresh"></i></button>
+  <button class="b ico ghost" id="xclose" title="Close" onclick="xClose()"><i class="mi" data-ic="close"></i></button>
+</div>
+<div class="app">
+  <aside class="side"><div class="side-hd"><span>PROJECTS</span><span id="nruns"></span></div><div id="runs" style="display:contents"></div></aside>
+  <main class="main" id="main"><div class="pg"><div class="empty">Loading…</div></div></main>
+</div>
+<dialog id="nd" class="wide"><div class="nd">
+  <h2>New episode</h2><p>MirAI finds a topic, researches it, writes the script and makes the video. You approve along the way.</p>
+  <label class="l" for="niche">Find something trending in…</label>
+  <input class="tx" id="niche" placeholder="Any niche — e.g. EVs, space, AI chips (optional)">
+  <div class="or">OR</div>
+  <label class="l" for="topic">Use my own topic</label>
+  <input class="tx" id="topic" placeholder="e.g. How the James Webb telescope unfolds" oninput="ndLbl()">
+  <label class="l">Video structure</label>
+  <div class="sgrid" id="ndst" role="radiogroup" aria-label="Video structure"></div>
+  <label class="l" for="ndvo">Narrator voice</label>
+  <div class="vrow"><select class="tx" id="ndvo"></select><button type="button" class="b ico" title="Hear this voice" onclick="vPlay('#ndvo')"><i class="mi" data-ic="play"></i></button></div>
+  <label class="tg2"><input type="checkbox" id="auto"><span>Fully automatic<small>Skip the topic, script and final-cut checkpoints. Publishing still needs your approval in Social.</small></span></label>
+  <div class="f"><button class="b ghost" onclick="$('#nd').close()">Cancel</button><button class="b pri" id="ndgo" onclick="startRun()"><i class="mi" data-ic="radar"></i> Find what's trending</button></div>
+</div></dialog>
+<dialog id="vd"><div class="nd">
+  <h2>Narrator voice</h2><p id="vdp"></p>
+  <div class="vrow"><select class="tx" id="vdvo"></select><button type="button" class="b ico" title="Hear this voice" onclick="vPlay('#vdvo')"><i class="mi" data-ic="play"></i></button></div>
+  <div class="f"><button class="b ghost" onclick="$('#vd').close()">Cancel</button><button class="b pri" id="vdgo" onclick="vGo()"></button></div>
+</div></dialog>
+<dialog id="sd" class="wide"><div class="nd">
+  <h2>Video structure</h2><p id="sdp"></p>
+  <div class="sgrid" id="sdst" role="radiogroup" aria-label="Video structure"></div>
+  <div class="f"><button class="b ghost" onclick="$('#sd').close()">Cancel</button><button class="b pri" id="sdgo" onclick="stGo()"></button></div>
+</div></dialog>
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ic=n=>`<i class="mi" data-ic="${n}"></i>`;
+const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+let SEL=LS.get('exp_sel')||'', VIEW=LS.get('exp_view')||'overview', ECAT=LS.get('exp_ecat')||'', CACHE={}, CACHE_KEY='', CUR_P=null, RUNS=[];
+async function api(u,b){const r=await fetch(u,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{});
+  const j=await r.json().catch(()=>({error:r.statusText}));if(!r.ok)throw new Error(j.error||r.statusText);return j}
+
+/* ── new episode ── */
+function openNew(){$('#nd').showModal();ndLbl();stGrid('#ndst',NDST,v=>NDST=v);vFill('#ndvo',LS.get('exp_voice')||NARRATOR);setTimeout(()=>$('#niche').focus(),30)}
+
+/* ── narrator voice (Oct 24: "pick different voices from a menu") — Media Lab's Kokoro voices, preview with ▶ ── */
+const NARRATOR='am_michael';let VOICES=[],VAUDIO=null;
+async function loadVoices(){try{VOICES=(await api('api/tts/voices')).voices||[]}catch(e){VOICES=[]}}
+const vName=id=>((VOICES.find(v=>v.id===id)||{}).label||id||'').split(' · ')[0];
+function vFill(sel,cur){const s=$(sel);if(!s)return;s.innerHTML=VOICES.map(v=>`<option value="${v.id}" ${v.id===cur?'selected':''}>${esc(v.label)}${v.id===NARRATOR?' — house narrator':''}</option>`).join('')}
+function vPlay(sel){const id=$(sel).value;try{VAUDIO&&VAUDIO.pause()}catch(e){}
+  VAUDIO=new Audio('api/tts?'+new URLSearchParams({voice:id,text:'This is MIR EXPLAINED. Here is the one fact that changes everything.'}));VAUDIO.play().catch(()=>{})}
+function openVoice(){const p=CUR_P;if(!p)return;closeMenus();vFill('#vdvo',p.voice||NARRATOR);
+  const made=ORDER.indexOf(p.stage)>ORDER.indexOf('assets')||(p.stage==='assets'&&p.state!=='running');
+  $('#vdp').textContent=made?'The narration is re-recorded in the new voice and the video and Shorts are re-rendered. Everything else stays.':'The narrator records the script in this voice.';
+  $('#vdgo').innerHTML=made?`${ic('refresh')} Re-voice the video`:`${ic('check')} Use this voice`;MI.fill&&MI.fill($('#vdgo'));$('#vd').showModal()}
+async function vGo(){try{VAUDIO&&VAUDIO.pause()}catch(e){};$('#vd').close();await act('voice',{voice:$('#vdvo').value})}
+function ndLbl(){const own=$('#topic').value.trim();$('#ndgo').innerHTML=own?`${ic('play')} Start with my topic`:`${ic('radar')} Find what's trending`;MI.fill&&MI.fill($('#ndgo'))}
+async function startRun(){try{const p=await api('api/explained/start',{niche:$('#niche').value,topic:$('#topic').value,auto:$('#auto').checked,structure:NDST,voice:$('#ndvo').value});
+  LS.set('exp_struct',NDST);LS.set('exp_voice',$('#ndvo').value);$('#nd').close();$('#topic').value='';sel(p.id)}catch(e){alert(e.message)}}
+
+/* ── structure presets (Oct 24: "videos are becoming repetitive") — Auto = a different one from the last episodes ── */
+let PRESETS=[], NDST=LS.get('exp_struct')||'auto', SDST='auto';
+const AUTO_P={id:'auto',name:'Auto',icon:'refresh',tag:'A different structure from your last episodes, picked to fit the topic.',length:''};
+const preset=id=>PRESETS.find(x=>x.id===id)||AUTO_P;
+async function loadPresets(){try{PRESETS=(await api('api/explained/presets')).presets||[]}catch(e){PRESETS=[]}}
+function stGrid(sel,cur,on){const g=$(sel);if(!g)return;
+  g.innerHTML=[AUTO_P,...PRESETS].map(x=>`<button type="button" class="spc ${x.id===cur?'on':''}" role="radio" aria-checked="${x.id===cur}" data-id="${x.id}">
+    <span class="sh1">${ic(x.icon)} ${esc(x.name)}${x.length?`<em>${esc(x.length)}</em>`:''}</span><small>${esc(x.tag)}</small></button>`).join('');
+  g.querySelectorAll('.spc').forEach(b=>b.onclick=()=>{g.querySelectorAll('.spc').forEach(o=>{o.classList.toggle('on',o===b);o.setAttribute('aria-checked',o===b)});on(b.dataset.id)});
+  MI.fill&&MI.fill(g)}
+function stScripted(p){return ORDER.indexOf(p.stage)>ORDER.indexOf('script')||(p.stage==='script'&&p.has_episode)}
+function openStruct(){const p=CUR_P;if(!p)return;closeMenus();SDST=p.structure||'auto';
+  const done=stScripted(p);
+  $('#sdp').textContent=done?'Pick a structure and the writer rewrites the script in it from scratch (same research). The assets and renders that change are redone after you approve it.'
+    :'The writer uses this structure when it writes the script.';
+  const lbl=()=>{$('#sdgo').innerHTML=done?`${ic('wand')} Rewrite in this structure`:`${ic('check')} Use this structure`;MI.fill&&MI.fill($('#sdgo'))};
+  stGrid('#sdst',SDST,v=>{SDST=v;lbl()});lbl();$('#sd').showModal()}
+async function stGo(){const p=CUR_P;if(!p)return;
+  if(stScripted(p)){if(!confirm(`Rewrite the script as "${preset(SDST).name}"?\n\nThe current script is kept in a _redo folder.`))return;
+    $('#sd').close();await act('redo',{step:'script',structure:SDST,note:''})}
+  else{$('#sd').close();await act('structure',{structure:SDST})}}
+
+/* ── actions ── */
+async function act(a,b){try{await api(`api/explained/${SEL}/${a}`,b||{});refresh()}catch(e){alert(e.message)}}
+async function actId(id,a,b){try{await api(`api/explained/${id}/${a}`,b||{})}catch(e){alert(e.message)}refresh()}
+async function delRun(id){if(!confirm('Remove this project? Anything already rendered stays in the library — only this run and its tracking are deleted.'))return;
+  try{await api(`api/explained/${id}/delete`,{})}catch(e){alert(e.message)}
+  if(SEL===id){SEL='';LS.del('exp_sel');CACHE={};CACHE_KEY=''}refresh()}
+function ago(t){const s=Date.now()/1000-t;return s<60?'now':s<3600?Math.round(s/60)+'m ago':s<86400?Math.round(s/3600)+'h ago':Math.round(s/86400)+'d ago'}
+const mmss=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+function closeMenus(){document.querySelectorAll('details.menu[open]').forEach(d=>d.open=false)}
+document.addEventListener('click',e=>{if(!e.target.closest('details.menu'))closeMenus()});
+function go(v){VIEW=v;LS.set('exp_view',v);paint();const t=document.querySelector('.tabs');if(t&&$('#main').scrollTop>t.offsetTop)$('#main').scrollTop=t.offsetTop}
+function cat(k){ECAT=k;LS.set('exp_ecat',k);paint()}
+
+/* Polling only touches the DOM when the markup actually changed (no video/image reloads, no scroll jumps). */
+let BUSY=false, AGAIN=false;
+function put(el,h){if(!el||el._h===h)return false;el._h=h;el.innerHTML=h;MI.fill&&MI.fill(el);return true}
+const ORDER=['trends','pick_topic','research','script','approve_script','assets','render','approve_final','publish','done'];
+const STATE={running:'Running',waiting:'Needs you',paused:'Stopped',cancelled:'Paused',done:'Done'};
+function runThumb(r){
+  if(r.renders&&r.renders.thumb)return `<img loading="lazy" src="api/explained/${r.id}/render/thumb.jpg?v=${Math.round(r.updated||0)}" alt="">`;
+  const s=((r.progress&&r.progress.shots)||[]).find(x=>x.done&&x.kind==='still');
+  return s?`<img loading="lazy" src="api/explained/${r.id}/asset/${encodeURIComponent(s.k)}.png?thumb=1" alt="">`:glyph('brand',{},r.title)}
+async function refresh(){
+  if(BUSY){AGAIN=true;return}BUSY=true;AGAIN=false;
+  try{let runs=[];try{runs=(await api('api/explained/runs')).runs}catch(e){}
+    RUNS=runs;$('#nruns').textContent=runs.length||'';
+    put($('#runs'),runs.map(r=>{const pct=r.state==='done'?100:Math.round(100*Math.max(0,ORDER.indexOf(r.stage))/(ORDER.length-1));
+      return `<div class="run s-${r.state} ${r.id==SEL?'on':''}" onclick="sel('${r.id}')">
+      <div class="rth">${runThumb(r)}</div>
+      <div class="rtx"><b>${esc(r.title)}</b><small><span class="dot"></span>${esc(STATE[r.state]||r.state)} · ${ago(r.updated||r.created)}</small><div class="rbar"><i style="width:${pct}%"></i></div></div>
+      <div class="racts">${!['cancelled','done'].includes(r.state)?`<button class="b sm ico" title="Pause (resume later)" onclick="event.stopPropagation();actId('${r.id}','cancel')">${ic('pause')}</button>`:''}${r.state==='cancelled'?`<button class="b sm ico" title="Resume" onclick="event.stopPropagation();actId('${r.id}','resume')">${ic('play')}</button>`:''}<button class="b sm ico bad" title="Delete project" onclick="event.stopPropagation();delRun('${r.id}')">${ic('trash')}</button></div></div>`}).join('')
+      ||'<div class="empty" style="padding:20px 0">No projects yet.</div>');
+    if(!SEL&&runs[0])SEL=runs[0].id;
+    if(SEL)await show(SEL);else welcome()}finally{BUSY=false;if(AGAIN)refresh()}}
+function welcome(){put($('#main'),`<div class="hello"><div>${HELLO_ART}<h2>Make an explainer video</h2>
+  <p>Pick a niche or bring a topic. MirAI researches it, writes the script, makes every shot and cuts the video — you approve along the way.</p>
+  <button class="b pri" onclick="openNew()">${ic('plus')} New episode</button></div></div>`)}
+function sel(id){SEL=id;LS.set('exp_sel',id);CACHE={};CACHE_KEY='';SCN_SEL='';$('#main').scrollTop=0;refresh()}
+async function file(name){if(CACHE[name]!==undefined)return CACHE[name];const r=await fetch(`api/explained/${SEL}/file/${name}`);
+  if(!r.ok)return null;const t=await r.text();CACHE[name]=t;return t}
+async function episode(p){const s=p.has_episode&&await file('episode.json');if(!s)return null;try{return JSON.parse(s)}catch(e){return undefined}}
+
+function md(t){ // a tiny Markdown renderer: headings, tables, lists, links, bold
+  const inl=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|[\s(])(https?:\/\/[^\s)<]+)/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+  const L=t.split(/\r?\n/);let h='',i=0;
+  while(i<L.length){const l=L[i];
+    if(/^\s*\|/.test(l)){const rows=[];while(i<L.length&&/^\s*\|/.test(L[i]))rows.push(L[i++]);
+      const cells=r=>r.trim().replace(/^\||\|$/g,'').split('|').map(c=>c.trim());
+      h+='<table>'+rows.filter(r=>!/^\s*\|[\s:|-]+\|\s*$/.test(r)).map((r,k)=>'<tr>'+cells(r).map(c=>k?`<td>${inl(c)}</td>`:`<th>${inl(c)}</th>`).join('')+'</tr>').join('')+'</table>';continue}
+    let m;if(m=l.match(/^(#{1,4})\s+(.*)/))h+=`<h${m[1].length}>${inl(m[2])}</h${m[1].length}>`;
+    else if(m=l.match(/^\s*[-*]\s+(.*)/))h+=`<div class="li">${inl(m[1])}</div>`;
+    else if(l.trim())h+=`<p>${inl(l)}</p>`;i++}
+  return h}
+
+/* ── GRAPHICS: a little picture of every scene kind, drawn from the scene's own data (no render needed) ── */
+const KL={plate:'Footage',photo:'Photo',bignum:'Big number',timeline:'Timeline',spec:'Spec table',gbars:'Bar chart',compare:'Compare',questions:'Questions',
+  recap:'Recap',formula:'Formula',trims:'Cards',chapter:'Chapter card',brand:'Title card',midroll:'Mid-roll',endcard:'End card',diagram:'Diagram',studio:'Studio'};
+const KI={plate:'film',photo:'camera',bignum:'type',timeline:'clock',spec:'grid',gbars:'finance',compare:'layers',questions:'search',recap:'check',formula:'code',
+  trims:'grid',chapter:'book',brand:'lab',midroll:'heart',endcard:'star',diagram:'compass',studio:'film'};
+function fmtNum(v,d,plain){const n=Number(v);if(!isFinite(n))return String(v??'');return plain?n.toFixed(d||0):n.toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0})}
+const cut=(s,n)=>{s=String(s??'');return s.length>n?s.slice(0,n-1)+'…':s};
+function glyph(k,v,title){v=v||{};const A='#FFB547',S='#8C929B',W='#E9EDF2',L='rgba(242,246,250,.16)';let g='';
+  const T=(x,y,s,t,o)=>`<text x="${x}" y="${y}" font-size="${s}" ${o||''}>${esc(t)}</text>`;
+  const tag=v.tag||v.title||title||'';
+  const head=tag?T(12,16,6.5,cut(String(tag).toUpperCase(),34),`fill="${A}" letter-spacing="1"`):'';
+  switch(k){
+  case 'bignum':{const n=fmtNum(v.value,v.decimals,v.plain)+(v.unit?'':'');g=T(80,52,n.length>7?20:n.length>5?26:32,n,`text-anchor="middle" font-weight="200" fill="${W}"`)
+    +(v.unit?T(80,62,6,cut(v.unit,20),`text-anchor="middle" fill="${S}"`):'')+T(80,74,6.5,cut(String(v.label||'').toUpperCase(),30),`text-anchor="middle" fill="${A}" letter-spacing="1"`);break}
+  case 'gbars':{const bs=(v.bars||[]).slice(0,5),mx=Number(v.max)||Math.max(1,...bs.map(b=>Number(b[1])||0)),C={amber:A,red:'#FF5A5F',green:'#5FD38D',ink:W,silver:S};
+    g=head+(bs.length?bs:[['',70],['',45],['',90]]).map((b,i)=>{const y=26+i*(56/Math.max(3,bs.length)),w=Math.max(4,96*(Number(b[1])||0)/mx);
+      return T(12,y+5,5.5,cut(b[0],12),`fill="${S}"`)+`<rect x="54" y="${y}" width="${w}" height="${Math.min(8,40/Math.max(3,bs.length))}" rx="2" fill="${C[b[2]]||(i?S:A)}"/>`}).join('');break}
+  case 'timeline':{const ev=(v.events||[]).slice(0,6),n=Math.max(ev.length,4);g=head+`<line x1="14" y1="52" x2="146" y2="52" stroke="${L}" stroke-width="1.5"/>`
+    +(ev.length?ev:[{},{},{kind:'now'},{}]).map((e,i)=>{const x=20+i*(120/(n-1||1)),now=e.kind==='now',miss=e.kind==='miss';
+      return `<circle cx="${x}" cy="52" r="${now?4.5:3}" fill="${now?A:miss?'#FF5A5F':W}"/>`+(e.at!==undefined?T(x,i%2?68:42,6,cut(e.at,8),`text-anchor="middle" fill="${now?A:S}"`):'')}).join('');break}
+  case 'compare':{const rs=(v.rows||[]).slice(0,4);g=head+T(62,30,6,cut(v.left||'A',14),`text-anchor="middle" fill="${W}" font-weight="700"`)+T(122,30,6,cut(v.right||'B',14),`text-anchor="middle" fill="${A}" font-weight="700"`)
+    +(rs.length?rs:[[],[],[]]).map((r,i)=>{const y=42+i*11;return `<line x1="12" y1="${y+3}" x2="148" y2="${y+3}" stroke="${L}"/>`+T(12,y,5.5,cut(r[0]||'',12),`fill="${S}"`)+T(62,y,5.5,cut(r[1]||'',14),`text-anchor="middle" fill="${W}"`)+T(122,y,5.5,cut(r[2]||'',14),`text-anchor="middle" fill="${A}"`)}).join('');break}
+  case 'spec':{const rs=(v.rows||[]).slice(0,5);g=head+(rs.length?rs:[[],[],[],[]]).map((r,i)=>{const y=30+i*11;return `<line x1="12" y1="${y+3}" x2="112" y2="${y+3}" stroke="${L}"/>`
+    +T(12,y,5.5,cut(r[0]||'',16),`fill="${S}"`)+T(112,y,5.5,cut(r[1]||'',18),`text-anchor="end" fill="${r[2]?A:W}"`)}).join('')
+    +`<rect x="122" y="26" width="26" height="26" rx="4" fill="none" stroke="${S}"/><circle cx="135" cy="39" r="6" fill="none" stroke="${A}"/>`;break}
+  case 'questions':case 'recap':{const it=(v.items||[]).slice(0,4),q=k==='questions';g=head+(it.length?it:['','','']).map((s,i)=>{const y=32+i*13;
+    return (q?T(14,y+2,9,'?',`fill="${A}" font-weight="700"`):`<path d="M12 ${y-2}l3 3 6-6" stroke="#5FD38D" stroke-width="1.6" fill="none"/>`)+(s?T(26,y,6,cut(s,30),`fill="${W}"`):`<rect x="26" y="${y-5}" width="${70+i*15}" height="5" rx="2" fill="${L}"/>`)}).join('');break}
+  case 'formula':{const ls=(v.lines||[]).slice(-3);g=head+(ls.length?ls:['a = Δv / t','= 12 / 3','= 4 m/s²']).map((s,i,a)=>T(80,36+i*15,i===a.length-1?11:8,cut(s,26),`text-anchor="middle" fill="${i===a.length-1?A:W}" font-family="monospace"`)).join('');break}
+  case 'trims':{const cs=(v.cards||[]).slice(0,3);g=head+[0,1,2].map(i=>{const c=cs[i]||{},x=14+i*46;return `<rect x="${x}" y="26" width="40" height="50" rx="4" fill="none" stroke="${i===1?A:S}"/>`
+    +T(x+20,40,5.5,cut(c.name||'',10),`text-anchor="middle" fill="${W}"`)+T(x+20,66,8,cut(c.value||'',7),`text-anchor="middle" fill="${A}" font-weight="700"`)}).join('');break}
+  case 'chapter':{g=T(18,58,40,v.n!=null?String(v.n).padStart(2,'0'):'CH',`fill="${A}" font-weight="200"`)+T(18,74,8,cut(title||tag||'Chapter',30),`fill="${W}" font-weight="600"`)
+    +`<path d="M104 30h36v30h-36z M110 38h24 M110 46h18" stroke="${S}" fill="none"/>`;break}
+  case 'brand':{g=`<g transform="translate(18 26)" stroke="${A}" stroke-width="1.6" fill="none"><path d="M10 2v12L2 32h20L14 14V2"/><path d="M7 2h10"/><path d="M5 26h14" stroke-opacity=".5"/></g>`
+    +T(52,40,6,'MIR EXPLAINED',`fill="${A}" letter-spacing="1.5" font-weight="700"`)+T(52,54,9,cut(title||'Episode',20),`fill="${W}" font-weight="700"`);break}
+  case 'midroll':{g=`<rect x="34" y="36" width="42" height="16" rx="8" fill="${W}"/>`+T(55,47,6.5,'LIKE',`text-anchor="middle" fill="#111" font-weight="800"`)
+    +`<rect x="82" y="36" width="50" height="16" rx="8" fill="#FF3B3B"/>`+T(107,47,6.5,'SUBSCRIBE',`text-anchor="middle" fill="#fff" font-weight="800"`);break}
+  case 'endcard':{g=T(80,28,7.5,cut(title||'Thanks for watching',30),`text-anchor="middle" fill="${W}" font-weight="700"`)+`<rect x="30" y="40" width="44" height="14" rx="7" fill="${W}"/><rect x="86" y="40" width="44" height="14" rx="7" fill="#FF3B3B"/>`
+    +T(80,70,5.5,'DOWNLOAD THE MIR MEDIA LABS APP',`text-anchor="middle" fill="${A}" letter-spacing="1"`);break}
+  case 'diagram':{g=head+`<g stroke="${S}" fill="none" stroke-width="1.2"><path d="M30 60q8-18 30-20h40q20 2 30 20z"/><circle cx="50" cy="62" r="7"/><circle cx="112" cy="62" r="7"/></g>`
+    +`<g stroke="${A}" stroke-width=".8"><path d="M70 42l-14-14h-26"/><path d="M112 55l14-24h12"/></g><circle cx="70" cy="42" r="2" fill="${A}"/><circle cx="112" cy="55" r="2" fill="${A}"/>`;break}
+  case 'photo':{g=`<rect x="34" y="20" width="92" height="52" rx="3" fill="none" stroke="${S}"/><path d="M38 68l26-26 18 18 12-10 28 18" stroke="${W}" fill="none"/><circle cx="108" cy="34" r="5" fill="${A}"/>`
+    +(v.credit?T(14,84,5,cut(v.credit,40),`fill="${S}"`):'');break}
+  default:{g=[0,1,2,3,4,5,6].map(i=>`<rect x="${10+i*21}" y="10" width="12" height="6" rx="1" fill="${L}"/><rect x="${10+i*21}" y="74" width="12" height="6" rx="1" fill="${L}"/>`).join('')
+    +`<path d="M68 34v22l20-11z" fill="${A}"/>`}}
+  return `<svg class="gl" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg"><rect width="160" height="90" fill="#121216"/><rect width="160" height="90" fill="url(#gg)" opacity=".5"/>
+    <defs><radialGradient id="gg" cx=".8" cy="0" r="1"><stop offset="0" stop-color="${A}" stop-opacity=".14"/><stop offset="1" stop-opacity="0"/></radialGradient></defs>${g}</svg>`}
+const HELLO_ART=`<svg viewBox="0 0 260 150" fill="none"><rect x="20" y="20" width="220" height="124" rx="14" stroke="rgba(242,246,250,.16)"/>
+  <rect x="34" y="34" width="120" height="68" rx="8" fill="#16161B" stroke="rgba(242,246,250,.12)"/><path d="M84 56v24l20-12z" fill="#FFB547"/>
+  <rect x="166" y="34" width="60" height="30" rx="6" fill="#16161B"/><rect x="166" y="72" width="60" height="30" rx="6" fill="#16161B"/>
+  <path d="M174 56l8-8 8 6 10-12 12 10" stroke="#FFB547" stroke-width="1.5"/><path d="M174 92h40M174 84h28" stroke="rgba(242,246,250,.3)" stroke-width="2"/>
+  <path d="M34 120h192" stroke="rgba(242,246,250,.12)" stroke-width="4" stroke-linecap="round"/><path d="M34 120h96" stroke="#FFB547" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="130" cy="120" r="6" fill="#FFB547"/><circle cx="240" cy="20" r="4" fill="#5CE1E6"/><circle cx="20" cy="144" r="3" fill="#FFB547" opacity=".6"/></svg>`;
+
+/* ── pipeline: the 9 backend steps grouped into 6 phases ── */
+const PHASES=[['topic','Topic','radar',['trends','pick_topic']],['research','Research','search',['research']],['script','Script','note',['script','approve_script']],
+  ['assets','Assets','image',['assets']],['render','Render','film',['render','approve_final']],['publish','Publish','send',['publish']]];
+function phases(p){const S={};(p.steps||[]).forEach(s=>S[s.key]=s);const halt=['paused','cancelled'].includes(p.state);
+  return PHASES.map(([k,l,icn,keys])=>{const ss=keys.map(x=>S[x]).filter(Boolean),has=t=>ss.some(s=>s.state===t);
+    let st=has('fail')?'fail':has('wait')?'wait':has('now')?'now':ss.length&&ss.every(s=>s.state==='done')?'done':ss.some(s=>s.state==='done')?'now':'todo';
+    if(halt&&(st==='now'||st==='wait'))st='halt';
+    return {k,l,icn,st,tip:ss.map(s=>s.label).join(' → ')}})}
+const PSUB={done:'done',now:'working',wait:'needs you',fail:'stopped',halt:'paused',todo:''};
+
+/* REDO — any step, any single piece. Nothing is deleted: what a redo replaces is moved to a _redo folder. */
+const RLBL={trends:'Trends',pick_topic:'Topic ideas',research:'Research',script:'Script',assets:'All assets',render:'All renders',publish:'Social drafts'};
+async function redo(step,items){
+  closeMenus();let note='';
+  if(step==='research'||step==='script'){note=prompt(`Redo the ${step} — optional note for the writer (leave empty for a fresh take):`,'');if(note===null)return}
+  const what=items&&items.length?items.join(', '):(RLBL[step]||step);
+  const after={trends:'everything after it',pick_topic:'everything after it',research:'the script and everything after it',script:'the assets that change and the renders',
+    assets:'the renders made from them',render:'the Social drafts made from it',publish:'the old drafts (marked rejected)'}[step];
+  if(!confirm(`Redo ${what}?\n\nThe old version is kept in a _redo folder. This also redoes ${after}.`))return;
+  await act('redo',{step,items:items||[],note})}
+
+/* ── page ── */
+async function show(id){
+  let p;try{p=await api('api/explained/'+id)}catch(e){put($('#main'),'<div class="pg"><div class="empty">Run not found.</div></div>');return}
+  if(id!==SEL)return;CUR_P=p;
+  const ck=id+':'+(p.updated||0);if(ck!==CACHE_KEY){CACHE={};CACHE_KEY=ck}   // research.md / episode.json refetched only when the run changed
+  await paint()}
+async function paint(){
+  const p=CUR_P;if(!p)return;const id=p.id;
+  const st=p.stage, waitish=p.state==='waiting'||['cancelled','paused'].includes(p.state), t=p.topic||{};
+  const thumb=p.renders&&p.renders.thumb?`api/explained/${id}/render/thumb.jpg?v=${Math.round(p.updated||0)}`:'';
+  const r0=RUNS.find(r=>r.id===id)||p;
+  const len=p.length||(p.validation&&p.validation.est_secs);
+  const pri=p.state==='paused'?`<button class="b pri" onclick="act('retry')">${ic('refresh')} Retry</button>`
+    :p.state==='cancelled'?`<button class="b pri" onclick="act('resume')">${ic('play')} Resume</button>`
+    :!['done'].includes(p.state)?`<button class="b" onclick="if(confirm('Pause this run? Any render in progress stops; you can resume it later.'))act('cancel')">${ic('pause')} Pause</button>`:'';
+  const steps=(p.redo&&p.redo.steps)||[];
+  let h=`<section class="hero">${thumb?`<img class="hero-bg" src="${thumb}" alt="">`:'<div class="hero-pat"></div>'}
+    <div class="hero-in"><div class="hero-th">${thumb?`<img src="${thumb}" alt="">`:runThumb(r0)}</div>
+      <div class="hero-tx"><div class="kick">MIR EXPLAINED${p.niche?' · '+esc(p.niche.toUpperCase()):''}</div><h1>${esc(p.title)}</h1>
+        <div class="meta"><span class="pill st s-${p.state}"><span class="dot"></span>${esc(STATE[p.state]||p.state)}</span><span class="pill">${esc(p.label)}</span>
+          ${len?`<span class="pill">${ic('clock')} ${mmss(len)}</span>`:''}${p.auto?`<span class="pill">${ic('bolt')} Automatic</span>`:''}
+          ${(()=>{const sp=preset(p.structure_pick||p.structure);return `<button class="pill" style="cursor:pointer" title="Video structure — click to change" onclick="openStruct()">${ic(sp.icon)} ${esc(sp.name)}${(p.structure||'auto')==='auto'&&p.structure_pick?' · auto':''}</button>`})()}
+          <button class="pill" style="cursor:pointer" title="Narrator voice — click to change" onclick="openVoice()">${ic('mic')} ${esc(vName(p.voice||NARRATOR))}</button>
+          ${p.cost?`<span class="pill">${ic('dollar')} $${p.cost.toFixed(2)}</span>`:''}${p.heals?`<span class="pill">${ic('wand')} ${p.heals} self-fix${p.heals>1?'es':''}</span>`:''}</div></div>
+      <div class="hero-act">${pri}
+        <details class="menu"><summary class="b ico" title="More">${ic('sliders')}</summary><div class="mbox">
+          <label class="mi-r"><input type="checkbox" ${p.auto?'checked':''} onchange="act('auto',{on:this.checked})"> Fully automatic</label>
+          <button class="mi-r" onclick="openStruct()">${ic('layers')} Video structure…</button>
+          <button class="mi-r" onclick="openVoice()">${ic('mic')} Narrator voice…</button>
+          ${steps.length?`<hr><div class="mh">REDO A STEP</div>${steps.map(s=>`<button class="mi-r" onclick="redo('${s}')">${ic('refresh')} ${esc(RLBL[s]||s)}</button>`).join('')}`:''}
+          ${p.redo&&p.redo.assets?`<button class="mi-r" onclick="closeMenus();go('edit')">${ic('layers')} Single pieces…</button>`:''}
+          <hr><button class="mi-r bad" onclick="closeMenus();delRun('${id}')">${ic('trash')} Delete project</button></div></details></div></div>
+    <div class="pipe">${phases(p).map(x=>`<div class="pn ${x.st}" title="${esc(x.tip)}"><span class="pc">${ic(x.st==='done'?'check':x.st==='fail'||x.st==='halt'?'warn':x.icn)}</span><b>${x.l}</b><small>${PSUB[x.st]}</small></div>`).join('')}</div></section>`;
+  if(p.error)h+=`<div class="err">${ic('warn')}<div>${esc(p.error)}</div></div>`;
+  // the one "needs you" bar
+  if(st==='pick_topic'&&p.state==='waiting')h+=apv('radar','Pick a topic','Three trending ideas are below — pick one, or type your own.','');
+  if(st==='approve_script'&&waitish)h+=apv('note','The script is ready for you',`Read it in the Script tab, then approve — or rewrite it with a note.${p.state==='cancelled'?' This run was paused here; approving picks it back up.':''}`,
+    `<button class="b pri" onclick="act('approve')">${ic('check')} Approve script</button><button class="b" onclick="go('script')">${ic('eye')} Read script</button>`,
+    `<textarea id="note" placeholder="Rewrite note — e.g. punchier cold open, more on the physics, fewer numbers in chapter 3"></textarea><div class="ab"><button class="b" onclick="act('rewrite',{note:$('#note').value})">${ic('wand')} Rewrite with this note</button><button class="b ghost" onclick="openStruct()">${ic('layers')} Try another structure</button></div>`);
+  if(st==='approve_final'&&waitish)h+=apv('film','The final cut is ready',`Watch it below, then approve — Social drafts are made next (publishing still needs your Approve in Social).${p.state==='cancelled'?' This run was paused here; approving picks it back up.':''}`,
+    `<button class="b pri" onclick="act('approve')">${ic('check')} Approve → draft posts</button><button class="b" onclick="go('edit')">${ic('refresh')} Ask for changes</button>`);
+  const ep=(VIEW==='script'||VIEW==='overview')?await episode(p):null;
+  const R=p.redo||{};
+  const TABS=[['overview','Overview','grid',1],['script','Script','note',p.has_episode],['research','Research','book',p.has_research||p.n_candidates],
+    ['edit','Edit','sliders',R.assets],['log','Log','clock',1]];
+  h+=`<div class="tabs">${TABS.map(([k,l,icn,on])=>`<button class="tab ${VIEW==k?'on':''} ${on?'':'off'}" onclick="go('${k}')">${ic(icn)} ${l}${k==='edit'&&(R.scenes||[]).length?` <span class="n">${R.scenes.length}</span>`:''}</button>`).join('')}</div>`;
+  let v='';
+  if(VIEW==='script')v=ep?script(p,ep):`<div class="empty">${ep===undefined?'The script is being written…':'The script isn\'t written yet.'}</div>`;
+  else if(VIEW==='research')v=await research(p);
+  else if(VIEW==='edit')v=R.assets?pieces(p):'<div class="empty">Pieces become editable once the assets exist.</div>';
+  else if(VIEW==='log')v=`<div class="lg">${(p.log||[]).slice().reverse().map(e=>`<div class="l-${e.lvl}"><time>${new Date(e.t*1000).toLocaleTimeString()}</time>${esc(e.msg)}</div>`).join('')||'<div>No log yet.</div>'}</div>`;
+  else v=overview(p,ep);
+  if(id!==SEL)return;
+  const m=$('#main'),y=m.scrollTop;                       // whole page built first, swapped in one go, scroll kept
+  if(put(m,`<div class="pg">${h}<div id="view">${v}</div></div>`))m.scrollTop=y}
+function apv(icn,title,txt,btns,extra){return `<div class="apv"><span class="ai">${ic(icn)}</span><div class="at"><b>${esc(title)}</b><div>${esc(txt)}</div></div><div class="ab">${btns}</div>${extra||''}</div>`}
+
+/* ── OVERVIEW: what's happening now + the finished pieces ── */
+function overview(p,ep){
+  const st=p.stage,wait=p.state==='waiting';let h='';
+  if(st==='pick_topic'&&(p.proposals||[]).length){
+    h+=`<div class="sec"><div class="sh">${ic('radar')} Topic ideas</div><div class="topics">${p.proposals.map((x,i)=>`<div class="tp"><div class="n">${i+1}</div>
+      <div class="si">${esc(x.search_interest)}</div><b>${esc(x.topic)}</b><p>${esc(x.angle)}</p><div class="why">${esc(x.why_trending)}</div>
+      ${wait?`<button class="b pri sm" onclick="act('pick',{n:${i+1}})">${ic('check')} Pick this</button>`:''}</div>`).join('')}</div>
+      ${wait?`<div style="display:flex;gap:8px;margin-top:12px"><input class="tx" id="own" placeholder="…or type your own topic"><button class="b" onclick="act('pick',{topic:$('#own').value})">${ic('send')} Use mine</button></div>`:''}</div>`}
+  if(p.progress&&st==='assets')h+=`<div class="sec">${assetTile(p)}</div>`;
+  if(p.renders){const R=p.renders,u=n=>`api/explained/${p.id}/render/${n}?v=${Math.round(p.updated||0)}`,rb=n=>`<button class="b sm ico ghost" title="Redo this render" onclick="redo('render',['${n}'])">${ic('refresh')}</button>`;
+    const sh=['short1','short2','short3'].filter(k=>R[k]);
+    h+=`<div class="sec"><div class="sh">${ic('film')} The video<span class="sp"></span>${R.main?rb('main'):''}</div>
+      ${R.main?`<div class="player"><video src="${u('main.mp4')}" ${R.thumb?`poster="${u('thumb.jpg')}"`:''} controls preload="metadata"></video></div>`:''}
+      ${R.thumb||sh.length?`<div class="dlv">${R.thumb?`<div class="dl"><img src="${u('thumb.jpg')}" alt=""><div class="dh">${ic('image')} Thumbnail<span class="sp"></span>${rb('thumb')}</div></div>`:''}
+      ${sh.map((k,i)=>`<div class="dl"><video src="${u(k+'.mp4')}" controls preload="metadata" style="aspect-ratio:9/16"></video><div class="dh">${ic('phone')} Short ${i+1}<span class="sp"></span>${rb(k)}</div></div>`).join('')}</div>`:''}</div>`}
+  if(!h&&p.state==='running'){const last=(p.log||[]).slice(-5).reverse();
+    h+=`<div class="sec box live"><svg class="orb" viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="56" stroke="rgba(242,246,250,.08)"/>
+      <circle class="r1" cx="60" cy="60" r="46" stroke="currentColor" stroke-width="2" stroke-dasharray="60 230" stroke-linecap="round"/>
+      <circle class="r2" cx="60" cy="60" r="34" stroke="#5CE1E6" stroke-width="1.5" stroke-dasharray="30 184" stroke-linecap="round"/>
+      <circle cx="60" cy="60" r="20" fill="rgba(255,181,71,.12)"/><circle cx="60" cy="60" r="5" fill="currentColor"/></svg>
+      <div class="lt"><div class="kick">WORKING ON IT</div><b>${esc(p.label)}</b><div class="sub">You can leave this page — MirAI keeps going and stops at the next checkpoint for you.</div>
+      <div class="mlog">${last.map(e=>`<div>${esc(e.msg)}</div>`).join('')}</div></div></div>`}
+  // numbers
+  const V=p.validation,S=[];
+  if(p.length||V)S.push(['clock',mmss(p.length||V.est_secs),p.length?'Length':'Est. length']);
+  if(V){S.push(['book',V.chapters,'Chapters'],['layers',V.beats,'Scenes'],['type',V.words,'Words'])}
+  if(p.mix)S.push(['volume',`${p.mix.peak_db} dB`,`Peak · median ${p.mix.median_db}`]);
+  if(S.length)h+=`<div class="sec"><div class="sh">${ic('finance')} At a glance${V?`<span class="x">${ic('check')} script check passed</span>`:''}</div>
+    <div class="stats">${S.map(([i,b,s])=>`<div class="stat"><span class="si">${ic(i)}</span><div><b>${esc(b)}</b><small>${esc(s)}</small></div></div>`).join('')}</div></div>`;
+  if(ep&&ep.chapters&&st!=='pick_topic')h+=`<div class="sec"><div class="sh">${ic('note')} Story shape<span class="sp"></span><button class="b sm ghost" onclick="go('script')">Open script ${ic('chevron-right')}</button></div>${ribbon(ep)}</div>`;
+  if(p.posts){const n=Object.keys(p.posts).length-1;
+    h+=`<div class="sec"><div class="sh">${ic('send')} Social</div><div class="box"><div class="sub" style="margin-bottom:10px">${p.awaiting==='social_approval'?`Drafts are ready. <b>Approve the main video in Social</b> to publish it — the ${n} Shorts then go out one per day at 6 PM.`:'Posts handled.'}</div>
+      <div class="social">${Object.keys(p.posts).map(k=>`<span class="post">${ic(k==='main'?'film':'phone')} ${k==='main'?'Main video':'Short '+k.slice(-1)}</span>`).join('')}
+      <a class="b sm pri" href="social" style="text-decoration:none">${ic('external')} Open Social</a></div></div></div>`}
+  return h||'<div class="empty">Nothing here yet.</div>'}
+
+/* Assets tile: the six build steps in explained_build order + every still/plate as a tile (done = thumbnail, now = shimmer). */
+const PH=[['vo','Narration','mic'],['ref','Photos','camera'],['still','Stills','image'],['plate','Video plates','film'],['music','Music beds','music'],['timeline','Timeline','layers']];
+const NOUNS={vo:'narration lines',ref:'photos',still:'stills',plate:'video plates',music:'music beds'};
+function mins(s){s=Math.max(0,Math.round(s));return s<90?s+'s':s<5400?Math.round(s/60)+' min':(s/3600).toFixed(1)+' h'}
+function assetTile(p){
+  const G=p.progress,T=G.total||{},D=G.done||{},C=G.cached||{},phase=G.phase||'vo',live=p.state==='running';
+  const W={vo:1,ref:0.5,still:3,plate:8,music:4};                       // rough GPU minutes per item, so % tracks time
+  let tw=0,dw=0;for(const k in W){tw+=(T[k]||0)*W[k];dw+=Math.min(D[k]||0,T[k]||0)*W[k]}
+  const pct=phase==='done'?100:Math.min(99,Math.round(100*dw/(tw||1)));
+  const order=PH.map(x=>x[0]),pi=order.indexOf(phase==='done'?'timeline':phase);
+  const reused=Object.keys(NOUNS).filter(k=>C[k]).map(k=>`${C[k]} ${NOUNS[k]}`);
+  const left=Object.keys(NOUNS).filter(k=>k!=='ref'&&(T[k]||0)>(D[k]||0)).map(k=>`${T[k]-D[k]} ${NOUNS[k]}`);
+  const nowLbl={vo:'Recording the narration',ref:'Downloading the reference photos',still:'Making the stills (Qwen)',plate:'Animating the video plates (H3)',music:'Composing the music beds (Music 3)',timeline:'Building the timeline + smoothing the plates',done:'All assets made'}[phase];
+  const shots=G.shots||[],nd=shots.filter(x=>x.done).length,made=new Set(shots.filter(x=>x.done).map(x=>x.k));
+  const th=n=>`api/explained/${p.id}/asset/${encodeURIComponent(n)}.png?thumb=1`;
+  return `<div class="sh">${ic('image')} Making the assets</div><div class="box"><div class="ap-hd">
+    <div class="ring" style="--p:${pct}"><div><span>${pct}%<small>ASSETS</small></span></div></div>
+    <div class="t"><b>${live?ic('live')+' ':''}${esc(nowLbl)}${G.now?` <span style="color:var(--amb)">· ${esc(G.now)}</span>`:''}</b>
+      <div>${left.length?'Still to make: '+esc(left.join(' · ')):'Everything is made — finishing the timeline.'}${G.started&&live?` · running ${mins(Date.now()/1000-G.started)}`:''}${!live?` · <b style="color:var(--bad)">${esc(p.state)}</b>`:''}</div>
+      ${reused.length?`<div class="resume">${ic('check')} Kept from before the pause: ${esc(reused.join(' · '))} — nothing gets re-made.</div>`:''}
+      ${G.fails?`<div style="color:var(--amb)">${ic('warn')} ${G.fails} item${G.fails>1?'s':''} fell back (see Log)</div>`:''}</div></div>
+    <div class="ph">${PH.map(([k,l,icn],i)=>{
+      const tot=k==='timeline'?1:(T[k]||0),dn=k==='timeline'?(phase==='done'?1:0):Math.min(D[k]||0,tot);
+      const stt=k==='ref'?(pi>1||dn>=tot?'done':'now'):(i<pi||(k!==phase&&tot&&dn>=tot)?'done':i===pi?'now':'todo');
+      const pc=k==='timeline'?(stt==='done'?100:stt==='now'?60:0):(tot?Math.round(100*dn/tot):100);
+      return `<div class="${stt}"><b>${ic(stt==='done'?'check':icn)} ${l}</b><div class="c">${k==='timeline'?(stt==='done'?'done':stt==='now'?'working':'—'):`${dn}<small>/${tot}</small>`}</div>
+        <div class="bar2"><i style="width:${pc}%"></i></div></div>`}).join('')}</div>
+    ${shots.length?`<div class="wall-hd"><b>SHOTS</b><span>${nd}/${shots.length} made</span><span>${ic('image')} still</span><span>${ic('film')} video plate</span></div>
+    <div class="wall">${shots.map(x=>{const c=x.done?'done':x.k===G.now?'now':'todo',src=x.kind==='plate'?x.src:x.k;
+      return `<div class="shot ${c}" title="${esc(x.k)}">${src&&made.has(src)?`<img loading="lazy" src="${th(src)}" alt="">`:''}
+        <span class="ty">${ic(x.kind==='plate'?'film':'image')}</span><span class="tg">${esc(x.k.replace(/^(st|pl|la)_/,''))}</span></div>`}).join('')}</div>`:''}
+  </div>`}
+
+/* ── SCRIPT: a storyboard — every scene with its picture, grouped by chapter ── */
+const words=b=>String(b.say||b.cap||'').split(/\s+/).filter(Boolean).length;
+function ribbon(ep){const chs=(ep.chapters||[]),W={};(ep.beats||[]).forEach(b=>W[b.ch]=(W[b.ch]||0)+words(b)+8);
+  return `<div class="ribbon">${chs.map((c,i)=>`<div class="rb" style="flex:${W[c.n]||8};--o:${i%2?4:14}" title="${esc(c.title)}" onclick="go('script');setTimeout(()=>document.getElementById('ch${c.n}')?.scrollIntoView({behavior:'smooth',block:'start'}),60)"><b>${String(c.n).padStart(2,'0')}</b><span>${esc(c.title)}</span></div>`).join('')}</div>`}
+function gist(v){v=v||{};switch(v.c){
+  case 'bignum':return `${fmtNum(v.value,v.decimals,v.plain)} ${v.unit||''} — ${v.label||''}`;
+  case 'timeline':return (v.events||[]).map(e=>e.at).join(' → ');
+  case 'compare':return `${v.left||''} vs ${v.right||''} · ${(v.rows||[]).length} rows`;
+  case 'spec':return (v.rows||[]).map(r=>r[0]).join(' · ');
+  case 'gbars':return (v.bars||[]).map(b=>`${b[0]} ${b[1]}`).join(' · ');
+  case 'questions':case 'recap':return `${(v.items||[]).length} points`;
+  case 'formula':return (v.lines||[]).slice(-1)[0]||'';
+  case 'photo':return v.credit||'';default:return ''}}
+function beatPic(p,b,made,src,chT){const k=(b.v&&b.v.c)||'plate';
+  if(k==='chapter')return glyph(k,Object.assign({},b.v,{n:b.ch}),chT);
+  if(!['plate','photo','studio'].includes(k))return glyph(k,b.v,['brand','endcard'].includes(k)?p.title:'');
+  let key=b.plate||b.still||(b.v&&(b.v.plate||b.v.still))||'';if(/^pl_/.test(key))key=src[key]||key.replace(/^pl_/,'st_');
+  return key&&made.has(key)?`<img loading="lazy" src="api/explained/${p.id}/asset/${encodeURIComponent(key)}.png?thumb=1" alt="">`:glyph(k,b.v,'')}
+function script(p,ep){
+  const shots=(p.progress&&p.progress.shots)||[],made=new Set(shots.filter(x=>x.done).map(x=>x.k)),src={};shots.forEach(x=>{if(x.src)src[x.k]=x.src});
+  const y=ep.youtube||{},th=ep.thumbnail||{},thumb=p.renders&&p.renders.thumb?`<img src="api/explained/${p.id}/render/thumb.jpg?v=${Math.round(p.updated||0)}" alt="">`:glyph('bignum',{value:th.number,label:th.hook,unit:th.unit},'');
+  const byCh={};(ep.beats||[]).forEach(b=>(byCh[b.ch]=byCh[b.ch]||[]).push(b));
+  const chs=(ep.chapters||[]).length?ep.chapters:Object.keys(byCh).map(n=>({n:+n,title:''}));
+  return `<div class="sec"><div class="sh">${ic('video')} YouTube package</div><div class="box yt"><div class="yth">${thumb}</div><div>
+      <h2>${esc(y.title||p.title)}</h2><div class="sub">Thumbnail: <b style="color:var(--amb)">${esc(th.number)} ${esc(th.unit)}</b> — “${esc(th.hook)}”</div>
+      <div class="kv"><span>Tags</span><span>${(y.tags||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</span>
+      ${y.pinned_comment?`<span>Pinned comment</span><span>${esc(y.pinned_comment)}</span>`:''}
+      ${(ep.shorts||[]).length?`<span>Shorts</span><span>${ep.shorts.map(s=>`<div><b>${esc(s.title)}</b> — “${esc(s.hook)}”</div>`).join('')}</span>`:''}</div></div></div>
+    ${y.description?`<details class="fold"><summary>${ic('book')} Description</summary><div style="white-space:pre-wrap;color:var(--dim)">${esc(y.description)}</div></details>`:''}
+    ${Object.keys(ep.assets||{}).length?`<details class="fold"><summary>${ic('image')} Asset prompts <span class="chip k">${Object.keys(ep.assets).length}</span></summary><div>${Object.entries(ep.assets).map(([k,a])=>`<div style="margin-bottom:8px"><b>${esc(k)}</b> <span class="chip k">${esc(a.model)}</span><div class="sub">${esc(a.prompt)}</div></div>`).join('')}</div></details>`:''}
+    ${(ep.ref_urls||[]).length?`<details class="fold"><summary>${ic('camera')} Reference photos <span class="chip k">${ep.ref_urls.length}</span></summary><div>${ep.ref_urls.map(r=>`<div><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.use)}</a> <small style="color:var(--faint)">${esc(r.source)}</small></div>`).join('')}</div></details>`:''}</div>
+  <div class="sec"><div class="sh">${ic('note')} Story shape</div>${ribbon(ep)}</div>
+  ${chs.map(c=>`<div class="chap" id="ch${c.n}"><div class="chap-h"><span class="cn">${String(c.n).padStart(2,'0')}</span><b>${esc(c.title)}</b><small>${(byCh[c.n]||[]).length} scenes</small></div>
+    ${(byCh[c.n]||[]).map(b=>{const k=(b.v&&b.v.c)||'plate',gs=gist(b.v);return `<div class="bt"><div class="bv">${beatPic(p,b,made,src,c.title)}<span class="id">${esc(b.id)}</span></div>
+      <div><span class="chip k">${ic(KI[k]||'film')} ${esc(KL[k]||k)}</span><p>${esc(b.cap)}</p>${gs?`<div class="gist">${esc(cut(gs,140))}</div>`:''}</div></div>`}).join('')}</div>`).join('')}`}
+
+/* ── RESEARCH ── */
+async function research(p){
+  let h=p.has_research?`<div class="doc">${md(await file('research.md')||'')}</div>`:'<div class="empty">The research isn\'t written yet.</div>';
+  if(p.n_candidates)h+=`<details class="fold" style="margin-top:22px"><summary>${ic('radar')} What was trending <span class="chip k">${p.n_candidates}</span></summary><div>
+    ${(p.sources||[]).length?`<div class="sub" style="margin-bottom:8px">Sources: ${esc((p.sources||[]).join(' · '))}</div>`:''}
+    <div class="cand">${(p.candidates||[]).map(c=>`<div><a href="${esc(c.url)}" target="_blank" rel="noopener" style="color:var(--ink);text-decoration:none">${esc(c.title)}</a> <small>${esc(c.source)}</small></div>`).join('')}</div></div></details>`;
+  return h}
+
+/* ── EDIT: one category at a time; scenes = grid + one editor ── */
+function pieces(p){
+  const R=p.redo||{},a=n=>`api/explained/${p.id}/asset/${n}?v=${Math.round(p.updated||0)}`;
+  const rd=(step,key,t)=>`<button class="b sm ${t?'':'ico'}" title="Redo" onclick="redo('${step}',['${esc(key)}'])">${ic('refresh')}${t?' '+t:''}</button>`;
+  const media=f=>!f?glyph('',{}):/\.mp4$/.test(f)?`<video src="${a(f)}" muted loop preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause()"></video>`:`<img src="${a(f)}" loading="lazy" alt="">`;
+  const aud=f=>f?`<audio src="${a(f)}" controls preload="none"></audio>`:'<div class="sub">not made yet</div>';
+  const CATS=[['scenes','layers','Scenes',(R.scenes||[]).length,'Every title, chapter card, number, chart and list. Pick one to edit its words, preview it, or redo it — only the videos that show it are re-rendered.'],
+    ['renders','film','Renders',(R.renders||[]).length,'Redo a finished video, Short or the thumbnail from the current pieces.'],
+    ['plates','image','Stills & plates',(R.assets||[]).length,'The AI pictures and the animated video plates made from them. Hover a plate to play it.'],
+    ['vo','mic','Narration',(R.vo||[]).length,'Every narrator line. Redo one line or all of them.'],
+    ['music','music','Music',(R.music||[]).length,'The music beds under the narration.'],
+    ['sfx','volume','Sound effects',(R.sfx||[]).length,'Every scene change gets its own sound, dealt so two cuts in a row never match. Redo makes a new set and order.'],
+    ['refs','camera','Photos',(R.refs||[]).length,'The real reference photos the stills are drawn from.']].filter(c=>c[3]||c[0]==='sfx');
+  if(!CATS.some(c=>c[0]===ECAT))ECAT=CATS[0][0];
+  const C=CATS.find(c=>c[0]===ECAT);let body='',tools='';
+  if(ECAT==='scenes')body=scenes(p,R.scenes||[]),tools=`<button class="b sm" onclick="scnPrev('all')">${ic('play')} Preview all</button>`;
+  else if(ECAT==='renders')body=`<div class="grid">${(R.renders||[]).map(r=>{const nm=r.name==='main'?'Main video':r.name==='thumb'?'Thumbnail':'Short '+r.name.slice(-1),u=`api/explained/${p.id}/render/${r.file}?v=${Math.round(p.updated||0)}`;
+    return `<div class="tile ${/^short/.test(r.name)?'':''}"><div class="tm">${!r.file?glyph('',{}):/\.jpg$/.test(r.file)?`<img src="${u}" alt="">`:`<video src="${u}" muted preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause()"></video>`}</div>
+      <div class="tb" style="display:flex;align-items:center;gap:8px"><b style="flex:1">${nm}</b><button class="b sm" ${r.file?'':'disabled'} onclick="redo('render',['${r.name}'])">${ic('refresh')} Redo</button></div></div>`}).join('')}</div>`;
+  else if(ECAT==='plates')body=`<div class="grid">${(R.assets||[]).map(x=>`<div class="tile"><div class="tm">${media(x.file)}<span class="rd">${rd('assets',x.key)}</span></div>
+    <div class="tb"><b>${esc(x.key)} <span class="chip k">${esc(x.model)}</span></b><p title="${esc(x.prompt)}">${esc(x.prompt)}</p></div></div>`).join('')}</div>`;
+  else if(ECAT==='vo')tools=rd('assets','vo','Redo all lines'),body=`<div>${(R.vo||[]).map(x=>`<div class="vo"><span class="vid">${esc(x.key.slice(3))}</span><div>${esc(x.say)}${x.file?`<br><audio src="${a(x.file)}" controls preload="none"></audio>`:' <small style="color:var(--faint)">not voiced yet</small>'}</div>${rd('assets',x.key)}</div>`).join('')}</div>`;
+  else if(ECAT==='music')body=`<div class="grid">${(R.music||[]).map(x=>`<div class="tile"><div class="tb"><div style="display:flex;align-items:center;gap:8px"><b style="flex:1">${ic('music')} ${esc(x.key.slice(6))}</b>${rd('assets',x.key)}</div>${aud(x.file)}<p>${esc(x.prompt)}</p></div></div>`).join('')}</div>`;
+  else if(ECAT==='sfx')tools=rd('assets','sfx','Redo sound effects'),body=(R.sfx||[]).length?`<div class="grid">${R.sfx.map(x=>`<div class="tile"><div class="tb"><b>${ic('volume')} ${esc(x.file.replace(/\.mp3$/,''))}</b>${aud(x.file)}</div></div>`).join('')}</div>`:'<div class="empty">Using the shared starter set — Redo makes this episode its own.</div>';
+  else if(ECAT==='refs')tools=rd('assets','refs','Download all again'),body=`<div class="grid">${(R.refs||[]).map(x=>`<div class="tile"><div class="tm">${media(x.file)}<span class="rd">${rd('assets',x.key)}</span></div><div class="tb"><b>${esc(x.key.slice(4))}</b></div></div>`).join('')}</div>`;
+  return `<div class="ed"><nav class="cats">${CATS.map(c=>`<button class="cat ${c[0]===ECAT?'on':''}" onclick="cat('${c[0]}')">${ic(c[1])} ${c[2]}<span class="n">${c[3]||''}</span></button>`).join('')}</nav>
+    <div><div class="cat-hd"><div class="t"><b>${C[2]}</b><div>${C[4]}</div></div>${tools}</div>${body}</div></div>`}
+
+/* SCENES — drafts survive the 6 s refresh (the editor is rebuilt from SCN[id] while you type) */
+const SCN={};let SCN_SEL='';
+const SCENE_ABOUT={
+  brand:'The title card right after the intro: the MIR EXPLAINED flask logo with the episode title next to it.',
+  chapter:'The card that opens a chapter: a giant chapter number, a line drawing, and the chapter name over a dimmed picture.',
+  bignum:'One big number that counts up over a picture, with a headline, a small note and a row of little drawings.',
+  timeline:'A line with dates; each event pops in left to right with a small drawing on the line.',
+  spec:'A two-column table that types itself in row by row, with a big drawing in the top-right corner.',
+  gbars:'A bar chart: each bar grows to its value, with a drawing beside each name.',
+  compare:'A side-by-side comparison table: one row per thing compared, left side vs right side.',
+  questions:'A list of open questions, each popping in with a drawing or a warning sign.',
+  recap:'A summary list near the end, each point popping in with a drawing or a tick.',
+  formula:'Lines of a calculation typed in one after another; the last line is the answer.',
+  trims:'Side-by-side cards (e.g. versions, models or options), each with a name, details and a value.',
+  midroll:'The "Like / Subscribe" buttons that slide in over a picture in the middle of the video.',
+  endcard:'The last scene: Like + Subscribe, the download-the-app line and the episode title.',
+  diagram:'A technical line drawing of the subject with labels pointing at its parts.',
+  photo:'A real photo shown full screen with a small credit label.'};
+const DRAWINGS=[['','Automatic (picked from the words)'],['person','Person'],['crowd','Group of people'],['controller','Game controller'],['gpu','Graphics card'],
+  ['chip','Computer chip'],['monitor','Screen with a chart'],['chart','Rising chart'],['globe','Spinning globe'],['ban','"Banned" sign'],['license','Licence with a stamp'],
+  ['law','Scales of justice'],['coins','Stack of coins'],['box','Product box'],['trophy','Trophy'],['ship','Cargo ship'],['factory','Factory'],['flag','Waving flag'],
+  ['clock','Clock'],['shield','Shield'],['server','Server rack'],['bolt','Lightning bolt']];
+/* Every field a scene can carry: [key, input type, plain name, what it changes on screen, example]. Types:
+   text · num · bool · fig (drawing picker) · lines (one per line) · rows (name | value [| *]) · bars (name | value | colour)
+   · events (when | what | type | note) · cmp (row | left | right) · json (advanced). Fields missing from a scene still show, empty. */
+const F_TAG=['tag','text','Small heading','The amber capital letters above the title. Empty = the chapter number and name.','02 — THE HARDWARE GAP'];
+const F_TITLE=['title','text','Title','The big heading at the top of the scene. Empty = the chapter name.','Lisuan LX 7G100'];
+const F_FIG=['fig','fig','Drawing','Which line drawing animates in this scene. "Automatic" picks one from the scene\'s words.',''];
+const F_STAMP=['stamp','text','Stamp','Optional rubber-stamp word that slams onto the scene near the end. Leave empty for no stamp.','OUR ESTIMATE'];
+const SCENE_FIELDS={
+  brand:[], midroll:[], endcard:[],
+  chapter:[F_FIG],
+  bignum:[['value','num','Big number','The large number that counts up from zero.','30000'],
+    ['decimals','num','Decimal places','How many digits after the decimal point. 0 = a whole number.','0'],
+    ['unit','text','Unit','The smaller grey word right after the number.','units'],
+    ['label','text','Headline','The amber line in capitals just under the number — what the number means.','RESERVED IN 48 HOURS'],
+    ['sub','text','Small note','The grey line under the headline: a detail or the source.','Lisuan LX 7G100'],
+    ['plain','bool','Year-style count','Tick on for years or IDs (counts the last few steps instead of from zero, no thousands commas).',''],
+    F_FIG],
+  timeline:[F_TAG,F_TITLE,
+    ['events','events','Events','One per line: when | what happened | type | note (optional). Type: past, now (highlighted), future, miss (crossed out) or claim.','2014 | Console ban lifted | past'],
+    F_FIG],
+  spec:[F_TAG,F_TITLE,['rows','rows','Table rows','One row per line: name | value. Add | * at the end to show that value in amber.','VRAM | 12 GB GDDR6 | *'],F_FIG],
+  gbars:[F_TAG,F_TITLE,
+    ['bars','bars','Bars','One bar per line: name | number | colour. Colours: amber, silver, red, green, ink.','Nvidia RTX 4060 | 232 | amber'],
+    ['unit','text','Unit','Written after every bar\'s number.','FPS'],
+    ['max','num','Full-bar value','The number that fills a bar all the way. Empty = the biggest bar.','250'],
+    F_STAMP, F_FIG],
+  compare:[F_TAG,F_TITLE,
+    ['left','text','Left heading','Column heading for the left side.','Lisuan LX 7G100'],
+    ['right','text','Right heading','Column heading for the right side.','Nvidia RTX 4060'],
+    ['rows','cmp','Rows','One row per line: what is compared | left value | right value.','Cyberpunk 2077 | 88 FPS | 232 FPS'],
+    ['hi','text','Highlighted row','Type a row name exactly as above to show its right-hand value in amber.','Cyberpunk 2077'],
+    ['strike','bool','Cross out left values','Tick on for "promise vs reality": left-hand values get struck through in red.',''],
+    F_FIG],
+  questions:[F_TAG,F_TITLE,['items','lines','Questions','One question per line, in the order they pop in.','Will Beijing ban GeForce cards?'],F_FIG],
+  recap:[F_TAG,F_TITLE,['items','lines','Points','One point per line, in the order they pop in.','700 million players'],F_FIG],
+  formula:[F_TAG,F_TITLE,['lines','lines','Formula lines','One per row, typed in one by one. The last line is the answer, shown bigger in amber.','a = Δv / t'],
+    ['note','text','Footnote','Small grey line under the formula.','assumes a flat road'],F_STAMP,F_FIG],
+  trims:[F_TAG,F_TITLE,['cards','json','Cards (advanced)','The cards as a list. Each card: name, tag, line1, line2, label, value, foot, color.',''],F_FIG],
+  diagram:[F_TAG,F_TITLE,['callouts','json','Labels (advanced)','The labels pointing at parts of the drawing: their text and where they point.',''],
+    ['art','text','Drawing file (advanced)','The line-drawing image this diagram is traced on. Change only if you know the file name.',''],
+    ['plate','text','Picture file (advanced)','The picture the line drawing was made from.','']],
+  photo:[['credit','text','Photo credit','The small label at the top-left saying where the photo comes from.','IMAGE: PC MAG']]};
+const TITLE_HELP={brand:['Episode title','The big title on this card. Also changes the end card, the thumbnail tag and every Short.'],
+  endcard:['Episode title','The title at the top of the end card. Also changes the opening title card, the thumbnail tag and every Short.'],
+  chapter:['Chapter name','The big words under the chapter number. Also changes the small heading on every scene in this chapter.']};
+// value → editable text, and back
+const toTxt={text:v=>v??'',num:v=>v===undefined||v===null?'':String(v),bool:v=>v?'1':'',fig:v=>v||'',
+  lines:v=>(v||[]).join('\n'),rows:v=>(v||[]).map(r=>[r[0],r[1]].concat(r[2]?['*']:[]).join(' | ')).join('\n'),
+  bars:v=>(v||[]).map(r=>r.join(' | ')).join('\n'),cmp:v=>(v||[]).map(r=>r.join(' | ')).join('\n'),
+  events:v=>(v||[]).map(e=>[e.at,e.label,e.kind||'past'].concat(e.sub?[e.sub]:[]).join(' | ')).join('\n'),json:v=>v===undefined?'':JSON.stringify(v,null,1)};
+const cells=l=>l.split('|').map(x=>x.trim());
+const fromTxt={text:s=>s,num:s=>s.trim()===''?undefined:Number(s),bool:s=>!!s,fig:s=>s||undefined,
+  lines:s=>s.split('\n').map(x=>x.trim()).filter(Boolean),
+  rows:s=>s.split('\n').filter(l=>l.trim()).map(l=>{const c=cells(l);return c[2]==='*'?[c[0],c[1]||'',true]:[c[0],c[1]||'']}),
+  bars:s=>s.split('\n').filter(l=>l.trim()).map(l=>{const c=cells(l);return [c[0],Number(c[1])||0,c[2]||'silver']}),
+  cmp:s=>s.split('\n').filter(l=>l.trim()).map(l=>{const c=cells(l);return [c[0],c[1]||'',c[2]||'']}),
+  events:s=>s.split('\n').filter(l=>l.trim()).map(l=>{const c=cells(l),e={at:/^\d+(\.\d+)?$/.test(c[0])?Number(c[0]):c[0],label:c[1]||'',kind:c[2]||'past'};if(c[3])e.sub=c[3];return e}),
+  json:s=>s.trim()===''?undefined:JSON.parse(s)};
+function scenes(p,list){
+  if(!list.length)return '<div class="empty">No editable scenes.</div>';
+  if(!list.some(x=>x.id===SCN_SEL))SCN_SEL=list[0].id;
+  let chn=0;list.forEach(x=>{if(x.kind==='chapter')x._n=++chn});   // chapter cards open chapters 1, 2, 3… (chapter 0 = cold open has none)
+  const pic=x=>x.preview?`<img loading="lazy" src="api/explained/${p.id}/scene/${x.id}.jpg?v=${x.preview_t}" alt="">`:glyph(x.kind,x._n?Object.assign({},x.v,{n:x._n}):x.v,x.title);
+  return `<div class="scx"><div class="scg">${list.map(x=>`<button class="sc ${x.id===SCN_SEL?'on':''} ${x.busy?'busy':''}" onclick="scnPick('${x.id}')">
+      ${SCN[x.id]?'<span class="ed-dot" title="Unsaved changes"></span>':''}<div class="sv">${pic(x)}</div>
+      <div class="sl">${ic(KI[x.kind]||'layers')}<b>${esc(x.label)}</b><small>${mmss(x.start)}</small></div></button>`).join('')}</div>
+    ${sceneEditor(p,list.find(x=>x.id===SCN_SEL),list)}</div>`}
+function scnPick(id){SCN_SEL=id;paint();if(innerWidth<=1100)setTimeout(()=>document.querySelector('.sce')?.scrollIntoView({behavior:'smooth',block:'start'}),50)}
+function sceneEditor(p,x,list){
+  const d=SCN[x.id]||{},img=`api/explained/${p.id}/scene/${x.id}.jpg?v=${x.preview_t}`,i=list.indexOf(x);
+  const specs=SCENE_FIELDS[x.kind]||Object.keys(x.v).map(k=>[k,typeof x.v[k]==='object'?'json':'text',k,'','']);
+  const known=new Set(specs.map(f=>f[0]));
+  const extra=Object.keys(x.v).filter(k=>!known.has(k)&&!['events','rows','bars','items','lines','cards','callouts'].includes(k)&&k!=='upto'&&k!=='focus');
+  const all=specs.concat(extra.map(k=>[k,typeof x.v[k]==='object'?'json':'text',k,'Other setting kept from the script.','']));
+  const lab=(name,help)=>`<label>${esc(name)}</label>${help?`<div class="h">${esc(help)}</div>`:''}`;
+  const fld=all.map(([k,ty,name,help,ex])=>{
+    const cur=d[k]!==undefined?d[k]:toTxt[ty](x.v[k]),at=`data-scn="${x.id}" data-k="${esc(k)}" data-t="${ty}"`;
+    let inp;
+    if(ty==='bool')inp=`<label style="font-weight:400"><input type="checkbox" ${at} ${cur?'checked':''} onchange="scnIn(this)"> on</label>`;
+    else if(ty==='fig')inp=`<div style="display:flex;gap:6px"><select ${at} onchange="scnIn(this)" style="flex:1;min-width:0">${DRAWINGS.map(([v,l])=>`<option value="${v}" ${v===cur?'selected':''}>${esc(l)}</option>`).join('')}${cur&&String(cur).startsWith('lib:')?`<option value="${esc(cur)}" selected>Motion library · ${esc(String(cur).slice(4))}</option>`:''}</select><button type="button" class="b" title="Pick a character, animal, object, movement or place from the MOTION LIBRARY (shared with Motion Studio) — it animates in the scene" onclick="figLib(this)">${ic('layers')} Library</button></div>`;
+    else if(['lines','rows','bars','cmp','events','json'].includes(ty))inp=`<textarea ${at} rows="${Math.max(2,Math.min(9,cur.split('\n').length+1))}" placeholder="${esc(ex)}" oninput="scnIn(this)" style="${ty==='json'?'font-family:var(--mono)':''}">${esc(cur)}</textarea>`;
+    else inp=`<input ${at} ${ty==='num'?'inputmode="decimal"':''} value="${esc(cur)}" placeholder="${esc(ex)}" oninput="scnIn(this)">`;
+    return `<div class="fld">${lab(name,help)}${inp}</div>`}).join('');
+  const th=TITLE_HELP[x.kind]||['Title',''];
+  return `<aside class="sce" data-scnbox="${x.id}">
+    <div class="sce-m">${x.clip?`<video src="api/explained/${p.id}/scene/${x.id}.mp4?v=${x.preview_t}" poster="${img}" controls preload="none" playsinline></video>`:x.preview?`<img src="${img}" alt="">`:glyph(x.kind,x._n?Object.assign({},x.v,{n:x._n}):x.v,x.title)}</div>
+    <div class="sce-h"><b>${esc(x.label)}</b><button class="b sm ico ghost" title="Previous scene" ${i>0?'':'disabled'} onclick="scnPick('${(list[i-1]||{}).id}')">${ic('chevron-left')}</button><button class="b sm ico ghost" title="Next scene" ${i<list.length-1?'':'disabled'} onclick="scnPick('${(list[i+1]||{}).id}')">${ic('chevron-right')}</button></div>
+    <div class="sce-s">${esc(x.id)} · at ${mmss(x.start)}${x.shorts.length?' · also in '+esc(x.shorts.join(', ')):''}${x.busy?' · rendering preview…':!x.preview&&!x.clip?' · no preview yet':''}</div>
+    <div class="sce-b"><div class="sub" style="margin-top:8px">${esc(SCENE_ABOUT[x.kind]||'')}</div>
+      ${x.title!==null?`<div class="fld">${lab(th[0],th[1])}<input data-scn="${x.id}" data-k="__title" data-t="text" value="${esc(d.__title!==undefined?d.__title:x.title)}" oninput="scnIn(this)"></div>`:''}
+      ${fld||(x.title===null?'<div class="sub" style="margin-top:12px">Nothing to type in this scene — Redo re-lays it out and re-renders it.</div>':'')}</div>
+    <div class="sce-f"><button class="b sm" ${x.busy?'disabled':''} onclick="scnPrev('${x.id}')" title="Render a short clip of this scene (with sound) to watch here">${ic('play')} ${x.busy?'Rendering…':x.clip?'Re-preview':'Preview'}</button>
+      <span class="sp"></span>${SCN[x.id]?`<button class="b sm ghost" onclick="delete SCN['${x.id}'];paint()">Discard</button>`:''}
+      <button class="b sm ${SCN[x.id]?'pri':''}" onclick="scnSave('${x.id}')" title="Re-render the main video and any Short that shows this scene">${ic(SCN[x.id]?'check':'refresh')} ${SCN[x.id]?'Save &amp; re-render':'Redo scene'}</button></div></aside>`}
+/* MOTION LIBRARY (shared with Motion Studio): a scene's Drawing can be any library item — it moves (MirRemotion dio_item.tsx) */
+let FIGEL=null;
+function figLib(btn){FIGEL=btn.parentElement.querySelector('select');let d=document.getElementById('libd');
+  if(!d){document.body.insertAdjacentHTML('beforeend','<dialog id="libd" style="padding:0;border:1px solid rgba(242,246,250,.18);border-radius:18px;background:#08080A;width:min(1100px,96vw);height:min(820px,92vh)"><iframe id="libf" style="border:0;width:100%;height:100%;display:block"></iframe></dialog>');d=document.getElementById('libd')}
+  document.getElementById('libf').src='motion/library?pick=characters,animals,objects,actions,rides,vfx,props,places&for=fig';d.showModal()}
+window.addEventListener('message',e=>{const m=e.data||{},d=document.getElementById('libd');if(m.type==='mglib-close'&&d)d.close();
+  if(m.type!=='mglib-pick'||m.for!=='fig'||!FIGEL)return;d&&d.close();const v='lib:'+m.item.id;let o=[...FIGEL.options].find(x=>x.value===v);
+  if(!o){o=document.createElement('option');o.value=v;o.textContent='Motion library · '+m.item.name;FIGEL.appendChild(o)}FIGEL.value=v;scnIn(FIGEL)});
+function scnIn(el){const id=el.dataset.scn,fresh=!SCN[id];(SCN[id]=SCN[id]||{})[el.dataset.k]=el.type==='checkbox'?(el.checked?'1':''):el.value;
+  if(fresh){const box=el.closest('.sce'),b=box&&box.querySelector('.sce-f .b:last-child');if(b){b.classList.add('pri');b.innerHTML=`${ic('check')} Save &amp; re-render`;MI.fill&&MI.fill(b)}}}
+async function scnPrev(id){await act('scene_preview',{beat:id});setTimeout(()=>show(SEL),1500)}
+async function scnSave(id){
+  const d=SCN[id]||{},sc=((CUR_P&&CUR_P.redo&&CUR_P.redo.scenes)||[]).find(s=>s.id===id);let v=null,title;
+  if(Object.keys(d).length&&sc){v=JSON.parse(JSON.stringify(sc.v));
+    const box=document.querySelector(`[data-scnbox="${id}"]`);
+    for(const el of (box?box.querySelectorAll('[data-scn]'):[])){const k=el.dataset.k,ty=el.dataset.t,raw=el.type==='checkbox'?(el.checked?'1':''):el.value;
+      if(k==='__title'){if(d.__title!==undefined)title=raw;continue}
+      if(d[k]===undefined)continue;                         // untouched fields stay exactly as they were
+      try{const val=fromTxt[ty](raw);if(val===undefined||val===''||(Array.isArray(val)&&!val.length&&!['events','rows','bars','items','lines'].includes(k)))delete v[k];else v[k]=val}
+      catch(e){alert(`"${k}" couldn't be read: ${e.message}`);return}}
+    if(!Object.keys(d).some(k=>k!=='__title'))v=null}
+  if(!confirm(v||title!==undefined?'Save this scene and re-render the videos that show it?':'Redo this scene (same words, re-laid-out) and re-render the videos that show it?'))return;
+  await act('scene',{beat:id,v,title});delete SCN[id];show(SEL)}
+
+// Oct 24: the X did nothing when EXPLAINED had REPLACED the Media Lab page (chat card href) —
+// the close message went to a page that doesn't listen. Overlay → tell Media Lab; otherwise go back to it.
+function xClose(){let ov=false;try{ov=!!(window.frameElement&&/^(mml-ex|f)$/.test(window.frameElement.id))}catch(e){}
+  if(ov)parent.postMessage({mml:'explained-close'},'*');else location.replace('./')}
+{const q=new URLSearchParams(location.search);if(q.get('run'))SEL=q.get('run');if(q.get('view'))VIEW=q.get('view');if(q.get('cat'))ECAT=q.get('cat')}   // deep link: ?run=<id>&view=edit&cat=scenes
+Promise.all([loadPresets(),loadVoices()]).finally(refresh);setInterval(()=>{const a=document.activeElement;if(document.hidden||(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))||($('#note')&&$('#note').value)
+  ||document.querySelector('details.menu[open]')||$('#nd').open||[...document.querySelectorAll('video,audio')].some(m=>!m.paused))return;refresh()},6000);
+</script>
+</body>
+</html>

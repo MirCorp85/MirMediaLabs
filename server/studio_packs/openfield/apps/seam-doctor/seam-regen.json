@@ -1,0 +1,326 @@
+{
+  "src": {
+    "class_type": "VHS_LoadVideo",
+    "inputs": {
+      "video": "input_video.mp4",
+      "force_rate": 0,
+      "custom_width": 0,
+      "custom_height": 0,
+      "frame_load_cap": 121,
+      "skip_first_frames": 0,
+      "select_every_nth": 1
+    }
+  },
+  "late": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "src",
+        0
+      ],
+      "batch_index": 60,
+      "length": 61
+    }
+  },
+  "early": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "src",
+        0
+      ],
+      "batch_index": 0,
+      "length": 60
+    }
+  },
+  "rotated": {
+    "class_type": "BatchImagesNode",
+    "inputs": {
+      "images.image0": [
+        "late",
+        0
+      ],
+      "images.image1": [
+        "early",
+        0
+      ]
+    }
+  },
+  "unet": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "clip": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+      "type": "ltxv",
+      "device": "default"
+    }
+  },
+  "vvae": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ltx-2.5-video-vae-bf16.safetensors"
+    }
+  },
+  "avae": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ltx-2.5-audio-vae-bf16.safetensors"
+    }
+  },
+  "pos": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "clip",
+        0
+      ],
+      "text": "An old lighthouse keeper in a yellow raincoat on a stormy pier, waves breaking behind him."
+    }
+  },
+  "neg": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "clip",
+        0
+      ],
+      "text": "pc game, console game, video game, cartoon, childish, ugly"
+    }
+  },
+  "cond": {
+    "class_type": "LTXVConditioning",
+    "inputs": {
+      "positive": [
+        "pos",
+        0
+      ],
+      "negative": [
+        "neg",
+        0
+      ],
+      "frame_rate": 24
+    }
+  },
+  "latV": {
+    "class_type": "VAEEncodeTiled",
+    "inputs": {
+      "pixels": [
+        "rotated",
+        0
+      ],
+      "vae": [
+        "vvae",
+        0
+      ],
+      "tile_size": 512,
+      "overlap": 64,
+      "temporal_size": 4096,
+      "temporal_overlap": 8
+    }
+  },
+  "latA": {
+    "class_type": "LTXVEmptyLatentAudio",
+    "inputs": {
+      "frames_number": 121,
+      "frame_rate": 24,
+      "batch_size": 1,
+      "audio_vae": [
+        "avae",
+        0
+      ]
+    }
+  },
+  "av": {
+    "class_type": "LTXVConcatAVLatent",
+    "inputs": {
+      "video_latent": [
+        "latV",
+        0
+      ],
+      "audio_latent": [
+        "latA",
+        0
+      ]
+    }
+  },
+  "mask": {
+    "class_type": "LTXVSetAudioVideoMaskByTime",
+    "inputs": {
+      "av_latent": [
+        "av",
+        0
+      ],
+      "positive": [
+        "cond",
+        0
+      ],
+      "negative": [
+        "cond",
+        1
+      ],
+      "model": [
+        "unet",
+        0
+      ],
+      "vae": [
+        "vvae",
+        0
+      ],
+      "audio_vae": [
+        "avae",
+        0
+      ],
+      "start_time": 0.375,
+      "end_time": 4.7083,
+      "video_fps": 24,
+      "mask_video": true,
+      "mask_audio": true,
+      "mask_init_value_video": 0,
+      "mask_init_value_audio": 0,
+      "slope_len": 3
+    }
+  },
+  "sampler": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler_ancestral"
+    }
+  },
+  "sigmas": {
+    "class_type": "ManualSigmas",
+    "inputs": {
+      "sigmas": "0.6500, 0.4219, 0.0000"
+    }
+  },
+  "noise": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 42
+    }
+  },
+  "guide": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "model": [
+        "unet",
+        0
+      ],
+      "positive": [
+        "mask",
+        0
+      ],
+      "negative": [
+        "mask",
+        1
+      ],
+      "cfg": 1
+    }
+  },
+  "s1": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "noise",
+        0
+      ],
+      "guider": [
+        "guide",
+        0
+      ],
+      "sampler": [
+        "sampler",
+        0
+      ],
+      "sigmas": [
+        "sigmas",
+        0
+      ],
+      "latent_image": [
+        "mask",
+        2
+      ]
+    }
+  },
+  "sep": {
+    "class_type": "LTXVSeparateAVLatent",
+    "inputs": {
+      "av_latent": [
+        "s1",
+        0
+      ]
+    }
+  },
+  "dv": {
+    "class_type": "VAEDecodeTiled",
+    "inputs": {
+      "samples": [
+        "sep",
+        0
+      ],
+      "vae": [
+        "vvae",
+        0
+      ],
+      "tile_size": 768,
+      "overlap": 64,
+      "temporal_size": 4096,
+      "temporal_overlap": 64
+    }
+  },
+  "backHead": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "dv",
+        0
+      ],
+      "batch_index": 61,
+      "length": 60
+    }
+  },
+  "backTail": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "dv",
+        0
+      ],
+      "batch_index": 0,
+      "length": 61
+    }
+  },
+  "join": {
+    "class_type": "BatchImagesNode",
+    "inputs": {
+      "images.image0": [
+        "backHead",
+        0
+      ],
+      "images.image1": [
+        "backTail",
+        0
+      ]
+    }
+  },
+  "out": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "images": [
+        "join",
+        0
+      ],
+      "frame_rate": 24,
+      "loop_count": 0,
+      "filename_prefix": "openfield/seam_regen",
+      "format": "video/h264-mp4",
+      "pingpong": false,
+      "save_output": true
+    }
+  }
+}

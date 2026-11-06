@@ -39,6 +39,11 @@ WEIGHTS = {
                "minimax_music3_text_encoder_pruned_int8_convrot.safetensors"],
     "qimg": ["qwen_image_2.1_int8_convrot.safetensors", "qwen3vl_8b_int8_convrot.safetensors"],
     "ace": ["acestep_v1.5_xl_turbo_bf16.safetensors", "qwen_4b_ace15.safetensors"],
+    "klein": ["flux3-image-klein-int8-convrot.safetensors", "qwen3vl_4b_int8_convrot.safetensors"],
+    "ltx": ["ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+            "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors"],
+    "layers": ["qwen_image_layered_bf16.safetensors|qwen_image_layered_fp8mixed.safetensors",
+               "qwen_2.5_vl_7b_fp8_scaled.safetensors"],
 }
 for _ws in WEIGHTS.values():
     core.apply_model_overrides(_ws)
@@ -120,7 +125,8 @@ def start(wait=True, timeout=240):
             with open(os.path.join(core.LOGS, "comfy_engine_out.log"), "a") as lf, \
                     open(os.path.join(core.LOGS, "comfy_engine_err.log"), "a") as ef:
                 subprocess.Popen(cmd, cwd=COMFY_ROOT, stdout=lf, stderr=ef, **pu.detached_kwargs(),
-                                 env=dict(os.environ, **{k: str(v) for k, v in (_CFG.get("comfy_env") or {}).items()}))  # e.g. HSA_OVERRIDE_GFX_VERSION
+                                 env=dict(os.environ, AIOHTTP_NOSENDFILE="1",   # CopyCat: seeks can stall /view on Windows
+                                          **{k: str(v) for k, v in (_CFG.get("comfy_env") or {}).items()}))  # e.g. HSA_OVERRIDE_GFX_VERSION
     if not wait:
         return True
     t0 = time.time()

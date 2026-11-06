@@ -1,0 +1,1109 @@
+{
+"acts": {
+"stand": {
+"cat": "basic",
+"desc": "stands, relaxed"
+},
+"sleep": {
+"cat": "basic",
+"desc": "asleep in bed"
+},
+"shock": {
+"cat": "react",
+"desc": "jolted, arms flung out"
+},
+"listen": {
+"cat": "react",
+"desc": "hand cupped to the ear"
+},
+"ears": {
+"cat": "react",
+"desc": "both hands at the ears"
+},
+"cover": {
+"cat": "react",
+"desc": "hands over the ears"
+},
+"flinch": {
+"cat": "react",
+"desc": "winces"
+},
+"heart": {
+"cat": "react",
+"desc": "hand on the chest"
+},
+"point": {
+"cat": "talk",
+"desc": "points at something"
+},
+"think": {
+"cat": "talk",
+"desc": "hand at the chin, thinking"
+},
+"explain": {
+"cat": "talk",
+"desc": "talks with open hands"
+},
+"talk": {
+"cat": "talk",
+"desc": "chats, one hand gesturing"
+},
+"celebrate": {
+"cat": "react",
+"desc": "arms up, celebrating"
+},
+"type": {
+"cat": "work",
+"desc": "types at a keyboard"
+},
+"shrug": {
+"cat": "talk",
+"desc": "shrugs"
+},
+"wave": {
+"cat": "talk",
+"desc": "waves hello / goodbye"
+},
+"phone": {
+"cat": "phone",
+"desc": "on a phone call, phone at the ear"
+},
+"text": {
+"cat": "phone",
+"desc": "texting, looking down at the phone"
+},
+"scroll": {
+"cat": "phone",
+"desc": "scrolls a phone, thumb flicking"
+},
+"selfie": {
+"cat": "phone",
+"desc": "takes a selfie, phone held out"
+},
+"drink": {
+"cat": "food",
+"desc": "drinks from a cup"
+},
+"eat": {
+"cat": "food",
+"desc": "eats with a fork, plate in hand"
+},
+"cook": {
+"cat": "food",
+"desc": "cooks at the stove, tossing the pan"
+},
+"read": {
+"cat": "work",
+"desc": "reads a book"
+},
+"write": {
+"cat": "work",
+"desc": "writes in a notebook"
+},
+"present": {
+"cat": "talk",
+"desc": "presents, palm toward a screen"
+},
+"carry": {
+"cat": "work",
+"desc": "carries a box"
+},
+"lift": {
+"cat": "sport",
+"desc": "lifts a barbell overhead"
+},
+"push": {
+"cat": "work",
+"desc": "pushes something heavy"
+},
+"pull": {
+"cat": "work",
+"desc": "pulls a rope"
+},
+"reach": {
+"cat": "work",
+"desc": "reaches up for something"
+},
+"knock": {
+"cat": "work",
+"desc": "knocks on a door"
+},
+"open": {
+"cat": "work",
+"desc": "opens a door"
+},
+"look": {
+"cat": "react",
+"desc": "looks far away, hand shading the eyes"
+},
+"search": {
+"cat": "react",
+"desc": "looks around, searching"
+},
+"clap": {
+"cat": "react",
+"desc": "claps"
+},
+"cheer": {
+"cat": "react",
+"desc": "fist pump, yes!"
+},
+"thumbs": {
+"cat": "react",
+"desc": "thumbs up"
+},
+"dance": {
+"cat": "fun",
+"desc": "dances"
+},
+"jump": {
+"cat": "sport",
+"desc": "jumps for joy"
+},
+"run": {
+"cat": "sport",
+"desc": "runs"
+},
+"jog": {
+"cat": "sport",
+"desc": "jogs"
+},
+"walk": {
+"cat": "basic",
+"desc": "walks"
+},
+"crawl": {
+"cat": "basic",
+"desc": "crawls on the ground on elbows and knees"
+},
+"climb": {
+"cat": "basic",
+"desc": "climbs a ladder / a wall"
+},
+"lie": {
+"cat": "basic",
+"desc": "lies on the ground, resting or hurt"
+},
+"limp": {
+"cat": "feel",
+"desc": "limps, wounded, a hand on the leg"
+},
+"wounded": {
+"cat": "feel",
+"desc": "clutches a wound, in pain"
+},
+"aim": {
+"cat": "war",
+"desc": "aims a rifle, steady"
+},
+"duck": {
+"cat": "react",
+"desc": "ducks, head down, hands over the head"
+},
+"sleepground": {
+"cat": "basic",
+"desc": "sleeps on the ground"
+},
+"sneak": {
+"cat": "fun",
+"desc": "sneaks on tiptoe"
+},
+"sit": {
+"cat": "basic",
+"desc": "sits on a chair"
+},
+"sitdesk": {
+"cat": "work",
+"desc": "sits at a desk typing"
+},
+"kneel": {
+"cat": "basic",
+"desc": "kneels"
+},
+"crouch": {
+"cat": "basic",
+"desc": "crouches low"
+},
+"cry": {
+"cat": "feel",
+"desc": "cries, face in hands"
+},
+"laugh": {
+"cat": "feel",
+"desc": "laughs out loud"
+},
+"facepalm": {
+"cat": "feel",
+"desc": "facepalm"
+},
+"worry": {
+"cat": "feel",
+"desc": "hands on the head, worried"
+},
+"panic": {
+"cat": "feel",
+"desc": "panics, arms flailing"
+},
+"tired": {
+"cat": "feel",
+"desc": "slumps, exhausted"
+},
+"yawn": {
+"cat": "feel",
+"desc": "yawns and stretches"
+},
+"stretch": {
+"cat": "feel",
+"desc": "stretches, arms up"
+},
+"cross": {
+"cat": "talk",
+"desc": "arms crossed"
+},
+"hips": {
+"cat": "talk",
+"desc": "hands on the hips"
+},
+"pray": {
+"cat": "feel",
+"desc": "hands together, praying / hoping"
+},
+"nod": {
+"cat": "talk",
+"desc": "nods yes"
+},
+"no": {
+"cat": "talk",
+"desc": "shakes the head no"
+},
+"salute": {
+"cat": "talk",
+"desc": "salutes"
+},
+"bow": {
+"cat": "talk",
+"desc": "bows"
+},
+"fall": {
+"cat": "feel",
+"desc": "trips and falls flat"
+},
+"hide": {
+"cat": "fun",
+"desc": "hides, peeking out"
+},
+"hug": {
+"cat": "people",
+"desc": "hugs someone"
+},
+"handshake": {
+"cat": "people",
+"desc": "shakes hands"
+},
+"give": {
+"cat": "people",
+"desc": "hands something over"
+},
+"receive": {
+"cat": "people",
+"desc": "receives something, palms up"
+},
+"throw": {
+"cat": "sport",
+"desc": "throws a ball"
+},
+"catch": {
+"cat": "sport",
+"desc": "catches"
+},
+"pet": {
+"cat": "people",
+"desc": "pets an animal"
+},
+"photo": {
+"cat": "fun",
+"desc": "takes a photo"
+},
+"sing": {
+"cat": "fun",
+"desc": "sings into a mic"
+},
+"guitar": {
+"cat": "fun",
+"desc": "plays the guitar"
+},
+"paint": {
+"cat": "fun",
+"desc": "paints on an easel"
+},
+"water": {
+"cat": "outdoor",
+"desc": "waters plants"
+},
+"dig": {
+"cat": "outdoor",
+"desc": "digs with a shovel"
+},
+"build": {
+"cat": "work",
+"desc": "hammers, building something"
+},
+"sweep": {
+"cat": "work",
+"desc": "sweeps the floor"
+},
+"fish": {
+"cat": "outdoor",
+"desc": "fishes with a rod"
+},
+"umbrella": {
+"cat": "outdoor",
+"desc": "walks in the rain under an umbrella"
+},
+"shiver": {
+"cat": "outdoor",
+"desc": "shivers in the cold"
+},
+"campfire": {
+"cat": "outdoor",
+"desc": "warms hands at a campfire"
+},
+"swim": {
+"cat": "sport",
+"desc": "swims"
+},
+"kick": {
+"cat": "sport",
+"desc": "kicks the ball into the goal (soccer)"
+},
+"dribble": {
+"cat": "sport",
+"desc": "dribbles a soccer ball"
+},
+"goalie": {
+"cat": "sport",
+"desc": "goalkeeper, arms spread"
+},
+"shoot": {
+"cat": "sport",
+"desc": "shoots a basketball at the hoop"
+},
+"box": {
+"cat": "fight",
+"desc": "boxes, punching"
+},
+"sword": {
+"cat": "fight",
+"desc": "fights with a sword"
+},
+"soldier": {
+"cat": "war",
+"desc": "a soldier on guard, rifle ready"
+},
+"fire": {
+"cat": "war",
+"desc": "fires a rifle from cover"
+},
+"charge": {
+"cat": "war",
+"desc": "charges into battle"
+},
+"takecover": {
+"cat": "war",
+"desc": "ducks for cover, hands on the helmet"
+},
+"march": {
+"cat": "war",
+"desc": "marches"
+},
+"drive": {
+"cat": "ride",
+"desc": "drives a car, hands on the wheel"
+},
+"passenger": {
+"cat": "ride",
+"desc": "rides as a passenger, looking out"
+},
+"bike": {
+"cat": "ride",
+"desc": "rides a bicycle"
+},
+"moto": {
+"cat": "ride",
+"desc": "rides a motorbike"
+},
+"horse": {
+"cat": "ride",
+"desc": "rides a horse"
+},
+"row": {
+"cat": "ride",
+"desc": "rows a boat"
+},
+"skate": {
+"cat": "ride",
+"desc": "skateboards"
+},
+"scooter": {
+"cat": "ride",
+"desc": "rides a kick scooter"
+},
+"bus": {
+"cat": "ride",
+"desc": "sits on a bus / train, city passing by"
+},
+"fly": {
+"cat": "ride",
+"desc": "flies a plane"
+},
+"wheelchair": {
+"cat": "ride",
+"desc": "in a wheelchair"
+}
+},
+"act_cats": [
+"basic",
+"react",
+"talk",
+"work",
+"phone",
+"food",
+"sport",
+"fun",
+"feel",
+"war",
+"people",
+"outdoor",
+"fight",
+"ride"
+],
+"species": {
+"dog": {
+"name": "Dog",
+"type": "quad",
+"tags": "pet puppy dog hound"
+},
+"puppy": {
+"name": "Puppy",
+"type": "quad",
+"tags": "puppy pet small dog"
+},
+"cat": {
+"name": "Cat",
+"type": "quad",
+"tags": "cat kitten pet"
+},
+"horse": {
+"name": "Horse",
+"type": "quad",
+"tags": "horse pony ride farm"
+},
+"cow": {
+"name": "Cow",
+"type": "quad",
+"tags": "cow cattle farm milk"
+},
+"sheep": {
+"name": "Sheep",
+"type": "quad",
+"tags": "sheep lamb wool farm"
+},
+"pig": {
+"name": "Pig",
+"type": "quad",
+"tags": "pig piglet farm"
+},
+"goat": {
+"name": "Goat",
+"type": "quad",
+"tags": "goat farm"
+},
+"fox": {
+"name": "Fox",
+"type": "quad",
+"tags": "fox wild forest"
+},
+"wolf": {
+"name": "Wolf",
+"type": "quad",
+"tags": "wolf wild forest howl"
+},
+"deer": {
+"name": "Deer",
+"type": "quad",
+"tags": "deer forest wild"
+},
+"rabbit": {
+"name": "Rabbit",
+"type": "quad",
+"tags": "rabbit bunny pet"
+},
+"mouse": {
+"name": "Mouse",
+"type": "quad",
+"tags": "mouse rat small"
+},
+"bear": {
+"name": "Bear",
+"type": "quad",
+"tags": "bear wild forest"
+},
+"lion": {
+"name": "Lion",
+"type": "quad",
+"tags": "lion king wild safari"
+},
+"tiger": {
+"name": "Tiger",
+"type": "quad",
+"tags": "tiger wild jungle"
+},
+"elephant": {
+"name": "Elephant",
+"type": "quad",
+"tags": "elephant safari zoo"
+},
+"giraffe": {
+"name": "Giraffe",
+"type": "quad",
+"tags": "giraffe safari zoo"
+},
+"zebra": {
+"name": "Zebra",
+"type": "quad",
+"tags": "zebra safari"
+},
+"monkey": {
+"name": "Monkey",
+"type": "quad",
+"tags": "monkey jungle zoo ape"
+},
+"camel": {
+"name": "Camel",
+"type": "quad",
+"tags": "camel desert"
+},
+"turtle": {
+"name": "Turtle",
+"type": "turtle",
+"tags": "turtle tortoise slow"
+},
+"frog": {
+"name": "Frog",
+"type": "frog",
+"tags": "frog pond"
+},
+"snake": {
+"name": "Snake",
+"type": "snake",
+"tags": "snake reptile"
+},
+"bird": {
+"name": "Songbird",
+"type": "bird",
+"tags": "bird sparrow songbird"
+},
+"pigeon": {
+"name": "Pigeon",
+"type": "bird",
+"tags": "pigeon city bird"
+},
+"chicken": {
+"name": "Chicken",
+"type": "bird",
+"tags": "chicken hen rooster farm"
+},
+"duck": {
+"name": "Duck",
+"type": "bird",
+"tags": "duck pond"
+},
+"owl": {
+"name": "Owl",
+"type": "bird",
+"tags": "owl night wise"
+},
+"eagle": {
+"name": "Eagle",
+"type": "bird",
+"tags": "eagle hawk bird of prey"
+},
+"parrot": {
+"name": "Parrot",
+"type": "bird",
+"tags": "parrot jungle"
+},
+"penguin": {
+"name": "Penguin",
+"type": "bird",
+"tags": "penguin ice cold"
+},
+"fish": {
+"name": "Fish",
+"type": "fish",
+"tags": "fish aquarium sea"
+},
+"shark": {
+"name": "Shark",
+"type": "fish",
+"tags": "shark ocean"
+},
+"whale": {
+"name": "Whale",
+"type": "fish",
+"tags": "whale ocean"
+},
+"butterfly": {
+"name": "Butterfly",
+"type": "fly",
+"tags": "butterfly garden"
+},
+"bee": {
+"name": "Bee",
+"type": "fly",
+"tags": "bee insect garden"
+},
+"dragon": {
+"name": "Dragon",
+"type": "quad",
+"tags": "dragon fantasy myth"
+},
+"dinosaur": {
+"name": "Dinosaur",
+"type": "quad",
+"tags": "dinosaur t-rex prehistoric"
+},
+"unicorn": {
+"name": "Unicorn",
+"type": "quad",
+"tags": "unicorn fantasy magic"
+}
+},
+"animal_acts": [
+"idle",
+"walk",
+"run",
+"sit",
+"sleep",
+"eat",
+"speak",
+"wag",
+"jump",
+"fly",
+"swim",
+"follow",
+"beg"
+],
+"items": [
+"phone",
+"cup",
+"plate",
+"fork",
+"pan",
+"book",
+"note",
+"pen",
+"letter",
+"box",
+"gift",
+"barbell",
+"rope",
+"ball",
+"bball",
+"camera",
+"mic",
+"guitar",
+"palette",
+"brush",
+"can",
+"shovel",
+"hammer",
+"broom",
+"rod",
+"umbrella",
+"glove",
+"sword",
+"rifle",
+"flowers",
+"bag",
+"briefcase",
+"key",
+"flashlight",
+"money",
+"trophy",
+"sign",
+"map",
+"tablet",
+"laptop"
+],
+"rides": [
+"car",
+"bike",
+"moto",
+"horse",
+"boat",
+"skate",
+"scooter",
+"bus",
+"plane",
+"wheelchair"
+],
+"pieces": [
+"chair",
+"desk",
+"stove",
+"door",
+"easel",
+"ladder",
+"crate",
+"fire",
+"water",
+"pool",
+"sandbags",
+"goal",
+"goalback",
+"hoop"
+],
+"hats": [
+"helmet",
+"helmetm",
+"hardhat",
+"cap",
+"chef",
+"police",
+"beanie",
+"tophat",
+"crown",
+"cowboy",
+"grad",
+"bubble"
+],
+"ambients": [
+"rain",
+"snow",
+"confetti",
+"war",
+"speed",
+"fireflies"
+],
+"vfx": {
+"explosion": {
+"desc": "a blast: flash, fireball, shockwave, flying debris, then smoke",
+"once": 3.2
+},
+"fire": {
+"desc": "flames burning on the spot, embers and a warm glow",
+"once": 0
+},
+"smoke": {
+"desc": "a thick column of grey smoke drifting up",
+"once": 0
+},
+"flood": {
+"desc": "water rising over the place, waves and floating debris",
+"once": 0
+},
+"lightning": {
+"desc": "a lightning strike with a white flash",
+"once": 1.4
+},
+"sparks": {
+"desc": "a shower of electric sparks",
+"once": 0
+},
+"dust": {
+"desc": "a cloud of dust rolling out (a collapse, a crash, a stampede)",
+"once": 4
+},
+"splash": {
+"desc": "a splash of water",
+"once": 1.6
+},
+"fireworks": {
+"desc": "fireworks bursting in the sky",
+"once": 0
+},
+"tornado": {
+"desc": "a twisting tornado of wind and debris",
+"once": 0
+},
+"meteor": {
+"desc": "a meteor streaking down and hitting the ground",
+"once": 4.2
+},
+"magic": {
+"desc": "glowing magic sparkles swirling",
+"once": 0
+},
+"steam": {
+"desc": "white steam or mist rising",
+"once": 0
+},
+"quake": {
+"desc": "an earthquake: cracks spread and dust rises (the frame shakes)",
+"once": 0
+},
+"bubbles": {
+"desc": "bubbles floating up (underwater, chemistry, joy)",
+"once": 0
+}
+},
+"looks": {
+"gender": [
+"man",
+"woman",
+"child"
+],
+"skin": [
+"light",
+"medium",
+"tan",
+"deep"
+],
+"hair": [
+"short",
+"long",
+"bun",
+"curly",
+"bald",
+"ponytail",
+"side",
+"afro",
+"braids",
+"spiky"
+],
+"color": [
+"graphite",
+"steel",
+"silver",
+"bronze",
+"champagne",
+"gold",
+"charcoal",
+"olive",
+"teal",
+"navy",
+"ember",
+"white"
+],
+"outfit": [
+"blazer",
+"suit",
+"dress",
+"labcoat",
+"apron",
+"hoodie",
+"sweater",
+"tshirt",
+"jersey",
+"scrubs",
+"uniform",
+"chef",
+"overalls",
+"coat",
+"robe",
+"military",
+"space",
+"gown"
+],
+"hat": [
+"helmet",
+"helmetm",
+"hardhat",
+"cap",
+"chef",
+"police",
+"beanie",
+"tophat",
+"crown",
+"cowboy",
+"grad",
+"bubble"
+]
+},
+"worlds": {
+"city": {
+"name": "Night city",
+"about": "a tiny isometric night city: towers, streets, an apartment, an office, a lab, a cafe, a rooftop"
+},
+"countryside": {
+"name": "Countryside",
+"about": "farmland at dusk: fields, barns, hay, fences, windmills, a farmhouse, cows and chickens"
+},
+"forest": {
+"name": "Forest",
+"about": "a deep forest at night: tall pines, a river, a campsite, a cabin, logs, mushrooms, fireflies, deer and owls"
+},
+"beach": {
+"name": "Beach & coast",
+"about": "a sunset coast: sand, the sea, palm trees, parasols, a pier, a lighthouse, boats, gulls"
+},
+"desert": {
+"name": "Desert",
+"about": "a desert at golden hour: dunes, cacti, rocks, an oasis, tents, camels"
+},
+"snow": {
+"name": "Snowy mountains",
+"about": "snowy mountains in winter: pines under snow, a ski lodge, cabins, frozen lake, snowmen, wolves"
+},
+"war": {
+"name": "Battlefield",
+"about": "a war-torn battlefield: trenches, craters, ruins, barbed wire, sandbags, tanks, smoke and distant flashes"
+},
+"moon": {
+"name": "Moon base",
+"about": "the surface of the moon: grey dust, craters, domes, a rocket, antennas, flags, Earth in the black sky, astronauts"
+},
+"medieval": {
+"name": "Medieval kingdom",
+"about": "a medieval town at night: cottages, a castle with towers and walls, a market, a well, torches, horses, knights and villagers"
+},
+"jungle": {
+"name": "Jungle",
+"about": "a steamy jungle: giant trees, a river, ancient temple ruins, vines, monkeys, parrots, tigers, snakes"
+},
+"ocean": {
+"name": "Open ocean",
+"about": "the open sea: islands with palms, ships, a lighthouse, icebergs, whales and sharks"
+}
+},
+"props": [
+"box",
+"table",
+"desk",
+"counter",
+"shelf",
+"bed",
+"chair",
+"sofa",
+"bench",
+"screen",
+"board",
+"window",
+"rack",
+"machine",
+"console",
+"tank",
+"pillar",
+"pipe",
+"lamp",
+"light",
+"plant",
+"tree",
+"bush",
+"rail",
+"sign",
+"sphere",
+"crate",
+"stage",
+"podium",
+"ring",
+"dish",
+"car",
+"boat",
+"patch",
+"court",
+"rock",
+"cactus",
+"palm",
+"pine",
+"tent",
+"campfire",
+"fence",
+"hay",
+"barrel",
+"crater",
+"wire",
+"sandbag",
+"ruin",
+"dome",
+"rocket",
+"flag",
+"torch",
+"well",
+"cart",
+"log",
+"hut",
+"house",
+"tower",
+"wallc",
+"snowman",
+"parasol",
+"crop",
+"ship",
+"fountain",
+"stump",
+"mushroom",
+"dune",
+"armor",
+"stall",
+"statue",
+"iceberg",
+"lighthouse",
+"windmill",
+"temple",
+"bigtree"
+],
+"floors": [
+"tile",
+"wood",
+"carpet",
+"concrete",
+"grass",
+"sand",
+"water",
+"mud",
+"snow",
+"dirt",
+"cobble",
+"moon",
+"ice",
+"leaf",
+"deck"
+],
+"places": {
+"apartment": [
+"bed",
+"desk",
+"fridge",
+"clock",
+"window",
+"center"
+],
+"office": [
+"desk",
+"screen",
+"table",
+"coffee",
+"window",
+"center"
+],
+"lab": [
+"bench",
+"microscope",
+"machine",
+"screen",
+"center"
+],
+"cafe": [
+"counter",
+"table",
+"window",
+"center"
+],
+"street": [
+"lamp",
+"car",
+"bench",
+"crossing",
+"stop",
+"center"
+],
+"rooftop": [
+"edge",
+"dish",
+"tank",
+"center"
+]
+}
+}

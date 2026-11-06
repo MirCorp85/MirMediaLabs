@@ -12,26 +12,32 @@
     if (o.body && typeof o.body !== 'string') { o.body = JSON.stringify(o.body); o.headers = { 'Content-Type': 'application/json' }; }
     return fetch(u, o).then(function (r) { return r.json().then(function (j) { if (!r.ok || j.error) throw new Error(j.error || r.status); return j; }); });
   }
-  function toast(t) { var d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 3200); }
+  function toast(t) { var d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(function () { d.remove(); }, Math.max(3200, String(t).length * 70)); }
   function fmt(n) { n = +n || 0; return n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n); }
   function when(ts) { return ts ? new Date(ts * 1000).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; }
   function last(p, plat) { var h = (p.metrics || {})[plat]; return h && h.length ? h[h.length - 1] : null; }
 
   function load() {
     return Promise.all([api('api/social/stats'), api('api/social/posts')]).then(function (r) {
-      STATS = r[0]; POSTS = r[1].posts; AN = null;
+      STATS = r[0]; POSTS = r[1].posts; if (AN && Date.now() - AN._t > 120000) AN = null;   // analytics is heavy: refresh every 2 min
       $('#acct-ig').classList.toggle('on', STATS.accounts.instagram.connected);
       $('#acct-yt').classList.toggle('on', STATS.accounts.youtube.connected);
       var tb = $('#acct-tt'); if (tb) tb.classList.toggle('on', !!(STATS.accounts.tiktok || {}).connected);
       var fbb = $('#acct-fb'); if (fbb) fbb.classList.toggle('on', !!(STATS.accounts.facebook || {}).connected);
       render();
-    }).catch(function (e) { $('#view').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; });
+      clearTimeout(load.prep);                   // a post is still being formatted → check again soon, not in 20 s
+      if (POSTS.some(function (p) { return p.status === 'preparing'; })) load.prep = setTimeout(function again() { if (canRefresh()) load(); else load.prep = setTimeout(again, 4000); }, 4000);
+    }).catch(function (e) {                      // server restarting / phone switching networks: keep what's shown and retry
+      if (!STATS) $('#view').innerHTML = '<div class="empty">' + esc(e.message) + ' — retrying…</div>';
+      clearTimeout(load.retry); load.retry = setTimeout(load, 5000);
+    });
   }
 
-  function card(p) {
+  function card(p, sub) {
     var m = '';
     ['instagram', 'youtube', 'tiktok', 'facebook'].forEach(function (pl) {
       var x = last(p, pl), r = (p.remote || {})[pl];
+      if (r && r.inbox && !/^\d+$/.test(r.id || '')) { m += '<span>TT sent to your TikTok inbox — publish it in the TikTok app' + (p.video_url ? ' · not there? <a href="' + esc(p.video_url) + '" download="' + p.id + '.mp4" style="color:var(--acc)">save video</a> and upload it by hand — it links back here on its own' : '') + '</span>'; return; }   // real video id arrives once it's posted
       if (r) m += '<span>' + ({ instagram: 'IG', youtube: 'YT', tiktok: 'TT', facebook: 'FB' })[pl] + ' <a href="' + esc(r.url) + '" target="_blank" style="color:var(--acc)">open</a>' +
         (x ? ' · <b>' + fmt(x.views || x.plays) + '</b> views · <b>' + fmt(x.likes) + '</b> likes' + (x.shares != null ? ' · <b>' + fmt(x.shares) + '</b> shares' : '') : '') + '</span>';
     });
@@ -44,10 +50,14 @@
     else if (p.status === 'published') a = '<button class="sb" data-a="metrics">' + mi('refresh') + ' Refresh stats</button>' +
       (p.video_url ? '<button class="sb" data-a="repost" title="Post this video again on another platform">' + mi('forward') + ' Repost</button>' : '');
     a += '<span class="sp"></span><button class="sb ic bad" data-a="delete" title="Delete">' + mi('trash') + '</button>';
+    var st = '<span class="st ' + p.status + '">' + esc(p.status) + (p.schedule_at && p.status === 'scheduled' ? ' · ' + when(p.schedule_at) : '') + '</span>';
+    if (sub) return '<div class="card sub" data-id="' + p.id + '"><div class="meta"><div class="why">' + mi('forward') + ' repost · ' + pchips(p.platforms) + ' ' + st +
+      (p.published_at ? ' · ' + esc(when(p.published_at)) : '') + '</div>' + (p.error ? '<div class="why" style="color:var(--bad)">' + esc(p.error) + '</div>' : '') +
+      '<div class="mx">' + m + '</div></div><div class="act">' + a + '</div></div>';
     return '<div class="card" data-id="' + p.id + '"><div class="media">' +
       (p.video_url ? '<div class="pvw" data-pv="' + p.id + '" title="Preview"><img class="cv" src="' + esc(p.cover_url) + '" alt=""><span class="play">' + mi('play') + '</span></div>' : '<img class="cv" alt="">') +
-      '<div class="meta"><span class="st ' + p.status + '">' + esc(p.status) + (p.schedule_at && p.status === 'scheduled' ? ' · ' + when(p.schedule_at) : '') + '</span>' +
-      (p.status === 'preparing' ? '<div class="why">VIRAL-Ω is formatting to 9:16 and writing the copy…</div>' : '') +
+      '<div class="meta">' + steps(p) + st +
+      (p.status === 'preparing' ? '<div class="why">VIRAL-Ω is formatting to 9:16 and writing the copy…</div><div class="prep"><i></i></div>' : '') +
       '<div class="hook">' + esc(p.hook || p.yt_title || '') + '</div><div class="cap">' + esc(p.caption || '') + '</div>' +
       '<div class="tags">' + (p.hashtags || []).map(function (h) { return '#' + esc(h); }).join(' ') + '</div>' +
       (p.why ? '<div class="why">' + esc(p.why) + '</div>' : '') + (p.error ? '<div class="why" style="color:var(--bad)">' + esc(p.error) + '</div>' : '') +
@@ -56,6 +66,19 @@
       ((p.reposts || []).length ? ' · reposted ×' + p.reposts.length : '') + '</div></div></div>' +
       (window.VIRAL ? VIRAL.cardExtra(p) : '') + '<div class="act">' + a + '</div></div>';
   }
+
+  // every post of the same video (reposts + other drafts of the same library file) stays together as ONE card
+  function famKey(p) {
+    for (var i = 0; p.repost_of && i < 9; i++) { var o = POSTS.find(function (x) { return x.id === p.repost_of; }); if (!o) break; p = o; }
+    return p.library_ref || p.id;
+  }
+  function families(list) {                 // keeps list order (by each video's first post in it); original first inside
+    var by = {}, out = [];
+    list.forEach(function (p) { var k = famKey(p); if (!by[k]) out.push(by[k] = []); by[k].push(p); });
+    out.forEach(function (f) { f.sort(function (a, b) { return (a.created || 0) - (b.created || 0); }); });
+    return out;
+  }
+  function famCard(f) { return f.length < 2 ? card(f[0]) : '<div class="fam">' + card(f[0]) + f.slice(1).map(function (p) { return card(p, true); }).join('') + '</div>'; }
 
   function render() {
     document.querySelectorAll('.so-tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.v === VIEW); });
@@ -70,7 +93,7 @@
       h = '<div class="row" style="margin-bottom:12px"><span class="dim" style="color:var(--faint);flex:1">' +
         (live ? live + ' live post' + (live > 1 ? 's' : '') + ' — pull the latest views, likes & shares from every platform.' : 'Scheduled & published posts. Live stats appear once a post goes up.') + '</span>' +
         (live ? '<button class="sb pri" id="refresh-all">' + mi('refresh') + ' Refresh all stats</button>' : '') + '</div>' +
-        (s.length ? '<div class="grid">' + s.map(card).join('') + '</div>' : '<div class="empty">Nothing scheduled yet.</div>');
+        (s.length ? '<div class="grid">' + families(s).map(famCard).join('') + '</div>' : '<div class="empty">Nothing scheduled yet.</div>');
     }     else if (VIEW === 'analytics') h = analytics();
     else if (VIEW === 'skills') h = skillsView();
     else if (VIEW === 'overview') h = overview();
@@ -140,7 +163,7 @@
 
   var AN = null;
   function analytics() {
-    if (!AN) { api('api/social/analytics').then(function (j) { AN = j; render(); }).catch(function (e) { toast(e.message); }); return '<div class="empty">Loading analytics…</div>'; }
+    if (!AN) { getAN(); return '<div class="empty">Loading analytics…</div>'; }
     var f = AN.followers, t = STATS.totals, ps = AN.posts, lf = f.length ? f[f.length - 1] : {}, ff = f.length ? f[0] : {};
     var dl = function (k) { return lf[k] != null && ff[k] != null ? lf[k] - ff[k] : null; };
     var eng = ps.length ? ps.reduce(function (a, p) { return a + p.eng; }, 0) / ps.length : 0;
@@ -148,9 +171,10 @@
       ['Shares', t.shares], ['Saves', t.saved], ['Avg engagement', eng ? eng.toFixed(1) + '%' : null], ['Median views/post', AN.median_views]];
     var recent = ps.slice(-5), last30 = ps.slice(-30), off = ps.length - last30.length;
     var plats = Object.keys(AN.platforms).map(function (k) { return { name: PNAME[k] || k, value: AN.platforms[k].views, color: PCOL[k] || C.acc }; });
+    var sk = { 'IG followers': ['instagram', C.ig], 'YT subscribers': ['youtube', C.yt], 'TikTok followers': ['tiktok', C.tt] };
     return '<div class="kpis">' + kp.map(function (k) {
-        return '<div class="kpi"><small>' + k[0] + '</small><b>' + (k[1] == null ? '—' : typeof k[1] === 'string' ? k[1] : fmt(k[1])) + '</b>' +
-          (k[2] != null ? '<em class="' + (k[2] >= 0 ? 'up' : 'down') + '">' + (k[2] >= 0 ? '+' : '') + fmt(k[2]) + '</em>' : '') + '</div>'; }).join('') + '</div>' +
+        var z = sk[k[0]]; return tile(k[0], k[1], { delta: k[2], color: z && z[1], spark: z && spark(fser(f, z[0]), z[1]) }); }).join('') + '</div>' +
+      '<div class="box"><h3>Posting activity <span class="hint">last 16 weeks · consistency drives reach</span></h3>' + activity(ps, 16) + '</div>' +
       '<div class="g2"><div class="box"><h3>Audience growth</h3>' + lines([{ name: 'Instagram followers', color: C.ig, pts: fser(f, 'instagram') }, { name: 'YouTube subscribers', color: C.yt, pts: fser(f, 'youtube') }, { name: 'TikTok followers', color: C.tt, pts: fser(f, 'tiktok') }]) + '</div>' +
       '<div class="box"><h3>Views by platform</h3>' + donut(plats) + '</div></div>' +
       '<div class="box"><h3>Views per post <span class="hint">green = beat your median</span></h3>' + bars(last30.map(function (p, i) { return { label: '#' + (off + i + 1), value: p.views, color: p.views >= AN.median_views ? C.ok : C.acc, title: p.hook + ' · ' + fmt(p.views) + ' views' }; }), { ref: AN.median_views }) + '</div>' +
@@ -164,19 +188,136 @@
       '<div class="box"><h3>Weekly report</h3><div id="rep" class="cap" style="max-height:none"></div><button class="sb" id="report">' + mi('book') + ' Write this week’s report</button></div>';
   }
 
+  var STAGES = [['preparing', 'Preparing', 'hourglass', 'queue'], ['draft', 'Needs approval', 'check-circle', 'queue'], ['scheduled', 'Scheduled', 'clock', 'calendar'], ['published', 'Live', 'live', 'analytics']];
+  function steps(p) {                        // where this post is in the flow: Preparing → Approval → Scheduled → Live
+    var i = { preparing: 0, draft: 1, failed: 1, rejected: 1, scheduled: 2, approved: 2, publishing: 2, published: 3 }[p.status];
+    if (i == null) return '';
+    return '<div class="steps">' + STAGES.map(function (st, n) { return '<span class="' + (n < i ? 'done' : n === i ? 'now' + (/failed|rejected/.test(p.status) ? ' bad' : '') : '') + '" title="' + st[1] + '"></span>'; }).join('') + '</div>';
+  }
+  function getAN() {
+    if (getAN.busy) return; getAN.busy = 1;
+    api('api/social/analytics').then(function (j) { j._t = Date.now(); AN = j; getAN.busy = 0; if (VIEW === 'overview' || VIEW === 'analytics') render(); })
+      .catch(function (e) { getAN.busy = 0; toast(e.message); });
+  }
+  function spark(pts, color) {               // tiny trend line for a KPI tile
+    if (!pts || pts.length < 2) return '';
+    var ys = pts.map(function (p) { return p[1]; }), y0 = Math.min.apply(0, ys), y1 = Math.max.apply(0, ys), x0 = pts[0][0], x1 = pts[pts.length - 1][0];
+    if (y1 === y0) { y1 += 1; y0 -= 1; }
+    var d = pts.map(function (p, i) { return (i ? 'L' : 'M') + (2 + (p[0] - x0) / ((x1 - x0) || 1) * 96).toFixed(1) + ' ' + (26 - (p[1] - y0) / (y1 - y0) * 22).toFixed(1); }).join(' ');
+    return '<svg class="spk" viewBox="0 0 100 28" preserveAspectRatio="none"><path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>';
+  }
+  function tile(label, value, opt) {
+    opt = opt || {};
+    var d = opt.delta;
+    return '<div class="kpi' + (opt.go ? ' click" data-go="' + opt.go : '') + '"' + (opt.color ? ' style="--kc:' + opt.color + '"' : '') + '>' +
+      '<small>' + (opt.icon ? mi(opt.icon) + ' ' : '') + label + '</small><b>' + (value == null ? '—' : typeof value === 'string' ? value : fmt(value)) + '</b>' +
+      (d != null && d !== 0 ? '<em class="' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '+' : '') + fmt(d) + (opt.dlabel ? ' ' + opt.dlabel : '') + '</em>' : opt.sub ? '<em>' + esc(opt.sub) + '</em>' : '') +
+      (opt.spark || '') + '</div>';
+  }
+  function pchips(pl) { return (pl || []).map(function (x) { return '<span class="pc" style="--pc:' + (PCOL[x] || 'var(--acc)') + '">' + ({ instagram: 'IG', youtube: 'YT', tiktok: 'TT', facebook: 'FB' }[x] || x) + '</span>'; }).join(''); }
+  function since(f, k, days) {               // follower change over the last N days
+    var cut = Date.now() / 1000 - days * 86400, s = f.filter(function (r) { return r[k] != null; });
+    if (s.length < 2) return null;
+    var base = s.filter(function (r) { return r.t <= cut; }).pop() || s[0];
+    return s[s.length - 1][k] - base[k];
+  }
+  function stacked(cols, h) {                // views per day, one segment per platform
+    h = h || 170;
+    var mx = Math.max.apply(0, cols.map(function (c) { return c.total; })) || 0;
+    if (!mx) return nodata('No views in this window yet.');
+    var bw = 550 / cols.length, g = '';
+    for (var i = 1; i <= 3; i++) { var yv = mx * i / 3, y = h - 22 - yv / mx * (h - 34); g += '<line x1="40" x2="590" y1="' + y + '" y2="' + y + '" class="gl"/><text x="34" y="' + (y + 4) + '" class="ax" text-anchor="end">' + fmt(Math.round(yv)) + '</text>'; }
+    return '<svg class="ch" viewBox="0 0 600 ' + h + '">' + g + cols.map(function (c, i) {
+      var x = 40 + i * bw + bw * 0.16, y = h - 22, out = '';
+      Object.keys(PCOL).concat(['other']).forEach(function (k) {
+        var v = c.by[k] || 0; if (!v) return;
+        var bh = v / mx * (h - 34); y -= bh;
+        out += '<rect x="' + x + '" y="' + y + '" width="' + bw * 0.68 + '" height="' + bh + '" fill="' + (PCOL[k] || 'var(--faint)') + '"><title>' + esc(c.label + ' · ' + (PNAME[k] || 'Other') + ': ' + fmt(v)) + '</title></rect>';
+      });
+      return out + '<text x="' + (x + bw * 0.34) + '" y="' + (h - 8) + '" class="ax" text-anchor="middle">' + esc(c.label) + '</text>';
+    }).join('') + '</svg>' + legend(Object.keys(PCOL).map(function (k) { return { name: PNAME[k], color: PCOL[k] }; }));
+  }
+  function dayKey(t) { var d = new Date(t * 1000); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); }
+  function viewsByDay(ps, n) {
+    var cols = [], idx = {};
+    for (var i = n - 1; i >= 0; i--) {
+      var d = new Date(Date.now() - i * 86400e3), k = dayKey(d.getTime() / 1000);
+      idx[k] = cols.length; cols.push({ label: i === 0 ? 'today' : (n > 10 ? String(d.getDate()) : d.toLocaleDateString([], { weekday: 'short' })), by: {}, total: 0 });
+    }
+    ps.forEach(function (p) {
+      var c = cols[idx[dayKey(p.t)]]; if (!c) return;
+      var got = 0;
+      Object.keys(p.curve || {}).forEach(function (pl) { var cv = p.curve[pl]; if (cv && cv.length) { var v = cv[cv.length - 1].views || 0; c.by[pl] = (c.by[pl] || 0) + v; got += v; } });
+      if (p.views > got) c.by.other = (c.by.other || 0) + p.views - got;
+      c.total += Math.max(p.views, got);
+    });
+    return cols;
+  }
+  function activity(ps, weeks) {             // GitHub-style posting calendar
+    var cnt = {}; ps.forEach(function (p) { var k = dayKey(p.t); cnt[k] = (cnt[k] || 0) + 1; });
+    var now = new Date(), start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() - (weeks - 1) * 7), cells = '', streak = 0;
+    for (var i = 0; i < weeks * 7; i++) {
+      var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      if (d > now) { cells += '<i class="fut"></i>'; continue; }
+      var n = cnt[dayKey(d.getTime() / 1000)] || 0;
+      cells += '<i class="l' + Math.min(3, n) + '" title="' + d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' + n + ' post' + (n === 1 ? '' : 's') + '"></i>';
+    }
+    for (var j = 0; j < 365; j++) { if (cnt[dayKey(Date.now() / 1000 - j * 86400)]) streak++; else if (j) break; }
+    return '<div class="cal" style="grid-template-columns:repeat(' + weeks + ',15px)">' + cells + '</div>' +
+      '<div class="lg"><span>Less</span><span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i></span><span>More</span><span class="sp"></span><span>' + (streak ? '<b>' + streak + '</b>-day posting streak' : 'No post today yet') + '</span></div>';
+  }
+
   function overview() {
+    if (!AN) getAN();
     var c = STATS.counts, t = STATS.totals, f = STATS.followers || [], lf = f.length ? f[f.length - 1] : {}, a = STATS.accounts;
     var ideas = (STATS.ideas || {}).ideas || [];
-    var need = POSTS.filter(function (p) { return p.status === 'draft'; });
-    var next = POSTS.filter(function (p) { return p.status === 'scheduled'; }).sort(function (x, y) { return x.schedule_at - y.schedule_at; })[0];
-    var miss = [!a.instagram.connected && 'Instagram', !a.youtube.connected && 'YouTube'].filter(Boolean);
+    var need = POSTS.filter(function (p) { return p.status === 'draft' || p.status === 'failed'; });
+    var sched = POSTS.filter(function (p) { return /scheduled|approved|publishing/.test(p.status); }).sort(function (x, y) { return (x.schedule_at || 0) - (y.schedule_at || 0); });
+    var miss = [!a.instagram.connected && 'Instagram', !a.youtube.connected && (a.youtube.expired ? 'YouTube (sign-in expired)' : 'YouTube')].filter(Boolean);
+    var eng = t.views ? ((t.likes + t.comments + t.shares + t.saved) / t.views * 100).toFixed(1) + '%' : null;
+    var ps = AN ? AN.posts : [], wk = Date.now() / 1000 - 7 * 86400;
+    var v7 = ps.filter(function (p) { return p.t >= wk; }).reduce(function (s, p) { return s + p.views; }, 0);
+
+    var pipe = '<div class="pipe">' + STAGES.map(function (st, i) {
+      var list = POSTS.filter(function (p) { return st[0] === 'draft' ? /draft|failed/.test(p.status) : st[0] === 'scheduled' ? /scheduled|approved|publishing/.test(p.status) : p.status === st[0]; })
+        .sort(function (x, y) { return (y.updated || 0) - (x.updated || 0); });
+      var n = st[0] === 'published' ? c.published : list.length, failed = st[0] === 'draft' ? c.failed : 0;
+      return (i ? '<span class="arr">' + mi('chevron-right') + '</span>' : '') +
+        '<div class="stage ' + st[0] + (n ? ' has' : '') + '" data-go="' + st[3] + '"><div class="sh">' + mi(st[2]) + '<span>' + st[1] + '</span><b>' + (n || 0) + '</b></div>' +
+        '<div class="th">' + (list.slice(0, 3).map(function (p) { return '<img src="' + esc(p.cover_url) + '" alt="" title="' + esc(p.hook || '') + '">'; }).join('') || '<span class="none">—</span>') + '</div>' +
+        (st[0] === 'preparing' && n ? '<div class="prep"><i></i></div>' : '') + (failed ? '<div class="why" style="color:var(--bad)">' + failed + ' failed</div>' : '') + '</div>';
+    }).join('') + '</div>';
+
+    var kp = '<div class="kpis">' +
+      tile('Instagram', lf.instagram, { color: PCOL.instagram, go: 'analytics', delta: since(f, 'instagram', 7), dlabel: '7d', spark: spark(fser(f, 'instagram'), PCOL.instagram), sub: 'followers' }) +
+      tile('YouTube', lf.youtube, { color: PCOL.youtube, go: 'analytics', delta: since(f, 'youtube', 7), dlabel: '7d', spark: spark(fser(f, 'youtube'), PCOL.youtube), sub: 'subscribers' }) +
+      tile('TikTok', lf.tiktok, { color: PCOL.tiktok, go: 'analytics', delta: since(f, 'tiktok', 7), dlabel: '7d', spark: spark(fser(f, 'tiktok'), PCOL.tiktok), sub: 'followers' }) +
+      tile('Views · 7 days', AN ? v7 : null, { icon: 'eye', go: 'analytics', sub: fmt(t.views) + ' all time' }) +
+      tile('Engagement', eng, { icon: 'heart', go: 'analytics', sub: fmt(t.likes) + ' likes · ' + fmt(t.shares) + ' shares' }) +
+      tile('Published', c.published, { icon: 'send', go: 'calendar', sub: AN ? 'median ' + fmt(AN.median_views) + ' views' : '' }) + '</div>';
+
+    var top = ps.slice().sort(function (x, y) { return y.views - x.views; })[0];
+    var plats = AN ? Object.keys(AN.platforms).map(function (k) { return { name: PNAME[k] || k, value: AN.platforms[k].views, color: PCOL[k] || C.acc }; }) : [];
+    var wait = '<div class="nodata">Loading charts…</div>';
+
     return (miss.length ? '<div class="warnb">' + mi('warn') + ' ' + miss.join(' and ') + ' not connected — <a href="#" data-go="accounts">connect in Accounts</a></div>' : '') +
-      '<div class="kpis">' + [['Awaiting approval', c.draft, 'queue'], ['Scheduled', c.scheduled, 'calendar'], ['Published', c.published, 'calendar'], ['IG followers', lf.instagram, 'analytics'], ['YT subscribers', lf.youtube, 'analytics'], ['Total views', t.views, 'analytics']]
-        .map(function (k) { return '<div class="kpi click" data-go="' + k[2] + '"><small>' + k[0] + '</small><b>' + (k[1] == null ? '—' : fmt(k[1])) + '</b></div>'; }).join('') + '</div>' +
-      '<div class="g2"><div class="box"><h3>Needs you</h3>' + (need.length ? need.slice(0, 4).map(function (p) {
-        return '<div class="tp"><img src="' + esc(p.cover_url) + '" alt=""><span class="tt">' + esc(p.hook || '') + '<small>' + (p.platforms || []).join(' + ') + '</small></span><button class="sb ok" data-ap="' + p.id + '">' + mi('check') + ' Approve</button></div>'; }).join('') : nodata('Nothing waiting. Make something in the lab and say “post it”.')) +
-      (next ? '<div class="why" style="margin-top:10px">Next post: ' + esc(next.hook || '') + ' · ' + when(next.schedule_at) + '</div>' : '') + '</div>' +
-      '<div class="box"><h3>Audience</h3>' + lines([{ name: 'Instagram', color: C.ig, pts: fser(f, 'instagram') }, { name: 'YouTube', color: C.yt, pts: fser(f, 'youtube') }, { name: 'TikTok', color: C.tt, pts: fser(f, 'tiktok') }], 140) + '</div></div>' +
+      '<h2 class="sec">' + mi('layers') + ' Your posts right now <span class="hint">click a stage to open it</span></h2>' + pipe +
+      '<h2 class="sec">' + mi('finance') + ' How you’re doing</h2>' + kp +
+      '<div class="g2 wide"><div class="box"><h3>Views by day <span class="hint">last 14 days · by the day a post went up</span></h3>' + (AN ? stacked(viewsByDay(ps, 14)) : wait) + '</div>' +
+      '<div class="box"><h3>Where views come from</h3>' + (AN ? donut(plats) : wait) + '</div></div>' +
+      '<div class="g3"><div class="box"><h3>Needs you</h3>' + (need.length ? need.slice(0, 4).map(function (p) {
+          return '<div class="tp"><img src="' + esc(p.cover_url) + '" alt=""><span class="tt">' + esc(p.hook || p.yt_title || 'Untitled') + '<small>' + pchips(p.platforms) + (p.status === 'failed' ? ' <span style="color:var(--bad)">failed</span>' : '') + '</small></span><button class="sb ok" data-ap="' + p.id + '" title="Approve">' + mi('check') + '</button></div>'; }).join('') +
+          (need.length > 4 ? '<a href="#" class="more" data-go="queue">+' + (need.length - 4) + ' more in Queue</a>' : '') : nodata('Nothing waiting. Make something in the lab and say “post it”.')) + '</div>' +
+        '<div class="box"><h3>Up next</h3>' + (sched.length ? '<div class="tl">' + families(sched).slice(0, 5).map(function (f) {
+          var p = f[0], pl = [], at = Math.min.apply(null, f.map(function (q) { return q.schedule_at || Infinity; }));
+          f.forEach(function (q) { (q.platforms || []).forEach(function (x) { if (pl.indexOf(x) < 0) pl.push(x); }); });
+          return '<div class="ti"><span class="dot"></span><div><b>' + esc((isFinite(at) && when(at)) || 'queued') + '</b><div class="tt">' + esc(p.hook || p.yt_title || '') + '</div><small>' + pchips(pl) + '</small></div></div>'; }).join('') + '</div>' : nodata('Nothing scheduled. Approve a draft to queue it.')) + '</div>' +
+        '<div class="box"><h3>Top post</h3>' + (top ? '<div class="spot"><img src="' + esc(top.cover) + '" alt=""><div><div class="hook">' + esc(top.hook) + '</div><div class="big">' + fmt(top.views) + '<small> views</small></div>' +
+          '<div class="mx"><span><b>' + fmt(top.likes) + '</b> likes</span><span><b>' + fmt(top.shares) + '</b> shares</span><span><b>' + top.eng + '%</b> eng</span></div>' +
+          (top.pillar && top.pillar.length > 1 ? '<div class="why">' + esc(top.pillar) + '</div>' : '') + '</div></div>' : AN ? nodata('No published posts yet.') : wait) + '</div></div>' +
+      '<div class="g2 wide"><div class="box"><h3>Posting activity <span class="hint">last 12 weeks</span></h3>' + (AN ? activity(ps, 12) : wait) + '</div>' +
+      '<div class="box"><h3>Audience growth</h3>' + lines([{ name: 'Instagram', color: C.ig, pts: fser(f, 'instagram') }, { name: 'YouTube', color: C.yt, pts: fser(f, 'youtube') }, { name: 'TikTok', color: C.tt, pts: fser(f, 'tiktok') }], 140) + '</div></div>' +
+      '<h2 class="sec">' + mi('agent') + ' VIRAL-Ω’s take</h2><!--brief-->' +
       '<div class="box"><h3>VIRAL-Ω suggests</h3>' + (ideas.length ? ideas.map(function (i, n) { return '<div class="idea"><b>' + esc(i.title) + '</b> — ' + esc(i.hook) + ' <button class="sb" data-make="' + n + '">' + mi('sparkle') + ' Make</button></div>'; }).join('') : nodata('No ideas yet — open the VIRAL-Ω tab.')) + '</div>';
   }
 
@@ -233,10 +374,10 @@
       '<label class="f">Instagram app secret (optional — only needed for short 1-hour tokens)</label><input class="t" id="ig-sec" type="password" autocomplete="off">' +
       '<label class="f">Public https address of this lab (Instagram downloads the video from here)</label><input class="t" id="pub" placeholder="https://your-lab.example.com">' +
       '<div class="row" style="margin-top:10px"><button class="sb pri" id="ig-save">Connect Instagram</button></div></div>' +
-      '<div class="box"><h3>YouTube</h3><div class="row">' + (a.youtube.connected ? '<span class="acct on">connected · ' + esc(a.youtube.channel) + '</span>' : '<span class="acct">not connected</span>') + '</div>' +
+      '<div class="box"><h3>YouTube</h3><div class="row">' + (a.youtube.connected ? '<span class="acct on">connected · ' + esc(a.youtube.channel) + '</span>' : a.youtube.expired ? '<span class="acct" style="color:#ff6b5b">sign-in expired · ' + esc(a.youtube.channel) + ' — click Reconnect Google</span>' : '<span class="acct">not connected</span>') + '</div>' +
       '<label class="f">Google OAuth client ID (Desktop app; redirect: this lab’s …/api/social/youtube/callback)</label><input class="t" id="yt-id">' +
       '<label class="f">Client secret</label><input class="t" id="yt-sec" type="password" autocomplete="off">' +
-      '<div class="row" style="margin-top:10px"><button class="sb" id="yt-save">Save client</button><button class="sb pri" id="yt-go"' + (a.youtube.has_client ? '' : ' disabled') + '>Sign in with Google</button><span class="why">Do this on the lab PC.</span></div></div>' + ttBox() + fbBox();
+      '<div class="row" style="margin-top:10px"><button class="sb" id="yt-save">Save client</button><button class="sb pri" id="yt-go"' + (a.youtube.has_client ? '' : ' disabled') + '>' + (a.youtube.expired ? 'Reconnect Google' : 'Sign in with Google') + '</button><span class="why">Do this on the lab PC.</span></div></div>' + ttBox() + fbBox();
   }
 
   function fbBox() {
@@ -273,6 +414,53 @@
 
   /* REPOST: an old published video → a new post for platform(s) it isn't on yet */
   var PL_NAME = { instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook' };
+  // TikTok per-post settings, wording per TikTok's Content Sharing Guidelines (privacy has NO default, interactions off
+  // by default, exact disclosure/consent text) — shared by the post editor and the Repost dialog.
+  // ttFields → html (ids tt-*), ttWire(btns) → live label logic + disables the publish button(s), ttRead → settings.
+  // Inbox mode (ci.post_mode, unaudited client): the video goes to the creator's TikTok inbox and every choice is made in TikTok.
+  var TT_PROCESS = 'After publishing, it may take a few minutes for your video to process and be visible on your TikTok profile.';
+  var TT_PICK = 'You need to indicate if your content promotes yourself, a third party, or both.';
+  function ttFields(T, ci) {
+    var who = esc(ci.creator_nickname || ci.creator_username || '');
+    if (ci.post_mode === 'inbox')
+      return '<h3>TikTok · send to ' + who + '’s TikTok inbox</h3>' +
+        '<div class="why">MIR MEDIA LABS uploads this video to your TikTok app as a draft. Open TikTok, tap the notification, then choose who can see it, set comments/Duet/Stitch and publish. ' +
+        'Nothing goes public until you post it in TikTok.</div><div class="why">' + TT_PROCESS + ' Video limit: ' + (ci.max_video_post_duration_sec || '?') + 's.</div>';
+    var opts = ci.privacy_level_options || [], lab = { PUBLIC_TO_EVERYONE: 'Everyone', MUTUAL_FOLLOW_FRIENDS: 'Friends', FOLLOWER_OF_CREATOR: 'Followers', SELF_ONLY: 'Only me' };
+    var ck = function (id, on, dis, txt) { return '<label class="row" style="font-size:12px' + (dis ? ';opacity:.45' : '') + '"><input type="checkbox" id="' + id + '"' + (on && !dis ? ' checked' : '') + (dis ? ' disabled' : '') + '> ' + txt + '</label>'; };
+    return '<h3>TikTok · posting as ' + who + '</h3>' +
+      '<label class="f">Who can see this video</label><select class="t" id="tt-priv"><option value="">Choose…</option>' + opts.map(function (o) { return '<option value="' + o + '"' + (T.privacy_level === o ? ' selected' : '') + '>' + (lab[o] || o) + '</option>'; }).join('') + '</select>' +
+      '<div class="row" style="margin-top:8px">' + ck('tt-cm', T.allow_comment, ci.comment_disabled, 'Allow comments') + ck('tt-du', T.allow_duet, ci.duet_disabled, 'Allow Duet') + ck('tt-st', T.allow_stitch, ci.stitch_disabled, 'Allow Stitch') + '</div>' +
+      '<div class="row" style="margin-top:8px">' + ck('tt-dis', T.disclose, false, 'Disclose commercial content') + '</div>' +
+      '<div class="row" id="tt-disrow"' + (T.disclose ? '' : ' hidden') + '>' + ck('tt-org', T.brand_organic, false, 'Your brand') + ck('tt-bc', T.brand_content, false, 'Branded content (paid partnership)') + '</div>' +
+      '<div class="why" id="tt-label"></div>' +
+      '<label class="row" style="font-size:12px;margin-top:8px"><input type="checkbox" id="tt-ok"' + (T.consent ? ' checked' : '') + '> By posting, you agree to TikTok’s <span id="tt-bcp"></span>' +
+      '<a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" style="color:var(--acc)">Music Usage Confirmation</a>.</label>' +
+      '<div class="why">' + TT_PROCESS + '</div><div class="why">Labelled as AI-generated content. Video limit: ' + (ci.max_video_post_duration_sec || '?') + 's.</div>';
+  }
+  function ttWire(btns) {
+    btns = (btns || []).filter(Boolean);
+    if (!$('#tt-dis')) { btns.forEach(function (x) { x.disabled = false; x.title = ''; }); return; }     // inbox mode: nothing to gate
+    var lbl = function () {
+      var o = $('#tt-org').checked, b = $('#tt-bc').checked, d = $('#tt-dis').checked, none = d && !o && !b;
+      $('#tt-disrow').hidden = !d;
+      $('#tt-label').textContent = !d ? '' : b ? 'Your video will be labeled as ‘Paid partnership’.' : o ? 'Your video will be labeled as ‘Promotional content’.' : TT_PICK;
+      $('#tt-bcp').innerHTML = d && b ? '<a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" style="color:var(--acc)">Branded Content Policy</a> and ' : '';
+      var so = $('#tt-priv').querySelector('option[value="SELF_ONLY"]');
+      if (so) {
+        so.disabled = d && b; so.title = $('#tt-priv').title = so.disabled ? 'Branded content visibility cannot be set to private.' : '';
+        if (so.selected && so.disabled) $('#tt-priv').value = '';
+      }
+      btns.forEach(function (x) { x.disabled = none; x.title = none ? TT_PICK : ''; });                    // disclosure on, nothing picked → can't publish
+    };
+    ['tt-dis', 'tt-org', 'tt-bc'].forEach(function (i) { $('#' + i).onchange = lbl; }); lbl();
+  }
+  function ttRead() {
+    if (!$('#tt-priv')) return null;
+    return { privacy_level: $('#tt-priv').value, allow_comment: $('#tt-cm').checked, allow_duet: $('#tt-du').checked, allow_stitch: $('#tt-st').checked,
+      disclose: $('#tt-dis').checked, brand_organic: $('#tt-dis').checked && $('#tt-org').checked, brand_content: $('#tt-dis').checked && $('#tt-bc').checked, consent: $('#tt-ok').checked };
+  }
+
   function repostDlg(p) {
     var m = $('#modal'), on = Object.keys(p.remote || {}), acc = (STATS && STATS.accounts) || {};
     var rows = ['instagram', 'youtube', 'tiktok', 'facebook'].map(function (pl) {
@@ -285,6 +473,7 @@
       '<div style="flex:1"><div class="hook" style="margin:0 0 6px">' + esc(p.hook || p.yt_title || '') + '</div><div class="why" style="margin:0">Live on: ' + (on.length ? on.map(function (x) { return PL_NAME[x] || x; }).join(', ') : '—') +
       '</div><div class="why">A new post is made with the same video + captions (edit them after). The original stays as it is.</div></div></div>' +
       '<label class="f">Post it on</label>' + rows +
+      '<div id="rp-ttbox" class="box" hidden style="margin-top:8px"></div>' +
       '<label class="f">When</label><select class="t" id="rp-when"><option value="draft">Save as draft — I\'ll edit captions first</option><option value="best">Schedule — VIRAL-Ω picks the best time</option>' +
       '<option value="at">Schedule — pick a time</option><option value="now">Post now</option></select>' +
       '<input class="t" type="datetime-local" id="rp-at" hidden style="margin-top:6px">' +
@@ -293,16 +482,35 @@
     var close = function () { m.hidden = true; };
     $('#mx').onclick = close; $('#rp-cancel').onclick = close;
     $('#rp-when').onchange = function () { $('#rp-at').hidden = this.value !== 'at'; };
+    // TikTok needs its own per-post choices before it can be scheduled/posted — shown inline when TikTok is ticked
+    var ttCi = null, ttCb = m.querySelector('[data-rp="tiktok"]');
+    var ttDraw = function () {
+      var bx = $('#rp-ttbox'); bx.hidden = !(ttCb && ttCb.checked);
+      if (bx.hidden) { $('#rp-go').disabled = false; $('#rp-go').title = ''; return; }                   // TikTok unticked → nothing to gate
+      if (ttCi) { bx.innerHTML = ttFields(p.tiktok || {}, ttCi); ttWire([$('#rp-go')]); return; }
+      bx.innerHTML = '<div class="why">Checking your TikTok account…</div>';
+      api('api/social/tiktok/creator').then(function (ci) { ttCi = ci; ttDraw(); }).catch(function (e) { bx.innerHTML = '<div class="warnb">' + esc(e.message) + ' — connect TikTok in Accounts</div>'; });
+    };
+    if (ttCb) ttCb.onchange = ttDraw;
+    ttDraw();
     $('#rp-go').onclick = function () {
       var pl = [].slice.call(m.querySelectorAll('[data-rp]:checked')).map(function (c) { return c.dataset.rp; });
       if (!pl.length) return toast('Pick at least one platform');
-      var w = $('#rp-when').value, when = w;
+      var w = $('#rp-when').value, when = w, tt = pl.indexOf('tiktok') > -1 ? ttRead() : null;
+      if (tt && w !== 'draft') {                                  // a draft can be finished later in Edit → TikTok
+        if (!tt.privacy_level) return toast('TikTok: choose who can see this video');
+        if (!tt.consent) return toast('TikTok: tick the Music Usage Confirmation');
+      }
       if (w === 'at') { var v = $('#rp-at').value; if (!v) return toast('Pick a date and time'); when = String(new Date(v).getTime() / 1000); }
       if (w === 'now' && !confirm('Post this video now to ' + pl.map(function (x) { return PL_NAME[x]; }).join(' + ') + '?')) return;
-      var b = this; b.disabled = true;
-      api('api/social/posts/' + p.id + '/repost', { method: 'POST', body: { platforms: pl, when: when } }).then(function (r) {
+      var b = this, body = { platforms: pl, when: when };
+      b.disabled = true;
+      if (tt) body.tiktok = tt;
+      api('api/social/posts/' + p.id + '/repost', { method: 'POST', body: body }).then(function (r) {
         close();
-        toast(r.note ? 'Repost ' + r.note : w === 'draft' ? 'Repost saved to the queue — edit and approve it there' : w === 'now' ? 'Reposting now…' : 'Repost scheduled');
+        var inbox = pl.indexOf('tiktok') > -1 && ttCi && ttCi.post_mode === 'inbox';
+        toast(r.note ? 'Repost ' + r.note : w === 'draft' ? 'Repost saved to the queue — edit and approve it there' :
+          w === 'now' ? (inbox ? 'Sending to your TikTok inbox — open TikTok to publish it' : 'Reposting now… ' + (pl.indexOf('tiktok') > -1 ? TT_PROCESS : '')) : 'Repost scheduled');
         if (w === 'draft' || r.status === 'draft') VIEW = 'queue';
         return load();
       }).catch(function (e) { b.disabled = false; toast(e.message); });
@@ -352,26 +560,11 @@
     var T = Object.assign({}, p.tiktok || {});
     var ttBoxDraw = function (ci) {
       var bx = $('#e-ttbox'); if (!bx) return;
-      bx.hidden = !$('#e-tt').checked; if (bx.hidden) return;
+      bx.hidden = !$('#e-tt').checked;
+      if (bx.hidden) { $('#e-save').disabled = false; $('#e-save').title = ''; return; }
       if (!ci) { bx.innerHTML = '<div class="why">Checking your TikTok account…</div>'; api('api/social/tiktok/creator').then(ttBoxDraw).catch(function (e) { bx.innerHTML = '<div class="warnb">' + esc(e.message) + ' — connect TikTok in Accounts</div>'; }); return; }
-      var opts = ci.privacy_level_options || [], lab = { PUBLIC_TO_EVERYONE: 'Everyone', MUTUAL_FOLLOW_FRIENDS: 'Friends', FOLLOWER_OF_CREATOR: 'Followers', SELF_ONLY: 'Only me' };
-      var ck = function (id, on, dis, txt) { return '<label class="row" style="font-size:12px' + (dis ? ';opacity:.45' : '') + '"><input type="checkbox" id="' + id + '"' + (on && !dis ? ' checked' : '') + (dis ? ' disabled' : '') + '> ' + txt + '</label>'; };
-      bx.innerHTML = '<h3>TikTok · posting as ' + esc(ci.creator_nickname || ci.creator_username || '') + '</h3>' +
-        '<label class="f">Who can see this video</label><select class="t" id="tt-priv"><option value="">Choose…</option>' + opts.map(function (o) { return '<option value="' + o + '"' + (T.privacy_level === o ? ' selected' : '') + '>' + (lab[o] || o) + '</option>'; }).join('') + '</select>' +
-        '<div class="row" style="margin-top:8px">' + ck('tt-cm', T.allow_comment, ci.comment_disabled, 'Allow comments') + ck('tt-du', T.allow_duet, ci.duet_disabled, 'Allow Duet') + ck('tt-st', T.allow_stitch, ci.stitch_disabled, 'Allow Stitch') + '</div>' +
-        '<div class="row" style="margin-top:8px">' + ck('tt-dis', T.disclose, false, 'Disclose commercial content') + '</div>' +
-        '<div class="row" id="tt-disrow"' + (T.disclose ? '' : ' hidden') + '>' + ck('tt-org', T.brand_organic, false, 'Your brand') + ck('tt-bc', T.brand_content, false, 'Branded content (paid partnership)') + '</div>' +
-        '<div class="why" id="tt-label"></div>' +
-        '<label class="row" style="font-size:12px;margin-top:8px"><input type="checkbox" id="tt-ok"' + (T.consent ? ' checked' : '') + '> By posting, I agree to TikTok’s <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" style="color:var(--acc)">Music Usage Confirmation</a>' +
-        '<span id="tt-bcp"></span></label><div class="why">Labelled as AI-generated content. Video limit: ' + (ci.max_video_post_duration_sec || '?') + 's.</div>';
-      var lbl = function () {
-        var o = $('#tt-org').checked, b = $('#tt-bc').checked, d = $('#tt-dis').checked;
-        $('#tt-disrow').hidden = !d;
-        $('#tt-label').textContent = !d ? '' : b ? 'Your video will be labelled “Paid partnership”.' : o ? 'Your video will be labelled “Promotional content”.' : 'Pick at least one.';
-        $('#tt-bcp').innerHTML = d && b ? ' and <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" style="color:var(--acc)">Branded Content Policy</a>' : '';
-        var so = $('#tt-priv').querySelector('option[value="SELF_ONLY"]'); if (so) { so.disabled = d && b; if (so.selected && so.disabled) $('#tt-priv').value = ''; }
-      };
-      ['tt-dis', 'tt-org', 'tt-bc'].forEach(function (i) { $('#' + i).onchange = lbl; }); lbl();
+      bx.innerHTML = ttFields(T, ci);
+      ttWire([$('#e-save')]);
     };
     $('#e-tt').onchange = function () { ttBoxDraw(); };
     ttBoxDraw();
@@ -384,8 +577,7 @@
       var b = { hook: $('#e-hook').value, caption: $('#e-cap').value, hashtags: $('#e-tags').value.split(/[\s,#]+/).filter(Boolean),
         yt_title: $('#e-yt').value, yt_description: $('#e-ytd').value, platforms: pl,
         tt_caption: $('#e-ttc').value, fb_caption: $('#e-fbc').value, pinned_comment: $('#e-pin').value, yt_format: $('#e-ytf').value };
-      if ($('#tt-priv')) b.tiktok = { privacy_level: $('#tt-priv').value, allow_comment: $('#tt-cm').checked, allow_duet: $('#tt-du').checked, allow_stitch: $('#tt-st').checked,
-        disclose: $('#tt-dis').checked, brand_organic: $('#tt-dis').checked && $('#tt-org').checked, brand_content: $('#tt-dis').checked && $('#tt-bc').checked, consent: $('#tt-ok').checked };
+      if ($('#tt-priv')) b.tiktok = ttRead();
       if ($('#e-at').value) b.schedule_at = new Date($('#e-at').value).getTime() / 1000;
       api('api/social/posts/' + p.id, { method: 'POST', body: b }).then(function () { close(); load(); toast('Saved'); }).catch(function (e) { toast(e.message); });
     };
@@ -444,7 +636,7 @@
     var r = $('#report'); if (r) r.onclick = function () { r.disabled = true; $('#rep').textContent = 'VIRAL-Ω is reviewing the week…'; api('api/social/report', { method: 'POST' }).then(function (j) { $('#rep').textContent = j.report; }).catch(function (e) { $('#rep').textContent = e.message; }).then(function () { r.disabled = false; }); };
     var gi = $('#gen-ideas'); if (gi) gi.onclick = function () { gi.disabled = true; toast('Thinking up ideas…'); api('api/social/ideas', { method: 'POST' }).then(load).catch(function (e) { toast(e.message); gi.disabled = false; }); };
     var ra = $('#refresh-all'); if (ra) ra.onclick = function () { var o = ra.innerHTML; ra.disabled = true; ra.innerHTML = mi('refresh') + ' Refreshing…'; if (window.MI && MI.fill) MI.fill(ra);
-      api('api/social/metrics/refresh-all', { method: 'POST' }).then(function (r) { toast('Updated ' + (r.refreshed || 0) + ' post' + (r.refreshed === 1 ? '' : 's') + (r.errors ? ' · ' + r.errors + ' failed' : '')); return load(); }).catch(function (e) { toast(e.message); ra.disabled = false; ra.innerHTML = o; if (window.MI && MI.fill) MI.fill(ra); }); };
+      api('api/social/metrics/refresh-all', { method: 'POST' }).then(function (r) { toast(r.errors ? 'Updated ' + (r.refreshed || 0) + '/' + (r.posts || 0) + ' posts · ' + r.errors + ' failed — ' + (r.error || '') : 'Updated all ' + (r.refreshed || 0) + ' post' + (r.refreshed === 1 ? '' : 's')); return load(); }).catch(function (e) { toast(e.message); ra.disabled = false; ra.innerHTML = o; if (window.MI && MI.fill) MI.fill(ra); }); };
     document.querySelectorAll('[data-make]').forEach(function (b) {
       b.onclick = function () {
         var i = STATS.ideas.ideas[+b.dataset.make];
@@ -484,5 +676,6 @@
     posts: function () { return POSTS; }, stats: function () { return STATS; }, go: function (v) { VIEW = v; render(); }, view: function () { return VIEW; } };
   var t = new URLSearchParams(location.search).get('v'); if (t) VIEW = t;
   load();
-  setInterval(function () { if (!document.hidden && $('#modal').hidden && VIEW !== 'agent' && VIEW !== 'accounts' && VIEW !== 'skills' && VIEW !== 'analytics' && !(window.VIRAL && VIRAL.views[VIEW])) load(); }, 20000);
+  function canRefresh() { return !document.hidden && $('#modal').hidden && VIEW !== 'agent' && VIEW !== 'accounts' && VIEW !== 'skills' && VIEW !== 'analytics' && !(window.VIRAL && VIRAL.views[VIEW]); }
+  setInterval(function () { if (canRefresh()) load(); }, 20000);
 })();

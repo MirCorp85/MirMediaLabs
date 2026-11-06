@@ -2,6 +2,13 @@
    Live preview = @remotion/player (motion/player.js → window.MirMotion); export = the Node render daemon.
    Project: {id,name,w,h,fps,font,palette,session,markers[],tracks:[{kind,name,mute,hide,clips:[{id,type,start,dur,props,trans,out,kf}]}]} */
 (function () {
+  // touch (Oct 29 2026): a long-press does what right-click does (delete a marker / keyframe)
+  function longPress(el) { var t = null, x0 = 0, y0 = 0;
+    el.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'touch' || !el.oncontextmenu) return; x0 = e.clientX; y0 = e.clientY; clearTimeout(t);
+      t = setTimeout(function () { t = null; if (navigator.vibrate) navigator.vibrate(12); el.oncontextmenu({ preventDefault: function () {}, stopPropagation: function () {} }); }, 550); });
+    el.addEventListener('pointermove', function (e) { if (t && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) { clearTimeout(t); t = null; } });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (n) { el.addEventListener(n, function () { clearTimeout(t); t = null; }); }); }
+
   'use strict';
   var B = '';
   var $ = function (s, r) { return (r || document).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
@@ -43,7 +50,7 @@
     tracks: [{ kind: 'scene', name: 'Scenes', clips: [] }, { kind: 'overlay', name: 'Overlays', clips: [] }, { kind: 'captions', name: 'Captions', clips: [] }, { kind: 'audio', name: 'Music', clips: [] }] }; }
   function dur() { return Math.max(1, MM.duration(P)); }
   function fps() { return P.fps || 30; }
-  function view() { var v = clone(P); v.mediaBase = B + '/media/'; v.refBase = B + '/refs/'; v.fontBase = B + '/motion/fonts/'; return v; }
+  function view() { var v = clone(P); v.mediaBase = B + '/media/'; v.refBase = B + '/refs/'; v.fontBase = B + '/motion/fonts/'; v.mgBase = B + '/mg/'; return v; }
   function findClip(id) { for (var i = 0; i < P.tracks.length; i++) { var t = P.tracks[i]; for (var j = 0; j < t.clips.length; j++) if (t.clips[j].id === id) return { t: t, ti: i, c: t.clips[j], ci: j }; } return null; }
   function defaults(type) { var s = SC[type], o = {}; (s.fields || []).forEach(function (f) { if (f.d !== undefined && f.d !== '') o[f.k] = clone(f.d); }); return o; }
 
@@ -135,7 +142,7 @@
       commit(); }; });
     var at = $('#addtrk'); if (at) at.onchange = function () { if (this.value) { P.tracks.push({ kind: this.value, name: KINDS[this.value], clips: [] }); commit(); } };
     $$('#mo-ruler .mk').forEach(function (m) { m.onclick = function (e) { e.stopPropagation(); seek(P.markers[+m.dataset.m]); };
-      m.oncontextmenu = function (e) { e.preventDefault(); e.stopPropagation(); P.markers.splice(+m.dataset.m, 1); commit(); }; });
+      longPress(m); m.oncontextmenu = function (e) { e.preventDefault(); e.stopPropagation(); P.markers.splice(+m.dataset.m, 1); commit(); }; });
     $$('#mo-tracks .cl').forEach(function (el) { el.onpointerdown = function (e) { clipDrag(e, el); }; el.ondblclick = function () { var h = findClip(el.dataset.id); if (h) seek(h.c.start); }; });
     $$('#mo-tracks .tr').forEach(function (row) {
       row.ondragover = function (e) { e.preventDefault(); row.classList.add('drop'); };
@@ -309,7 +316,7 @@
     $$('[data-kf]', box).forEach(function (b) { b.onclick = function () { var k = b.dataset.kf, v = +$('#kf_' + k).value, t = +(T() - c.start).toFixed(3); c.kf = c.kf || {}; var a = (c.kf[k] = (c.kf[k] || []).filter(function (p) { return Math.abs(p[0] - t) > 0.02; })); a.push([t, v]); a.sort(function (x, y) { return x[0] - y[0]; }); commit(); }; });
     $$('[data-kfj]', box).forEach(function (sp) { var k = sp.dataset.kfj, i = +sp.dataset.i;
       sp.onclick = function () { seek(c.start + c.kf[k][i][0]); drawInsp(); };
-      sp.oncontextmenu = function (e) { e.preventDefault(); c.kf[k].splice(i, 1); if (!c.kf[k].length) delete c.kf[k]; if (!Object.keys(c.kf).length) delete c.kf; commit(); }; });
+      longPress(sp); sp.oncontextmenu = function (e) { e.preventDefault(); c.kf[k].splice(i, 1); if (!c.kf[k].length) delete c.kf[k]; if (!Object.keys(c.kf).length) delete c.kf; commit(); }; });
     var aw = $('[data-a=autowords]', box); if (aw) aw.onclick = function () { autoWords(c); };
     var fm = $('[data-a=fitmedia]', box); if (fm) fm.onclick = function () { if (!c.props.src) return; api('/api/editor/probe?src=' + encodeURIComponent(c.props.src)).then(function (d) { if (d && d.dur) { c.dur = +(+d.dur - (c.props.trimIn || 0)).toFixed(2); commit(); } else toast('Not a video', 1); }); };
     $('[data-a=airewrite]', box).onclick = function () { var a = $('#c_ai').value.trim(); if (a) aiRun('props', a, c); };

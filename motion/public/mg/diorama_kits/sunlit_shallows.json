@@ -1,0 +1,220 @@
+{
+ "id": "sunlit_shallows",
+ "name": "Sunlit Shallows",
+ "about": "Dives, descents, arrivals from the surface and first glimpses of the reef under sunbeams and bubbles.",
+ "tags": [
+  "shallows",
+  "sunlit",
+  "sand",
+  "anchor",
+  "rope",
+  "bubbles",
+  "coral",
+  "dive",
+  "surface",
+  "reef",
+  "descent"
+ ],
+ "floor": "sand",
+ "walls": "none",
+ "wallH": 2.6,
+ "props": [
+  {
+   "t": "crate",
+   "w": 0.5,
+   "d": 0.5,
+   "h": 0.5,
+   "x": 0.2,
+   "y": 0.2,
+   "col": "steel2"
+  },
+  {
+   "t": "pillar",
+   "w": 0.1,
+   "d": 0.1,
+   "h": 2.6,
+   "x": 0.35,
+   "y": 0.35,
+   "col": "bronze"
+  },
+  {
+   "t": "rock",
+   "w": 0.6,
+   "d": 0.5,
+   "h": 0.45,
+   "x": 0.9,
+   "y": 0.3
+  },
+  {
+   "t": "coral",
+   "w": 0.6,
+   "d": 0.6,
+   "h": 0.6,
+   "x": 1.5,
+   "y": 0.2,
+   "col": "ember"
+  },
+  {
+   "t": "clam",
+   "w": 0.4,
+   "d": 0.4,
+   "x": 3.1,
+   "y": 0.3,
+   "col": "champ"
+  },
+  {
+   "t": "coral",
+   "w": 0.6,
+   "d": 0.6,
+   "h": 0.5,
+   "x": 0.2,
+   "y": 2.0,
+   "col": "red"
+  },
+  {
+   "t": "rock",
+   "w": 0.6,
+   "d": 0.5,
+   "h": 0.45,
+   "x": 0.25,
+   "y": 3.0
+  },
+  {
+   "t": "kelp",
+   "x": 3.5,
+   "y": 1.9,
+   "col": "olive"
+  },
+  {
+   "t": "light",
+   "x": 2.6,
+   "y": 1.2,
+   "z": 2.6,
+   "col": "champ"
+  },
+  {
+   "t": "sphere",
+   "w": 0.15,
+   "x": 1.5,
+   "y": 1.3,
+   "z": 1.4,
+   "col": "pale"
+  },
+  {
+   "t": "sphere",
+   "w": 0.1,
+   "x": 1.8,
+   "y": 1.0,
+   "z": 2.0,
+   "col": "pale"
+  },
+  {
+   "t": "sphere",
+   "w": 0.12,
+   "x": 1.3,
+   "y": 1.7,
+   "z": 0.8,
+   "col": "pale"
+  }
+ ],
+ "st": {
+  "anchor": [
+   [
+    1.2,
+    1.2
+   ],
+   -1,
+   [
+    0.45,
+    0.45,
+    0.4
+   ]
+  ],
+  "coral": [
+   [
+    2.2,
+    1.5
+   ],
+   -1,
+   [
+    1.8,
+    0.5,
+    0.4
+   ]
+  ],
+  "reef": [
+   [
+    3.0,
+    1.4
+   ],
+   1,
+   [
+    3.3,
+    0.5,
+    0.4
+   ]
+  ],
+  "surface": [
+   [
+    1.3,
+    2.4
+   ],
+   1,
+   [
+    2.6,
+    1.2,
+    2.6
+   ]
+  ],
+  "center": [
+   [
+    2.6,
+    2.6
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   2.9,
+   2.1
+  ],
+  [
+   1.2,
+   3.0
+  ],
+  [
+   3.3,
+   3.1
+  ],
+  [
+   2.0,
+   3.3
+  ]
+ ],
+ "regulars": [],
+ "animals": [
+  [
+   "fish",
+   2.5,
+   1.9,
+   "walk"
+  ],
+  [
+   "fish",
+   1.8,
+   2.5,
+   "walk"
+  ],
+  [
+   "turtle",
+   3.4,
+   1.0,
+   "walk"
+  ]
+ ],
+ "source": "generated",
+ "created": "2026-11-02",
+ "world": "coral_reef_kingdom"
+}

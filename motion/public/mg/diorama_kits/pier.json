@@ -1,0 +1,164 @@
+{
+ "id": "pier",
+ "name": "Harbor pier",
+ "about": "a wooden pier over dark water with a moored boat - the sea, travel, fishing, coasts, leaving, arriving",
+ "tags": [
+  "ocean",
+  "sea",
+  "beach",
+  "boat",
+  "harbor",
+  "harbour",
+  "pier",
+  "dock",
+  "fishing",
+  "water",
+  "sailing",
+  "island",
+  "coast",
+  "port",
+  "ship"
+ ],
+ "floor": "water",
+ "walls": "none",
+ "props": [
+  {
+   "t": "patch",
+   "kind": "wood",
+   "x": 1.4,
+   "y": 0,
+   "w": 1.25,
+   "d": 3.0
+  },
+  {
+   "t": "patch",
+   "kind": "sand",
+   "x": 0,
+   "y": 3.0,
+   "w": 4.0,
+   "d": 1.0
+  },
+  {
+   "t": "boat",
+   "x": 0.2,
+   "y": 0.4,
+   "w": 0.9,
+   "d": 2.2
+  },
+  {
+   "t": "rail",
+   "x": 2.62,
+   "y": 0.2,
+   "w": 0.06,
+   "d": 2.7
+  },
+  {
+   "t": "lamp",
+   "x": 2.45,
+   "y": 0.25
+  },
+  {
+   "t": "crate",
+   "x": 1.5,
+   "y": 2.2,
+   "w": 0.4,
+   "d": 0.4,
+   "h": 0.4
+  },
+  {
+   "t": "bench",
+   "x": 3.0,
+   "y": 3.5,
+   "w": 0.9,
+   "d": 0.3
+  }
+ ],
+ "st": {
+  "pier_end": [
+   [
+    2.0,
+    0.8
+   ],
+   -1,
+   [
+    2.0,
+    0,
+    0.2
+   ]
+  ],
+  "boat": [
+   [
+    1.75,
+    1.8
+   ],
+   -1,
+   [
+    0.7,
+    1.6,
+    0.6
+   ]
+  ],
+  "lamp": [
+   [
+    2.3,
+    1.3
+   ],
+   1,
+   [
+    2.5,
+    0.3,
+    1.8
+   ]
+  ],
+  "shore": [
+   [
+    2.2,
+    3.45
+   ],
+   1,
+   null
+  ],
+  "center": [
+   [
+    3.2,
+    3.3
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.9,
+   2.65
+  ],
+  [
+   1.0,
+   3.5
+  ],
+  [
+   3.5,
+   3.3
+  ],
+  [
+   2.1,
+   1.45
+  ]
+ ],
+ "regulars": [
+  [
+   0,
+   "stand",
+   {
+    "gender": "man",
+    "outfit": "sweater",
+    "color": "bronze",
+    "skin": "tan",
+    "beard": true,
+    "age": "older"
+   }
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-28"
+}

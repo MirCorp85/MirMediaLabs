@@ -1,0 +1,157 @@
+{
+ "id": "newsroom",
+ "name": "News studio",
+ "about": "a TV news studio with an anchor desk, screens and a camera - news, broadcasts, interviews, media, podcasts",
+ "tags": [
+  "news",
+  "tv",
+  "television",
+  "broadcast",
+  "interview",
+  "journalist",
+  "journalism",
+  "media",
+  "reporter",
+  "anchor",
+  "podcast",
+  "show",
+  "studio",
+  "live"
+ ],
+ "floor": "carpet",
+ "walls": "both",
+ "props": [
+  {
+   "t": "screen",
+   "wall": "back",
+   "x": 0.3,
+   "w": 2.2,
+   "z": 1.0,
+   "h": 1.2
+  },
+  {
+   "t": "screen",
+   "wall": "left",
+   "y": 0.4,
+   "w": 1.4,
+   "z": 1.1,
+   "h": 0.9
+  },
+  {
+   "t": "counter",
+   "x": 0.8,
+   "y": 1.35,
+   "w": 2.0,
+   "d": 0.6,
+   "h": 0.9,
+   "col": "bronze"
+  },
+  {
+   "t": "pillar",
+   "x": 3.3,
+   "y": 2.95,
+   "w": 0.1,
+   "h": 1.2
+  },
+  {
+   "t": "box",
+   "x": 3.12,
+   "y": 2.85,
+   "w": 0.45,
+   "d": 0.35,
+   "z": 1.2,
+   "h": 0.3,
+   "col": "graph"
+  },
+  {
+   "t": "light",
+   "x": 1.0,
+   "y": 2.1,
+   "z": 2.3
+  },
+  {
+   "t": "light",
+   "x": 2.4,
+   "y": 2.1,
+   "z": 2.3
+  }
+ ],
+ "st": {
+  "desk": [
+   [
+    1.8,
+    1.05
+   ],
+   1,
+   [
+    1.8,
+    1.65,
+    0.9
+   ]
+  ],
+  "screen": [
+   [
+    2.9,
+    1.05
+   ],
+   -1,
+   [
+    2.9,
+    0,
+    1.6
+   ]
+  ],
+  "interview": [
+   [
+    2.3,
+    2.5
+   ],
+   -1,
+   [
+    2.0,
+    1.95,
+    0.9
+   ]
+  ],
+  "center": [
+   [
+    1.6,
+    2.8
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.2,
+   1.05
+  ],
+  [
+   2.7,
+   2.2
+  ],
+  [
+   1.0,
+   3.3
+  ],
+  [
+   2.2,
+   3.5
+  ]
+ ],
+ "regulars": [
+  [
+   0,
+   "explain",
+   {
+    "gender": "woman",
+    "color": "champagne",
+    "skin": "deep",
+    "hair": "long"
+   }
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-28"
+}

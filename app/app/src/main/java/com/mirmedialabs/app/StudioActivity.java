@@ -17,7 +17,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-/** MOTION STUDIO (/motion) and NODE FLOW (/flow) — the lab's own pages in a full-screen WebView, signed in with this
+/** MOTION STUDIO (/motion), NODE FLOW (/flow), STUDIO, KINETIC, MIR EXPLAINED, RANK REEL, COPYCAT and DESIGN — the lab's own pages in a full-screen WebView, signed in with this
  *  phone's key + device id. The pages talk to their host with postMessage (motion-close · flow-close · motion-attach ·
  *  motion-editor), so they run inside a same-origin iframe and this shell forwards those messages to the MMLApp bridge:
  *  close → back to the lab, attach → the piece becomes the next request's reference, editor → the timeline editor. */
@@ -73,10 +73,21 @@ public final class StudioActivity extends Activity {
             }
             @Override public void onPermissionRequest(PermissionRequest r) { r.deny(); }
         });
-        String page = "flow".equals(getIntent().getStringExtra("page")) ? "flow" : "motion";
+        String page = page(getIntent().getStringExtra("page"));
         web.loadDataWithBaseURL(base + "/", shell(page), "text/html", "utf-8", null);
         setContentView(web);
         web.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+    }
+
+    /** The lab pages this activity may open (anything else falls back to Motion Studio). */
+    static String page(String p) {
+        if (p == null) return "motion";
+        switch (p) {
+            case "flow": case "studio": case "motion/editor": case "explained": case "rankreel": case "copycat/": case "design":
+                return p;
+            default:
+                return "motion";
+        }
     }
 
     /** Full-screen same-origin frame + the postMessage → bridge relay. */
@@ -85,7 +96,7 @@ public final class StudioActivity extends Activity {
              + "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}iframe{border:0;width:100%;height:100%;display:block}</style>"
              + "</head><body><iframe id=f src='" + path + "' allow='autoplay; fullscreen; clipboard-write'></iframe><script>"
              + "addEventListener('message',function(e){var d=e.data||{};if(!d.mml||!window.MMLApp)return;"
-             + "if(d.mml==='motion-close'||d.mml==='flow-close')MMLApp.close(d.mml);"
+             + "if(/-close$/.test(d.mml))MMLApp.close(d.mml);"
              + "else if(d.mml==='motion-attach'&&d.ref)MMLApp.useAsRef(String(d.ref));"
              + "else if(d.mml==='motion-editor'&&d.src)MMLApp.editor(String(d.src));});"
              + "</script></body></html>";

@@ -331,6 +331,11 @@
   });
   SCROLL.addEventListener('scroll', function () { HEADS.scrollTop = SCROLL.scrollTop; });
   SCROLL.addEventListener('wheel', function (e) { if (e.ctrlKey) { e.preventDefault(); zoom(PPS * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX); } }, { passive: false });
+  // touch (Oct 29 2026): two fingers pinch the timeline zoom (horizontal spread), anchored between the fingers
+  (function () { var z0 = null; function span(t) { return Math.abs(t[0].clientX - t[1].clientX) || 1; }
+    SCROLL.addEventListener('touchstart', function (e) { if (e.touches.length === 2) z0 = { d: span(e.touches), p: PPS }; }, { passive: true });
+    SCROLL.addEventListener('touchmove', function (e) { if (z0 && e.touches.length === 2) { e.preventDefault(); zoom(z0.p * span(e.touches) / z0.d, (e.touches[0].clientX + e.touches[1].clientX) / 2); } }, { passive: false });
+    SCROLL.addEventListener('touchend', function (e) { if (e.touches.length < 2) z0 = null; }); })();
   function zoom(v, cx) { var r = SCROLL.getBoundingClientRect(), ax = cx == null ? T * PPS - SCROLL.scrollLeft : cx - r.left, at = (SCROLL.scrollLeft + ax) / PPS;
     PPS = clamp(v, 10, 400); $('#ed-zoom').value = PPS; drawTracks(); drawRuler(); drawPH(); SCROLL.scrollLeft = at * PPS - ax; }
   $('#ed-zoom').oninput = function () { zoom(+this.value); };

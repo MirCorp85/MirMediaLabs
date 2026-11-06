@@ -1,0 +1,93 @@
+{
+  "id": "era-ramp",
+  "status": "ready",
+  "pack": "openfield",
+  "credits": [
+    "Ported from wexloops/openfield (MIT, (c) 2026 David Wexler / Strangeloop Studios)"
+  ],
+  "origin": "openfield",
+  "name": "Era Look & Speed Ramp",
+  "section": "video",
+  "native": "era",
+  "summary": "Grade any clip like 1960 to 2020 film (real colour pass: saturation, split-tone, fade, grain, bloom, vignette) and retime it: slow-mo, ramp up, impact or bullet time.",
+  "requires_nodes": [
+    "GLSLShader",
+    "FrameInterpolate",
+    "GetImagesFromBatchIndexed",
+    "LoadVideo"
+  ],
+  "inputs": [
+    {
+      "id": "clip",
+      "type": "video",
+      "label": "Clip",
+      "required": true
+    },
+    {
+      "id": "year",
+      "type": "slider",
+      "label": "Era",
+      "default": 1974,
+      "min": 1960,
+      "max": 2020,
+      "step": 1
+    },
+    {
+      "id": "amount",
+      "type": "slider",
+      "label": "Grade strength",
+      "default": 1.0,
+      "min": 0,
+      "max": 1,
+      "step": 0.05
+    },
+    {
+      "id": "ramp",
+      "type": "select",
+      "label": "Speed ramp",
+      "default": "linear",
+      "options": [
+        {
+          "value": "linear",
+          "label": "Real time"
+        },
+        {
+          "value": "slowmo",
+          "label": "Slow-mo"
+        },
+        {
+          "value": "rampup",
+          "label": "Ramp up"
+        },
+        {
+          "value": "impact",
+          "label": "Impact"
+        },
+        {
+          "value": "bullet",
+          "label": "Bullet time"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "type": "video",
+      "label": "Graded clip"
+    }
+  ],
+  "models": [
+    {
+      "repo": "Comfy-Org/frame_interpolation",
+      "file": "frame_interpolation/film_net_fp16.safetensors",
+      "dir": "frame_interpolation",
+      "gb": 0.07,
+      "phase": "aux",
+      "license": "Apache-2.0"
+    }
+  ],
+  "vram": {
+    "peak_gb": 4
+  },
+  "notes": "A ramped clip drops its sound (it no longer lines up). FILM fills the slow parts instead of RIFE."
+}

@@ -1,0 +1,2188 @@
+{
+  "img": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "input_object.png"
+    }
+  },
+  "unet": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "trellis_2_bf16.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "svae": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "trellis_2_shape_vae_bf16.safetensors"
+    }
+  },
+  "tvae": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "trellis_2_texture_vae_bf16.safetensors"
+    }
+  },
+  "dino": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "dino_v3_vit_l.safetensors"
+    }
+  },
+  "bgm": {
+    "class_type": "LoadBackgroundRemovalModel",
+    "inputs": {
+      "bg_removal_name": "birefnet.safetensors"
+    }
+  },
+  "bg": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": [
+        "bgm",
+        0
+      ],
+      "image": [
+        "img",
+        0
+      ]
+    }
+  },
+  "crop": {
+    "class_type": "ImageCropToMask",
+    "inputs": {
+      "images": [
+        "img",
+        0
+      ],
+      "masks": [
+        "bg",
+        0
+      ],
+      "width": 1024,
+      "height": 1024,
+      "pad_factor": 1.1,
+      "grow_mask": 0,
+      "background": "#000000"
+    }
+  },
+  "subject": {
+    "class_type": "PreviewImage",
+    "inputs": {
+      "images": [
+        "crop",
+        0
+      ]
+    }
+  },
+  "cond": {
+    "class_type": "Trellis2Conditioning",
+    "inputs": {
+      "clip_vision_model": [
+        "dino",
+        0
+      ],
+      "image": [
+        "crop",
+        0
+      ]
+    }
+  },
+  "cfgS": {
+    "class_type": "CFGOverride",
+    "inputs": {
+      "model": [
+        "unet",
+        0
+      ],
+      "cfg": 1,
+      "start_percent": 0.667,
+      "end_percent": 1
+    }
+  },
+  "rsS": {
+    "class_type": "RescaleCFG",
+    "inputs": {
+      "model": [
+        "cfgS",
+        0
+      ],
+      "multiplier": 0.7
+    }
+  },
+  "msS": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "model": [
+        "rsS",
+        0
+      ],
+      "shift": 5
+    }
+  },
+  "empty": {
+    "class_type": "EmptyTrellis2LatentStructure",
+    "inputs": {
+      "batch_size": 1
+    }
+  },
+  "kS": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "msS",
+        0
+      ],
+      "positive": [
+        "cond",
+        0
+      ],
+      "negative": [
+        "cond",
+        1
+      ],
+      "latent_image": [
+        "empty",
+        0
+      ],
+      "seed": 42,
+      "steps": 12,
+      "cfg": 7.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1
+    }
+  },
+  "voxel": {
+    "class_type": "VaeDecodeStructureTrellis2",
+    "inputs": {
+      "samples": [
+        "kS",
+        0
+      ],
+      "vae": [
+        "svae",
+        0
+      ],
+      "resolution": "32"
+    }
+  },
+  "cfgG": {
+    "class_type": "CFGOverride",
+    "inputs": {
+      "model": [
+        "unet",
+        0
+      ],
+      "cfg": 1,
+      "start_percent": 0.769,
+      "end_percent": 1
+    }
+  },
+  "rsG": {
+    "class_type": "RescaleCFG",
+    "inputs": {
+      "model": [
+        "cfgG",
+        0
+      ],
+      "multiplier": 0.5
+    }
+  },
+  "shape": {
+    "class_type": "Trellis2ShapeStage",
+    "inputs": {
+      "positive": [
+        "cond",
+        0
+      ],
+      "negative": [
+        "cond",
+        1
+      ],
+      "voxel": [
+        "voxel",
+        0
+      ]
+    }
+  },
+  "kG": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "rsG",
+        0
+      ],
+      "positive": [
+        "shape",
+        0
+      ],
+      "negative": [
+        "shape",
+        1
+      ],
+      "latent_image": [
+        "shape",
+        2
+      ],
+      "seed": 43,
+      "steps": 20,
+      "cfg": 7.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1
+    }
+  },
+  "up": {
+    "class_type": "Trellis2UpsampleStage",
+    "inputs": {
+      "positive": [
+        "shape",
+        0
+      ],
+      "negative": [
+        "shape",
+        1
+      ],
+      "shape_latent": [
+        "kG",
+        0
+      ],
+      "vae": [
+        "svae",
+        0
+      ],
+      "target_resolution": 1536
+    }
+  },
+  "kU": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "rsG",
+        0
+      ],
+      "positive": [
+        "up",
+        0
+      ],
+      "negative": [
+        "up",
+        1
+      ],
+      "latent_image": [
+        "up",
+        2
+      ],
+      "seed": 44,
+      "steps": 12,
+      "cfg": 7.5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "mesh": {
+    "class_type": "VaeDecodeShapeTrellis",
+    "inputs": {
+      "samples": [
+        "kU",
+        0
+      ],
+      "vae": [
+        "svae",
+        0
+      ]
+    }
+  },
+  "tex": {
+    "class_type": "Trellis2TextureStage",
+    "inputs": {
+      "positive": [
+        "up",
+        0
+      ],
+      "negative": [
+        "up",
+        1
+      ],
+      "shape_latent": [
+        "kU",
+        0
+      ]
+    }
+  },
+  "kT": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "unet",
+        0
+      ],
+      "positive": [
+        "tex",
+        0
+      ],
+      "negative": [
+        "tex",
+        1
+      ],
+      "latent_image": [
+        "tex",
+        2
+      ],
+      "seed": 45,
+      "steps": 12,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1
+    }
+  },
+  "colors": {
+    "class_type": "VaeDecodeTextureTrellis",
+    "inputs": {
+      "samples": [
+        "kT",
+        0
+      ],
+      "vae": [
+        "tvae",
+        0
+      ],
+      "shape_subdivides": [
+        "mesh",
+        1
+      ]
+    }
+  },
+  "remesh": {
+    "class_type": "RemeshMesh",
+    "inputs": {
+      "mesh": [
+        "mesh",
+        0
+      ],
+      "resolution": 768,
+      "sign_mode": "udf",
+      "sign_mode.qef": false,
+      "sign_mode.drop_inverted_components": false,
+      "sign_mode.drop_enclosed_components": false,
+      "band": 1,
+      "project_back": 0,
+      "fix_poles": false,
+      "smooth_iters": 0,
+      "drop_small_components": 0.01,
+      "precluster_max_verts": 20000000
+    }
+  },
+  "dec": {
+    "class_type": "DecimateMesh",
+    "inputs": {
+      "mesh": [
+        "remesh",
+        0
+      ],
+      "target_face_count": 400000,
+      "placement_mode": "midpoint"
+    }
+  },
+  "smooth": {
+    "class_type": "MeshSmoothNormals",
+    "inputs": {
+      "mesh": [
+        "dec",
+        0
+      ],
+      "crease_angle": 180
+    }
+  },
+  "uv": {
+    "class_type": "UnwrapMesh",
+    "inputs": {
+      "mesh": [
+        "smooth",
+        0
+      ],
+      "segmenter": "pec",
+      "resolution": 4096,
+      "padding": 1,
+      "weld_distance": 0.0002
+    }
+  },
+  "bake": {
+    "class_type": "BakeTextureFromVoxel",
+    "inputs": {
+      "mesh": [
+        "uv",
+        0
+      ],
+      "voxel_colors": [
+        "colors",
+        0
+      ],
+      "texture_size": 4096,
+      "reference_mesh": [
+        "mesh",
+        0
+      ]
+    }
+  },
+  "nrm": {
+    "class_type": "BakeNormalMapFromMesh",
+    "inputs": {
+      "low_poly": [
+        "uv",
+        0
+      ],
+      "high_poly": [
+        "remesh",
+        0
+      ],
+      "resolution": 2048,
+      "cage_distance": 0.05,
+      "ignore_backfaces": true
+    }
+  },
+  "ao": {
+    "class_type": "BakeAmbientOcclusion",
+    "inputs": {
+      "low_poly": [
+        "uv",
+        0
+      ],
+      "high_poly": [
+        "remesh",
+        0
+      ],
+      "resolution": 1024,
+      "samples": 64,
+      "max_distance": 0.71,
+      "strength": 1,
+      "bias": 0.01
+    }
+  },
+  "apply": {
+    "class_type": "ApplyTextureToMesh",
+    "inputs": {
+      "mesh": [
+        "uv",
+        0
+      ],
+      "base_color": [
+        "bake",
+        0
+      ],
+      "metallic": [
+        "bake",
+        1
+      ],
+      "roughness": [
+        "bake",
+        2
+      ],
+      "normal_map": [
+        "nrm",
+        0
+      ],
+      "occlusion": [
+        "ao",
+        0
+      ]
+    }
+  },
+  "final": {
+    "class_type": "MeshSmoothNormals",
+    "inputs": {
+      "mesh": [
+        "apply",
+        0
+      ],
+      "crease_angle": 180
+    }
+  },
+  "save": {
+    "class_type": "SaveGLB",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "filename_prefix": "openfield/object"
+    }
+  },
+  "yaw0": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 35,
+      "mode.angle_z": 0
+    }
+  },
+  "tip0": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw0",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r0": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip0",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "yaw1": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 46.25,
+      "mode.angle_z": 0
+    }
+  },
+  "tip1": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw1",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r1": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip1",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b1": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "r0",
+        0
+      ],
+      "image2": [
+        "r1",
+        0
+      ]
+    }
+  },
+  "yaw2": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 57.5,
+      "mode.angle_z": 0
+    }
+  },
+  "tip2": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw2",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r2": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip2",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b2": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b1",
+        0
+      ],
+      "image2": [
+        "r2",
+        0
+      ]
+    }
+  },
+  "yaw3": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 68.75,
+      "mode.angle_z": 0
+    }
+  },
+  "tip3": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw3",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r3": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip3",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b3": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b2",
+        0
+      ],
+      "image2": [
+        "r3",
+        0
+      ]
+    }
+  },
+  "yaw4": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 80,
+      "mode.angle_z": 0
+    }
+  },
+  "tip4": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw4",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r4": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip4",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b4": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b3",
+        0
+      ],
+      "image2": [
+        "r4",
+        0
+      ]
+    }
+  },
+  "yaw5": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 91.25,
+      "mode.angle_z": 0
+    }
+  },
+  "tip5": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw5",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r5": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip5",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b5": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b4",
+        0
+      ],
+      "image2": [
+        "r5",
+        0
+      ]
+    }
+  },
+  "yaw6": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 102.5,
+      "mode.angle_z": 0
+    }
+  },
+  "tip6": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw6",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r6": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip6",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b6": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b5",
+        0
+      ],
+      "image2": [
+        "r6",
+        0
+      ]
+    }
+  },
+  "yaw7": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 113.75,
+      "mode.angle_z": 0
+    }
+  },
+  "tip7": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw7",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r7": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip7",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b7": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b6",
+        0
+      ],
+      "image2": [
+        "r7",
+        0
+      ]
+    }
+  },
+  "yaw8": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 125,
+      "mode.angle_z": 0
+    }
+  },
+  "tip8": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw8",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r8": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip8",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b8": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b7",
+        0
+      ],
+      "image2": [
+        "r8",
+        0
+      ]
+    }
+  },
+  "yaw9": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 136.25,
+      "mode.angle_z": 0
+    }
+  },
+  "tip9": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw9",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r9": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip9",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b9": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b8",
+        0
+      ],
+      "image2": [
+        "r9",
+        0
+      ]
+    }
+  },
+  "yaw10": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 147.5,
+      "mode.angle_z": 0
+    }
+  },
+  "tip10": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw10",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r10": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip10",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b10": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b9",
+        0
+      ],
+      "image2": [
+        "r10",
+        0
+      ]
+    }
+  },
+  "yaw11": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 158.75,
+      "mode.angle_z": 0
+    }
+  },
+  "tip11": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw11",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r11": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip11",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b11": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b10",
+        0
+      ],
+      "image2": [
+        "r11",
+        0
+      ]
+    }
+  },
+  "yaw12": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 170,
+      "mode.angle_z": 0
+    }
+  },
+  "tip12": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw12",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r12": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip12",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b12": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b11",
+        0
+      ],
+      "image2": [
+        "r12",
+        0
+      ]
+    }
+  },
+  "yaw13": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 181.25,
+      "mode.angle_z": 0
+    }
+  },
+  "tip13": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw13",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r13": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip13",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b13": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b12",
+        0
+      ],
+      "image2": [
+        "r13",
+        0
+      ]
+    }
+  },
+  "yaw14": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 192.5,
+      "mode.angle_z": 0
+    }
+  },
+  "tip14": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw14",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r14": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip14",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b14": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b13",
+        0
+      ],
+      "image2": [
+        "r14",
+        0
+      ]
+    }
+  },
+  "yaw15": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 203.75,
+      "mode.angle_z": 0
+    }
+  },
+  "tip15": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw15",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r15": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip15",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b15": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b14",
+        0
+      ],
+      "image2": [
+        "r15",
+        0
+      ]
+    }
+  },
+  "yaw16": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 215,
+      "mode.angle_z": 0
+    }
+  },
+  "tip16": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw16",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r16": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip16",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b16": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b15",
+        0
+      ],
+      "image2": [
+        "r16",
+        0
+      ]
+    }
+  },
+  "yaw17": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 226.25,
+      "mode.angle_z": 0
+    }
+  },
+  "tip17": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw17",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r17": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip17",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b17": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b16",
+        0
+      ],
+      "image2": [
+        "r17",
+        0
+      ]
+    }
+  },
+  "yaw18": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 237.5,
+      "mode.angle_z": 0
+    }
+  },
+  "tip18": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw18",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r18": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip18",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b18": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b17",
+        0
+      ],
+      "image2": [
+        "r18",
+        0
+      ]
+    }
+  },
+  "yaw19": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 248.75,
+      "mode.angle_z": 0
+    }
+  },
+  "tip19": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw19",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r19": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip19",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b19": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b18",
+        0
+      ],
+      "image2": [
+        "r19",
+        0
+      ]
+    }
+  },
+  "yaw20": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 260,
+      "mode.angle_z": 0
+    }
+  },
+  "tip20": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw20",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r20": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip20",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b20": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b19",
+        0
+      ],
+      "image2": [
+        "r20",
+        0
+      ]
+    }
+  },
+  "yaw21": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 271.25,
+      "mode.angle_z": 0
+    }
+  },
+  "tip21": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw21",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r21": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip21",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b21": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b20",
+        0
+      ],
+      "image2": [
+        "r21",
+        0
+      ]
+    }
+  },
+  "yaw22": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 282.5,
+      "mode.angle_z": 0
+    }
+  },
+  "tip22": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw22",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r22": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip22",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b22": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b21",
+        0
+      ],
+      "image2": [
+        "r22",
+        0
+      ]
+    }
+  },
+  "yaw23": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 293.75,
+      "mode.angle_z": 0
+    }
+  },
+  "tip23": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw23",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r23": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip23",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b23": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b22",
+        0
+      ],
+      "image2": [
+        "r23",
+        0
+      ]
+    }
+  },
+  "yaw24": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 305,
+      "mode.angle_z": 0
+    }
+  },
+  "tip24": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw24",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r24": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip24",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b24": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b23",
+        0
+      ],
+      "image2": [
+        "r24",
+        0
+      ]
+    }
+  },
+  "yaw25": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 316.25,
+      "mode.angle_z": 0
+    }
+  },
+  "tip25": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw25",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r25": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip25",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b25": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b24",
+        0
+      ],
+      "image2": [
+        "r25",
+        0
+      ]
+    }
+  },
+  "yaw26": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 327.5,
+      "mode.angle_z": 0
+    }
+  },
+  "tip26": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw26",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r26": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip26",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b26": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b25",
+        0
+      ],
+      "image2": [
+        "r26",
+        0
+      ]
+    }
+  },
+  "yaw27": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 338.75,
+      "mode.angle_z": 0
+    }
+  },
+  "tip27": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw27",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r27": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip27",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b27": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b26",
+        0
+      ],
+      "image2": [
+        "r27",
+        0
+      ]
+    }
+  },
+  "yaw28": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 350,
+      "mode.angle_z": 0
+    }
+  },
+  "tip28": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw28",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r28": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip28",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b28": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b27",
+        0
+      ],
+      "image2": [
+        "r28",
+        0
+      ]
+    }
+  },
+  "yaw29": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 1.25,
+      "mode.angle_z": 0
+    }
+  },
+  "tip29": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw29",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r29": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip29",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b29": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b28",
+        0
+      ],
+      "image2": [
+        "r29",
+        0
+      ]
+    }
+  },
+  "yaw30": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 12.5,
+      "mode.angle_z": 0
+    }
+  },
+  "tip30": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw30",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r30": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip30",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b30": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b29",
+        0
+      ],
+      "image2": [
+        "r30",
+        0
+      ]
+    }
+  },
+  "yaw31": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "final",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 0,
+      "mode.angle_y": 23.75,
+      "mode.angle_z": 0
+    }
+  },
+  "tip31": {
+    "class_type": "RotateMesh",
+    "inputs": {
+      "mesh": [
+        "yaw31",
+        0
+      ],
+      "mode": "euler_xyz",
+      "mode.angle_x": 12,
+      "mode.angle_y": 0,
+      "mode.angle_z": 0
+    }
+  },
+  "r31": {
+    "class_type": "RenderMesh",
+    "inputs": {
+      "mesh": [
+        "tip31",
+        0
+      ],
+      "mode": "auto",
+      "width": 512,
+      "height": 512,
+      "background": "#0b0a09"
+    }
+  },
+  "b31": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "b30",
+        0
+      ],
+      "image2": [
+        "r31",
+        0
+      ]
+    }
+  },
+  "ttv": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "b31",
+        0
+      ],
+      "fps": 16
+    }
+  },
+  "turntable": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "ttv",
+        0
+      ],
+      "filename_prefix": "openfield/object_turntable",
+      "format": "auto",
+      "codec": "auto"
+    }
+  }
+}

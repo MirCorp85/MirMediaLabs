@@ -43,6 +43,7 @@ import muse_talk
 import router
 import watermark
 import workflows
+import alter
 
 app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = 600 * 1024 * 1024
@@ -88,6 +89,8 @@ def gate():
     if request.path.startswith("/social/pub/"):     # signed, expiring media links for Instagram's fetcher (social.py)
         return None
     if request.path.startswith("/social/tiktok/"):  # TikTok sign-in return (one-time state checked) + public legal pages
+        return None
+    if request.path.startswith("/ffdrop/"):         # Studio phone drop box: one-time 15-min token, one clip (ffpack.py)
         return None
     if request.path.startswith("/updates/pc/"):     # PC update channel: signed files + channel token
         return None if pcupdate.publisher_ok(request) else (jsonify({"error": "forbidden"}), 403)
@@ -374,12 +377,25 @@ def _pipeline_steps(job, base):
     plan = job.get("plan") or []
     meta = {}                                    # carried forward: style · lyrics · bpm · key (latest step wins)
     n = len(job["steps"])
+    work, alt = base, man.get("alter")
+    if alt:                                      # ALTER: edit-ready clip + its first frame (the target frame's source)
+        vid = next((r for r in base if core.kind_of(r) == "video"), None)
+        vpath = core.in_dir(core.REFS, vid) if vid else None
+        if not vpath:
+            raise RuntimeError("ALTER needs your clip attached")
+        job["stage"] = "ALTER · preparing your clip"
+        clip_p, frame_p = alter.prep(job, vpath, knobs.get("secs") or 8, lambda m: renderers.log(job, m))
+        cref, fref = _store_ref("alter_clip", ".mp4", owner), _store_ref("alter_frame", ".png", owner)
+        shutil.copy2(clip_p, core.safe_path(os.path.join(core.REFS, cref)))
+        shutil.copy2(frame_p, core.safe_path(os.path.join(core.REFS, fref)))
+        work = [fref] + [cref if r == vid else r for r in base]
+        job["alter"] = dict(alt)
     for i, st in enumerate(job["steps"], 1):
         if job.get("_cancel"):
             raise comfy.Cancelled()
         row = plan[i - 1] if i - 1 < len(plan) else {}
         mdl = skills.model_for(st["role"])        # role → today's engine for that role
-        refs = skills.resolve_inputs(st, base, outs, core.kind_of, _ref_seconds)
+        refs = skills.resolve_inputs(st, work, outs, core.kind_of, _ref_seconds)
         has_img = i == 1 and any(core.kind_of(r) == "image" for r in refs)
         if job.get("literal") and job.get("input"):   # My words: every step that takes a prompt gets yours, as written
             prompt = job["input"] if st.get("tpl") else ""
@@ -392,6 +408,8 @@ def _pipeline_steps(job, base):
         if st.get("mode"):
             po["mode"] = st["mode"]
         po.update(over)
+        if job.get("mask_what") and "mask_what" in po:      # "What gets replaced" from the recipe card
+            po["mask_what"] = job["mask_what"]
         if st.get("mode") == "voice" and sum(1 for r in refs if core.kind_of(r) == "audio") < 2:
             raise RuntimeError(skills.missing(man, [core.kind_of(r) for r in base]) or
                                "the voice swap needs the song AND a voice recording")
@@ -427,6 +445,14 @@ def _pipeline_steps(job, base):
         if row:
             row.update(status="done", files=list(res["files"]))
         _persist()
+    if alt:                                      # ALTER: QA against the clip, trim the drift, the clip's sound back
+        render = next((f for f in reversed(files) if core.kind_of(f) == "video"), None)
+        rpath = core.in_dir(core.LIB, render) if render else None
+        if rpath:
+            job["stage"] = "ALTER · checking the render against your clip"
+            extra, report = alter.finish(job, clip_p, rpath, alt.get("check", "swap"), lambda m: renderers.log(job, m))
+            files = extra + files
+            texts.append("── ALTER check ──" + chr(10) + report)
     return {"files": files, "text": chr(10).join(texts)}
 
 
@@ -461,7 +487,7 @@ def worker():
             res = _run_pipeline(job) if job.get("steps") else _run_once(job)
             if job.get("keep_clean") and res["files"]:   # SERIES: unmarked reference copy (the next shot builds on it)
                 _keep_clean(res["files"], job.get("user") or "owner")
-            if watermark.enabled() and res["files"]:
+            if watermark.enabled() and res["files"] and not job.get("clean"):
                 job["stage"] = "watermarking"
                 if watermark.apply(res["files"], lambda m: console.emit("LAB", m, job, "warn")):
                     console.emit("LAB", "watermarked · " + watermark.text(), job)
@@ -613,7 +639,8 @@ def _route(job):
         kv = skills.knob_values(sk, d.get("knobs"))
         over, add = skills.knob_effects(sk, kv, None, model)
         filled = prompt if job.get("literal") and prompt else skills.fill(sk["tpl"], prompt, has_img)
-        job.update(model=model, skill=sk["name"], prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
+        job.update(model=model, skill=sk["name"], skill_id=sk["id"], skill_input=prompt or "",
+                   prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
                    params=params.get(model, override=dict(skills.overrides(sk, model), **over), uid=owner))
     else:
         model = skills.model_for(d["role"])
@@ -1118,11 +1145,14 @@ def generate():
         filled = prompt if job.get("literal") and prompt else skills.fill(sk["tpl"], prompt, sk["role"] == "image" and any(core.kind_of(r) == "image" for r in refs))
         mine = params.get(model, uid=uid())
         keep = {k: mine[k] for k in ("res", "quality", "seed", "swap_quality", "face_pass") if k in mine}
-        job.update(skill=sk["name"], prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
+        job.update(skill=sk["name"], skill_id=sk["id"], skill_input=prompt,
+                   prompt=(filled + " " + add).strip() if add else filled, knobs=kv,
                    params=params.get(model, override=dict(keep, **po), uid=uid(), saved_ok=False))
     elif pl:
         job.update(pipeline=pl["name"], pipeline_id=pl["id"], steps=pl["steps"], step="0/%d" % len(pl["steps"]),
                    plan=skills.plan_for(pl), knobs=skills.knob_values(pl, body.get("knobs")))
+        if isinstance(body.get("mask_what"), str) and body["mask_what"].strip():
+            job["mask_what"] = body["mask_what"].strip()[:120]      # ALTER "What gets replaced"
     if sel and model != "auto" and not pl:          # direct request: LoRAs + trigger words go in now (Auto: after MirAI picks)
         _lora_apply(job, model, _what(model))
     if model == "auto":
@@ -2096,6 +2126,80 @@ nodeflow.register(app, {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "sta
                         "session": lambda s: sessions.valid(uid(), s if s is not None else sessions.load(uid()).get("last")),
                         "submit": _series_submit, "job": _series_job, "cancel": _series_cancel,
                         "to_ref": _flow_to_ref, "text_ref": _flow_text_ref})
+
+
+
+# ── PHASE 2 TOOLS: Studio (freefield apps), Kinetic editor, Motion wizard + library, MIR EXPLAINED, Rank Reel, CopyCat, Design ──
+# Each module owns its pages + /api routes; engine folders are configurable (engines.py) and installed by Setup.
+import engines  # noqa: E402
+
+_SESS = lambda s: sessions.valid(uid(), s if s is not None else sessions.load(uid()).get("last"))
+_OWN = lambda: _loopback() or is_owner()
+_MOTION_HK = {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "static": _static, "session": _SESS,
+              "ask": _motion_ask, "words": _motion_words, "lib_list": _motion_lib, "is_owner": _OWN}
+
+
+def _phase2(name, hk):
+    """Register one add-on module; a missing optional dependency never takes the whole lab down."""
+    try:
+        mod = __import__(name)
+        mod.register(app, hk)
+    except Exception as e:                       # noqa: BLE001
+        print("[lab] %s not loaded: %s" % (name, e))
+
+
+_phase2("kinetic", _MOTION_HK)
+_phase2("motion_wizard", _MOTION_HK)            # also registers motion_library (/motion/library, /api/mglib)
+_phase2("rankreel", _MOTION_HK)
+_phase2("rankreel_wizard", _MOTION_HK)
+_phase2("freefield", {"uid": uid, "is_owner": _OWN, "static": _static, "session": _SESS})   # + ffpack (/studio-stage)
+_phase2("copycat", {"uid": uid, "is_owner": _OWN})
+_phase2("design", {"uid": uid, "is_owner": _OWN})
+_phase2("explainer", {"uid": uid, "push": events.push, "static": _static,
+                      "can_produce": lambda: None if _OWN() else "only the owner can run MIR EXPLAINED"})
+
+try:                                             # Design's live progress: /design/ws <-> ComfyUI /ws
+    from flask_sock import Sock  # noqa: E402
+    _sock = Sock(app)
+
+    @_sock.route("/design/ws")
+    def _design_ws(ws):
+        if not _OWN():
+            return
+        import design
+        design.ws_bridge(ws)
+except Exception as _e:                          # noqa: BLE001
+    print("[lab] Design live progress off (flask-sock missing: %s)" % _e)
+
+
+@app.route("/api/addon-keys", methods=["GET", "POST"])
+def addon_keys():
+    """Owner-only keys for add-ons: Hugging Face token (gated model downloads in Studio) and an optional research engine
+    (any OpenAI-compatible URL + key YOU run, e.g. a Kaggle notebook) for MIR EXPLAINED. GET never returns a secret."""
+    if not _OWN():
+        return jsonify({"error": "owner only"}), 403
+    hf_file = os.path.join(core.DATA, "hf_token.txt")
+    if request.method == "POST":
+        b = request.get_json(silent=True) or {}
+        if "hf_token" in b:
+            tok = str(b.get("hf_token") or "").strip()[:200]
+            if tok:
+                with open(core.safe_path(hf_file), "w", encoding="utf-8") as f:
+                    f.write(tok)
+            elif os.path.isfile(hf_file):
+                os.remove(hf_file)
+        if "research_url" in b:
+            url = str(b.get("research_url") or "").strip()[:300]
+            if url and not url.startswith(("http://", "https://")):
+                return jsonify({"error": "the research engine URL must start with http:// or https://"}), 400
+            core.save_pref("research_url", url)
+            core.save_pref("research_model", str(b.get("research_model") or "").strip()[:120])
+            if b.get("research_key") is not None and (str(b.get("research_key")).strip() or not url):
+                core.save_pref("research_key", str(b.get("research_key") or "").strip()[:300])
+    pr = core.prefs()
+    return jsonify({"hf_token": os.path.isfile(hf_file), "research_url": pr.get("research_url") or "",
+                    "research_model": pr.get("research_model") or "", "research_key": bool(pr.get("research_key")),
+                    "engines": engines.summary()})
 
 
 def main():

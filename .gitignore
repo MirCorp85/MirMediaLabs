@@ -62,3 +62,13 @@ motion/out/
 runtime/
 engine/
 comfy/
+
+# -- phase-2 tools: downloaded / generated at setup, never committed --
+engines/
+motion/public/mg/vec/
+motion/public/mg/art/
+motion/public/mg/_raw/
+motion/public/episodes/
+motion/src/explained/episodes/*
+!motion/src/explained/episodes/roadster.json
+data/_static/

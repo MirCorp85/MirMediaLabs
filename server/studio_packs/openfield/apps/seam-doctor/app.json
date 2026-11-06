@@ -1,0 +1,127 @@
+{
+  "id": "seam-doctor",
+  "status": "ready",
+  "pack": "openfield",
+  "credits": [
+    "Ported from wexloops/openfield (MIT, (c) 2026 David Wexler / Strangeloop Studios)"
+  ],
+  "origin": "openfield",
+  "name": "Seam Doctor · Perfect Loops",
+  "section": "video",
+  "native": "seam",
+  "summary": "Scores how cleanly a loop closes (framing + fine texture) and fixes it by trimming, re-rendering across the wrap, or an LTX bridge. Never a crossfade.",
+  "requires_nodes": [
+    "LTXVSetAudioVideoMaskByTime",
+    "ImageFromBatch",
+    "BatchImagesNode",
+    "VHS_LoadVideo",
+    "VHS_VideoCombine"
+  ],
+  "inputs": [
+    {
+      "id": "video",
+      "type": "video",
+      "label": "Loop",
+      "required": true
+    },
+    {
+      "id": "fix",
+      "type": "select",
+      "label": "What to do",
+      "default": "auto",
+      "options": [
+        {
+          "value": "check",
+          "label": "Just measure"
+        },
+        {
+          "value": "auto",
+          "label": "Fix it (best way)"
+        },
+        {
+          "value": "trim",
+          "label": "Trim only"
+        },
+        {
+          "value": "regen",
+          "label": "Re-render the wrap"
+        },
+        {
+          "value": "bridge",
+          "label": "LTX bridge"
+        }
+      ]
+    },
+    {
+      "id": "prompt",
+      "type": "text",
+      "label": "What the clip shows (for re-renders)",
+      "default": "",
+      "help": "One sentence about the scene. Empty = a neutral description."
+    },
+    {
+      "id": "strength",
+      "type": "slider",
+      "label": "Re-render strength",
+      "default": 0.55,
+      "min": 0.2,
+      "max": 0.85,
+      "step": 0.05,
+      "help": "Low keeps detail, high redraws more."
+    },
+    {
+      "id": "seed",
+      "type": "seed",
+      "label": "Seed",
+      "default": -1
+    }
+  ],
+  "outputs": [
+    {
+      "type": "video",
+      "label": "Fixed loop"
+    }
+  ],
+  "models": [
+    {
+      "repo": "Lightricks/LTX-2.5",
+      "file": "diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+      "dir": "diffusion_models",
+      "gb": 21.5,
+      "phase": "denoise",
+      "gated": true,
+      "license": "LTX-2.x Community License"
+    },
+    {
+      "repo": "Lightricks/LTX-2.5",
+      "file": "text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+      "dir": "text_encoders",
+      "gb": 15.37,
+      "phase": "encode",
+      "gated": true,
+      "license": "LTX-2.x Community License"
+    },
+    {
+      "repo": "Lightricks/LTX-2.5",
+      "file": "vae/ltx-2.5-video-vae-bf16.safetensors",
+      "dir": "vae",
+      "gb": 1.47,
+      "phase": "decode",
+      "gated": true,
+      "license": "LTX-2.x Community License"
+    },
+    {
+      "repo": "Lightricks/LTX-2.5",
+      "file": "vae/ltx-2.5-audio-vae-bf16.safetensors",
+      "dir": "vae",
+      "gb": 0.36,
+      "phase": "decode",
+      "gated": true,
+      "license": "LTX-2.x Community License"
+    }
+  ],
+  "vram": {
+    "peak_gb": 20
+  },
+  "notes": "Measuring and trimming run on the PC with ffmpeg; only re-render and bridge use the GPU."
+}

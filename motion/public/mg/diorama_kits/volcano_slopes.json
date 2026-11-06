@@ -1,0 +1,190 @@
+{
+ "id": "volcano_slopes",
+ "name": "Volcano Slopes",
+ "about": "Stories on an erupting volcano's flank: evacuations, volcanologists racing a pyroclastic flow, survivors at an abandoned outpost beneath the ash column.",
+ "tags": [
+  "volcano",
+  "eruption",
+  "ash",
+  "pyroclastic",
+  "lava",
+  "disaster",
+  "outpost",
+  "evacuation",
+  "scorched"
+ ],
+ "floor": "moon",
+ "walls": "none",
+ "wallH": 2.6,
+ "props": [
+  {
+   "t": "dune",
+   "w": 2.0,
+   "d": 1.4,
+   "h": 0.8,
+   "x": 0.2,
+   "y": 0.2,
+   "col": "char1"
+  },
+  {
+   "t": "tank",
+   "w": 1.0,
+   "d": 1.0,
+   "h": 3.2,
+   "x": 0.3,
+   "y": 0.3,
+   "col": "graph2"
+  },
+  {
+   "t": "sphere",
+   "w": 1.5,
+   "x": 0.1,
+   "y": 0.1,
+   "z": 2.4,
+   "col": "char1"
+  },
+  {
+   "t": "sphere",
+   "w": 0.9,
+   "x": 0.9,
+   "y": 0.9,
+   "z": 0.15,
+   "col": "graph"
+  },
+  {
+   "t": "pine",
+   "w": 0.7,
+   "d": 0.7,
+   "h": 2.0,
+   "x": 2.4,
+   "y": 0.2,
+   "col": "char0"
+  },
+  {
+   "t": "pine",
+   "w": 0.7,
+   "d": 0.7,
+   "h": 1.7,
+   "x": 3.2,
+   "y": 1.0,
+   "col": "char0"
+  },
+  {
+   "t": "rock",
+   "x": 1.6,
+   "y": 0.3,
+   "col": "char1"
+  },
+  {
+   "t": "rock",
+   "x": 0.2,
+   "y": 1.6,
+   "col": "graph"
+  },
+  {
+   "t": "crater",
+   "w": 1.2,
+   "d": 1.2,
+   "x": 2.1,
+   "y": 1.7,
+   "col": "char0"
+  },
+  {
+   "t": "hut",
+   "w": 1.4,
+   "d": 1.1,
+   "x": 0.2,
+   "y": 2.3,
+   "col": "steel2"
+  },
+  {
+   "t": "barrel",
+   "x": 1.7,
+   "y": 2.9,
+   "col": "bronze"
+  },
+  {
+   "t": "flag",
+   "x": 0.3,
+   "y": 3.5,
+   "col": "red"
+  }
+ ],
+ "st": {
+  "outpost": [
+   [
+    2.6,
+    3.3
+   ],
+   -1,
+   [
+    0.9,
+    2.9,
+    0.9
+   ]
+  ],
+  "crater": [
+   [
+    1.4,
+    1.95
+   ],
+   1,
+   [
+    2.7,
+    2.3,
+    0.1
+   ]
+  ],
+  "column": [
+   [
+    2.6,
+    1.35
+   ],
+   -1,
+   [
+    0.8,
+    0.8,
+    2.6
+   ]
+  ],
+  "center": [
+   [
+    3.3,
+    3.6
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.9,
+   3.6
+  ],
+  [
+   3.6,
+   2.9
+  ],
+  [
+   3.6,
+   2.1
+  ]
+ ],
+ "regulars": [
+  [
+   0,
+   "explain",
+   {
+    "gender": "woman",
+    "outfit": "labcoat",
+    "color": "silver",
+    "skin": "tan",
+    "hair": "ponytail"
+   }
+  ]
+ ],
+ "animals": [],
+ "source": "generated",
+ "created": "2026-11-02",
+ "world": "war"
+}

@@ -53,7 +53,7 @@ def cfg():
     v = social.accounts().get("viral") or {}
     return {"keywords": v.get("keywords") or DEFAULT_KW, "subreddits": v.get("subreddits") or DEFAULT_SUBS,
             "news": v.get("news") or DEFAULT_NEWS, "auto_trends": v.get("auto_trends", True),
-            "auto_captions": v.get("auto_captions", True), "auto_hooklab": v.get("auto_hooklab", True),
+            "auto_captions": v.get("auto_captions", False), "auto_hooklab": v.get("auto_hooklab", False),   # opt-in: hooks only when the owner asks
             "region": v.get("region") or "US",
             "reddit": bool(v.get("reddit_id") and v.get("reddit_secret"))}
 
@@ -473,7 +473,8 @@ def frames(pid, n=3):
     src = os.path.join(social.OUT, p["media"]["file"])
     dur = float(p["media"].get("duration") or 6)
     out = []
-    for i, at in enumerate((0.4, dur * 0.4, dur * 0.8)[:n]):
+    skip = min(float((p.get("story") or {}).get("intro_secs") or 0), dur * .3)   # a motion video opens with an intro sting: frame 1 = the film's first scene
+    for i, at in enumerate((skip + (1.5 if skip else 0.4), skip + (dur - skip) * 0.4, dur * 0.8)[:n]):
         f = os.path.join(social.OUT, "%s_f%d.jpg" % (pid, i))
         social._ff(["-ss", "%.2f" % at, "-i", src, "-frames:v", "1", "-vf", "scale=512:-2", "-q:v", "4", f], 60)
         if os.path.isfile(f):
@@ -568,11 +569,18 @@ def hook_lab(pid=None, note="", n=10, apply=False):
         ctx["post"] = {k: p.get(k) for k in ("hook", "caption", "brief", "pillar", "platforms")}
         ctx["on_screen"] = see(pid)
         ctx["duration"] = (p.get("media") or {}).get("duration")
+        st = p.get("story") or {}
+        if st:                                     # a narrated film: hooks tease what it is ABOUT, not 3 sampled frames
+            ctx["story"] = {k: st.get(k) for k in ("title", "logline", "premise", "kind") if st.get(k)}
+            ctx["story"]["opening_lines"] = str(st.get("narration") or "")[:900]
     gen = social.ask_agent(
         "Write %d on-screen first-second HOOKS (<=7 words each) for this piece. Each must use a DIFFERENT angle "
         "(curiosity, bold claim, question, number, POV, contrast, story, challenge, series, sensory). Ground them in what is "
         "actually ON SCREEN (on_screen) — a hook that promises something the first frame doesn't show kills retention. Learn "
-        "from winning_hooks; adapt formulas, don't paste them. Return JSON {\"hooks\":[{\"text\",\"angle\",\"formula\"}]}" % n, ctx)
+        "from winning_hooks; adapt formulas, don't paste them.%s Return JSON {\"hooks\":[{\"text\",\"angle\",\"formula\"}]}" % (n,
+            " This is a narrated film (story): every hook must tease THAT story - its premise, its stakes, its question - in "
+            "words a viewer cares about, and stay honest to its opening scene (on_screen frame 1). Never hook on abstract "
+            "shapes, lines or the intro." if ctx.get("story") else ""), ctx)
     cands = [h for h in (gen.get("hooks") or []) if isinstance(h, dict) and h.get("text")][:n]
     if not cands:
         return {"hooks": [], "error": "the writer returned no hooks"}
@@ -598,6 +606,45 @@ def hook_lab(pid=None, note="", n=10, apply=False):
             upd["hook"] = rows[0]["text"]
         social.update(pid, **upd)
     return res
+
+
+# ── thumbnails (YouTube click-through) ───────────────────────────────────────────────────────────────────────────
+def thumbnail(pid, texts=None, pick=None):
+    """3 A/B thumbnails from the post's strongest frames. The writer gives 2-4 word texts that ADD to the title
+    (curiosity gap), never repeat it. pick=i makes variant i the one YouTube uploads (post.yt_thumb)."""
+    try:
+        import thumbnail as tn          # Pillow: source installs (the compiled PC edition ships no PIL)
+    except ImportError:
+        raise ValueError("thumbnails need Pillow — available when the lab runs from source")
+    p = social.get(pid)
+    if not p or not p.get("media"):
+        raise ValueError("post has no media")
+    if pick is not None:
+        f = "%s_thumb_%d.jpg" % (pid, int(pick) + 1)
+        if not os.path.isfile(os.path.join(social.OUT, f)):
+            raise ValueError("no such variant")
+        social.update(pid, yt_thumb=f)
+        return {"yt_thumb": f}
+    m = p["media"]
+    src = os.path.join(social.OUT, m.get("yt_file") or m["file"])
+    if not texts:
+        st = p.get("story") or {}
+        gen = social.ask_agent(
+            "Write 3 YouTube THUMBNAIL texts for this video. Rules: 2-4 words each, ALL different angles (number/stakes, "
+            "emotion/POV, mystery); must NOT repeat the title — the thumbnail and title together make one curiosity gap; "
+            "concrete words over abstract; no clickbait the video doesn't pay off. accent = the ONE word to colour. "
+            "sub = optional 1-3 word tag (a time, a number) or empty. Return JSON {\"thumbs\":[{\"text\",\"accent\",\"sub\"}]}",
+            {"title": p.get("yt_title") or p.get("hook"), "story": {k: st.get(k) for k in ("title", "logline", "premise") if st.get(k)},
+             "on_screen": see(pid), "lessons": lessons_text()[:800]})
+        texts = [t for t in (gen.get("thumbs") or []) if isinstance(t, dict) and t.get("text")][:3]
+    if not texts:
+        texts = [{"text": " ".join((p.get("hook") or "WATCH THIS").split()[:4])}]
+    outs = tn.variants(src, os.path.join(social.OUT, pid + "_thumb"), texts, 3,
+                       crop_bottom=0.2 if p.get("story") or p.get("captioned") else 0.0)   # drop burned-in subtitles
+    files = [os.path.basename(o["file"]) for o in outs]
+    social.update(pid, thumbs=[dict(t if isinstance(t, dict) else {"text": t}, file=f, at=o["at"])
+                               for t, f, o in zip(texts * 3, files, outs)], yt_thumb=files[0])
+    return {"thumbs": files, "yt_thumb": files[0]}
 
 
 # ── lessons (weekly, from our own numbers) ───────────────────────────────────────────────────────────────────────
@@ -656,7 +703,7 @@ def captions(pid, mode="both", style="pop", pos="bottom", upper=True, hook_text=
             hook_end = 0.0
             if h and (mode in ("hook", "both") or not words):      # speech chosen but nobody talks → the hook still goes on
                 hook_end = min(2.6, dur)
-                caps.append(remotion.scene("captions", hook_end, {"text": h, "style": "box", "pos": "middle", "perLine": 4,
+                caps.append(remotion.scene("captions", hook_end, {"text": h, "style": "box", "pos": "middle", "perLine": max(4, len(h.split())),
                                                                   "size": 84, "upper": bool(upper)}, 0.0, out={"type": "fade", "dur": 0.3}))
             ws = [{"w": w["w"], "s": float(w["s"]), "e": float(w["e"])} for w in words if float(w["s"]) >= hook_end - 0.05]
             if len(ws) >= 3:
@@ -682,11 +729,13 @@ def captions(pid, mode="both", style="pop", pos="bottom", upper=True, hook_text=
             media = social.format_vertical(os.path.join(core.LIB, lib_out), pid + "_cap")
             new = dict(p["media"], file=media["file"], duration=media["duration"])
             social.update(pid, media=new, media_raw=p.get("media_raw") or p["media"], captioned={"mode": mode, "style": style,
-                          "words": len(ws), "t": time.time(), "lib": lib_out})
+                          "pos": pos, "upper": bool(upper), "hook": h if hook_end else "", "words": len(ws), "t": time.time(), "lib": lib_out})
             cv = os.path.join(social.OUT, pid + "_cap.jpg")
             if os.path.isfile(cv):
                 os.replace(cv, os.path.join(social.OUT, pid + ".jpg"))
             job.update(status="done", stage="done", words=len(ws))
+            if hook_end and hook_text is None:                     # the hook was edited (Hook Lab / owner) mid-render → burn the new one
+                rehook(pid)
         except Exception as e:
             job.update(status="failed", error=str(e)[:300])
             _log("[viral] captions %s: %s" % (pid, e))
@@ -696,6 +745,25 @@ def captions(pid, mode="both", style="pop", pos="bottom", upper=True, hook_text=
     else:
         threading.Thread(target=run, daemon=True, name="viral-captions").start()
     return job
+
+
+def rehook(pid):
+    """The post's hook text changed but its video still has the OLD hook burned in (e.g. Hook Lab applied after the
+    captions rendered) → re-burn from the clean original with the same settings. Called by social.update."""
+    p = social.get(pid) or {}
+    c = p.get("captioned") or {}
+    if c.get("mode") not in ("hook", "both") or not p.get("media_raw"):
+        return None
+    if (c.get("hook") or "").strip() == (p.get("hook") or "").strip():
+        return None
+    if (_STATE["captions"].get(pid) or {}).get("status") == "running":
+        return None                                                # the running job re-checks the hook when it finishes
+    try:
+        return captions(pid, mode=c["mode"], style=c.get("style") or "pop", pos=c.get("pos") or "bottom",
+                        upper=c.get("upper", True))
+    except ValueError as e:                                        # published / queued posts keep their video
+        _log("[viral] rehook %s: %s" % (pid, e))
+        return None
 
 
 def uncaption(pid):
@@ -877,6 +945,12 @@ def register(app, hk):
             return safe(uncaption, pid)
         return safe(captions, pid, b.get("mode") or "both", b.get("style") or "pop", b.get("pos") or "bottom",
                     bool(b.get("upper", True)), b.get("hook"))
+
+    @app.post("/api/viral/thumbnail/<pid>")
+    def viral_thumbnail(pid):
+        owner()
+        b = body()
+        return safe(thumbnail, pid, b.get("texts") or None, b.get("pick"))
 
     @app.get("/api/viral/captions/<pid>")
     def viral_captions_state(pid):

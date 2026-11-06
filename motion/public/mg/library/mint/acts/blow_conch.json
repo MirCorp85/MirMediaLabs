@@ -1,0 +1,151 @@
+{
+ "id": "blow_conch",
+ "kind": "act",
+ "cat": "fun",
+ "desc": "Lifts small conch to lips, leans back, blows it like a horn",
+ "loop": 3.2,
+ "keys": [
+  {
+   "u": 0,
+   "far": [
+    -58.0,
+    -188.0
+   ],
+   "near": [
+    52.0,
+    -250.0
+   ],
+   "lean": 0.05,
+   "lift": 0,
+   "drop": 0,
+   "tilt": 0.0,
+   "look": [
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "u": 0.22,
+   "far": [
+    -58.0,
+    -188.0
+   ],
+   "near": [
+    62.0,
+    -338.0
+   ],
+   "lean": 0.0,
+   "lift": 0,
+   "drop": 0,
+   "tilt": -0.05,
+   "look": [
+    2.0,
+    0.0
+   ]
+  },
+  {
+   "u": 0.4,
+   "far": [
+    -58.0,
+    -190.0
+   ],
+   "near": [
+    60.0,
+    -342.0
+   ],
+   "lean": -0.15,
+   "lift": 10.0,
+   "drop": 0,
+   "tilt": -0.15,
+   "look": [
+    2.0,
+    -1.0
+   ]
+  },
+  {
+   "u": 0.62,
+   "far": [
+    -58.0,
+    -190.0
+   ],
+   "near": [
+    60.0,
+    -342.0
+   ],
+   "lean": -0.2,
+   "lift": 14.0,
+   "drop": 0,
+   "tilt": -0.2,
+   "look": [
+    2.0,
+    -1.0
+   ]
+  },
+  {
+   "u": 0.8,
+   "far": [
+    -58.0,
+    -188.0
+   ],
+   "near": [
+    62.0,
+    -338.0
+   ],
+   "lean": -0.05,
+   "lift": 4.0,
+   "drop": 0,
+   "tilt": -0.05,
+   "look": [
+    2.0,
+    0.0
+   ]
+  },
+  {
+   "u": 0.92,
+   "far": [
+    -58.0,
+    -188.0
+   ],
+   "near": [
+    52.0,
+    -250.0
+   ],
+   "lean": 0.05,
+   "lift": 0,
+   "drop": 0,
+   "tilt": 0.0,
+   "look": [
+    1.0,
+    0.0
+   ]
+  }
+ ],
+ "tags": [],
+ "legs": "stand",
+ "hold": [
+  null,
+  "conch_shell"
+ ],
+ "hang": -0.08,
+ "face": {
+  "b": 0.4,
+  "f": 0.6,
+  "m": -0.1,
+  "eyes": "squint"
+ },
+ "review": {
+  "score": 6.0,
+  "round": 2,
+  "problems": [
+   "At the peak (t\u22481.1\u20132.1s) it reads correctly as blowing a conch: the narrow tip is at the lips, the bell points away and there are sound marks.",
+   "The sound-wave marks ')))' show in every frame, including t=0.0s and t=2.7s when the shell is down at the chest. It looks like he is already blowing at chest height, so the start and end don't read as a rest pose.",
+   "The conch is too big for a 'small conch'. Its body plus the coral-red bell is wider than the head (about 1.3\u00d7 head width), so at the peak it hides the whole lower face and reads as heavy.",
+   "The start-to-end motion is weak. The rest pose already holds the shell high across the chest (near y=-250), so the lift to the mouth (y=-338/-342) is only about 90 units and the 'raise' beat barely registers.",
+   "The lean back is too faint (lean -0.2 at most). In the frames the torso stays almost upright, so the 'leans back and blows' accent is lost.",
+   "The bumps on top of the shell are small dots that look scattered and slightly detached at this size. They should read as part of the shell's spiral."
+  ]
+ },
+ "for": "raise a conch shell to the lips and blow it like a horn",
+ "source": "minted",
+ "created": "2026-11-02"
+}

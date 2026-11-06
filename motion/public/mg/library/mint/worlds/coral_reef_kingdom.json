@@ -1,0 +1,84 @@
+{
+ "id": "coral_reef_kingdom",
+ "kind": "world",
+ "name": "Coral Reef Kingdom",
+ "hero": {
+  "outfit": "tshirt",
+  "color": "teal",
+  "hat": "diving_mask"
+ },
+ "about": "A sunken coral kingdom on one continuous sandy sea bed: glowing coral gardens, tall kelp forest walls, giant open clams with pearls, broken palace columns, with",
+ "base": "ocean",
+ "o": {
+  "ground": "#04161f",
+  "lot": "#4a4030",
+  "edge": "rgba(0,0,0,0)",
+  "path": "#4a4030",
+  "haze": "rgba(40,150,160,0.40)",
+  "sky": [
+   "#020b14",
+   "#06324a",
+   "#0e6a78"
+  ],
+  "sun": false,
+  "moon": false,
+  "planet": false,
+  "stars": 40,
+  "fill": [
+   "props:coral,coral,clam,coral",
+   "props:kelp,kelp,kelp,kelp",
+   "props:clam,clam,coral,rock",
+   "props:pillar,ruin,coral,kelp",
+   "props:kelp,kelp,coral,clam",
+   "props:pillar,pillar,coral,rock",
+   "props:coral,kelp,clam,coral"
+  ],
+  "walk": {
+   "people": 2,
+   "look": {
+    "outfit": "tshirt",
+    "hat": "diving_mask",
+    "color": "teal"
+   },
+   "animals": [
+    "dolphin",
+    "dolphin",
+    "turtle",
+    "turtle",
+    "fish"
+   ]
+  },
+  "amb": "fireflies",
+  "floor": "sand",
+  "water": ""
+ },
+ "tags": [
+  "coral",
+  "reef",
+  "kingdom",
+  "underwater",
+  "diver",
+  "dolphins",
+  "turtles",
+  "kelp",
+  "clams",
+  "seabed",
+  "sunken_palace",
+  "friendship"
+ ],
+ "review": {
+  "score": 4.0,
+  "round": 4,
+  "problems": [
+   "The floor still reads as a city grid. Lots and paths now share #4a4030, but the lot tiles are still drawn as separate diamonds with darker gutters and edge lines between them. Aerial and ground views show a checkerboard of square plots, not one continuous sandy sea bed.",
+   "None of the walk animals (2 dolphins, 2 turtles, fish) appear in any of the three frames. The brief is about befriending dolphins and turtles, so the core story is missing.",
+   "The diving_mask still reads as black-rimmed glasses on a man in a t-shirt (ground level). There is no snorkel, no strap behind the head and no oval faceplate, so he doesn't read as a diver.",
+   "The giant clams are small grey domes, about knee-high to the diver. They are closed and have no pearls, so they read as rocks or helmets, not giant open clams.",
+   "The kelp is thin, wispy and grey-green, about the diver's height or shorter. It reads as dead weeds, not tall kelp forest walls.",
+   "The palace columns are plain charcoal posts that read as bollards or lamp posts. There is no capital, base or fluting, and no broken top."
+  ]
+ },
+ "for": "A coral reef kingdom under the sea where a young diver (wearing the diving_mask hat) befriends dolphins and sea turtles; coral gardens, kelp, giant clams",
+ "source": "minted",
+ "created": "2026-11-02"
+}

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08080A">
+<title>MIR MOTION LIBRARY</title>
+<base href="../">
+<link rel="icon" href="static/icon-512.png">
+<script src="static/mir-icons.js"></script>
+<!-- MIR MOTION LIBRARY (Oct 29 2026): the ONE library Motion Studio (Diorama + Explainer) and MIR EXPLAINED share — worlds, places,
+     characters, animals, movement sets, rides, objects, scenery. Fed by /api/mglib (server/motion_library.py); thumbnails are
+     drawn by the Diorama engine itself (motion/mg_assets/build_library.py). Browse it at /motion/library, or open
+     it as a picker: motion/library?pick=characters,animals&for=<tag> posts {type:'mglib-pick', for, item} to the opener and closes
+     with {type:'mglib-close'}. Signature chrome, MIR ICONS only. -->
+<style>
+:root{--amb:#FFB547;--bg:#08080A;--panel:#111114;--panel2:#16161B;--raise:#1D1D23;--ink:#F2F6FA;
+  --dim:color-mix(in srgb,var(--ink) 64%,transparent);--faint:color-mix(in srgb,var(--ink) 40%,transparent);
+  --line:color-mix(in srgb,var(--ink) 9%,transparent);--line2:color-mix(in srgb,var(--ink) 18%,transparent);--ambs:color-mix(in srgb,var(--amb) 14%,transparent);
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box}html{color-scheme:dark}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:13px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 16px 10px}
+.hd{display:flex;align-items:center;gap:10px}
+.hd h1{margin:0;font-size:12px;letter-spacing:.22em;font-weight:800;color:var(--amb)}
+.hd .sub{color:var(--faint);font-size:12px}
+.hd .sp{flex:1}
+.b{border:1px solid var(--line2);background:var(--panel2);color:var(--ink);border-radius:10px;padding:6px 10px;font:inherit;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.b:hover{border-color:var(--amb)}
+.srch{display:flex;gap:8px;margin-top:10px;align-items:center}
+.srch input,.srch select{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line2);color:var(--ink);border-radius:10px;padding:8px 10px;font:inherit}
+.srch select{flex:0 0 auto}
+.tabs{display:flex;gap:6px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;border:1px solid var(--line);background:transparent;color:var(--dim);border-radius:999px;padding:5px 12px;font:inherit;font-size:12px;cursor:pointer}
+.tabs button.on{border-color:var(--amb);color:var(--amb);background:var(--ambs)}
+.tabs .n{color:var(--faint);margin-left:4px;font-size:11px}
+main{padding:14px 16px 40px}
+.grp{margin:4px 0 18px}
+.grp h2{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin:0 0 8px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.grid.wide{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.it{border:1px solid var(--line);background:var(--panel);border-radius:14px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;min-width:0;transition:border-color .15s,transform .15s}
+.it:hover{border-color:var(--amb);transform:translateY(-1px)}
+.it.sel{border-color:var(--amb);box-shadow:0 0 0 2px var(--ambs)}
+.th{aspect-ratio:1;background:#131418;display:flex;align-items:center;justify-content:center}
+.wide .th{aspect-ratio:16/9}
+.th img{width:100%;height:100%;object-fit:cover;display:block}
+.tx{padding:8px 10px}
+.nm{font-weight:650;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds{color:var(--faint);font-size:11.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tag{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--amb);border:1px solid var(--ambs);border-radius:6px;padding:0 5px;margin-top:4px}
+.empty{color:var(--faint);padding:30px 0;text-align:center}
+.mi{width:15px;height:15px}
+@media (max-width:520px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.wide{grid-template-columns:minmax(0,1fr)}.hd .sub{display:none}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="hd"><i class="mi" data-ic="layers"></i><h1>MOTION LIBRARY</h1><span class="sub" id="sub">shared by Motion Studio and MIR EXPLAINED</span><span class="sp"></span>
+    <button class="b" id="close" hidden onclick="closeMe()"><i class="mi" data-ic="close"></i> Close</button></div>
+  <div class="srch"><input id="q" placeholder="Search: dog, soldier, castle, drive, coffee…" oninput="paint()"><select id="world" onchange="paint()" title="Places of one world"><option value="">All worlds</option></select></div>
+  <div class="tabs" id="tabs"></div>
+</div>
+<main id="main"><div class="empty">Loading the library…</div></main>
+<script>
+const $ = (s) => document.querySelector(s), esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const Q = new URLSearchParams(location.search), PICK = (Q.get('pick') || '').split(',').filter(Boolean), FOR = Q.get('for') || '';
+const LABEL = {worlds: 'Worlds', places: 'Places', characters: 'Characters', animals: 'Animals', actions: 'Movements', rides: 'Rides & vehicles', vfx: 'Effects (VFX)', objects: 'Held objects', props: 'Scenery & props'};
+let CATS = {}, TAB = PICK[0] || 'worlds';
+const inFrame = window.parent !== window;
+if (PICK.length || inFrame) $('#close').hidden = false;
+if (PICK.length) $('#sub').textContent = 'pick one';
+function closeMe() {if (inFrame) parent.postMessage({type: 'mglib-close', for: FOR}, '*'); else history.back();}
+async function load() {
+	try {CATS = (await (await fetch('api/mglib')).json()).cats || {};} catch (e) {$('#main').innerHTML = '<div class="empty">The library could not be loaded.</div>'; return;}
+	$('#world').innerHTML = '<option value="">All worlds</option>' + (CATS.worlds || []).map((w) => `<option value="${esc(w.key)}">${esc(w.name)}</option>`).join('');
+	if (Q.get('world')) $('#world').value = Q.get('world');
+	paint();
+}
+function rows(cat) {const q = $('#q').value.trim().toLowerCase(), w = $('#world').value;
+	return (CATS[cat] || []).filter((r) => (!w || cat !== 'places' || r.world === w) && (!q || (r.name + ' ' + (r.desc || '') + ' ' + (r.tags || []).join(' ') + ' ' + (r.cat || '') + ' ' + (r.world || '')).toLowerCase().includes(q)));}
+function card(r, cat) {const t = cat === 'places' ? (r.world && r.world !== 'city' ? r.world : (r.builtin ? 'city · built-in' : 'city')) : cat === 'actions' ? r.cat : '';
+	return `<div class="it" data-id="${esc(r.id)}" onclick="pick('${cat}','${esc(r.id)}')" title="${esc(r.desc || '')}"><div class="th">${r.thumb ? `<img loading="lazy" src="${esc(r.thumb)}" alt="">` : ''}</div>
+		<div class="tx"><div class="nm">${esc(r.name)}</div><div class="ds">${esc(r.desc || '')}</div>${t ? `<span class="tag">${esc(t)}</span>` : ''}</div></div>`;}
+function paint() {const cats = (PICK.length ? PICK : Object.keys(LABEL)).filter((c) => CATS[c]);
+	if (!cats.includes(TAB)) TAB = cats[0];
+	$('#tabs').innerHTML = cats.map((c) => `<button class="${c === TAB ? 'on' : ''}" onclick="TAB='${c}';paint()">${LABEL[c] || c}<span class="n">${rows(c).length}</span></button>`).join('');
+	const rs = rows(TAB), wide = TAB === 'worlds' || TAB === 'places';
+	if (!rs.length) {$('#main').innerHTML = '<div class="empty">Nothing matches.</div>'; return;}
+	if (TAB === 'actions') {const g = {}; rs.forEach((r) => (g[r.cat] = g[r.cat] || []).push(r));
+		$('#main').innerHTML = Object.entries(g).map(([k, v]) => `<div class="grp"><h2>${esc(k)}</h2><div class="grid">${v.map((r) => card(r, TAB)).join('')}</div></div>`).join('');}
+	else if (TAB === 'places' && !$('#world').value) {const g = {}; rs.forEach((r) => (g[r.world || 'city'] = g[r.world || 'city'] || []).push(r)); const wn = Object.fromEntries((CATS.worlds || []).map((w) => [w.key, w.name]));
+		$('#main').innerHTML = Object.entries(g).map(([k, v]) => `<div class="grp"><h2>${esc(wn[k] || k)}</h2><div class="grid wide">${v.map((r) => card(r, TAB)).join('')}</div></div>`).join('');}
+	else $('#main').innerHTML = `<div class="grid ${wide ? 'wide' : ''}">${rs.map((r) => card(r, TAB)).join('')}</div>`;
+	MI.hydrate && MI.hydrate(document.body);}
+function pick(cat, id) {const r = (CATS[cat] || []).find((x) => x.id === id); if (!r) return;
+	document.querySelectorAll('.it.sel').forEach((e) => e.classList.remove('sel')); const el = document.querySelector(`.it[data-id="${CSS.escape(id)}"]`); el && el.classList.add('sel');
+	if (inFrame) parent.postMessage({type: 'mglib-pick', for: FOR, cat, item: r}, '*');}
+MI.hydrate && MI.hydrate(document.body);
+load();
+</script>
+</body>
+</html>

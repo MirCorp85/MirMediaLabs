@@ -1,0 +1,162 @@
+{
+ "id": "stadium_field",
+ "name": "Stadium field",
+ "about": "a floodlit sports field with goals and a scoreboard - matches, teams, coaches, fans, winning and losing",
+ "tags": [
+  "stadium",
+  "football",
+  "soccer",
+  "basketball",
+  "game",
+  "match",
+  "team",
+  "sports",
+  "fans",
+  "coach",
+  "championship",
+  "win",
+  "athlete",
+  "field"
+ ],
+ "floor": "grass",
+ "walls": "none",
+ "props": [
+  {
+   "t": "court",
+   "x": 0.3,
+   "y": 0.3,
+   "w": 3.4,
+   "d": 3.4
+  },
+  {
+   "t": "rail",
+   "x": 0.12,
+   "y": 1.4,
+   "w": 0.06,
+   "d": 1.2,
+   "h": 0.9,
+   "col": "silver2"
+  },
+  {
+   "t": "rail",
+   "x": 3.82,
+   "y": 1.4,
+   "w": 0.06,
+   "d": 1.2,
+   "h": 0.9,
+   "col": "silver2"
+  },
+  {
+   "t": "lamp",
+   "x": 0.05,
+   "y": 0.05,
+   "h": 2.8
+  },
+  {
+   "t": "lamp",
+   "x": 3.65,
+   "y": 0.05,
+   "h": 2.8
+  },
+  {
+   "t": "sign",
+   "x": 1.5,
+   "y": 0.02,
+   "w": 1.2,
+   "h": 2.0
+  },
+  {
+   "t": "sphere",
+   "x": 2.55,
+   "y": 2.3,
+   "w": 0.25,
+   "col": "silver2"
+  }
+ ],
+ "st": {
+  "midfield": [
+   [
+    2.0,
+    2.35
+   ],
+   1,
+   [
+    2.0,
+    2.0,
+    0.1
+   ]
+  ],
+  "goal": [
+   [
+    3.3,
+    2.0
+   ],
+   1,
+   [
+    3.85,
+    2.0,
+    0.6
+   ]
+  ],
+  "board": [
+   [
+    2.1,
+    0.8
+   ],
+   -1,
+   [
+    2.1,
+    0.05,
+    1.8
+   ]
+  ],
+  "sideline": [
+   [
+    0.7,
+    3.5
+   ],
+   1,
+   null
+  ],
+  "center": [
+   [
+    2.6,
+    3.0
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.3,
+   1.6
+  ],
+  [
+   3.0,
+   1.1
+  ],
+  [
+   1.5,
+   3.0
+  ],
+  [
+   3.3,
+   3.4
+  ]
+ ],
+ "regulars": [
+  [
+   1,
+   "celebrate",
+   {
+    "gender": "man",
+    "outfit": "hoodie",
+    "color": "gold",
+    "skin": "deep"
+   }
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-28"
+}

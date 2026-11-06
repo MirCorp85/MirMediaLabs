@@ -1,0 +1,191 @@
+{
+ "id": "prism_mirror_array",
+ "name": "Prism & Mirror Array",
+ "about": "Stories of light itself: beams racing between prisms and mirror towers, signal delays, timing a pulse across the relay, and the speed limit of the universe.",
+ "tags": [
+  "light",
+  "moon",
+  "relay",
+  "prism",
+  "mirror",
+  "beam",
+  "signal",
+  "speed",
+  "physics",
+  "timing"
+ ],
+ "floor": "moon",
+ "walls": "none",
+ "wallH": 2.6,
+ "props": [
+  {
+   "t": "prism",
+   "w": 2.2,
+   "d": 1.4,
+   "h": 3.0,
+   "x": 0.3,
+   "y": 0.2,
+   "col": "silver"
+  },
+  {
+   "t": "mirror",
+   "w": 0.8,
+   "d": 0.8,
+   "h": 2.4,
+   "x": 2.9,
+   "y": 0.3,
+   "col": "steel"
+  },
+  {
+   "t": "mirror",
+   "w": 0.7,
+   "d": 0.7,
+   "h": 2.2,
+   "x": 0.2,
+   "y": 2.2,
+   "col": "steel2"
+  },
+  {
+   "t": "dish",
+   "w": 0.6,
+   "d": 0.6,
+   "h": 1.2,
+   "x": 3.2,
+   "y": 1.3,
+   "col": "silver2"
+  },
+  {
+   "t": "ring",
+   "w": 1.2,
+   "d": 0.3,
+   "h": 1.4,
+   "x": 1.9,
+   "y": 2.0,
+   "col": "gold"
+  },
+  {
+   "t": "court",
+   "w": 2.3,
+   "d": 1.1,
+   "x": 1.4,
+   "y": 2.7
+  },
+  {
+   "t": "rock",
+   "w": 0.5,
+   "d": 0.3,
+   "h": 0.4,
+   "x": 0.3,
+   "y": 1.7,
+   "col": "graph"
+  },
+  {
+   "t": "lamp",
+   "w": 0.3,
+   "d": 0.3,
+   "h": 1.8,
+   "x": 2.55,
+   "y": 1.2,
+   "col": "brass"
+  },
+  {
+   "t": "sign",
+   "w": 0.5,
+   "d": 0.1,
+   "h": 1.6,
+   "x": 0.2,
+   "y": 3.6,
+   "col": "gold"
+  }
+ ],
+ "st": {
+  "prism": [
+   [
+    1.5,
+    2.3
+   ],
+   -1,
+   [
+    1.4,
+    1.5,
+    1.5
+   ]
+  ],
+  "ring": [
+   [
+    2.5,
+    2.9
+   ],
+   1,
+   [
+    2.5,
+    2.15,
+    0.8
+   ]
+  ],
+  "dish": [
+   [
+    3.3,
+    2.7
+   ],
+   1,
+   [
+    3.5,
+    1.6,
+    0.8
+   ]
+  ],
+  "mirror": [
+   [
+    1.2,
+    3.3
+   ],
+   -1,
+   [
+    0.6,
+    2.6,
+    1.2
+   ]
+  ],
+  "center": [
+   [
+    2.6,
+    3.5
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   1.7,
+   3.5
+  ],
+  [
+   3.5,
+   3.3
+  ],
+  [
+   0.5,
+   3.2
+  ]
+ ],
+ "regulars": [
+  [
+   0,
+   "explain",
+   {
+    "gender": "woman",
+    "outfit": "space",
+    "color": "silver",
+    "skin": "tan",
+    "hair": "bun",
+    "hat": "helmet"
+   }
+  ]
+ ],
+ "animals": [],
+ "source": "generated",
+ "created": "2026-11-05",
+ "world": "lumen_relay"
+}

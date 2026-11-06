@@ -1,0 +1,671 @@
+{
+ "id": "volcano",
+ "kind": "prop",
+ "name": "Volcano",
+ "desc": "A towering charcoal cone with brushed-steel ridges and a gold rim, a molten crater and lav",
+ "tags": [
+  "volcano",
+  "mountain",
+  "landmark",
+  "scenery",
+  "smoke",
+  "lava",
+  "nature",
+  "tall"
+ ],
+ "w": 4,
+ "d": 3.0,
+ "h": 5,
+ "shapes": [
+  {
+   "s": "ellipse",
+   "x": 0.0,
+   "y": 0.0,
+   "rx": 195.0,
+   "ry": 22.0,
+   "fill": "black",
+   "a": 0.35
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -200.0,
+     0.0
+    ],
+    [
+     -150.0,
+     -90.0
+    ],
+    [
+     -105.0,
+     -190.0
+    ],
+    [
+     -70.0,
+     -280.0
+    ],
+    [
+     -48.0,
+     -335.0
+    ],
+    [
+     48.0,
+     -335.0
+    ],
+    [
+     72.0,
+     -275.0
+    ],
+    [
+     110.0,
+     -180.0
+    ],
+    [
+     155.0,
+     -85.0
+    ],
+    [
+     200.0,
+     0.0
+    ]
+   ],
+   "fill": [
+    "graph",
+    "char0"
+   ]
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -200.0,
+     0.0
+    ],
+    [
+     -150.0,
+     -90.0
+    ],
+    [
+     -105.0,
+     -190.0
+    ],
+    [
+     -70.0,
+     -280.0
+    ],
+    [
+     -48.0,
+     -335.0
+    ],
+    [
+     -20.0,
+     -335.0
+    ],
+    [
+     -45.0,
+     -260.0
+    ],
+    [
+     -75.0,
+     -160.0
+    ],
+    [
+     -110.0,
+     -70.0
+    ],
+    [
+     -130.0,
+     0.0
+    ]
+   ],
+   "fill": [
+    "graph2",
+    "char1"
+   ]
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     120.0,
+     0.0
+    ],
+    [
+     140.0,
+     -60.0
+    ],
+    [
+     118.0,
+     -150.0
+    ],
+    [
+     90.0,
+     -230.0
+    ],
+    [
+     60.0,
+     -300.0
+    ],
+    [
+     48.0,
+     -335.0
+    ],
+    [
+     72.0,
+     -275.0
+    ],
+    [
+     110.0,
+     -180.0
+    ],
+    [
+     155.0,
+     -85.0
+    ],
+    [
+     200.0,
+     0.0
+    ]
+   ],
+   "fill": [
+    "char1",
+    "char0"
+   ],
+   "a": 0.8
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -48.0,
+     -335.0
+    ],
+    [
+     -70.0,
+     -280.0
+    ],
+    [
+     -105.0,
+     -190.0
+    ],
+    [
+     -150.0,
+     -90.0
+    ],
+    [
+     -200.0,
+     0.0
+    ]
+   ],
+   "stroke": "steel2",
+   "lw": 3.0,
+   "a": 0.7
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -22.0,
+     -330.0
+    ],
+    [
+     -46.0,
+     -262.0
+    ],
+    [
+     -74.0,
+     -170.0
+    ]
+   ],
+   "stroke": "silver",
+   "lw": 2.0,
+   "a": 0.45
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     30.0,
+     -330.0
+    ],
+    [
+     55.0,
+     -270.0
+    ],
+    [
+     80.0,
+     -205.0
+    ]
+   ],
+   "stroke": "steel",
+   "lw": 2.0,
+   "a": 0.35
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -150.0,
+     0.0
+    ],
+    [
+     -128.0,
+     -38.0
+    ],
+    [
+     -98.0,
+     -52.0
+    ],
+    [
+     -70.0,
+     -30.0
+    ],
+    [
+     -40.0,
+     -46.0
+    ],
+    [
+     -10.0,
+     -20.0
+    ],
+    [
+     20.0,
+     -40.0
+    ],
+    [
+     55.0,
+     -22.0
+    ],
+    [
+     90.0,
+     -48.0
+    ],
+    [
+     125.0,
+     -30.0
+    ],
+    [
+     150.0,
+     0.0
+    ]
+   ],
+   "fill": "char0",
+   "a": 0.6
+  },
+  {
+   "s": "ellipse",
+   "x": 0.0,
+   "y": -336.0,
+   "rx": 48.0,
+   "ry": 11.0,
+   "fill": "char0",
+   "stroke": "gold",
+   "lw": 3.0
+  },
+  {
+   "s": "ellipse",
+   "x": 0.0,
+   "y": -335.0,
+   "rx": 36.0,
+   "ry": 7.0,
+   "fill": [
+    "fire",
+    "ember"
+   ],
+   "anim": {
+    "k": "pulse",
+    "sp": 1.2,
+    "amp": 0.25,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": 0.0,
+   "y": -338.0,
+   "rx": 60.0,
+   "ry": 22.0,
+   "fill": "ember",
+   "a": 0.25,
+   "anim": {
+    "k": "flicker",
+    "sp": 2.0,
+    "amp": 0.4,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -12.0,
+     -332.0
+    ],
+    [
+     -4.0,
+     -332.0
+    ],
+    [
+     -14.0,
+     -290.0
+    ],
+    [
+     -28.0,
+     -245.0
+    ],
+    [
+     -24.0,
+     -205.0
+    ],
+    [
+     -36.0,
+     -160.0
+    ],
+    [
+     -44.0,
+     -158.0
+    ],
+    [
+     -34.0,
+     -205.0
+    ],
+    [
+     -38.0,
+     -246.0
+    ],
+    [
+     -22.0,
+     -292.0
+    ]
+   ],
+   "fill": [
+    "fire",
+    "ember"
+   ],
+   "anim": {
+    "k": "pulse",
+    "sp": 0.9,
+    "amp": 0.2,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     10.0,
+     -332.0
+    ],
+    [
+     18.0,
+     -332.0
+    ],
+    [
+     30.0,
+     -298.0
+    ],
+    [
+     44.0,
+     -262.0
+    ],
+    [
+     40.0,
+     -232.0
+    ],
+    [
+     52.0,
+     -196.0
+    ],
+    [
+     46.0,
+     -194.0
+    ],
+    [
+     34.0,
+     -230.0
+    ],
+    [
+     36.0,
+     -262.0
+    ],
+    [
+     22.0,
+     -298.0
+    ]
+   ],
+   "fill": [
+    "fire",
+    "ember"
+   ],
+   "anim": {
+    "k": "pulse",
+    "sp": 1.1,
+    "amp": 0.2,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -8.0,
+     -330.0
+    ],
+    [
+     -18.0,
+     -292.0
+    ],
+    [
+     -31.0,
+     -246.0
+    ]
+   ],
+   "stroke": "light",
+   "lw": 1.5,
+   "a": 0.7,
+   "anim": {
+    "k": "flicker",
+    "sp": 2.5,
+    "amp": 0.5,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "circle",
+   "x": -40.0,
+   "y": -157.0,
+   "r": 6.0,
+   "fill": "ember",
+   "a": 0.7,
+   "anim": {
+    "k": "blink",
+    "sp": 0.8,
+    "amp": 1,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "circle",
+   "x": 50.0,
+   "y": -193.0,
+   "r": 5.0,
+   "fill": "ember",
+   "a": 0.7,
+   "anim": {
+    "k": "blink",
+    "sp": 0.6,
+    "amp": 1,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": -4.0,
+   "y": -372.0,
+   "rx": 30.0,
+   "ry": 22.0,
+   "fill": [
+    "silver",
+    "steel"
+   ],
+   "a": 0.85,
+   "anim": {
+    "k": "bob",
+    "sp": 0.6,
+    "amp": 4,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": 14.0,
+   "y": -408.0,
+   "rx": 40.0,
+   "ry": 28.0,
+   "fill": [
+    "silver2",
+    "steel"
+   ],
+   "a": 0.75,
+   "anim": {
+    "k": "bob",
+    "sp": 0.5,
+    "amp": 4,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": -10.0,
+   "y": -448.0,
+   "rx": 48.0,
+   "ry": 30.0,
+   "fill": [
+    "pale",
+    "silver"
+   ],
+   "a": 0.6,
+   "anim": {
+    "k": "sway",
+    "sp": 0.4,
+    "amp": 4,
+    "px": 0.0,
+    "py": -340.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": 30.0,
+   "y": -482.0,
+   "rx": 52.0,
+   "ry": 24.0,
+   "fill": "silver2",
+   "a": 0.4,
+   "anim": {
+    "k": "sway",
+    "sp": 0.35,
+    "amp": 4,
+    "px": 0.0,
+    "py": -340.0
+   }
+  },
+  {
+   "s": "ellipse",
+   "x": -6.0,
+   "y": -360.0,
+   "rx": 22.0,
+   "ry": 12.0,
+   "fill": "ember",
+   "a": 0.3,
+   "anim": {
+    "k": "flicker",
+    "sp": 2.0,
+    "amp": 0.5,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -30.0,
+     -400.0
+    ],
+    [
+     -10.0,
+     -418.0
+    ],
+    [
+     8.0,
+     -404.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 2.0,
+   "a": 0.4
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -40.0,
+     -452.0
+    ],
+    [
+     -14.0,
+     -474.0
+    ],
+    [
+     14.0,
+     -458.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 2.0,
+   "a": 0.3
+  }
+ ],
+ "review": {
+  "score": 5.0,
+  "round": 1,
+  "problems": [
+   "Scale: in the 'in a place' and 'wide' frames the volcano is only about 1.3\u20131.5\u00d7 the person's height, so it reads as a large prop, not 'scenery much taller than a person'",
+   "The two lava streams are thin, wobbly strips with round ember dots at the ends (-40,-157) and (50,-193), so they read as dangling stick legs with feet, like a skeleton, not lava flowing down a slope",
+   "The smoke is 4 stacked, fairly opaque round ellipses (alpha 0.85/0.75/0.6) in a vertical column. It reads as a pile of grey stones or a snowman sitting on the crater, not a soft plume",
+   "The lowest smoke ellipse (y -372, ry 22) and the ember glow (y -360) cover the crater rim, so the gold rim and molten crater get lost",
+   "The silhouette is a tall narrow spike (top width 96 against base 400, height 335), more like a chimney or termite mound than a broad volcano"
+  ]
+ },
+ "for": "a smoking volcano mountain, scenery much taller than a person",
+ "source": "minted",
+ "created": "2026-11-02",
+ "sprite": {
+  "w": 714.0,
+  "h": 556.9,
+  "ax": 0.5,
+  "ay": 0.97,
+  "sway": 0,
+  "src": "mg/library/mint/sprites/volcano.png"
+ },
+ "sprite_review": {
+  "score": 4.0,
+  "problems": [
+   "Scale is wrong. In the 'next to a person' and 'wide' frames the cone is only about as tall as the person (around 1.1x his height). The brief asks for scenery much taller than a person, and this reads as a knee-high model or a mound.",
+   "There is no smoke. The brief says 'a smoking volcano', and nothing rises from the crater, so the main feature is missing.",
+   "The streaks down the flanks are pale white or silver, so they read as waterfalls or snow streams, not lava or brushed-steel ridges. It looks like a wet rocky hill.",
+   "The green-yellow grass tufts and shrubs around the base don't belong on the moon and are outside the house palette (charcoal, brushed metal, gold).",
+   "The gold rim from the spec is missing. The crater lip is plain grey rock."
+  ]
+ }
+}

@@ -1,5 +1,31 @@
 # Changelog
 
+## PC setup v1.0.39 + Android app 2.38 - Studio, Kinetic, MIR EXPLAINED, Rank Reel, CopyCat, Design
+- **Studio:** 100+ one-tap apps (relight, restyle, camera moves, talking photos, upscale, cutouts…) from the freefield catalogue plus the OpenField pack, run on your own ComfyUI. Missing models download from inside each app; gated ones use your Hugging Face token (Settings → AI).
+- **Motion Studio wizard:** one sentence → a narrated Diorama / Signature film, with the shared **Motion Library** (places, characters, objects, animals) at `/motion/library`.
+- **Kinetic editor** (`/motion/editor`): beat-synced kinetic type with film effects, rendered locally in headless Chrome.
+- **MIR EXPLAINED:** topic → research → script → assets → render → posts. Research runs on your own optional research engine (any OpenAI-compatible URL + key you run, e.g. a Kaggle notebook), else the cloud brain, else the local engine. Nothing is bundled.
+- **Rank Reel:** top-N countdown Shorts built from real clips, each checked by the vision brain before use.
+- **CopyCat:** swap the people or things in any video (Openjutsu, MIT), installed and built by Setup; Fix faces is not included.
+- **Design:** ComfyArt layered canvas inside the lab, with live progress.
+- **Setup:** ComfyUI 0.42.5; new optional model sets FLUX Klein, LTX-2.5 (both gated: paste your Hugging Face token) and Qwen-Image-Layered + BiRefNet; Studio / Design / CopyCat node packs; the vector art library is built at install.
+- **Settings → AI:** Hugging Face token and research engine fields (secrets are never shown again).
+- Every add-on engine path is configurable (`mml_config.json` / Settings: `freefield_dir`, `copycat_dir`, `kinetic_dir`, `motion_dir`, `sfx_dir`, `expressive_python`, export folders).
+- **Android app 2.38:** Studio, Kinetic editor, MIR EXPLAINED, Rank reel, CopyCat and Design in the Media Lab menu, the + menu and the tablet side column.
+
+## PC setup v1.0.38 + Android app 2.37 - new engines, ALTER, library hub
+- **New models in the picker:** FLUX-3 Klein (fast images and edits), LTX-2.5 (video with sound, talking pictures) and Qwen-Image-Layered (split a picture into transparent layers). They appear as soon as their weights are in ComfyUI's models folder; without them the lab works as before.
+- **Qwen-Image Turbo:** an 8-step quick-draft model next to Base (Image settings → Model). Falls back to Base when the Turbo weights are missing.
+- **EasyCache** speed boost for long video renders (Video settings → Speed boost).
+- **ALTER pipelines:** change one thing in your clip and keep the performance. *Swap One Thing* (a product, prop or outfit), *Recast* (someone else performs it), *New Place* and *Restyle* (anime, 3D, clay, comic…). Every result is checked against your clip, the drifted tail is trimmed, your clip's own sound goes back on, and you get a side-by-side plus QA crops. Scripts from the MIT `scenario-alter` kit.
+- **Library hub** (desktop): the Library tab opens a full page with categories, live stats and charts, search, sort and grid/list views. While Motion Studio is open the library pins beside it: drag or click a tile to add it.
+- **Social / VIRAL-Ω:** tabs grouped into Publish · Grow · Measure · Setup; YouTube sign-in expiry is detected and asks you to reconnect; 16:9 YouTube uploads go up as 1440p (sharper playback from day one); posts can carry the video's real story so titles and descriptions describe the content; TikTok inbox uploads and per-post TikTok choices on Repost; A/B YouTube thumbnails (source installs).
+- **Hooks and captions are now opt-in** in VIRAL-Ω (they used to run on every draft). Editing a hook re-burns the on-screen hook text.
+- **Downloader:** Instagram share links, carousels (picks the video slide) and optional cookies for private posts; finds Deno installed by winget.
+- **Motion engine:** more patient with a busy render daemon instead of failing.
+- Touch: pinch to zoom the editor timeline; long-press deletes markers and keyframes in Motion Studio.
+- **Android app 2.37:** FLUX-3 Klein, LTX-2.5 and Qwen layers in the model picker and job cards.
+
 ## Unreleased - VIRAL-Ω research desk + setup from source
 - **Setup from source:** clone the repo and run `Setup.bat` (Windows) or `./setup.sh` (Linux, beta). The wizard checks the PC, suggests models for your GPU, reuses ComfyUI models you already have, and installs the app's Python, PyTorch, a headless ComfyUI, the models, MirAI (optional), the voice and the motion engine, all inside the clone. `Setup.bat --yes` installs unattended. App packages are listed in `requirements.txt`.
 - **Social → Trends:** a live trend radar (YouTube niche outliers and trending, Google Trends, Google News, and Reddit with a free app key), scored for your account, with ready-to-run lab prompts.

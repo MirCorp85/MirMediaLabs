@@ -46,7 +46,7 @@ if [ ! -x "$PY" ]; then
   fi
   export UV_PYTHON_INSTALL_DIR="$TOOLS/python" UV_CACHE_DIR="$TOOLS/uvcache"
   "$UV" venv "$BUILD/nvenv" --python 3.12 --managed-python
-  "$UV" pip install --python "$PY" nuitka ordered-set zstandard flask requests cryptography qrcode pillow anthropic openai
+  "$UV" pip install --python "$PY" nuitka ordered-set zstandard flask requests cryptography qrcode pillow anthropic openai flask-sock websockets numpy
 fi
 [ -f "$HERE/pc_version.json" ] || echo '{"version": "1.0.0"}' > "$HERE/pc_version.json"
 [ "$BUMP" = 1 ] && "$PY" "$HERE/build_tool.py" bump
@@ -63,7 +63,7 @@ APPOUT="$BUILD/appout"
 rm -rf "$APPOUT"
 "$PY" -m nuitka --assume-yes-for-downloads --standalone --deployment --lto=yes \
   --python-flag=no_docstrings --python-flag=no_asserts \
-  --include-package=openai --include-package=anthropic \
+  --include-package=openai --include-package=anthropic --include-package=flask_sock --include-package=simple_websocket \
   --nofollow-import-to=imageio_ffmpeg --nofollow-import-to=tkinter --nofollow-import-to=PIL \
   --output-filename=MirMediaLabs --output-dir="$APPOUT" "$SRC/app_main.py"
 
@@ -72,6 +72,9 @@ PKG="$BUILD/pkg/MirMediaLabs"
 rm -rf "$BUILD/pkg"
 mkdir -p "$PKG/updates"
 cp -r "$APPOUT/app_main.dist" "$PKG/app"
+cp -r "$ROOT/server/alter_kit" "$PKG/app/alter_kit"   # ALTER kit (MIT scripts, run with the engine's Python)
+cp -r "$ROOT/kinetic" "$PKG/kinetic"                 # MIR KINETIC engine (Apache-2.0 FX, OFL fonts)
+cp -r "$ROOT/server/studio_packs" "$PKG/studio_packs" # OpenField Studio pack (MIT)
 cp "$ROOT/linux/install.sh" "$PKG/install.sh"
 cp "$ROOT/linux/engine_setup.py" "$PKG/engine_setup.py"
 cp "$ROOT/MirMediaLabs-icon-1024.png" "$PKG/"

@@ -1,0 +1,111 @@
+{
+ "id": "polish",
+ "kind": "act",
+ "cat": "work",
+ "desc": "leans in, rubs prism in circles with cloth, other hand steadies it",
+ "loop": 1.2,
+ "keys": [
+  {
+   "u": 0,
+   "far": [
+    88.7,
+    -236.1
+   ],
+   "near": [
+    132.0,
+    -256.0
+   ],
+   "lean": 0.34,
+   "lift": 0,
+   "drop": 0,
+   "tilt": 0.14,
+   "look": [
+    3.0,
+    4
+   ]
+  },
+  {
+   "u": 0.25,
+   "far": [
+    88.7,
+    -236.1
+   ],
+   "near": [
+    142.0,
+    -246.0
+   ],
+   "lean": 0.35,
+   "lift": 0,
+   "drop": 0,
+   "tilt": 0.15,
+   "look": [
+    3.0,
+    4
+   ]
+  },
+  {
+   "u": 0.5,
+   "far": [
+    88.7,
+    -236.1
+   ],
+   "near": [
+    132.0,
+    -236.0
+   ],
+   "lean": 0.34,
+   "lift": 0,
+   "drop": 0,
+   "tilt": 0.14,
+   "look": [
+    3.0,
+    4
+   ]
+  },
+  {
+   "u": 0.75,
+   "far": [
+    88.7,
+    -236.1
+   ],
+   "near": [
+    122.0,
+    -246.0
+   ],
+   "lean": 0.33,
+   "lift": 0,
+   "drop": 0,
+   "tilt": 0.13,
+   "look": [
+    3.0,
+    4
+   ]
+  }
+ ],
+ "tags": [],
+ "legs": "stand",
+ "hold": [
+  null,
+  "cloth"
+ ],
+ "face": {
+  "b": 0.1,
+  "f": 0.3,
+  "m": 0.1,
+  "eyes": "squint"
+ },
+ "review": {
+  "score": 5.0,
+  "round": 2,
+  "problems": [
+   "No prism is visible. Without the glass, the hands just hold a crumpled grey lump, so the shot doesn't read as 'polishing a prism' at a glance.",
+   "The cloth is dark grey with crumpled, claw-like folds. It reads as a metal gauntlet or a bunch of gloves, not as soft fabric.",
+   "The far (steadying) hand at [88.7,-236.1] and the near hand (orbiting around [132,-246]) overlap in one blob, so you can't tell which hand steadies and which rubs. The far arm is mostly hidden behind the torso.",
+   "The circular stroke covers about 20 units around a point that isn't on any object, so it looks like the hands are jiggling in the air rather than rubbing a surface.",
+   "Lean, standing legs and squint-down gaze are good, feet stay planted, and the colours fit the house look."
+  ]
+ },
+ "for": "Tom\u00e1s rubs a glass prism with a cloth in small circular strokes, leaning toward it, one hand steadying the glass",
+ "source": "minted",
+ "created": "2026-11-05"
+}

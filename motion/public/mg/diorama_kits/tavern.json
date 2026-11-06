@@ -1,0 +1,154 @@
+{
+ "id": "tavern",
+ "world": "medieval",
+ "name": "Tavern",
+ "about": "a medieval tavern: barrels, a bar, candle-lit tables and a fireplace - travellers, quests, songs, secrets",
+ "tags": [
+  "tavern",
+  "inn",
+  "pub",
+  "bar",
+  "medieval",
+  "quest",
+  "adventurer",
+  "bard",
+  "ale",
+  "fantasy"
+ ],
+ "floor": "wood",
+ "walls": "both",
+ "props": [
+  {
+   "t": "counter",
+   "x": 0.3,
+   "y": 0.3,
+   "w": 2.2,
+   "d": 0.5,
+   "col": "bronze"
+  },
+  {
+   "t": "barrel",
+   "x": 2.8,
+   "y": 0.3
+  },
+  {
+   "t": "barrel",
+   "x": 3.3,
+   "y": 0.5
+  },
+  {
+   "t": "campfire",
+   "x": 3.3,
+   "y": 2.0
+  },
+  {
+   "t": "table",
+   "x": 0.8,
+   "y": 2.0,
+   "w": 0.9,
+   "d": 0.7,
+   "col": "brass"
+  },
+  {
+   "t": "table",
+   "x": 2.0,
+   "y": 2.8,
+   "w": 0.9,
+   "d": 0.7,
+   "col": "brass"
+  },
+  {
+   "t": "light",
+   "x": 1.3,
+   "y": 2.2,
+   "z": 2.0
+  }
+ ],
+ "st": {
+  "bar": [
+   [
+    1.4,
+    1.3
+   ],
+   -1,
+   [
+    1.4,
+    0.55,
+    1.1
+   ]
+  ],
+  "fire": [
+   [
+    3.0,
+    2.8
+   ],
+   -1,
+   [
+    3.5,
+    2.2,
+    0.5
+   ]
+  ],
+  "table": [
+   [
+    1.3,
+    3.0
+   ],
+   -1,
+   [
+    1.2,
+    2.3,
+    0.8
+   ]
+  ],
+  "center": [
+   [
+    2.6,
+    2.0
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   0.6,
+   2.9
+  ],
+  [
+   2.0,
+   2.0
+  ],
+  [
+   3.2,
+   3.4
+  ],
+  [
+   2.6,
+   3.7
+  ]
+ ],
+ "regulars": [
+  [
+   0,
+   "sing",
+   {
+    "gender": "man",
+    "outfit": "robe",
+    "color": "ember"
+   }
+  ],
+  [
+   1,
+   "drink",
+   {
+    "gender": "man",
+    "outfit": "military",
+    "color": "steel",
+    "beard": true
+   }
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

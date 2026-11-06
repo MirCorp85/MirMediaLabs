@@ -51,7 +51,7 @@ except (OSError, ValueError):
 APP = "MIR MEDIA LABS"
 APP_ID = "MirMediaLabs"
 VERSION = BUILD.get("version", "dev")
-COMFY_TAG = "0.38.2"                      # the ComfyUI release MML's graphs are verified on
+COMFY_TAG = "0.42.5"                      # the ComfyUI release MML's graphs + the Studio apps (LTX-2.5, Klein) run on
 PY_VER = "3.13"
 KOKORO_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
 UV_URL = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
@@ -71,6 +71,36 @@ H3, M3, QI, ACE = (HF + "Comfy-Org/MiniMax-H3/resolve/main/", HF + "Comfy-Org/Mi
                    HF + "Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/")
 WAN, SAM = HF + "Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/", HF + "Comfy-Org/SAM3/resolve/main/"
 CAUSVID = HF + "Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors"   # full URL
+# phase-2 models. FLUX Klein + LTX-2.5 are GATED on Hugging Face: accept each licence on its model page and paste your own
+# (read) token in Setup or Settings; without one they're skipped. Qwen-Image-Layered + BiRefNet are public.
+KLEIN = HF + "black-forest-labs/flux-3-image-klein-comfy/resolve/main/"
+LTX = HF + "Lightricks/LTX-2.5/resolve/main/"
+QIL = HF + "Comfy-Org/Qwen-Image-Layered_ComfyUI/resolve/main/split_files/"
+QIE = HF + "Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/"
+BIREF = HF + "Comfy-Org/BiRefNet/resolve/main/"
+GATED = (KLEIN, LTX)
+PHASE2 = ("klein", "ltx", "layers")         # opt-in: never in the GPU-based "recommended" set
+# Studio (freefield, MIT) + Design (ComfyArt, MIT) + CopyCat (Openjutsu, MIT) are downloaded here, never bundled.
+GH = "https://codeload.github.com/"
+FREEFIELD_URL = GH + "neuregex/freefield/zip/refs/heads/main"
+OPENJUTSU_URL = GH + "D3voz/openjutsu/zip/refs/heads/main"
+COMFY_PROXY = "comfy-api-proxy==0.1.6"
+# ComfyUI node packs: (folder, archive) — pinned commits where the lab's graphs depend on exact node inputs
+NODE_PACKS = [
+    ("ComfyArt", GH + "jtydhr88/ComfyArt/zip/refs/heads/main"),                                   # Design (MIT)
+    ("ComfyUI-LTXVideo", GH + "Lightricks/ComfyUI-LTXVideo/zip/44c8a36b7c31ee00b4271daed11dc2a4aa481140"),
+    ("ComfyUI-CrossViewWarp", GH + "comfyrob/ComfyUI-CrossViewWarp/zip/fbb1e93c7193329ff3ce7c17f95166b539687876"),
+    # CopyCat (Openjutsu) swap graphs — Fix faces is left out (its face models are non-commercial / AGPL)
+    ("ComfyUI-MiniMaxH3-Context-Loop", GH + "ethanfel/ComfyUI-MiniMaxH3-Context-Loop/zip/HEAD"),
+    ("ComfyUI-Fantastic-MiniMaxH3-PromptBuilder", GH + "Adudeguyman/ComfyUI-Fantastic-MiniMaxH3-PromptBuilder/zip/HEAD"),
+    ("ComfyUI-KJNodes", GH + "kijai/ComfyUI-KJNodes/zip/HEAD"),
+    ("ComfyUI-VideoHelperSuite", GH + "Kosinkadink/ComfyUI-VideoHelperSuite/zip/HEAD"),
+    ("comfyui-h3-oneclick-swap", GH + "D3voz/comfyui-h3-oneclick-swap/zip/HEAD"),
+    ("comfyui-websocket-reconnect-fix", GH + "D3voz/comfyui-websocket-reconnect-fix/zip/HEAD"),
+    ("comfyui-image-detail-contrast", GH + "D3voz/comfyui-image-detail-contrast/zip/HEAD"),
+    ("Orion4D_FXMax", GH + "orion4d/Orion4D_FXMax/zip/HEAD"),
+    ("comfyui_controlnet_aux", GH + "Fannovel16/comfyui_controlnet_aux/zip/HEAD"),
+]
 STYLES = ["art_is_explosion", "blooming_flowers", "bullet_time", "dark_magic", "fire_breath", "four_seasons",
           "kiss_camera", "spiral_ascent", "storm_magic", "truman_show"]
 
@@ -115,6 +145,24 @@ COMPONENTS = {
         ("text_encoders/qwen_4b_ace15.safetensors", ACE, 8379154232),
         ("vae/ace_1.5_vae.safetensors", ACE, 337431732),
     ]),
+    "klein": ("Studio images — FLUX Klein", "fast picture edit / restyle apps, CopyCat From picture · needs a HF token", [
+        ("diffusion_models/flux3-image-klein-int8-convrot.safetensors", KLEIN, 5827874779),
+        ("text_encoders/qwen3vl_4b_int8_convrot.safetensors", KLEIN, 4858559240),
+        ("vae/flux2-vae.safetensors", KLEIN, 336211292),
+    ]),
+    "ltx": ("Studio video — LTX-2.5", "camera moves, talking photos, restyle in Studio · needs a HF token", [
+        ("diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors", LTX, 21504034224),
+        ("text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors", LTX, 15372969374),
+        ("vae/ltx-2.5-video-vae-bf16.safetensors", LTX, 1472223346),
+        ("vae/ltx-2.5-audio-vae-bf16.safetensors", LTX, 364866540),
+        ("latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors", LTX, 995778752),
+    ]),
+    "layers": ("Picture layers — Qwen-Image-Layered", "split a picture into editable layers (Design) + cutouts", [
+        ("diffusion_models/qwen_image_layered_fp8mixed.safetensors", QIL, 20533591821),
+        ("vae/qwen_image_layered_vae.safetensors", QIL, 253816616),
+        ("text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", QIE, 9384670680),
+        ("background_removal/birefnet.safetensors", BIREF, 444473596),
+    ]),
 }
 # MirAI = the lab's general-purpose language model: conversation, prompt building for every render model, and the
 # Auto-mode model picker. It never renders anything — images, video and music always come from the render models.
@@ -138,11 +186,11 @@ PRESETS = {"recommended": "Recommended for your GPU", "all": "Everything", "ligh
 
 def preset_components(name, vram_gb):
     if name == "all":
-        return set(COMPONENTS)
+        return set(COMPONENTS)                         # (gated ones are skipped later when no HF token is given)
     if name == "light":
         return {"image", "ace"}
     if vram_gb >= 24:
-        return set(COMPONENTS)
+        return set(COMPONENTS) - set(PHASE2)
     if vram_gb >= 11.5:
         return {"video", "swap", "music", "image", "ace"}
     return {"music", "image", "ace"}                   # the video model needs 12 GB+
@@ -445,7 +493,7 @@ class Installer:
         if p.wait() != 0:
             raise RuntimeError("command failed (%d): %s\n%s" % (p.returncode, cmd[0], "\n".join(tail[-6:])))
 
-    def download(self, url, dest, size=0, label=None, progress=None):
+    def download(self, url, dest, size=0, label=None, progress=None, headers=None):
         """Resumable HTTP download → dest (skips when already complete).
         progress(label, have, total) replaces the per-file UI event (used by the parallel model downloads)."""
         label = label or os.path.basename(dest)
@@ -458,7 +506,7 @@ class Installer:
         for attempt in range(8):
             self.check()
             have = os.path.getsize(part) if os.path.isfile(part) else 0
-            hdr = dict(UA)
+            hdr = dict(UA, **(headers or {}))
             if have:
                 hdr["Range"] = "bytes=%d-" % have
             try:
@@ -639,7 +687,102 @@ class Installer:
             self.sh([node, os.path.join(mdir, "node_modules", "@remotion", "cli", "remotion-cli.js"), "browser", "ensure"], cwd=mdir, retries=3)
         except RuntimeError as e:
             self.log("  Remotion browser will download on the first motion render (%s)" % str(e)[:120])
+        vec = os.path.join(mdir, "mg_assets", "build_vectors.mjs")
+        if os.path.isfile(vec):                          # Lucide (ISC) → styled SVG library for Motion + EXPLAINED, ~1 min
+            try:
+                self.sh([node, vec], cwd=mdir)
+            except RuntimeError as e:
+                self.log("  vector art library skipped (%s)" % str(e)[:120])
         self.node = node
+
+    def _unzip_to(self, z, dest):
+        """Extract a GitHub archive (one top folder) to dest, replacing it."""
+        tmp = dest + "_new"
+        shutil.rmtree(tmp, ignore_errors=True)
+        with zipfile.ZipFile(z) as zz:
+            for m in zz.infolist():
+                t = os.path.abspath(os.path.join(tmp, m.filename))
+                if t.startswith(os.path.abspath(tmp) + os.sep):
+                    zz.extract(m, tmp)
+        top = os.path.join(tmp, os.listdir(tmp)[0])
+        shutil.rmtree(dest, ignore_errors=True)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        shutil.move(top, dest)
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    def step_nodes(self):
+        """ComfyUI node packs for Studio (LTX-2.5, cross-view), Design (ComfyArt) and CopyCat; each pack's own
+        requirements go into the engine's Python. One pack failing never stops the others."""
+        cn = os.path.join(self.comfy, "custom_nodes")
+        base = [self.uv, "pip", "install", "--python", self.py]
+        # pin the engine's PyTorch: a pack's requirements must never swap the CUDA build Setup installed
+        pins = run_quiet([self.py, "-c", "import importlib.metadata as m\n"
+                                         "for p in ('torch', 'torchvision', 'torchaudio'):\n"
+                                         "    try: print(p + '==' + m.version(p))\n"
+                                         "    except Exception: pass"], 60)
+        con = os.path.join(self.cache, "engine-pins.txt")
+        os.makedirs(self.cache, exist_ok=True)
+        with open(con, "w", encoding="utf-8") as f:
+            f.write("\n".join(l for l in pins.splitlines() if "==" in l) + "\n")
+        base += ["-c", con]
+        for name, url in NODE_PACKS:
+            self.check()
+            try:
+                z = self.download(url, os.path.join(self.cache, "node-%s.zip" % name), label="node pack · " + name)
+                self._unzip_to(z, os.path.join(cn, name))
+                req = os.path.join(cn, name, "requirements.txt")
+                if os.path.isfile(req):
+                    self.sh(base + ["-r", req], retries=3)
+                self.log("node pack ready: %s" % name)
+            except Cancelled:
+                raise
+            except Exception as e:
+                self.log("!! node pack %s skipped: %s" % (name, str(e).splitlines()[-1][:160] if str(e) else e))
+                self.warnings.append("node pack " + name)
+
+    def step_studio(self):
+        """Studio app catalogue: neuregex/freefield (MIT) → <install>\\engines\\freefield."""
+        z = self.download(FREEFIELD_URL, os.path.join(self.cache, "freefield.zip"), label="Studio apps (freefield)")
+        self._unzip_to(z, os.path.join(self.dir, "engines", "freefield"))
+
+    def step_copycat(self):
+        """CopyCat: Openjutsu (MIT) + the lab's overlay, built with the private Node; comfy-api-proxy in its own venv."""
+        node = getattr(self, "node", None) or os.path.join(self.rt, "node", "node.exe")
+        if not os.path.isfile(node):
+            raise RuntimeError("needs the motion engine's Node.js — run Repair")
+        cc = os.path.join(self.dir, "engines", "copycat")
+        keep = os.path.join(self.dir, "engines", "_cc_keep")           # keep node_modules + the proxy venv on Repair
+        shutil.rmtree(keep, ignore_errors=True)
+        for d in ("node_modules", ".venv-proxy"):
+            if os.path.isdir(os.path.join(cc, d)):
+                os.makedirs(keep, exist_ok=True)
+                shutil.move(os.path.join(cc, d), os.path.join(keep, d))
+        z = self.download(OPENJUTSU_URL, os.path.join(self.cache, "openjutsu.zip"), label="CopyCat (Openjutsu)")
+        self._unzip_to(z, cc)
+        for d in ("node_modules", ".venv-proxy"):
+            if os.path.isdir(os.path.join(keep, d)):
+                shutil.move(os.path.join(keep, d), os.path.join(cc, d))
+        shutil.rmtree(keep, ignore_errors=True)
+        ov = os.path.join(self.dir, "copycat_overlay")
+        if not os.path.isdir(ov):                           # source checkout
+            ov = os.path.join(self.dir, "installer", "copycat")
+        for dp, _, fns in os.walk(ov):
+            for fn in fns:
+                src = os.path.join(dp, fn)
+                dst = os.path.join(cc, os.path.relpath(src, ov))
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(src, dst)
+        npm = os.path.join(os.path.dirname(node), "node_modules", "npm", "bin", "npm-cli.js")
+        os.environ["PATH"] = os.path.dirname(node) + os.pathsep + os.environ.get("PATH", "")
+        os.environ["NEXT_TELEMETRY_DISABLED"] = "1"
+        self.sh([node, npm, "ci", "--no-audit", "--no-fund", "--loglevel=error"], cwd=cc, retries=3)
+        self.sh([node, npm, "run", "build"], cwd=cc)
+        pv = os.path.join(cc, ".venv-proxy")
+        ppy = os.path.join(pv, "Scripts", "python.exe")
+        if not os.path.isfile(ppy):
+            self.sh([self.uv, "venv", pv, "--python", PY_VER, "--managed-python"], retries=3)
+        self.sh([self.uv, "pip", "install", "--python", ppy, COMFY_PROXY], retries=3)
+        self.sh([ppy, os.path.join(cc, "patch_proxy.py")], cwd=cc)
 
     def step_ollama(self):
         tag = self.o["engine"]
@@ -700,11 +843,26 @@ class Installer:
         files = list({f[0]: f for k in self.o["components"] for f in COMPONENTS[k][2]}.values())   # shared files once
         reuse = self.o.get("reuse") or ""
         todo = []
+        tok = (self.o.get("hf_token") or "").strip()
+        if not tok:                                         # Repair / update: the token saved by an earlier setup
+            try:
+                with open(os.path.join(self.dir, "data", "hf_token.txt"), encoding="utf-8") as f:
+                    tok = f.read().strip()[:200]
+            except OSError:
+                tok = ""
+        skipped = set()
         for rel, base, size in files:
             if have_model(reuse, rel, size):
                 self.log("reusing %s" % rel)
                 continue
+            if base in GATED and not tok and not have_model(self.models, rel, size):
+                skipped.add(base)
+                continue
             todo.append((rel, base, size))
+        if skipped:
+            self.log("!! FLUX Klein / LTX-2.5 skipped: they're gated — accept their licence on Hugging Face, add your "
+                     "token in Settings → AI, then run Repair")
+            self.warnings.append("gated models (Hugging Face token)")
         total = sum(s for _, _, s in todo) or 1
         have, lock = {}, threading.Lock()
         state = {"files": 0, "t0": time.time(), "b0": None, "last": 0.0}
@@ -728,7 +886,8 @@ class Installer:
             self.check()
             name = rel.split("/")[-1]
             url = base if base.endswith(".safetensors") else base + rel   # a few files live at a repo's root
-            self.download(url, os.path.join(self.models, rel.replace("/", os.sep)), size, name, progress=prog)
+            self.download(url, os.path.join(self.models, rel.replace("/", os.sep)), size, name, progress=prog,
+                          headers={"Authorization": "Bearer " + tok} if base in GATED and tok else None)
             with lock:
                 state["files"] += 1
             prog(name, size or have.get(name, 0), size)
@@ -763,13 +922,17 @@ class Installer:
                     "comfy_shared": os.path.join(self.engine, "shared"), "comfy_model_paths": yml,
                     "ffmpeg": ff.splitlines()[-1] if ff else None, "installed": time.strftime("%Y-%m-%d %H:%M"),
                     "version": VERSION, "components": self.o["components"], "engine": self.o["engine"],
-                    "reuse": reuse or None})
+                    "reuse": reuse or None, "tools": bool(self.o.get("tools", True))})
         tpy = os.path.join(self.rt, "tts-venv", "Scripts", "python.exe")
         if os.path.isfile(tpy):                             # MUSE's ears (server/voice.py) run in the voice runtime
             cfg.update({"stt_python": tpy, "voice_stt_dir": os.path.join(self.engine, "models", "whisper", "base")})
         node = getattr(self, "node", None) or os.path.join(self.rt, "node", "node.exe")
         if os.path.isfile(node):                            # MIR MOTION daemon (server/remotion.py)
             cfg.update({"node": node, "motion_dir": os.path.join(self.dir, "motion")})
+        tok = (self.o.get("hf_token") or "").strip()
+        if tok:                                             # Studio downloads more gated models later with it
+            with open(os.path.join(self.dir, "data", "hf_token.txt"), "w", encoding="utf-8") as f:
+                f.write(tok)
         cfg.setdefault("comfy_args", [])
         cfg.setdefault("port", 5400)
         json.dump(cfg, open(cfg_f, "w", encoding="utf-8"), indent=1)
@@ -862,6 +1025,10 @@ class Installer:
             steps.append(("%s (Ollama)" % ENGINES.get(self.o["engine"], (self.o["engine"],))[0].split(" (")[0], self.step_ollama, 10))
             steps.append(("MirAI voice + MUSE's ears", self.optional(self.step_voice, "MirAI voice / MUSE's ears"), 3))
         steps.append(("Motion engine (Remotion)", self.optional(self.step_motion, "Motion Studio engine"), 3))
+        if self.o.get("tools", True):
+            steps.append(("Studio + Design node packs", self.optional(self.step_nodes, "Studio / Design node packs"), 4))
+            steps.append(("Studio apps", self.optional(self.step_studio, "Studio apps"), 1))
+            steps.append(("CopyCat", self.optional(self.step_copycat, "CopyCat"), 4))
         if self.o["components"]:
             steps.append(("Finishing model downloads", self.wait_models, 60))
         steps.append(("Shortcuts + self-test", self.step_finish, 4))
@@ -1053,7 +1220,7 @@ class Wizard(tk.Tk):
         cfg = read_config(d) if (update_dir or registry_install_dir()) else {}
         prev = cfg.get("components")
         self.v_dir = tk.StringVar(value=d)
-        self.v_comp = {k: tk.BooleanVar(value=(k in prev) if prev is not None else (k not in ("video_ref", "video_ctl"))) for k in COMPONENTS}
+        self.v_comp = {k: tk.BooleanVar(value=(k in prev) if prev is not None else (k not in ("video_ref", "video_ctl") + PHASE2)) for k in COMPONENTS}
         self.v_preset = tk.StringVar(value="custom" if prev is not None else "recommended")
         old = cfg.get("engine", MUSE_TAG) if cfg else MUSE_TAG
         self.v_engine = tk.StringVar(value=old if old in ENGINES else MUSE_TAG)   # older installs had Qwen 3.5 → Gemma 4; Llama 3.1 8B kept
@@ -1061,6 +1228,8 @@ class Wizard(tk.Tk):
         self.v_auto = tk.BooleanVar(value=os.path.exists(LNK_STARTUP))
         self.v_lan = tk.BooleanVar(value=not cfg)          # firewall rule already added on first install
         self.v_reuse = tk.StringVar(value=cfg.get("reuse") or "")
+        self.v_tools = tk.BooleanVar(value=cfg.get("tools", True) if cfg else True)
+        self.v_hf = tk.StringVar(value="")                 # never pre-filled, never written to the log
         self.q = queue.Queue()
         self.inst = None
         self.pages = [self.page_welcome, self.page_system, self.page_options, self.page_ready, self.page_install,
@@ -1283,6 +1452,8 @@ class Wizard(tk.Tk):
                         variable=self.v_auto, style="Card.TCheckbutton").pack(anchor="w")
         ttk.Checkbutton(opt, text="Let phones / TVs on my Wi-Fi connect (firewall rule)",
                         variable=self.v_lan, style="Card.TCheckbutton").pack(anchor="w")
+        ttk.Checkbutton(opt, text="Studio apps, CopyCat + Design (downloads ~2 GB of tools)",
+                        variable=self.v_tools, style="Card.TCheckbutton").pack(anchor="w")
 
         r = tk.Frame(self.body, bg=BG)
         r.pack(fill="x", pady=(2, 0))
@@ -1291,6 +1462,10 @@ class Wizard(tk.Tk):
         ttk.Button(r, text="Pick models folder…", command=self.pick_reuse).pack(side="left")
         self.lbl_found = tk.Label(self.body, bg=BG, fg=OK, anchor="w")
         self.lbl_found.pack(fill="x")
+        h = tk.Frame(self.body, bg=BG)
+        h.pack(fill="x", pady=(2, 0))
+        tk.Label(h, text="Hugging Face token (only for FLUX Klein / LTX-2.5)", bg=BG, fg=DIM).pack(side="left")
+        ttk.Entry(h, textvariable=self.v_hf, width=34, show="•").pack(side="left", padx=6)
         if not self.v_reuse.get() and not getattr(self, "_scanned", False):
             self._scanned = True
             self.lbl_found.config(text="Looking for AI models already on this PC …", fg=DIM)
@@ -1347,6 +1522,11 @@ class Wizard(tk.Tk):
         if not d or not os.path.isabs(d) or len(d) > 60:
             messagebox.showerror(APP, "Choose a short folder path (e.g. D:\\MirMediaLabs).")
             return False
+        if any(self.v_comp[k].get() for k in ("klein", "ltx")) and not self.v_hf.get().strip():
+            if not messagebox.askyesno(APP, "FLUX Klein and LTX-2.5 are gated on Hugging Face and need your token "
+                                            "(huggingface.co → Settings → Access Tokens, after accepting each model's "
+                                            "licence). Continue without it? They'll be skipped until you add one."):
+                return False
         if self.v_comp["video_ref"].get() and not self.v_comp["video"].get():
             messagebox.showerror(APP, "The reference→video add-on needs the Video model too.")
             return False
@@ -1359,7 +1539,7 @@ class Wizard(tk.Tk):
         return {"dir": os.path.normpath(self.v_dir.get().strip()), "gpu": self.sysinfo["gpu"],
                 "components": [k for k, v in self.v_comp.items() if v.get()], "engine": self.v_engine.get(),
                 "desktop": self.v_desktop.get(), "autostart": self.v_auto.get(), "lan": self.v_lan.get(),
-                "reuse": self.v_reuse.get().strip()}
+                "reuse": self.v_reuse.get().strip(), "tools": self.v_tools.get(), "hf_token": self.v_hf.get().strip()}
 
     def page_ready(self):
         self.head("Ready to install", "Check the summary, then press Install")

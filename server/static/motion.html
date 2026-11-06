@@ -2,97 +2,701 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#262624">
-<title>MIR MEDIA LABS · Motion Studio</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08080A">
+<title>MIR MOTION STUDIO · Producer</title>
 <link rel="icon" href="static/icon-512.png">
-<link rel="stylesheet" href="static/motion.css">
+<script src="static/mir-icons.js"></script>
+<!-- MOTION STUDIO producer (server/motion_wizard.py), modelled on the EXPLAINED / RANK REEL producers: projects rail ·
+     hero + 5-phase pipeline · one "needs you" bar · a body per stage (Script / Assets / Final). The STYLE setting (four motion
+     styles from TOOLS\MirRemotion\mg_assets\styles.json) drives every picture and every movement. The old timeline editor
+     lives on at motion/editor ("Fine-tune in the editor"). Signature chrome, MIR ICONS only. -->
+<style>
+:root{--amb:#FFB547;--bg:#08080A;--panel:#111114;--panel2:#16161B;--raise:#1D1D23;--ink:#F2F6FA;--cyan:#5CE1E6;--ok:#5FD38D;--bad:#FF5A5F;--teal:#2dd4bf;
+  --dim:color-mix(in srgb,var(--ink) 64%,transparent);--faint:color-mix(in srgb,var(--ink) 40%,transparent);
+  --line:color-mix(in srgb,var(--ink) 9%,transparent);--line2:color-mix(in srgb,var(--ink) 18%,transparent);--ambs:color-mix(in srgb,var(--amb) 14%,transparent);
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"Cascadia Mono",Consolas,monospace}
+*{box-sizing:border-box}
+html{color-scheme:dark}  /* native pop-ups (select lists, colour picker) follow the dark theme — they were white on Windows */
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+select,select.tx{background-color:var(--panel2);color:var(--ink)}
+select option,select optgroup{background:#16161B;color:#F2F6FA}
+select option:checked{background:#3a2c12;color:#FFB547}
+fieldset.ed{border:0;padding:0;margin:0;min-width:0}fieldset.ed:disabled{opacity:.55}
+/* settings drawer (every step) */
+details.set{margin-top:14px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+details.set>summary{list-style:none;cursor:pointer;padding:12px 16px;display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.18em;font-weight:700;color:var(--dim);text-transform:uppercase}
+details.set>summary::-webkit-details-marker{display:none}details.set>summary .x{letter-spacing:0;text-transform:none;font-weight:500;color:var(--faint)}
+details.set[open]>summary{border-bottom:1px solid var(--line)}
+.setg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 14px;padding:14px 16px 16px}
+.setg .f label{display:block;font-size:11px;color:var(--faint);margin-bottom:4px;font-weight:600}.setg .f.w2{grid-column:span 2}.setg .f.w4{grid-column:1/-1}
+.sw2{display:flex;gap:6px;align-items:center}.sw2 input[type=color]{width:38px;height:34px;padding:2px;border-radius:8px;border:1px solid var(--line2);background:var(--panel2)}
+input[type=range]{accent-color:var(--amb);width:100%}
+/* live preview */
+.pv{margin-top:14px;border:1px solid var(--line2);border-radius:16px;overflow:hidden;background:#000}
+.pv .st{position:relative;aspect-ratio:16/9;max-height:62vh;margin:auto}.pv .st.v{aspect-ratio:9/16;max-height:70vh}.pv .st.s{aspect-ratio:1/1;max-height:62vh}
+.pv .st>div{position:absolute;inset:0}
+.pvb{display:flex;gap:6px;align-items:center;padding:8px 10px;background:var(--panel);border-top:1px solid var(--line);flex-wrap:wrap}
+.pvb .chips{display:flex;gap:4px;overflow-x:auto;flex:1;min-width:0}
+.pvb .chips button{all:unset;cursor:pointer;font:600 11px var(--mono);padding:3px 8px;border-radius:6px;border:1px solid var(--line2);color:var(--dim);white-space:nowrap}
+.pvb .chips button:hover{border-color:var(--amb);color:var(--amb)}
+/* beat editor (pictures step) */
+.be{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:12px;margin-bottom:10px}
+.be .top2{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}.be .top2 b{font:200 26px/1 var(--sans);color:var(--amb);min-width:30px}
+.be .top2 .kn{font-size:11px;color:var(--faint)}
+.chg{font:700 10px var(--sans);color:#140E02;background:var(--amb);padding:2px 7px;border-radius:6px}
+.pics2{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:10px}
+.pc2{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;align-items:start;border:1px solid var(--line2);border-radius:12px;padding:6px;background:var(--bg)}
+.pc2 .th{all:unset;cursor:pointer;width:64px;height:64px;border-radius:9px;overflow:hidden;display:grid;place-items:center;background:var(--raise);position:relative;font:700 10px var(--sans);text-align:center}
+.pc2 .th img{width:100%;height:100%;object-fit:contain}.pc2 .th:hover{outline:2px solid var(--amb)}
+.pc2 .th i.k{position:absolute;left:0;right:0;bottom:0;font:700 8px var(--mono);background:rgba(0,0,0,.65);color:#fff;font-style:normal;text-align:center}
+.pc2 .fx{display:grid;gap:4px}.pc2 .fx .tx{padding:4px 7px;font-size:11.5px;border-radius:7px}
+.pc2 .rw{display:flex;gap:4px;align-items:center}.pc2 .rw .tx{flex:1;min-width:0}
+.tabs2{display:flex;gap:4px;margin-top:10px}.tabs2 button{all:unset;cursor:pointer;padding:6px 12px;border-radius:8px;font-size:12px;color:var(--dim);border:1px solid var(--line2)}
+.tabs2 button.on{background:var(--amb);color:#140E02;border-color:transparent;font-weight:700}
+.items{display:grid;gap:4px;margin-top:6px}.items .ir{display:grid;grid-template-columns:minmax(0,1fr) 90px 110px 28px;gap:4px}
+.items .ir .tx{padding:4px 7px;font-size:12px}
+button,input,textarea,select{font:inherit;color:inherit}
+.mi{display:inline-flex;width:15px;height:15px;vertical-align:-3px;flex:none}.mi svg{width:100%;height:100%}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px;border:2px solid var(--bg)}
+.top{display:flex;align-items:center;gap:10px;height:54px;padding:0 16px;border-bottom:1px solid var(--line);background:#0B0B0E}
+.logo{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--ambs);color:var(--amb);border:1px solid color-mix(in srgb,var(--amb) 35%,transparent)}
+.brand{font-weight:800;letter-spacing:.26em;font-size:12px}.brand em{font-style:normal;color:var(--amb)}
+.brand small{display:block;font-weight:600;letter-spacing:.16em;font-size:9px;color:var(--faint);margin-top:1px}
+.sp{flex:1}
+.b{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 13px;border-radius:9px;border:1px solid var(--line2);background:var(--panel2);cursor:pointer;white-space:nowrap;text-decoration:none;color:var(--ink)}
+.b:hover{border-color:color-mix(in srgb,var(--amb) 70%,transparent)}.b:disabled{opacity:.35;cursor:default}
+.b.pri{background:var(--amb);border-color:transparent;color:#140E02;font-weight:700}.b.pri:hover{background:#ffc56e}
+.b.ghost{background:transparent;border-color:transparent;color:var(--dim)}.b.ghost:hover{color:var(--ink);background:var(--panel2)}
+.b.ico{width:34px;padding:0}.b.sm{height:28px;padding:0 10px;font-size:12px;border-radius:8px}.b.sm.ico{width:28px;padding:0}.b.bad{color:var(--bad)}
+.app{display:grid;grid-template-columns:270px minmax(0,1fr);height:calc(100dvh - 54px)}
+.side{border-right:1px solid var(--line);overflow:auto;padding:12px 10px;display:flex;flex-direction:column;gap:6px;background:#0A0A0D}
+.side-hd{display:flex;justify-content:space-between;padding:2px 6px 6px;font-size:10px;letter-spacing:.2em;color:var(--faint);font-weight:700}
+.run{position:relative;display:flex;gap:10px;align-items:center;padding:8px;border-radius:12px;cursor:pointer;border:1px solid transparent}
+.run:hover{background:var(--panel)}.run.on{background:var(--panel2);border-color:var(--line2)}
+.run.on::before{content:"";position:absolute;left:-10px;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--amb)}
+.rth{width:52px;aspect-ratio:16/9;border-radius:6px;flex:none;display:grid;place-items:center;font:800 9px var(--sans);letter-spacing:.08em}
+.rtx{min-width:0;flex:1}.rtx b{display:block;font-size:13px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.rtx small{display:flex;align-items:center;gap:6px;color:var(--faint);font-size:11px;margin-top:3px}
+.racts{position:absolute;right:6px;top:6px;opacity:0}.run:hover .racts{opacity:1}.racts .b{background:rgba(10,10,13,.92)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+.s-running .dot{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pu 1.6s ease-in-out infinite}.s-waiting .dot{background:var(--amb);box-shadow:0 0 8px var(--amb)}
+.s-error .dot{background:var(--bad)}.s-done .dot{background:var(--ok)}
+@keyframes pu{50%{opacity:.35}}
+.beat.dio .kd,.beat.dio .vis{display:none}
+/* ── PROGRESS VIEW: where the video is, in pictures (progress() on the server) ── */
+.pv{border:1px solid var(--line2);border-radius:16px;background:linear-gradient(180deg,var(--panel2),var(--panel));padding:16px;margin:0 0 14px;display:flex;flex-direction:column;gap:14px}
+.pv-top{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center}
+.pv-ring{position:relative;width:96px;height:96px}.pv-ring svg{width:96px;height:96px;transform:rotate(-90deg)}
+.pv-ring circle{fill:none;stroke-width:9}.pv-ring .bg{stroke:var(--line)}.pv-ring .fg{stroke:var(--amb);stroke-linecap:round;transition:stroke-dashoffset .8s}
+.pv-ring .in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pv-ring b{font:700 24px var(--mono)}.pv-ring small{font-size:10px;color:var(--dim);letter-spacing:.14em}
+.pv-k{font-size:10px;letter-spacing:.2em;color:var(--amb);font-weight:700;display:flex;align-items:center;gap:6px}
+.pv-k i.lv{width:8px;height:8px;border-radius:50%;background:var(--amb);animation:pu 1.2s infinite}
+.pv-now h3{margin:4px 0 2px;font-size:18px}.pv-d{color:var(--dim);font-size:13px}.pv-m{color:var(--faint);font:12px var(--mono);margin-top:6px}
+.pv-gpu{width:220px;border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:#000}
+.pv-gpu .im{position:relative;aspect-ratio:16/9;background:#0b0b0e;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:11px}
+.pv-gpu img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pv-gpu .tg{position:absolute;left:6px;top:6px;font:700 9px var(--mono);letter-spacing:.12em;background:#000a;color:#fff;padding:2px 6px;border-radius:5px;display:flex;gap:5px;align-items:center}
+.pv-gpu .tg i{width:6px;height:6px;border-radius:50%;background:var(--bad);animation:pu 1s infinite}
+.pv-gpu .gx{padding:7px 9px;font-size:11px;color:var(--dim)}.pv-gpu .gx b{color:var(--ink)}
+.pv-gpu .gb{height:4px;background:var(--line);margin-top:5px;border-radius:3px;overflow:hidden}.pv-gpu .gb i{display:block;height:100%;background:var(--cyan)}
+.pv-steps{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px}
+.pv-st{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;background:var(--panel)}
+.pv-st .hd{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600}
+.pv-st .ci{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--raise);color:var(--dim);flex:none}
+.pv-st .ct{font:11px var(--mono);color:var(--dim)}.pv-st .br{height:5px;border-radius:3px;background:var(--line);overflow:hidden}.pv-st .br i{display:block;height:100%;background:var(--amb)}
+.pv-st .sx{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.pv-st.done{border-color:color-mix(in srgb,var(--ok) 40%,transparent)}.pv-st.done .ci{background:var(--ok);color:#06140c}.pv-st.done .br i{background:var(--ok)}.pv-st.done .sx{color:var(--ok)}
+.pv-st.working{border-color:var(--amb);box-shadow:0 0 0 3px var(--ambs)}.pv-st.working .ci{background:var(--amb);color:#140d00}.pv-st.working .sx{color:var(--amb)}
+.pv-st.waiting .ci{background:var(--cyan);color:#001314}.pv-st.waiting .sx{color:var(--cyan)}.pv-st.stopped .ci{background:var(--bad);color:#fff}.pv-st.stopped .sx{color:var(--bad)}
+.pv-st.todo{opacity:.55}
+.pv-sec{display:flex;flex-direction:column;gap:8px}.pv-sec>.lb{font-size:10px;letter-spacing:.18em;color:var(--dim);font-weight:700}
+.pv-cells{display:flex;flex-wrap:wrap;gap:4px}.pv-cells span{width:18px;height:18px;border-radius:5px;background:var(--line);border:1px solid var(--line)}
+.pv-cells span.ok{background:var(--ok);border-color:var(--ok)}.pv-cells span.now{background:var(--amb);border-color:var(--amb);animation:pu 1s infinite}
+.pv-cast{display:flex;gap:8px;flex-wrap:wrap}.pv-cast figure{margin:0;width:150px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.pv-cast img{width:100%;aspect-ratio:16/9;object-fit:contain;display:block;background:#e9e9ec}.pv-cast figcaption{font-size:11px;padding:5px 7px;color:var(--dim)}
+.pv-scn{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.pv-sc{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel);position:relative}
+.pv-sc .im{aspect-ratio:16/9;background:var(--raise);display:flex;align-items:center;justify-content:center;color:var(--faint);position:relative}
+.pv-sc img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pv-sc .bd{position:absolute;right:6px;top:6px;font:700 9px var(--mono);letter-spacing:.1em;padding:2px 6px;border-radius:5px;background:#000b;color:var(--faint)}
+.pv-sc.ready .bd{color:#06140c;background:var(--ok)}.pv-sc.drawn .bd{color:#001314;background:var(--cyan)}.pv-sc.working{border-color:var(--amb)}.pv-sc.working .bd{color:#140d00;background:var(--amb)}
+.pv-sc .ln{font-size:11px;color:var(--dim);padding:6px 8px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pv-big{height:12px;border-radius:7px;background:var(--line);overflow:hidden}.pv-big i{display:block;height:100%;background:linear-gradient(90deg,var(--amb),var(--cyan));transition:width .6s}
+@media (max-width:760px){.pv-top{grid-template-columns:auto minmax(0,1fr)}.pv-gpu{grid-column:1/-1;width:auto}.pv-steps{grid-auto-flow:row;grid-template-columns:1fr 1fr}.pv-ring,.pv-ring svg{width:76px;height:76px}.pv-ring b{font-size:19px}.pv-cast figure{width:120px}}
+
+.main{overflow:auto}.pg{max-width:1180px;margin:0 auto;padding:20px 26px 80px}
+.hero{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line2);background:var(--panel)}
+.hero-pat{position:absolute;inset:0;background:radial-gradient(600px 220px at 85% 0%,color-mix(in srgb,var(--amb) 16%,transparent),transparent 70%),
+  repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px 48px),repeating-linear-gradient(0deg,var(--line) 0 1px,transparent 1px 48px);opacity:.7}
+.hero-in{position:relative;display:flex;gap:18px;align-items:center;padding:20px}
+.ttl{flex:1;min-width:0}.kick{color:var(--amb);font-size:10px;letter-spacing:.24em;font-weight:800}
+.ttl h1{margin:4px 0 8px;font-size:22px;line-height:1.2;font-weight:800}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:20px;font-size:11px;background:rgba(0,0,0,.35);border:1px solid var(--line2);color:var(--dim);margin:0 4px 4px 0}
+.pill.sty{border-color:color-mix(in srgb,var(--amb) 50%,transparent);color:var(--amb);cursor:pointer}
+.hsel{all:unset;cursor:pointer;color:var(--amb);font:inherit;padding-right:4px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hsel:disabled{opacity:.5;cursor:default}
+.hsel option{background:#16161B;color:#F2F6FA}
+.pipe{position:relative;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:4px 20px 18px}
+.pn{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
+.pn+.pn::before{content:"";position:absolute;top:16px;right:calc(50% + 20px);left:calc(-50% + 20px);height:2px;border-radius:2px;background:var(--line2)}
+.pn.done::before,.pn.now::before,.pn.wait::before,.pn.fail::before{background:var(--ok)}
+.pc{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line2);background:var(--panel);color:var(--faint)}
+.pn b{font-size:12px;font-weight:600;color:var(--faint)}.pn small{font-size:10px;color:var(--faint);height:14px}
+.pn.done .pc{background:color-mix(in srgb,var(--ok) 14%,var(--panel));border-color:var(--ok);color:var(--ok)}.pn.done b{color:var(--dim)}
+.pn.now .pc{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 0 5px color-mix(in srgb,var(--cyan) 12%,transparent)}.pn.now b{color:var(--ink)}.pn.now small{color:var(--cyan)}
+.pn.wait .pc{background:var(--amb);border-color:var(--amb);color:#140E02;box-shadow:0 0 0 5px var(--ambs),0 0 22px -4px var(--amb)}.pn.wait b,.pn.wait small{color:var(--amb)}
+.pn.fail .pc{border-color:var(--bad);color:var(--bad)}.pn.fail small{color:var(--bad)}
+.apv{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:14px;padding:16px 18px;border-radius:16px;
+  border:1px solid color-mix(in srgb,var(--amb) 55%,transparent);background:linear-gradient(100deg,color-mix(in srgb,var(--amb) 15%,transparent),color-mix(in srgb,var(--amb) 4%,transparent))}
+.apv .ai{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--amb);color:#140E02;flex:none}.apv .ai .mi{width:20px;height:20px}
+.apv .at{flex:1;min-width:220px}.apv .at b{font-size:15px}.apv .at div{color:var(--dim);font-size:12px;margin-top:2px}.apv .ab{display:flex;gap:8px;flex-wrap:wrap}
+.apv.run{border-color:color-mix(in srgb,var(--cyan) 45%,transparent);background:linear-gradient(100deg,color-mix(in srgb,var(--cyan) 12%,transparent),transparent)}.apv.run .ai{background:var(--cyan)}
+.apv.err{border-color:color-mix(in srgb,var(--bad) 55%,transparent);background:color-mix(in srgb,var(--bad) 9%,transparent)}.apv.err .ai{background:var(--bad);color:#fff}
+.bar{height:4px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:var(--cyan);transition:width .6s}
+.sh{display:flex;align-items:center;gap:8px;margin:26px 0 12px;font-size:11px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;font-weight:700}
+.sh .x{letter-spacing:0;text-transform:none;font-weight:500;color:var(--faint)}
+.empty{color:var(--faint);padding:34px 0;text-align:center}
+input.tx,textarea,select.tx{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--line2);border-radius:9px;padding:8px 11px}
+select.tx{color-scheme:dark}textarea{resize:vertical;min-height:58px}
+input.tx:focus,textarea:focus,select.tx:focus{outline:none;border-color:var(--amb)}
+.box{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:16px}
+.fld{margin-top:12px}.fld:first-child{margin-top:0}.fld label{display:block;font-size:12px;font-weight:600;margin-bottom:5px}.fld .h{font-size:11px;color:var(--faint);margin:-3px 0 5px}
+.row2{display:flex;gap:8px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+/* style picker */
+.styles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.sc{position:relative;border:1.5px solid var(--line2);border-radius:14px;overflow:hidden;cursor:pointer;background:var(--panel2);text-align:left;padding:0}
+.sc.on{border-color:var(--amb);box-shadow:0 0 0 3px var(--ambs)}
+.sc .sw{height:64px;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:800;font-size:15px;letter-spacing:.02em}
+.sc .sw i{width:12px;height:12px;border-radius:3px}
+.sc b{display:block;padding:8px 10px 0;font-size:12px}.sc small{display:block;padding:0 10px 9px;color:var(--faint);font-size:10.5px;line-height:1.35}
+.sc .n{position:absolute;right:8px;top:8px;font:700 9px var(--mono);background:rgba(0,0,0,.45);padding:2px 6px;border-radius:6px;color:#fff}
+.prev{margin-top:10px;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--line2);aspect-ratio:16/9;position:relative}
+.prev>div{position:absolute;inset:0}.prev .cap{position:absolute;left:10px;bottom:8px;font:700 10px var(--mono);letter-spacing:.1em;color:#fff;background:rgba(0,0,0,.5);padding:3px 7px;border-radius:6px}
+/* beats (script step) */
+.beat{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--panel);margin-bottom:8px}
+.beat .no{font:200 30px/1 var(--sans);color:var(--amb);text-align:center;padding-top:6px}
+.beat .kd{display:flex;gap:8px;align-items:center;margin-bottom:6px}.beat .kd select{width:auto;padding:4px 8px;font-size:12px}
+.beat .kd .t{font-size:11px;color:var(--faint);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.beat textarea{min-height:46px}
+.vis{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.vc{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line2);border-radius:9px;padding:4px 6px 4px 4px}
+.vc img{width:34px;height:34px;border-radius:6px;background:var(--raise);object-fit:contain}
+.vc .tx{width:110px;padding:3px 6px;font-size:11px;border-radius:6px}.vc .cue{width:72px}
+.vc .k{font:700 9px var(--mono);color:var(--faint);letter-spacing:.06em;width:28px;text-align:center}
+.vc .k.art{color:var(--teal)}.vc .k.vec{color:var(--amb)}
+.vc button{all:unset;cursor:pointer;color:var(--faint);display:inline-flex;padding:2px}.vc button:hover{color:var(--bad)}
+/* assets step: storyboard of styled pictures */
+.sb{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.sbc{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:10px}
+.sbc .hd{display:flex;align-items:baseline;gap:8px;font-size:11px;color:var(--faint);margin-bottom:6px}.sbc .hd b{color:var(--amb);font:200 22px/1 var(--sans)}
+.sbc .ln{font-size:12px;color:var(--dim);min-height:34px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pics{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pic{all:unset;position:relative;width:64px;height:64px;border-radius:10px;overflow:hidden;cursor:pointer;border:1px solid var(--line2);display:grid;place-items:center;font:700 10px var(--sans);text-align:center;padding:2px;color:var(--ink)}
+.pic img{width:100%;height:100%;object-fit:contain}.pic i.k{position:absolute;left:0;right:0;bottom:0;font:700 8px var(--mono);text-align:center;background:rgba(0,0,0,.6);color:#fff;padding:1px 0;font-style:normal}
+.pic:hover{border-color:var(--amb)}
+/* picker dialog */
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px;max-height:50vh;overflow:auto;margin-top:10px}
+.lib button{all:unset;cursor:pointer;border-radius:10px;overflow:hidden;border:1px solid var(--line2);aspect-ratio:1;display:grid;place-items:center;position:relative}
+.lib button:hover{border-color:var(--amb)}.lib img{width:100%;height:100%;object-fit:contain}
+.lib small{position:absolute;left:0;right:0;bottom:0;font:9px var(--mono);background:rgba(0,0,0,.6);color:#fff;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:1px 3px}
+/* final */
+.fin{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+.fin video{width:100%;border-radius:16px;background:#000;border:1px solid var(--line2)}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;font-size:12px}.kv>span:nth-child(odd){color:var(--faint)}.kv code{font:11px var(--mono);word-break:break-all}
+.lg{font-size:12px;color:var(--dim);max-height:220px;overflow:auto}.lg div{padding:3px 0}.lg time{font:11px var(--mono);color:var(--faint);margin-right:8px}
+.lg .l-done{color:var(--ok)}.lg .l-warn{color:var(--amb)}.lg .l-error{color:var(--bad)}.lg .l-need{color:var(--amb);font-weight:700}
+.hello{display:grid;place-items:center;text-align:center;min-height:70vh;padding:30px}.hello h2{margin:14px 0 6px;font-size:22px}.hello p{color:var(--dim);margin:0 0 18px;max-width:460px}
+dialog{border:1px solid var(--line2);border-radius:18px;background:#121216;color:var(--ink);padding:0;width:min(760px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+.nd{padding:22px;max-height:calc(100dvh - 60px);overflow:auto}.nd h2{margin:0 0 4px;font-size:19px}.nd p{margin:0 0 14px;color:var(--dim)}.nd label.l{display:block;font-size:12px;font-weight:600;margin:12px 0 5px}
+.tg2{display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:12px;border-radius:11px;background:var(--panel2);cursor:pointer}
+.tg2 input{accent-color:var(--amb);width:16px;height:16px;margin-top:2px}.tg2 small{display:block;color:var(--faint)}
+.nd .f{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+@media (max-width:900px){.fin{grid-template-columns:1fr}.styles{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr}}
+@media (max-width:760px){.app{grid-template-columns:minmax(0,1fr);height:auto}.main{overflow:visible}
+  .side{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 12px}.side-hd{display:none}.run{flex:none;width:220px;background:var(--panel)}.run.on::before{display:none}
+  .pg{padding:14px 16px 70px}.hero-in{flex-direction:column;align-items:stretch}.pipe{padding:4px 6px 14px}.pn small{display:none}.pn b{font-size:10px}
+  .beat{grid-template-columns:1fr}.beat .no{text-align:left}.brand small{display:none}.top .b.pri span{display:none}.g2{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-<div id="mo" class="mo">
-  <header class="mo-top">
-    <button class="eb ic" data-a="close" title="Back to the lab"><i class="mi" data-ic="arrow-left"></i></button>
-    <div class="mo-brand"><i class="mi" data-ic="sparkle"></i><b>MOTION STUDIO</b></div>
-    <input class="mo-name" id="mo-name" value="Untitled motion" spellcheck="false" title="Project name">
-    <span class="mo-save" id="mo-save">saved</span>
-    <span class="mo-eng" id="mo-eng" title="Remotion render engine"></span>
-    <span class="sp"></span>
-    <button class="eb ic" data-a="undo" title="Undo (Ctrl+Z)"><i class="mi" data-ic="rewind"></i></button>
-    <button class="eb ic" data-a="redo" title="Redo (Ctrl+Y)"><i class="mi" data-ic="forward"></i></button>
-    <select class="mo-sel" id="mo-aspect" title="Canvas">
-      <option value="1280x720">16:9 · 720p</option><option value="1920x1080">16:9 · 1080p</option><option value="3840x2160">16:9 · 4K</option>
-      <option value="720x1280">9:16 · vertical</option><option value="1080x1920">9:16 · 1080</option>
-      <option value="1080x1080">1:1 · square</option><option value="1080x1350">4:5 · portrait</option>
-    </select>
-    <select class="mo-sel" id="mo-fps" title="Frame rate"><option>24</option><option selected>30</option><option>60</option></select>
-    <button class="eb" data-a="style" title="Palette + font for the whole project"><i class="mi" data-ic="palette"></i><span> Style</span></button>
-    <button class="eb" data-a="projects" title="Your motion projects"><i class="mi" data-ic="folder"></i><span> Projects</span></button>
-    <button class="eb" data-a="versions" title="Restore an earlier version"><i class="mi" data-ic="clock"></i></button>
-    <button class="eb pri" data-a="export" title="Render with Remotion"><i class="mi" data-ic="upload"></i><span> Export</span></button>
-  </header>
-  <div class="mo-body">
-    <aside class="mo-bin" id="mo-bin">
-      <div class="tabs"><button data-t="scenes" class="on">Scenes</button><button data-t="lib">Library</button><button data-t="ai">AI</button><button data-t="tpl">Templates</button></div>
-      <div class="pane" data-p="scenes"><input class="srch" id="sc-q" placeholder="Search scenes…"><div id="sc-list"></div></div>
-      <div class="pane" data-p="lib" hidden>
-        <div class="chips"><button data-k="" class="on">All</button><button data-k="video">Video</button><button data-k="image">Images</button><button data-k="audio">Audio</button></div>
-        <div class="grid" id="mo-lib"></div>
-      </div>
-      <div class="pane" data-p="ai" hidden>
-        <div class="ai-h">Describe it — MUSE writes the scenes, timing and text.</div>
-        <div class="seg" id="ai-mode"><button data-m="append" class="on">Add at playhead</button><button data-m="project">Whole timeline</button><button data-m="props">Rewrite selected</button></div>
-        <textarea id="ai-prompt" rows="5" placeholder="e.g. a 20 second neon intro for my kids series 'Bubba &amp; Friends', then a lower third for Bubba"></textarea>
-        <label class="row">Target length <input type="number" id="ai-secs" min="0" max="7200" value="0" title="0 = let MUSE decide"> s</label>
-        <button class="eb pri wide" id="ai-go"><i class="mi" data-ic="sparkle"></i> Write it</button>
-        <div class="ai-h2">Quick wizards</div>
-        <button class="eb wide" data-w="lyrics"><i class="mi" data-ic="music"></i> Lyric video from a song</button>
-        <button class="eb wide" data-w="captions"><i class="mi" data-ic="message"></i> Captions for a video</button>
-        <button class="eb wide" data-w="slideshow"><i class="mi" data-ic="grid"></i> Slideshow from images</button>
-        <button class="eb wide" data-w="visualizer"><i class="mi" data-ic="activity"></i> Podcast / music visualizer</button>
-        <button class="eb wide" data-w="trailer"><i class="mi" data-ic="film"></i> Trailer from my clips</button>
-        <button class="eb wide" data-w="long"><i class="mi" data-ic="layers"></i> Long video (chapters)</button>
-        <button class="eb wide" data-a="critique"><i class="mi" data-ic="eye"></i> MUSE, review this frame</button>
-        <div class="ai-h2">Renders</div>
-        <div id="mo-jobs" class="jobs"><div class="dim">nothing running</div></div>
-      </div>
-      <div class="pane" data-p="tpl" hidden><div id="tpl-list"></div></div>
-    </aside>
-    <main class="mo-main">
-      <div class="mo-stagewrap" id="mo-stagewrap"><div class="mo-stage" id="mo-stage"><div id="mo-player"></div><div class="safe" id="mo-safe" hidden><i></i><b></b></div></div></div>
-      <div class="mo-transport">
-        <button class="eb ic" data-a="bin" title="Scenes + library + AI"><i class="mi" data-ic="grid"></i></button>
-        <button class="eb ic" data-a="start" title="Go to start (Home)"><i class="mi" data-ic="rewind"></i></button>
-        <button class="eb ic big" data-a="play" id="mo-play" title="Play / pause (Space)"><i class="mi" data-ic="play"></i></button>
-        <button class="eb ic" data-a="end" title="Go to end (End)"><i class="mi" data-ic="forward"></i></button>
-        <button class="eb ic" data-a="loop" id="mo-loop" title="Loop the selected clip (L)"><i class="mi" data-ic="refresh"></i></button>
-        <span class="tc" id="mo-tc">00:00.00 / 00:00.00</span>
-        <span class="sp"></span>
-        <button class="eb ic" data-a="safe" id="mo-safebtn" title="Safe zones"><i class="mi" data-ic="crop"></i></button>
-        <button class="eb ic" data-a="marker" title="Marker at playhead (M)"><i class="mi" data-ic="bookmark"></i></button>
-        <button class="eb ic" data-a="split" title="Split at playhead (S)"><i class="mi" data-ic="scissors"></i></button>
-        <button class="eb ic" data-a="dup" title="Duplicate (Ctrl+D)"><i class="mi" data-ic="copy"></i></button>
-        <button class="eb ic" data-a="del" title="Delete (Del) · Shift = ripple"><i class="mi" data-ic="trash"></i></button>
-        <button class="eb ic on" data-a="snap" id="mo-snap" title="Snapping"><i class="mi" data-ic="link"></i></button>
-        <input type="range" id="mo-zoom" min="4" max="300" value="60" title="Zoom (+ / −)">
-        <button class="eb ic" data-a="insp" title="Inspector"><i class="mi" data-ic="sliders"></i></button>
-      </div>
-      <div class="mo-tl" id="mo-tl">
-        <div class="mo-heads" id="mo-heads"></div>
-        <div class="mo-scroll" id="mo-scroll">
-          <div class="mo-ruler" id="mo-ruler"></div>
-          <div class="mo-tracks" id="mo-tracks"></div>
-          <div class="mo-ph" id="mo-ph"><i></i></div>
-        </div>
-      </div>
-    </main>
-    <aside class="mo-insp" id="mo-insp"><div class="dim pad">Select a clip to edit it — or add a scene from the left.</div></aside>
-  </div>
+<div class="top">
+  <span class="logo"><i class="mi" data-ic="sparkle"></i></span>
+  <span class="brand">MIR <em>MOTION STUDIO</em><small>PRODUCER</small></span>
+  <span class="sp"></span>
+  <button class="b pri" onclick="openNew()"><i class="mi" data-ic="plus"></i><span>New motion video</span></button>
+  <a class="b ghost" id="edlink" href="motion/editor" title="Back to Motion Studio (the editor)"><i class="mi" data-ic="scissors"></i><span> Editor</span></a>
+  <button class="b ico ghost" title="Refresh" onclick="refresh()"><i class="mi" data-ic="refresh"></i></button>
+  <button class="b ico ghost" title="Close" onclick="xClose()"><i class="mi" data-ic="close"></i></button>
 </div>
-<div id="mo-modal" class="mo-modal" hidden></div>
-<div id="mo-toast" class="mo-toast"></div>
-<script src="/static/mir-icons.js"></script>
-<script src="motion/player.js"></script>
-<script src="static/motion.js"></script>
-<script src="/static/fonts/mir/mirfont.js" data-vars="--sans"></script>
+<div class="app">
+  <aside class="side"><div class="side-hd"><span>VIDEOS</span><span id="nruns"></span></div><div id="runs" style="display:contents"></div></aside>
+  <main class="main" id="main"><div class="pg"><div class="empty">Loading…</div></div></main>
+</div>
+
+<dialog id="nd"><div class="nd">
+  <h2>New motion video</h2><p>Say what it's about. MirAI writes the beats, cues a picture to every spoken phrase, voices it and renders a fully animated motion-graphics video in the style you pick. You check each step.</p>
+  <label class="l" for="brief">Brief</label>
+  <textarea id="brief" rows="3" placeholder="e.g. Why the speed of light is the universe's speed limit — for curious teenagers"></textarea>
+  <label class="l">Motion style</label>
+  <div class="styles" id="styles"></div>
+  <div class="prev" id="prev"><div id="prev-stage"></div><span class="cap" id="prev-cap">LIVE PREVIEW</span></div>
+  <label class="l" for="nfmt">Format</label>
+  <select class="tx" id="nfmt" onchange="lenLabels()"><option value="diorama" selected>Diorama — one continuous animated story in charcoal, metal and gold</option><option value="explainer">Explainer — facts, pictures and data, beat by beat</option><option value="story">Story (what-if) — you are the hero: characters act in real places, numbers live in the scenes</option></select>
+  <div id="nworld-row"><label class="l" for="nworld" title="Where the story happens. Auto reads it from the brief (a farm story = Countryside, soldiers = Battlefield, astronauts = Moon base)">World</label>
+    <div class="row2"><select class="tx" id="nworld"><option value="auto">Auto — read it from the brief</option></select><button type="button" class="b ico" title="Browse the motion library (worlds, places, characters, animals, movements)" onclick="libOpen(['worlds','places'],'nworld',(c,it)=>{if(c==='worlds')$('#nworld').value=it.key})"><i class="mi" data-ic="layers"></i></button></div></div>
+  <div class="g3">
+    <div><label class="l" for="nlen">Length</label><select class="tx" id="nlen"><option value="short">Short · ~2 min</option><option value="medium" selected>Standard · ~5 min</option><option value="long">Long · 9-10 min</option></select></div>
+    <div><label class="l" for="nasp">Format</label><select class="tx" id="nasp"><option value="16:9">16:9 · YouTube</option><option value="9:16">9:16 · Short / Reel</option><option value="1:1">1:1 · square</option></select></div>
+    <div><label class="l" for="nart">Pictures</label><select class="tx" id="nart"><option value="library">Library (fast)</option><option value="all">Generate missing AI art (~1 min each)</option></select></div>
+  </div>
+  <div class="g2">
+    <div><label class="l" for="nvo">Voice</label><div class="row2"><select class="tx" id="nvo"></select><button type="button" class="b ico" title="Hear this voice" onclick="vPlay('#nvo')"><i class="mi" data-ic="play"></i></button></div></div>
+    <div><label class="l" for="nact" title="Acted narration uses the expressive narrator on the GPU: each scene's mood sets the emotion">Narration</label><select class="tx" id="nact"></select></div>
+    <div><label class="l" for="ntone">Tone (optional)</label><input class="tx" id="ntone" placeholder="e.g. playful, confident, calm"></div>
+  </div>
+  <label class="tg2"><input type="checkbox" id="ncap" checked><span>Spoken captions<small>Every word lights up as it's said, in the style's caption treatment.</small></span></label>
+  <label class="tg2"><input type="checkbox" id="nauto"><span>Fully automatic<small>Runs script → voice → pictures → render without stopping, then waits for you at the finished video.</small></span></label>
+  <div class="f"><button class="b ghost" onclick="$('#nd').close()">Cancel</button><button class="b pri" onclick="startRun()"><i class="mi" data-ic="sparkle"></i> Make the video</button></div>
+</div></dialog>
+
+<dialog id="po"><div class="nd">
+  <h2>Post to Social</h2><p id="po-sub">Makes a draft of this video in Social. Nothing goes live until you approve it there. No hooks or extra captions are burned in; the video posts exactly as rendered.</p>
+  <div id="po-plats" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+  <div class="f"><button class="b ghost" onclick="$('#po').close()">Cancel</button><button class="b pri" onclick="postGo()"><i class="mi" data-ic="send"></i> Make the draft</button></div>
+</div></dialog>
+<dialog id="pk"><div class="nd">
+  <h2>Pick a picture</h2><p id="pk-sub">From this style's library, your own Media Lab pictures, or have the local model draw a new one.</p>
+  <div class="tabs2" id="pk-tabs"><button data-t="style" class="on" onclick="pkTab('style')">Style library</button><button data-t="motion" onclick="pkTab('motion')" title="Characters, animals, objects and movements that MOVE — the same library the Diorama and EXPLAINED use">Motion library</button><button data-t="mine" onclick="pkTab('mine')">My pictures</button><button data-t="draw" onclick="pkTab('draw')">Draw with AI</button></div>
+  <div id="pk-search"><input class="tx" id="pk-q" style="margin-top:10px" placeholder="Search — rocket, brain, money…" oninput="pkSearch()"><div class="lib" id="pk-lib"></div></div>
+  <div id="pk-draw" hidden><p style="margin:12px 0 6px">Describe the picture. Qwen-Image draws it in this video's style and cuts it out (about a minute; ComfyUI must be running). It's added to the style library for future videos too.</p>
+    <input class="tx" id="pk-dq" placeholder="e.g. a tiny submarine with a periscope"><div class="f"><button class="b pri" onclick="pkDraw()"><i class="mi" data-ic="wand"></i> Draw it</button></div></div>
+  <div class="f"><button class="b ghost" onclick="$('#pk').close()">Cancel</button></div>
+</div></dialog>
+
+<script>
+const mlab=false;
+document.write('<script src="'+(mlab?'/motion/player.js':'/motion/player.js')+'"><\/script>');
+</script>
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ic=n=>`<i class="mi" data-ic="${n}"></i>`;
+const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+let SEL=LS.get('mg_sel')||'', CUR=null, RUNS=[], VOICES=[], VAUDIO=null, STY={}, STYLE=LS.get('mg_style')||'signature', ICONS=null, BEATS=null, BEATS_ID='';
+const SESSION=new URLSearchParams(location.search).get('session')||LS.get('mml.session')||'';
+async function api(u,b){const r=await fetch(u,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({session:SESSION},b))}:{});
+  const j=await r.json().catch(()=>({error:r.statusText}));if(!r.ok)throw new Error(j.error||r.statusText);return j}
+function put(el,h){if(!el||el._h===h)return false;el._h=h;el.innerHTML=h;MI.hydrate&&MI.hydrate(el);return true}
+const ago=t=>{const s=Date.now()/1000-t;return s<60?'now':s<3600?Math.round(s/60)+'m ago':s<86400?Math.round(s/3600)+'h ago':Math.round(s/86400)+'d ago'};
+const STATE={running:'Working',waiting:'Needs you',error:'Error',stopped:'Stopped',done:'Done'};
+const KINDS={title:'Title',stat:'Big number',visuals:'Pictures',relation:'A → B',action:'Scene / character',list:'List',compare:'Compare',quote:'Quote',endcard:'End card'};
+let META={actions:{},motions:[],outfits:[],hairs:[],accessories:[]};
+const thumbOf=(st,v)=>v.kind==='art'?`mg/art/${st}/${v.id}.webp`:v.kind==='vec'?`mg/vec/${st}/${v.id}.svg`:v.kind==='lib'?`media/${encodeURIComponent(v.id)}`:'';
+
+/* ── styles + live preview (the Remotion player with the mg-demo scene) ── */
+async function loadStyles(){try{const j=await api('api/mg/styles');STY=j.styles||{};STY._art=j.art||{};STY._vec=j.vec||0;META=j}catch(e){STY={}}}
+async function loadIcons(){if(ICONS)return ICONS;try{ICONS=await (await fetch('mg/icons.json')).json()}catch(e){ICONS={}}return ICONS}
+function styleCards(cur,onpick){return Object.entries(STY).filter(([k])=>k[0]!=='_').map(([k,s])=>{const p=s.palette;
+  return `<button type="button" class="sc ${k===cur?'on':''}" onclick="${onpick}('${k}')"><div class="sw" style="background:${p.bg};color:${p.ink}"><i style="background:${p.acc}"></i><i style="background:${p.acc2}"></i><i style="background:${p.acc3||p.ink}"></i>&nbsp;Aa</div>
+  <span class="n">${(STY._art||{})[k]||0} art · ${STY._vec||0} vec</span><b>${esc(s.name)}</b><small>${esc(s.tag)}</small></button>`}).join('')}
+let PREV=null;
+function pickStyle(k){STYLE=k;LS.set('mg_style',k);put($('#styles'),styleCards(k,'pickStyle'));preview(k)}
+async function preview(k){const st=$('#prev-stage');$('#prev-cap').textContent=((STY[k]||{}).name||k).toUpperCase()+' · LIVE PREVIEW';
+  if(!window.MirMotion){st.innerHTML='<div class="empty">preview engine not loaded</div>';return}
+  const ic=await loadIcons();const B=mlab?'/':'';
+  const proj={w:1280,h:720,fps:30,style:k,mediaBase:B+'/media/',fontBase:B+'/motion/fonts/',mgBase:B+'/mg/',tracks:[{kind:'scene',clips:[{id:'d',type:'mg-demo',start:0,dur:9,props:{style:k,zap:(ic.zap||{}).n||[]}}]}]};
+  if(PREV!==st){MirMotion.mount(st,proj,{loop:true,controls:false});PREV=st}else MirMotion.update(proj);MirMotion.play()}
+
+/* ── voices ── */
+async function loadVoices(){try{VOICES=(await api('api/tts/voices')).voices||[]}catch(e){VOICES=[]}}
+const vOpts=cur=>VOICES.map(v=>`<option value="${v.id}" ${v.id===cur?'selected':''}>${esc(v.label)}</option>`).join('');
+function vPlay(sel){const id=$(sel).value;try{VAUDIO&&VAUDIO.pause()}catch(e){}
+  VAUDIO=new Audio('api/tts?'+new URLSearchParams({voice:id,text:'Every word you hear becomes a picture on screen.'}));VAUDIO.play().catch(()=>{})}
+
+/* ── new ── */
+function openNew(){$('#nvo').innerHTML=vOpts(LS.get('mg_voice')||'am_michael');$('#nact').innerHTML=actOpts(LS.get('mg_acting')||'dramatic');$('#nauto').checked=LS.get('mg_auto')==='1';put($('#styles'),styleCards(STYLE,'pickStyle'));$('#nd').showModal();preview(STYLE);setTimeout(()=>$('#brief').focus(),30)}
+async function startRun(){try{const p=await api('api/mg/start',{brief:$('#brief').value,format:$('#nfmt').value,style:STYLE,length:$('#nlen').value,aspect:$('#nasp').value,art:$('#nart').value,world:($('#nworld')||{}).value||'auto',voice:$('#nvo').value,...actPatch($('#nact').value),tone:$('#ntone').value,captions:$('#ncap').checked,auto:$('#nauto').checked});
+  LS.set('mg_voice',$('#nvo').value);LS.set('mg_acting',$('#nact').value);LS.set('mg_auto',$('#nauto').checked?'1':'0');try{MirMotion.pause()}catch(e){}$('#nd').close();$('#brief').value='';sel(p.id);
+  if(p.session&&parent!==window)try{parent.postMessage({mml:'motion-session',session:p.session},'*')}catch(e){}}catch(e){alert(e.message)}}
+$('#nd').addEventListener('close',()=>{try{MirMotion.pause()}catch(e){}});
+
+/* ── actions ── */
+async function act(a,b){try{CUR=await api(`api/mg/${SEL}/${a}`,b||{});BEATS=null;paint()}catch(e){alert(e.message)}refresh()}
+let ESEQ=0;
+async function edit(b){ESEQ++;try{CUR=await api(`api/mg/${SEL}/edit`,b)}catch(e){alert(e.message)}ESEQ++}
+async function delRun(id){if(!confirm('Remove this project? Rendered videos stay in the library and OUTPUTS.'))return;
+  try{await api(`api/mg/${id}/delete`,{})}catch(e){alert(e.message);return}if(SEL===id){SEL='';LS.del('mg_sel')}refresh()}
+function sel(id){SEL=id;LS.set('mg_sel',id);BEATS=null;$('#main').scrollTop=0;$('#main')._h='';$('#main')._pid='';refresh()}
+function redo(step){const w={script:'rewrite the whole script (voice and pictures are redone after)',voice:'record every line again and re-cue the pictures',assets:'pick every picture again',render:'render the video again'}[step];
+  if(confirm(`Redo: ${w}?`))act('redo',{step})}
+
+/* ── polling ── */
+let BUSY=false, AGAIN=false;
+async function refresh(){if(BUSY){AGAIN=true;return}BUSY=true;AGAIN=false;
+  try{try{RUNS=(await api('api/mg/runs')).runs||[]}catch(e){RUNS=[]}
+    $('#nruns').textContent=RUNS.length||'';
+    put($('#runs'),RUNS.map(r=>{const p=(STY[r.style]||{}).palette||{};return `<div class="run s-${r.state} ${r.id===SEL?'on':''}" onclick="sel('${r.id}')">
+      <div class="rth" style="background:${p.bg||'#222'};color:${p.acc||'#fff'}">${esc((STY[r.style]||{}).name||r.style||'').split(' ')[0].toUpperCase()}</div>
+      <div class="rtx"><b>${esc(r.title||'')}</b><small><span class="dot"></span>${STATE[r.state]||r.state} · ${ago(r.updated||r.created)}</small></div>
+      <div class="racts">${r.src&&r.state!=='running'?`<button class="b sm ico" title="Post to Social${r.posted?' (posted '+r.posted+'×)':''}" onclick="event.stopPropagation();postOpen('${r.id}')">${ic('send')}</button>`:''}<button class="b sm ico bad" title="Delete" onclick="event.stopPropagation();delRun('${r.id}')">${ic('trash')}</button></div></div>`}).join('')
+      ||'<div class="empty" style="padding:20px 0">No videos yet.</div>');
+    if(!SEL&&RUNS[0])SEL=RUNS[0].id;
+    if(!SEL)return welcome();
+    const seq=ESEQ;let fresh;
+    try{fresh=await api('api/mg/'+SEL)}catch(e){SEL='';LS.del('mg_sel');return welcome()}
+    if(seq!==ESEQ)return;
+    CUR=fresh;paint()}finally{BUSY=false;if(AGAIN)refresh()}}
+
+/* PROGRESS VIEW — one picture of where the video is: overall ring + time left, what's happening now, the GPU's live frame,
+   every step with its count, then that step's own visual (a cell per narration line, the cast and AI keyframes, the render) */
+const LIVEPV={};
+function fmtEta(s){if(!s)return '';if(s<60)return 'under a minute left';const m=Math.round(s/60);return m<60?`about ${m} min left`:`about ${Math.floor(m/60)} h ${m%60} min left`}
+function pvView(p){const g=p.progress;if(!g||p.state==='done'||(p.stage==='done'))return '';
+  const R=40,C=2*Math.PI*R,run=p.state==='running';
+  const cur=g.steps.findIndex(s=>s.state!=='done');const si=cur<0?g.steps.length:cur+1;
+  const head=run?'NOW':p.state==='waiting'?'WAITING FOR YOU':p.state==='error'?'STOPPED':p.state==='stopped'?'STOPPED':'';
+  const nowT=run?(g.now||'Working'):p.state==='waiting'?'Your turn — check this step, then continue':p.state==='error'?'This step stopped — press Continue to pick up where it broke off':'Stopped — continue whenever you like';
+  const j=g.job;const jm=j?({h3:'MiniMax H3 · animating',qimg:'Qwen-Image · drawing',kokoro:'voice'}[j.model]||j.model):'';
+  const gpu=j?`<div class="pv-gpu"><div class="im"><img data-jid="${j.id}" ${LIVEPV[j.id]?`src="${LIVEPV[j.id]}"`:'style="display:none"'} alt=""><span class="tg"><i></i>GPU LIVE</span>${LIVEPV[j.id]?'':'first frame soon…'}</div>
+    <div class="gx"><b>${esc(jm)}</b>${j.status==='queued'?' · waiting for the GPU':''}<br>${esc((j.stage||'').replace(/\s*[✓…]+\s*$/,''))}${j.max?`<div class="gb"><i style="width:${Math.round(100*(j.value||0)/j.max)}%"></i></div>`:''}</div></div>`:'';
+  const steps=g.steps.map(s=>`<div class="pv-st ${s.state}"><div class="hd"><span class="ci">${ic(s.state==='done'?'check':s.icon)}</span>${esc(s.label)}</div>
+    <div class="ct">${s.id==='scenes'&&s.total?`${s.drawn??(g.scenes||[]).filter(x=>x.img).length} drawn · ${s.done} / ${s.total} animated`:s.total>1?`${s.done} / ${s.total}`:s.state==='done'?'done':s.state==='working'?s.pct+'%':'—'}</div><div class="br"><i style="width:${s.pct}%"></i></div>
+    <div class="sx">${{done:'done',working:'working now',waiting:'needs you',stopped:'stopped',todo:'next'}[s.state]||''}</div></div>`).join('');
+  let sec='';const bs=p.beats||[];
+  if(g.current==='voice'||(g.current==='script'&&bs.length)){let first=true;
+    sec+=`<div class="pv-sec"><div class="lb">NARRATION · ${g.lines[1]} OF ${g.lines[0]} LINES RECORDED</div><div class="pv-cells">${bs.filter(b=>b.line).map((b,i)=>{const ok=b.vo&&b.vo_line===b.line;let c=ok?'ok':'';if(!ok&&first&&run&&g.current==='voice'){c='now';first=false}
+      return `<span class="${c}" title="${i+1}. ${esc(b.line)}"></span>`}).join('')}</div></div>`}
+  if(g.current==='pictures'){const vs=bs.flatMap(b=>b.visuals||[]);
+    sec+=`<div class="pv-sec"><div class="lb">PICTURES · ${vs.filter(v=>v.kind).length} OF ${vs.length} CHOSEN</div><div class="pv-cells">${vs.map(v=>`<span class="${v.kind?'ok':''}" title="${esc(v.cue||v.id||'')}"></span>`).join('')}</div></div>`}
+  if((g.cast||[]).length)sec+=`<div class="pv-sec"><div class="lb">THE CAST · DRAWN ONCE, REUSED IN EVERY AI SCENE</div><div class="pv-cast">${g.cast.map(c=>`<figure><img src="${esc(c.img)}" alt=""><figcaption>${esc(c.name)}</figcaption></figure>`).join('')}</div></div>`;
+  if((g.scenes||[]).length){const rd=g.scenes.filter(x=>x.state==='ready').length;
+    sec+=`<div class="pv-sec"><div class="lb">AI-ANIMATED KEY MOMENTS · ${g.scenes.filter(x=>x.img).length} OF ${g.scenes.length} DRAWN · ${rd} ANIMATED</div><div class="pv-scn">${g.scenes.map(x=>`<div class="pv-sc ${x.state==='todo'&&x.img?'drawn':x.state}"><div class="im">${x.img?`<img src="${esc(x.img)}" alt="">`:ic(x.state==='working'?'wand':'image')}<span class="bd">${x.state==='ready'?'ANIMATED':x.state==='working'?'WORKING':x.img?'DRAWN':'NEXT'}</span></div><div class="ln">#${x.n+1} · ${esc(x.line)}</div></div>`).join('')}</div></div>`}
+  if(g.current==='render'&&run)sec+=`<div class="pv-sec"><div class="lb">RENDERING · ${g.render_pct}% OF THE FRAMES</div><div class="pv-big"><i style="width:${g.render_pct}%"></i></div></div>`;
+  return `<div class="pv"><div class="pv-top"><div class="pv-ring"><svg viewBox="0 0 96 96"><circle class="bg" cx="48" cy="48" r="${R}"/><circle class="fg" cx="48" cy="48" r="${R}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C*(1-g.pct/100)).toFixed(1)}"/></svg><div class="in"><b>${g.pct}%</b><small>DONE</small></div></div>
+    <div class="pv-now"><div class="pv-k">${run?'<i class="lv"></i>':''}${head} · STEP ${Math.min(si,g.steps.length)} OF ${g.steps.length}</div><h3>${esc(nowT)}</h3>${run&&g.detail?`<div class="pv-d">${esc(g.detail)}</div>`:''}<div class="pv-m">${run?esc(fmtEta(g.eta)):''}</div></div>${gpu}</div>
+    <div class="pv-steps">${steps}</div>${sec}</div>`}
+/* the GPU's live frame: newest sampler preview of the running job (204 = nothing new) */
+let LPN={};setInterval(async()=>{if(document.hidden)return;for(const im of document.querySelectorAll('img[data-jid]')){const id=im.dataset.jid;
+  try{const r=await fetch(`api/jobs/${id}/preview?n=${LPN[id]||''}`,{cache:'no-store'});if(r.status!==200)continue;LPN[id]=r.headers.get('X-Frame-N')||'';
+    const u=URL.createObjectURL(await r.blob());if(LIVEPV[id])URL.revokeObjectURL(LIVEPV[id]);LIVEPV[id]=u;
+    document.querySelectorAll(`img[data-jid="${id}"]`).forEach(x=>{x.src=u;x.style.display='';const n=x.nextElementSibling&&x.nextElementSibling.nextSibling;if(n&&n.nodeType===3)n.remove()})}catch(e){}}},2500);
+function welcome(){put($('#main'),`<div class="hello"><div><div class="logo" style="width:64px;height:64px;margin:auto;border-radius:18px">${ic('sparkle').replace('class="mi"','class="mi" style="width:30px;height:30px"')}</div>
+  <h2>Make a fully animated motion video</h2><p>Give it a brief and pick a motion style. MirAI writes the beats, cues a picture to every spoken phrase, voices it and renders it. Four styles, one video — switch the style any time.</p>
+  <button class="b pri" onclick="openNew()">${ic('plus')} New motion video</button></div></div>`)}
+
+const PH=[['script','Script','note'],['voice','Voice','mic'],['assets','Pictures','image'],['render','Render','video'],['publish','Publish','send']];
+function phase(p,k){const i=PH.findIndex(x=>x[0]===k),cur=p.stage==='done'?5:PH.findIndex(x=>x[0]===p.stage);
+  if(p.state==='done'||i<cur)return 'done';if(i>cur)return '';
+  return p.state==='error'?'fail':p.state==='waiting'?(p.wait==='final'&&k==='render'?'done':'wait'):'now'}
+function paint(){const p=CUR;if(!p)return;const S=STY[p.style]||{},pal=S.palette||{};
+  // the header pipeline follows the same progress model as the progress view (incl. the AI-scenes step for stories)
+  const g=p.progress,SH={script:'Script',voice:'Voice',pictures:'Pictures',scenes:'AI scenes',render:'Render'};
+  const nodes=g&&p.state!=='done'?[...g.steps.map(s=>[s.id,SH[s.id]||s.label,s.icon,{done:'done',working:'now',waiting:'wait',stopped:'fail'}[s.state]||'']),
+      ['publish','Publish','send',p.wait==='final'?'wait':'']]
+    :PH.map(([k,l,n])=>{let s=phase(p,k);if(p.wait==='final'&&k==='publish')s='wait';return [k,l,n,s]});
+  const ph=nodes.map(([k,l,n,s])=>`<div class="pn ${s}"><div class="pc">${ic(s==='done'?'check':n)}</div><b>${l}</b><small>${{done:'done',now:'working',wait:'needs you',fail:'stopped'}[s]||''}</small></div>`).join('');
+  const voiced=(p.beats||[]).filter(b=>b.vo).length, pics=(p.beats||[]).reduce((n,b)=>n+(b.visuals||[]).filter(v=>v.kind).length,0);
+  const hero=`<div class="hero"><div class="hero-pat" style="background:radial-gradient(600px 220px at 85% 0%,${pal.acc||'#FFB547'}33,transparent 70%)"></div><div class="hero-in"><div class="ttl"><div class="kick">MOTION VIDEO · ${esc(p.format==='diorama'?'Diorama':(S.name||p.style||''))}</div>
+    <h1>${esc(p.title||'Writing…')}</h1>
+    <span class="pill">${STATE[p.state]||p.state}</span>
+    ${p.format==='diorama'?`<span class="pill" title="Diorama has its own look: charcoal, brushed metal and gold">${ic('palette')} Diorama</span>`:`<label class="pill sty" title="Motion style — change it any time">${ic('palette')}<select class="hsel" ${p.state==='running'?'disabled':''} onchange="rsPick(this.value)">${Object.entries(STY).filter(([k])=>k[0]!=='_').map(([k,x])=>`<option value="${k}" ${k===p.style?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>`}
+    <label class="pill sty" title="Format / aspect ratio — change it any time, then re-render">${ic('layers')}<select class="hsel" ${p.state==='running'?'disabled':''} onchange="setEd({aspect:this.value})">${['16:9','9:16','1:1'].map(a=>`<option ${a===p.aspect?'selected':''}>${a}</option>`).join('')}</select></label>
+    <label class="pill sty" title="Narrator voice — change it any time; lines are re-recorded when you continue">${ic('mic')}<select class="hsel" ${p.state==='running'?'disabled':''} onchange="setVoice(this.value)">${vOpts(p.voice)}</select></label>
+    <span class="pill">${ic('layers')} ${(p.beats||[]).length} beats</span>${pics?`<span class="pill">${ic('image')} ${pics} pictures</span>`:''}${voiced?`<span class="pill">${ic('mic')} ${voiced} voiced</span>`:''}${p.auto?`<span class="pill">${ic('wand')} automatic</span>`:''}</div></div>
+    <div class="pipe" style="grid-template-columns:repeat(${nodes.length},minmax(0,1fr))">${ph}</div></div>`;
+  const main=$('#main');
+  if(main._pid!==p.id||!$('#hero')){main._pid=p.id;main._h='';PVK='';main.innerHTML=`<div class="pg"><div id="hero"></div><div id="bar"></div><div id="prog"></div><div id="set"></div><div id="pvw"></div><div id="body"></div><div class="sh">${ic('clock')} Log</div><div class="lg box" id="log"></div></div>`;MI.hydrate&&MI.hydrate(main)}
+  put($('#hero'),hero);put($('#bar'),bar(p));put($('#prog'),pvView(p));
+  const typing=el=>{const a=document.activeElement;return a&&el&&el.contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)};
+  if(!typing($('#set')))put($('#set'),settings(p));
+  pvSync(p);
+  const b=$('#body');if(!typing(b))put(b,`<fieldset class="ed" ${p.state==='running'?'disabled':''}>${body(p)}</fieldset>`);
+  put($('#log'),(p.log||[]).slice().reverse().map(l=>`<div class="l-${l.lvl}"><time>${new Date(l.t*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</time>${esc(l.msg)}</div>`).join(''))}
+function bar(p){
+  if(p.state==='running'){const pct=p.stage==='render'?((p.render||{}).pct||0):null;
+    const stopping=p.stage_note==='stopping…';
+    return `<div class="apv run"><div class="ai">${ic('sparkle')}</div><div class="at"><b>${(p.progress&&p.progress.now)||{script:'Writing the beats and the picture plan',voice:'Recording the narration and timing every word',assets:'Finding a styled picture for every phrase',render:'Rendering the motion graphics',publish:'Finishing'}[p.stage]||'Working'}…</b>
+      <div>${esc(p.stage_note||'')}${p.stage==='script'&&!stopping?' · Stop takes effect once the writer answers':''}</div>${pct!==null?`<div class="bar"><i style="width:${pct}%"></i></div>`:''}</div>
+      <div class="ab"><button class="b bad" ${stopping?'disabled':''} onclick="stopRun()" title="Stop now — everything done so far is kept, then edit and continue">${ic('close')} ${stopping?'Stopping…':'Stop'}</button></div></div>`}
+  if(p.state==='stopped')return `<div class="apv"><div class="ai">${ic('note')}</div><div class="at"><b>Stopped before the script was written</b><div>Change the brief, style or length in Video settings, then write it.</div></div>
+    <div class="ab"><button class="b pri" onclick="act('continue')">${ic('sparkle')} Write the script</button></div></div>`;
+  if(p.state==='error')return `<div class="apv err"><div class="ai">${ic('close')}</div><div class="at"><b>That step stopped</b><div>${esc(p.error||'')}</div></div>
+    <div class="ab">${(p.beats||[]).length?`<button class="b pri" onclick="act('continue')" title="Picks up where it broke off: finished lines, pictures and AI shots are kept">${ic('play')} Continue</button>`:''}<button class="b ${(p.beats||[]).length?'ghost':'pri'}" onclick="act('redo',{step:'${{publish:'render',voice:'voice'}[p.stage]||p.stage}'})" title="Redo this whole step from scratch">${ic('refresh')} Redo step</button></div></div>`;
+  if(p.state==='done')return `<div class="apv" style="border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:color-mix(in srgb,var(--ok) 7%,transparent)"><div class="ai" style="background:var(--ok)">${ic('check')}</div>
+    <div class="at"><b>Done</b><div>${p.post?'A Social draft is waiting for your approval in Social.':'Saved to the library and OUTPUTS · MEDIA · Motion Graphics.'}</div></div>
+    <div class="ab"><button class="b pri" onclick="postOpen()">${ic('send')} Post to Social</button><button class="b" onclick="restyle()">${ic('palette')} Another style</button><button class="b" onclick="act('back',{step:'script'})">${ic('note')} Edit script</button><button class="b" onclick="redo('render')">${ic('refresh')} Re-render</button></div></div>`;
+  if(p.state!=='waiting')return '';
+  const W={script:['Check the script','Each beat is one spoken line plus the pictures cued to its words. Edit lines, kinds, cues and concepts.',`<button class="b pri" onclick="approveScript()">${ic('mic')} Voice it and find the pictures</button>`],
+    assets:['Check the pictures','Edit any line, picture, label or timing below. Watch it in the preview. Changed lines get re-voiced before rendering.',`${p.format==='story'?`<button class="b" onclick="act('scenes')" title="Make or update the AI-animated key scenes (≈ 8 min each on the GPU)">${ic('wand')} AI scenes</button>`:''}${changed(p)?`<button class="b pri" onclick="act('revoice')">${ic('mic')} Re-voice ${changed(p)} changed line${changed(p)>1?'s':''}</button>`:`<button class="b pri" onclick="act('approve')">${ic('video')} Render the video</button>`}<button class="b ghost" onclick="act('back',{step:'script'})">${ic('note')} Back to script</button>`],
+    final:['Final cut ready','Watch it. Make a Social draft (you still approve the post in Social), or finish.',
+      `${changed(p)?`<button class="b pri" onclick="act('revoice')">${ic('mic')} Re-voice ${changed(p)} changed line${changed(p)>1?'s':''}</button>`:''}<button class="b ${changed(p)?'':'pri'}" onclick="postOpen()">${ic('send')} Post to Social</button><button class="b" onclick="redo('render')">${ic('refresh')} Re-render with edits</button><button class="b" onclick="act('approve',{draft:false})">${ic('check')} Finish</button><button class="b ghost" onclick="act('back',{step:'assets'})">${ic('image')} Back to pictures</button><button class="b ghost" onclick="act('back',{step:'script'})">${ic('note')} Back to script</button>`]}[p.wait];
+  return W?`<div class="apv"><div class="ai">${ic('sparkle')}</div><div class="at"><b>${W[0]}</b><div>${W[1]}</div></div><div class="ab">${W[2]}</div></div>`:''}
+
+function body(p){
+  if(p.stage==='script'&&p.state!=='running')return script(p);
+  if(p.stage==='script')return `<div class="empty">${ic('sparkle')} Thinking up the beats…</div>`;
+  if(p.stage==='voice'||p.stage==='assets')return assets(p);
+  return final(p)+((p.beats||[]).length?assets(p):'')}   // the final cut stays fully editable: change anything, then Re-render
+
+/* SCRIPT — local editable copy of the beats */
+let BEATS_BASE='';
+/* the editor's copy follows the server whenever you have no unsaved edits (a stale copy once wiped half a long script) */
+function script(p){const sv=JSON.stringify(p.beats||[]);if(!BEATS||BEATS_ID!==p.id||(sv!==BEATS_BASE&&JSON.stringify(BEATS)===BEATS_BASE)){BEATS=JSON.parse(sv);BEATS_ID=p.id;BEATS_BASE=sv}
+  return `<div class="sh">${ic('note')} Beats <span class="x">· one spoken line each · a picture cued to a word of that line</span></div>`+BEATS.map((b,i)=>`<div class="beat${b.kind==='diorama'?' dio':''}">
+    <div class="no">${i+1}</div><div>
+    <div class="kd" style="flex-wrap:wrap">${shotEd(b,i,'scrShot')}</div>
+    <div class="kd"><select class="tx" onchange="BEATS[${i}].kind=this.value;saveBeats(true)">${Object.entries(KINDS).map(([k,l])=>`<option value="${k}" ${b.kind===k?'selected':''}>${l}</option>`).join('')}</select>
+      ${fieldsFor(b,i)}</div>
+    ${b.speaker&&b.speaker!=='narrator'?`<div class="kn" style="margin-bottom:3px">${ic('mic')} ${esc(((CUR.cast||[]).find(c=>c.id===b.speaker)||{}).name||b.speaker)} says:</div>`:''}
+    <textarea onchange="BEATS[${i}].line=this.value;saveBeats()">${esc(b.line)}</textarea>
+    ${b.kind==='list'?itemsEd(b,i,'scrList'):''}${storyEd(b,i,'scrStory')}${dioEd(b,i,'scrStory')}${b.actor&&b.actor!=='custom'?'':charEd(b,i,'scrChar')}
+    <div class="vis">${(b.visuals||[]).map((v,j)=>`<div class="vc">${v.kind&&thumbOf(p.style,v)?`<img src="${thumbOf(p.style,v)}" alt="">`:''}<span class="k ${v.kind||''}">${(v.kind||'?').toUpperCase()}</span>
+      <input class="tx" value="${esc(v.concept)}" placeholder="concept" title="What to draw" onchange="BEATS[${i}].visuals[${j}].concept=this.value;delete BEATS[${i}].visuals[${j}].pick;saveBeats()">
+      <input class="tx" value="${esc(v.label)}" placeholder="label" title="Label under it" onchange="BEATS[${i}].visuals[${j}].label=this.value;saveBeats()">
+      <input class="tx cue" value="${esc(v.cue)}" placeholder="on word" title="Appears on this word" onchange="BEATS[${i}].visuals[${j}].cue=this.value;saveBeats()">
+      <button title="Remove" onclick="BEATS[${i}].visuals.splice(${j},1);saveBeats(true)">${ic('close')}</button></div>`).join('')}
+      ${(b.visuals||[]).length<4&&b.kind!=='endcard'?`<button class="b sm ghost" onclick="BEATS[${i}].visuals.push({concept:'',label:'',cue:''});saveBeats(true)">${ic('plus')} picture</button>`:''}
+      <span class="sp"></span><button class="b sm ico ghost" title="Up" onclick="mv(${i},-1)" ${i?'':'disabled'}>${ic('chevron-down').replace('class="mi"','class="mi" style="transform:rotate(180deg)"')}</button>
+      <button class="b sm ico ghost" title="Down" onclick="mv(${i},1)" ${i<BEATS.length-1?'':'disabled'}>${ic('chevron-down')}</button>
+      <button class="b sm ico ghost bad" title="Remove beat" onclick="BEATS.splice(${i},1);saveBeats(true)">${ic('trash')}</button></div></div></div>`).join('')
+    +`<div style="display:flex;gap:8px;margin-top:10px">${BEATS.length<40?`<button class="b sm" onclick="BEATS.splice(BEATS.length-1,0,{kind:'visuals',line:'',visuals:[]});saveBeats(true)">${ic('plus')} Add a beat</button>`:''}
+      <button class="b sm ghost" onclick="redo('script')">${ic('refresh')} Rewrite everything</button></div>`}
+const FIELDS={action:['who','headline'],title:['kicker','title','sub'],stat:['kicker','value','prefix','suffix','label'],visuals:['headline'],relation:['headline','link'],list:['headline'],compare:['headline','a','aval','b','bval'],quote:['text','by'],endcard:['title','line1','line2']};
+function fieldsFor(b,i){return (FIELDS[b.kind]||[]).map(k=>`<input class="tx" style="width:${k==='headline'||k==='title'||k==='text'?'220px':'110px'};padding:4px 8px;font-size:12px" value="${esc(b[k]??'')}" placeholder="${k}" onchange="BEATS[${i}]['${k}']=this.value;saveBeats()">`).join('')}
+function scrList(i,k,patch){const it=BEATS[i].items=BEATS[i].items||[];if(patch===null)it.splice(k,1);else if(k<0)it.push(Object.assign({cue:'',concept:''},patch));else Object.assign(it[k],patch);saveBeats(true)}
+/* CHARACTER — what the animated person does and looks like (works in both the script copy and the saved project) */
+function charEd(b,i,mode){if(b.kind!=='action')return '';const f=b.figure||{},sel=(k,opts,cur,lab)=>`<label class="kn">${lab} <select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${mode}(${i},'${k}',this.value)">${opts.map(o=>`<option value="${esc(o)}" ${o===cur?'selected':''}>${esc(o||'none')}</option>`).join('')}</select></label>`;
+  const col=(k,lab,dv)=>`<label class="kn">${lab} <input type="color" value="${f[k]||dv}" style="width:34px;height:26px;padding:1px;border:1px solid var(--line2);border-radius:6px;background:var(--panel2);vertical-align:middle" onchange="${mode}(${i},'${k}',this.value)"></label>`;
+  return `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px;padding:8px 10px;border:1px dashed var(--line2);border-radius:10px">
+    <label class="kn">Does <select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${mode}(${i},'action',this.value)">${Object.entries(META.actions||{}).map(([k,d])=>`<option value="${k}" ${k===b.action?'selected':''} title="${esc(d)}">${k} — ${esc(String(d).slice(0,38))}</option>`).join('')}</select></label>
+    ${sel('outfit',META.outfits||[],f.outfit,'Outfit')}${sel('hair',META.hairs||[],f.hair,'Hair')}${sel('accessory',META.accessories||[],f.accessory||'','Extra')}
+    ${col('skin','Skin','#F1C7A4')}${col('hairColor','Hair','#3B2A1E')}${col('color','Clothes','#FF6FB5')}
+    <label class="kn">No. <input class="tx" style="width:46px;padding:3px 6px;font-size:12px" value="${esc(f.number??'')}" onchange="${mode}(${i},'number',this.value)"></label>
+    <label class="kn"><input type="checkbox" ${f.beard?'checked':''} onchange="${mode}(${i},'beard',this.checked)"> beard</label></div>`}
+/* SHOTS — consecutive beats without a cut are one continuous camera move; a cut starts a new shot */
+const MOVES={pan:'pan sideways',crane:'crane up',push:'push in'};
+function shotEd(b,i,fn){if(b.kind==='diorama')return '';const first=i===0||b.cut||b.kind==='endcard';
+  return `<span style="display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <label class="kn" title="Start a new shot here (otherwise the camera glides on from the previous beat)"><input type="checkbox" ${first?'checked':''} ${i===0||b.kind==='endcard'?'disabled':''} onchange="${fn}(${i},{cut:this.checked})"> new shot</label>
+    ${first&&b.kind!=='endcard'?`<label class="kn">camera <select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{move:this.value})">${Object.entries(MOVES).map(([k,l])=>`<option value="${k}" ${(b.move||'pan')===k?'selected':''}>${l}</option>`).join('')}</select></label>`:'<span class="kn">↳ same shot</span>'}
+    <label class="kn" title="Label on the shot's timeline (an era or a step)">mark <input class="tx" style="width:96px;padding:3px 6px;font-size:12px" value="${esc(b.mark||'')}" placeholder="e.g. 3000 BC" onchange="${fn}(${i},{mark:this.value})"></label></span>`}
+function scrShot(i,patch){Object.assign(BEATS[i],patch);saveBeats(true)}
+async function asShot(i,patch){await edit({beat:Object.assign({n:i},patch)});repaint()}
+/* STORY — where the scene happens, how the camera frames it, mood, FX, who speaks, who's on screen, the data in the scene */
+/* DIORAMA beat direction: where the character is, what they do, how they feel, the camera, effects, the gold panel */
+const LEN_TXT={diorama:{short:'Short · ~2 min',medium:'Standard · ~5 min',long:'Long · 9-10 min'},other:{short:'Short · 30-45 s',medium:'Medium · 60-90 s',long:'Long · 2-3 min'}};
+function lenLabels(){const m=LEN_TXT[$('#nfmt').value==='diorama'?'diorama':'other'];[...$('#nlen').options].forEach(o=>o.textContent=m[o.value]||o.textContent);
+  const wr=$('#nworld-row');if(wr){wr.hidden=$('#nfmt').value!=='diorama';const W=(META.dio||{}).worlds||{};if($('#nworld').options.length<2)$('#nworld').insertAdjacentHTML('beforeend',Object.entries(W).map(([k,w])=>`<option value="${k}">${esc(w.name)} — ${esc(w.about)}</option>`).join(''))}}
+function dioEd(b,i,fn){if(b.kind!=='diorama')return '';const D=META.dio||{};
+  const sel=(k,opts,cur,lab,none)=>`<label class="kn">${lab} <select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{${k}:this.value})">${none!=null?`<option value="">${none}</option>`:''}${(opts||[]).map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('')}</select></label>`;
+  const inp=(k,ph,w,val,on)=>`<input class="tx" style="width:${w}px;padding:3px 6px;font-size:12px" placeholder="${ph}" value="${esc(val||'')}" onchange="${on}">`;
+  const pn=b.panel||{},pj=k=>`${fn}(${i},{panel:Object.assign({},${esc(JSON.stringify(pn)).replace(/"/g,'&quot;')},{${k}:this.value})})`;
+  return `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px;padding:8px 10px;border:1px dashed var(--line2);border-radius:10px">
+    ${sel('place',dioPlaces(),b.place||'apartment','Place')}${sel('station',(D.places||{})[b.place||'apartment']||D.stations,b.station,'Spot')}${poseSel(b,i,fn)}${sel('mood',D.moods,b.mood,'Feels')}${sel('camera',D.cameras,b.camera,'Camera')}
+    ${sel('fx',D.fx,b.fx||'','Effect','none')}${sel('rings',D.rings,b.rings||'','Waves','none')}
+    <label class="kn">Sound word ${inp('sfx','BOOM',96,b.sfx,`${fn}(${i},{sfx:this.value})`)}</label>
+    <label class="kn" title="A gold info card beside the character: a short label, a number or fact, and an icon word">Gold panel ${inp('label','label',110,pn.label,pj('label'))}${inp('value','90 m',70,pn.value,pj('value'))}${inp('icon','icon word',90,pn.icon,pj('icon'))}</label>
+    <label class="kn" title="The word where the panel / sound word lands">Lands on ${inp('cue','word',90,b.cue,`${fn}(${i},{cue:this.value})`)}</label>
+    ${(CUR&&CUR.dio_cast||[]).length?`<label class="kn" title="Who from the cast is on screen in this line (up to 3)">With ${(CUR.dio_cast||[]).map(c=>`<label style="display:inline-flex;gap:3px;align-items:center;margin-right:6px"><input type="checkbox" ${(b.with||[]).includes(c.id)?'checked':''} onchange="${fn}(${i},{with:dioWith(${i},'${c.id}',this.checked)})">${esc(c.name)}</label>`).join('')}</label>
+    ${sel('talker',[...(b.with||[]),...(b.remote||[]).map(r=>r.id)],b.talker||'','Talking','nobody')}`:''}
+    ${(CUR&&CUR.dio_cast||[]).length?`<label class="kn" title="Someone the line involves who is NOT in the room: on the phone, on a video call, on TV, seen far away, only heard, or remembered — they appear in a bubble, never next to the character">Not here ${(CUR.dio_cast||[]).filter(c=>!(b.with||[]).includes(c.id)).map(c=>{const r=(b.remote||[]).find(x=>x.id===c.id);return `<select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{remote:dioRemote(${i},'${c.id}',this.value)})"><option value="">${esc(c.name)}: —</option>${(D.remote||[]).map(h=>`<option value="${h}" ${r&&r.how===h?'selected':''}>${esc(c.name)}: ${h}</option>`).join('')}</select>`}).join(' ')}</label>`:''}
+    <label class="kn" title="Animals in the moment with the character (they follow when the character moves)">Animals <select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{animals:this.value?[{kind:this.value,act:'follow'}]:[]})"><option value="">none</option>${(D.species||[]).map(k=>`<option ${((b.animals||[])[0]||{}).kind===k?'selected':''}>${k}</option>`).join('')}</select>${(b.animals||[]).length?`<select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{animals:[{kind:'${(b.animals[0]||{}).kind}',act:this.value}]})">${(D.animal_acts||[]).map(a=>`<option ${b.animals[0].act===a?'selected':''}>${a}</option>`).join('')}</select>`:''}</label>
+    <label class="kn" title="An unnamed group in the moment: soldiers beside you, a cheering crowd, teammates">Crowd <select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{extras:+this.value?{n:+this.value,act:(b.extras||{}).act||'stand',look:(b.extras||{}).look||{}}:null})">${[0,1,2,3,4].map(n=>`<option value="${n}" ${((b.extras||{}).n||0)===n?'selected':''}>${n?n+' people':'none'}</option>`).join('')}</select>${b.extras?`<select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{extras:Object.assign({},${esc(JSON.stringify(b.extras)).replace(/"/g,'&quot;')},{act:this.value})})">${Object.keys(D.acts||{}).map(a=>`<option ${b.extras.act===a?'selected':''}>${a}</option>`).join('')}</select>`:''}</label>
+    <label class="kn" title="A visual effect in this moment (explosion, fire, smoke, flood, lightning…) and where it happens">Effect <select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{vfx:this.value?[{kind:this.value,at:((b.vfx||[])[0]||{}).at||'far'}]:[]})"><option value="">none</option>${(D.vfx||[]).map(k=>`<option ${((b.vfx||[])[0]||{}).kind===k?'selected':''}>${k}</option>`).join('')}</select>${(b.vfx||[]).length?`<select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{vfx:[{kind:'${(b.vfx[0]||{}).kind}',at:this.value}]})">${['hero','far','place',...((D.places||{})[b.place]||[])].map(a=>`<option ${b.vfx[0].at===a?'selected':''}>${a}</option>`).join('')}</select>`:''}<button type="button" class="b ico" style="padding:2px 6px" title="Browse every effect with a moving preview" onclick="libOpen(['vfx'],'vfx',(c,it)=>${fn}(${i},{vfx:[{kind:it.key,at:'far'}]}))">${ic('layers')}</button></label>
+    ${sel('amb',D.ambients,b.amb||'','Weather','world default')}${b.auto_dir?`<span class="kn" title="The narration pass picked this movement from what the narrator says" style="color:var(--amb)">${ic('sparkle')} from the narration</span>`:''}</div>`}
+function dioPlaces(){const D=META.dio||{},w=(CUR&&CUR.dio_world)||'city',kits=(CUR&&CUR.dio_kits)||[],all=Object.keys(D.places||{});
+  const BUILT=['apartment','office','lab','cafe','street','rooftop'];return all.filter(k=>kits.includes(k)||(w==='city'&&BUILT.includes(k)))}
+function poseSel(b,i,fn){const A=(META.dio||{}).acts||{},g={};Object.entries(A).forEach(([k,v])=>(g[v.cat]=g[v.cat]||[]).push(k));
+  return `<label class="kn" title="What the character DOES — any movement from the motion library">Does <select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{pose:this.value})">${Object.entries(g).map(([c,ks])=>`<optgroup label="${esc(c)}">${ks.map(k=>`<option value="${k}" ${k===b.pose?'selected':''} title="${esc(A[k].desc)}">${k}</option>`).join('')}</optgroup>`).join('')}</select><button type="button" class="b ico" style="padding:2px 6px" title="Browse every movement with a moving preview" onclick="libOpen(['actions','rides'],'pose',(c,it)=>${fn}(${i},{pose:it.key}))">${ic('layers')}</button></label>`}
+function dioRemote(i,id,how){const b=(BEATS&&BEATS[i])||(CUR.beats||[])[i]||{};const r=(b.remote||[]).filter(x=>x.id!==id);if(how)r.push({id,how});return r.slice(0,3)}
+function dioWith(i,id,on){const b=(BEATS&&BEATS[i])||(CUR.beats||[])[i]||{};const w=(b.with||[]).filter(x=>x!==id);if(on)w.push(id);return w.slice(0,3)}
+/* the recurring cast: name + look, all in the Diorama palette */
+function castDio(p){const D=(META.dio||{}).look||{},cast=p.dio_cast||[];if(p.format!=='diorama')return '';
+  const opt=(k,c,j)=>`<select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="dioCastEd(${j},{look:Object.assign({},CUR.dio_cast[${j}].look,{${k}:this.value})})">${(D[k]||[]).map(o=>`<option ${(c.look||{})[k]===o?'selected':''}>${o}</option>`).join('')}</select>`;
+  return `<div class="f w4"><label>Cast — the story's people (they appear in the lines that list them)</label><div style="display:flex;flex-direction:column;gap:6px">${cast.map((c,j)=>`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;border:1px solid var(--line2);border-radius:9px;padding:5px 8px">
+    <input class="tx" style="width:120px;padding:3px 6px;font-size:12px" value="${esc(c.name)}" onchange="dioCastEd(${j},{name:this.value})">${(c.look||{}).species?`<span class="kn">${ic('paw')} ${esc(c.look.species)}</span>`:`${opt('gender',c,j)}${opt('skin',c,j)}${opt('hair',c,j)}${opt('outfit',c,j)}${opt('color',c,j)}${opt('hat',c,j)}${opt('age',c,j)}`}
+    <button type="button" class="b ico" style="padding:2px 6px" title="Pick a look (or an animal) from the motion library" onclick="libOpen(['characters','animals'],'cast',(cat,it)=>dioCastEd(${j},{look:cat==='animals'?{species:it.key}:Object.assign({},it.look)}))">${ic('layers')}</button>
+    <label class="kn"><input type="checkbox" ${(c.look||{}).glasses?'checked':''} onchange="dioCastEd(${j},{look:Object.assign({},CUR.dio_cast[${j}].look,{glasses:this.checked})})"> glasses</label>
+    <label class="kn"><input type="checkbox" ${(c.look||{}).beard?'checked':''} onchange="dioCastEd(${j},{look:Object.assign({},CUR.dio_cast[${j}].look,{beard:this.checked})})"> beard</label></div>`).join('')||'<span class="kn">The cast is made when the script is written.</span>'}</div></div>`}
+function heroDio(p){if(p.format!=='diorama')return '';const D=(META.dio||{}).look||{},h=p.dio_hero||{},W=(META.dio||{}).worlds||{};
+  const opt=k=>`<select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="setEd({dio_hero:Object.assign({},CUR.dio_hero||{},{${k}:this.value})})"><option value="">${k}</option>${(D[k]||[]).map(o=>`<option ${h[k]===o?'selected':''}>${o}</option>`).join('')}</select>`;
+  return `<div class="f"><label title="Where the story happens — changing it re-scouts the places on the next script pass">World</label><div class="row2"><select class="tx" onchange="setEd({world:this.value})">${Object.entries(W).map(([k,w])=>`<option value="${k}" ${k===(p.dio_world||'city')?'selected':''}>${esc(w.name)}</option>`).join('')}</select><button type="button" class="b ico" title="Browse worlds and places" onclick="libOpen(['worlds','places'],'world',(c,it)=>{if(c==='worlds')setEd({world:it.key})})">${ic('layers')}</button></div></div>
+    <div class="f"><label title="The main character's look for the whole film">Main character</label><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${opt('gender')}${opt('skin')}${opt('hair')}${opt('outfit')}${opt('color')}${opt('hat')}<button type="button" class="b ico" style="padding:2px 6px" title="Pick a ready-made character" onclick="libOpen(['characters'],'hero',(c,it)=>setEd({dio_hero:Object.assign({},it.look)}))">${ic('layers')}</button></div></div>`}
+async function dioCastEd(j,patch){const cast=JSON.parse(JSON.stringify(CUR.dio_cast||[]));Object.assign(cast[j],patch);await edit({dio_cast:cast});repaint()}
+function storyEd(b,i,fn){if(b.kind!=='action')return '';const cast=(CUR&&CUR.cast)||[];
+  const sel=(k,opts,cur,lab,none)=>`<label class="kn">${lab} <select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{${k}:this.value})">${none?`<option value="">${none}</option>`:''}${opts.map(o=>Array.isArray(o)?o:[o,o]).map(([v,l])=>`<option value="${esc(v)}" ${v===cur?'selected':''}>${esc(l)}</option>`).join('')}</select></label>`;
+  const o=b.overlay||{},ot=o.type||'';
+  const of=(k,ph,w)=>`<input class="tx" style="width:${w||70}px;padding:3px 6px;font-size:12px" placeholder="${ph}" value="${esc(o[k]??'')}" onchange="${fn}(${i},{overlay:Object.assign({},${esc(JSON.stringify(o)).replace(/"/g,'&quot;')},{${k}:this.value})})">`;
+  const ofields={timer:of('value','0.2',60)+of('unit','s',40)+of('label','label',90),distance:of('label','11 m',80),score:of('a','21',50)+of('b','0',50),
+    gauge:of('a','Normal',70)+of('av','30 cm',60)+of('b','You',60)+of('bv','3 mm',60)+of('ratio','0.1',50),chain:`<input class="tx" style="width:180px;padding:3px 6px;font-size:12px" placeholder="Eyes, Brain, Muscles" value="${esc((o.items||[]).join(', '))}" onchange="${fn}(${i},{overlay:{type:'chain',items:this.value.split(',').map(x=>x.trim()).filter(Boolean)}})">`,label:of('text','x10',90)}[ot]||'';
+  return `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px;padding:8px 10px;border:1px dashed var(--line2);border-radius:10px">
+    <label class="kn" title="Animate this scene with the AI video model (detailed characters + real movement) instead of motion graphics"><input type="checkbox" ${b.key?'checked':''} onchange="${fn}(${i},{key:this.checked})"> AI-animate</label>
+    ${b.plate?`<a class="kn" style="color:var(--teal)" href="media/${encodeURIComponent(b.plate.replace(/^lib:/,''))}" target="_blank" rel="noopener">${ic('play')} AI shot ready</a>`:''}
+    ${sel('set',META.sets||[],b.set||'','Place','plain stage')}${sel('frame',[['wide','wide'],['medium','medium'],['close','close-up'],['xclose','extreme close-up']],b.frame||'wide','Camera')}
+    ${sel('mood',META.moods||[],b.mood||'','Mood','—')}${sel('fx',META.fxs||[],b.fx||'','FX','none')}
+    ${cast.length?sel('speaker',[['narrator','narrator'],...cast.map(c=>[c.id,c.name])],b.speaker||'narrator','Spoken by'):''}${cast.length?sel('actor',cast.map(c=>[c.id,c.name]),b.actor||'','On screen','custom look'):''}
+    <label class="kn">Data <select class="tx" style="width:auto;padding:3px 6px;font-size:12px" onchange="${fn}(${i},{overlay:this.value?{type:this.value}:''})"><option value="">none</option>${(META.overlays||[]).map(x=>`<option ${x===ot?'selected':''}>${x}</option>`).join('')}</select></label>${ofields}</div>`}
+function scrStory(i,patch){const b=BEATS[i];for(const k in patch){if(patch[k]===''||patch[k]==null)delete b[k];else b[k]=patch[k]}if(b.overlay&&b.overlay.value!=null)b.overlay.value=+b.overlay.value;saveBeats(true)}
+async function asStory(i,patch){if(patch.overlay&&patch.overlay.value!=null)patch.overlay.value=+patch.overlay.value;await edit({beat:Object.assign({n:i},patch)});repaint()}
+function scrChar(i,k,v){const b=BEATS[i];if(k==='action')b.action=v;else{b.figure=Object.assign({},b.figure||{},{[k]:v})}saveBeats(true)}
+async function asChar(i,k,v){await edit({beat:k==='action'?{n:i,action:v}:{n:i,figure:{[k]:v}}});repaint()}
+function mv(i,d){const t=BEATS[i];BEATS[i]=BEATS[i+d];BEATS[i+d]=t;saveBeats(true)}
+async function saveBeats(rep){await edit({beats:BEATS});if(CUR&&CUR.beats){BEATS=JSON.parse(JSON.stringify(CUR.beats));BEATS_BASE=JSON.stringify(CUR.beats);if(rep){$('#body')._h='';put($('#body'),script(CUR))}}}
+async function approveScript(){if(BEATS&&BEATS.filter(b=>b.line.trim()).length<3)return alert('A video needs at least 3 beats with a line.');await act('approve',{beats:BEATS})}
+
+/* PICTURES — every beat fully editable: line (re-voiced on demand), its card fields, timing, and each picture
+   (swap from the style library / your own pictures / draw with AI, label, concept, exact second it appears, remove, add) */
+const ACTING=[['dramatic','Dramatic — acted, cinematic'],['balanced','Balanced — expressive'],['calm','Calm — gentle'],['fast','Fast — flat voice (CPU, instant)']];
+const actOf=p=>(p.voice_engine==='kokoro')?'fast':(p.voice_intensity||'dramatic');
+const actOpts=v=>ACTING.map(([k,l])=>`<option value="${k}" ${k===v?'selected':''}>${l}</option>`).join('');
+const actPatch=v=>v==='fast'?{voice_engine:'kokoro'}:{voice_engine:'chatterbox',voice_intensity:v};
+async function setActing(v){await edit(actPatch(v));repaint()}
+const changed=p=>(p.beats||[]).filter(b=>b.line&&b.vo_line!==b.line).length;
+const KC={art:'var(--teal)',vec:'var(--amb)',lib:'#b69cff',text:'var(--faint)',icon:'var(--amb)'};
+function assets(p){const st=p.style;
+  return `<div class="sh">${ic('image')} Beats &amp; pictures <span class="x">· click a picture to swap it · times are seconds into the beat (empty = on its cue word) · teal AI art · amber vector · violet yours</span></div>`+
+  (p.beats||[]).map((b,i)=>{const ch=b.line&&b.vo_line!==b.line;
+    return `${(i===0||b.cut||b.kind==='endcard')&&p.continuous!==false?`<div class="sh" style="margin:18px 0 8px">${ic('film')} Shot ${(p.beats||[]).slice(0,i+1).filter((x,k)=>k===0||x.cut||x.kind==='endcard').length} <span class="x">· ${b.kind==='endcard'?'end card':esc(MOVES[b.move||'pan'])}</span></div>`:''}<div class="be" id="be${i}"><div class="top2"><b>${i+1}</b>
+      <select class="tx" style="width:auto;padding:4px 8px;font-size:12px" title="Card type" onchange="beatEd(${i},{kind:this.value},true)">${Object.entries(KINDS).map(([k,l])=>`<option value="${k}" ${b.kind===k?'selected':''}>${l}</option>`).join('')}</select>
+      <span class="kn">${b.dur?b.dur.toFixed(1)+' s':''}${b.vo_dur?` · voice ${b.vo_dur.toFixed(1)} s`:''}</span>
+      ${ch?'<span class="chg">line changed — re-voice</span>':''}<span class="sp"></span>
+      ${b.vo&&!ch?`<button class="b sm" onclick="playVo('${esc(b.vo)}')" title="Hear this line">${ic('play')} Hear</button>`:''}
+      <button class="b sm" onclick="act('revoice',{n:${i}})" title="Record this line again">${ic('mic')} Re-voice</button>
+      <button class="b sm" onclick="pvSeek(${i})" title="Play this beat in the preview">${ic('eye')} Preview</button>
+      <label class="kn" title="Extra seconds on screen after the line (negative = shorter)">Hold <input class="tx" type="number" step="0.5" style="width:62px;padding:3px 6px" value="${+b.pad||0}" onchange="beatEd(${i},{pad:+this.value})"> s</label></div>
+    <div style="margin:-2px 0 6px">${shotEd(b,i,'asShot')}</div>
+    <textarea rows="2" onchange="beatEd(${i},{line:this.value})" title="Spoken line">${esc(b.line)}</textarea>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${(FIELDS[b.kind]||[]).map(k=>`<input class="tx" style="width:${k==='headline'||k==='title'||k==='text'?'240px':'120px'};padding:4px 8px;font-size:12px" value="${esc(b[k]??'')}" placeholder="${k}" title="${k}" onchange="beatEd(${i},{${k}:this.value})">`).join('')}</div>
+    ${b.kind==='list'?itemsEd(b,i,'beatList'):''}${storyEd(b,i,'asStory')}${dioEd(b,i,'asStory')}${b.actor&&b.actor!=='custom'?'':charEd(b,i,'asChar')}
+    <div class="pics2">${(b.visuals||[]).map((v,j)=>`<div class="pc2"><button class="th" onclick="pick(${i},${j})" title="Swap picture">${thumbOf(st,v)?`<img src="${thumbOf(st,v)}" alt="">`:esc(v.label||v.concept)}<i class="k" style="color:${KC[v.kind]||'#fff'}">${(v.kind||'…').toUpperCase()}</i></button>
+      <div class="fx"><input class="tx" value="${esc(v.label)}" placeholder="label under it" onchange="visEd(${i},${j},{label:this.value})">
+        <div class="rw"><input class="tx" value="${esc(v.concept)}" placeholder="what to draw" title="Change it to find a new picture" onchange="visEd(${i},${j},{concept:this.value})"></div>
+        <div class="rw"><input class="tx" value="${esc(v.cue)}" placeholder="on word" title="Appears when this word is spoken" onchange="visEd(${i},${j},{cue:this.value,at:null})">
+          <input class="tx" type="number" step="0.1" min="0" style="width:62px;flex:none" value="${v.at_manual!=null?v.at_manual:''}" placeholder="${(+v.at||0).toFixed(1)}" title="Exact second (empty = follow the word)" onchange="visEd(${i},${j},{at:this.value===''?null:+this.value})">
+          <button class="b sm ico ghost bad" title="Remove picture" onclick="visEd(${i},${j},{remove:true})">${ic('trash')}</button></div>
+        <select class="tx" style="padding:3px 6px;font-size:11.5px" title="What the picture does after it lands" onchange="visEd(${i},${j},{motion:this.value})">${(META.motions||[]).map(m=>`<option value="${m}" ${m===(v.motion||'float')?'selected':''}>moves: ${m}</option>`).join('')}</select></div></div>`).join('')}
+      ${(b.visuals||[]).length<4&&b.kind!=='endcard'?`<button class="b sm" style="align-self:center" onclick="visAdd(${i})">${ic('plus')} picture</button>`:''}</div></div>`}).join('')+
+  `<div style="display:flex;gap:8px;margin-top:6px"><button class="b sm ghost" onclick="act('back',{step:'script'})">${ic('note')} Add / reorder beats in the script</button></div>`}
+function itemsEd(b,i,fn){return `<div class="items">${(b.items||[]).map((it,k)=>`<div class="ir"><input class="tx" value="${esc(it.text)}" placeholder="point" onchange="${fn}(${i},${k},{text:this.value})">
+  <input class="tx" value="${esc(it.cue)}" placeholder="on word" onchange="${fn}(${i},${k},{cue:this.value})"><input class="tx" value="${esc(it.concept||'')}" placeholder="picture (optional)" onchange="${fn}(${i},${k},{concept:this.value})">
+  <button class="b sm ico ghost bad" title="Remove point" onclick="${fn}(${i},${k},null)">${ic('trash')}</button></div>`).join('')}
+  ${(b.items||[]).length<6?`<button class="b sm ghost" style="justify-self:start" onclick="${fn}(${i},-1,{text:'New point'})">${ic('plus')} point</button>`:''}</div>`}
+async function beatEd(i,patch,full){if(full||patch.kind){const bs=JSON.parse(JSON.stringify(CUR.beats));Object.assign(bs[i],patch);await edit({beats:bs})}else await edit({beat:Object.assign({n:i},patch)});repaint()}
+async function beatList(i,k,patch){const bs=JSON.parse(JSON.stringify(CUR.beats));const it=bs[i].items=bs[i].items||[];
+  if(patch===null)it.splice(k,1);else if(k<0)it.push(Object.assign({cue:'',concept:''},patch));else Object.assign(it[k],patch);await edit({beats:bs});repaint()}
+async function visEd(i,j,patch){await edit({visual:Object.assign({beat:i,i:j},patch)});repaint()}
+async function visAdd(i){const c=prompt('What should the new picture show? (a concrete thing: rocket, brain, coin…)');if(!c)return;await edit({visual:{beat:i,add:true,concept:c,label:c}});repaint()}
+function repaint(){$('#body')._h='';$('#set')._h='';paint();pvSync(CUR,true)}
+let VOA=null;function playVo(n){try{VOA&&VOA.pause()}catch(e){}VOA=new Audio('media/'+encodeURIComponent(n));VOA.play().catch(()=>{})}
+
+/* MOTION LIBRARY — the one library Motion Studio and MIR EXPLAINED share (motion/library, /api/mglib). libOpen(cats, tag, cb)
+   opens it as a picker over this page; cb(cat, item) gets the pick. */
+let LIBCB=null;
+function libOpen(cats,tag,cb){LIBCB=cb;let d=$('#libd');if(!d){document.body.insertAdjacentHTML('beforeend','<dialog id="libd" style="padding:0;border:1px solid var(--line2);border-radius:18px;background:var(--bg);width:min(1100px,96vw);height:min(820px,92vh)"><iframe id="libf" style="border:0;width:100%;height:100%;display:block"></iframe></dialog>');d=$('#libd')}
+  $('#libf').src='motion/library?'+new URLSearchParams({pick:(cats||[]).join(','),for:tag||''});d.showModal()}
+window.addEventListener('message',e=>{const m=e.data||{};if(m.type==='mglib-pick'){const cb=LIBCB;$('#libd')&&$('#libd').close();cb&&cb(m.cat,m.item)}else if(m.type==='mglib-close'){$('#libd')&&$('#libd').close()}});
+
+/* picture picker: style library · motion library · my pictures · draw with AI */
+let PK=null,PKTAB='style';
+function pick(i,j){PK={i,j};$('#pk-q').value=(CUR.beats[i].visuals[j].concept||'');$('#pk-dq').value=CUR.beats[i].visuals[j].concept||'';$('#pk').showModal();pkTab('style')}
+function pkTab(t){if(t==='motion'){const pk=PK;$('#pk').close();libOpen(['characters','animals','objects','actions','rides','props','places'],'picture',async(c,it)=>{PK=pk;await pkUse('dio:'+it.id)});return}PKTAB=t;document.querySelectorAll('#pk-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$('#pk-search').hidden=t==='draw';$('#pk-draw').hidden=t!=='draw';if(t!=='draw')pkSearch()}
+let PKT;
+function pkSearch(){clearTimeout(PKT);PKT=setTimeout(async()=>{try{
+  if(PKTAB==='mine'){const j=await api('api/mg/media?'+new URLSearchParams({kind:'image',q:$('#pk-q').value}));
+    put($('#pk-lib'),(j.items||[]).map(it=>`<button title="${esc(it.prompt||it.name)}" onclick="pkUse('lib:${esc(it.name)}')"><img loading="lazy" src="media/${encodeURIComponent(it.name)}" alt=""><small style="color:#b69cff">${esc(it.name)}</small></button>`).join('')||'<div class="empty">no pictures in your library match</div>');return}
+  const j=await api('api/mg/library?'+new URLSearchParams({style:CUR.style,q:$('#pk-q').value}));
+  put($('#pk-lib'),(j.items||[]).map(it=>`<button title="${esc(it.id)} · ${esc((it.tags||[]).join(', '))}" onclick="pkUse('${it.kind}:${esc(it.id)}')"><img loading="lazy" src="${esc(it.thumb)}" alt=""><small style="color:${KC[it.kind]}">${esc(it.id)}</small></button>`).join('')||'<div class="empty">nothing matches — try “Draw with AI”</div>')}catch(e){}},200)}
+async function pkUse(pickv){$('#pk').close();await edit({visual:{beat:PK.i,i:PK.j,pick:pickv}});repaint()}
+async function pkDraw(){const c=$('#pk-dq').value.trim();if(!c)return;$('#pk').close();await act('gen_art',{beat:PK.i,i:PK.j,concept:c})}
+
+/* POST — any finished video → a Social draft (approve-only in Social) */
+let POID='';const PLATS=[['youtube','YouTube'],['instagram','Instagram'],['tiktok','TikTok'],['facebook','Facebook']];
+function postOpen(id){POID=id||SEL;const saved=(LS.get('mg_plats')||'youtube,instagram').split(',');
+  put($('#po-plats'),PLATS.map(([k,l])=>`<label class="tg2" style="margin:0"><input type="checkbox" value="${k}" ${saved.includes(k)?'checked':''}><span>${l}</span></label>`).join(''));$('#po').showModal()}
+async function postGo(){const plats=[...document.querySelectorAll('#po-plats input:checked')].map(x=>x.value);if(!plats.length)return alert('Pick at least one platform.');
+  LS.set('mg_plats',plats.join(','));$('#po').close();
+  try{const j=await api(`api/mg/${POID}/post`,{platforms:plats});if(POID===SEL){CUR=j;paint()}alert('Draft made. Approve it in Social to post.')}catch(e){alert(e.message)}refresh()}
+
+/* STOP — any running step */
+async function stopRun(){try{CUR=await api(`api/mg/${SEL}/stop`,{});paint()}catch(e){alert(e.message)}}
+
+/* VIDEO SETTINGS — every step */
+function settings(p){if(!p||!STY[p.style])return '';const busy=p.state==='running';
+  const auds=AUDIO.map(a=>`<option value="lib:${esc(a.name)}" ${p.music==='lib:'+a.name?'selected':''}>${esc((a.prompt||a.name).slice(0,60))}</option>`).join('');
+  return `<details class="set" ${SETOPEN?'open':''} ontoggle="SETOPEN=this.open"><summary>${ic('sliders')} Video settings <span class="x">· style, format, voice, captions, colour, music — change any time${busy?' (stop first to edit)':''}</span></summary>
+  <fieldset class="ed" ${busy?'disabled':''}><div class="setg">
+    <div class="f w2"><label>Title</label><input class="tx" value="${esc(p.title)}" onchange="setEd({title:this.value})"></div>
+    <div class="f"><label>Motion style</label><select class="tx" onchange="rsPick(this.value)">${Object.entries(STY).filter(([k])=>k[0]!=='_').map(([k,s])=>`<option value="${k}" ${k===p.style?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+    <div class="f"><label>Format</label><select class="tx" onchange="setEd({aspect:this.value})">${['16:9','9:16','1:1'].map(a=>`<option ${a===p.aspect?'selected':''}>${a}</option>`).join('')}</select></div>
+    <div class="f w4"><label>Brief (used when the script is written or rewritten)</label><textarea rows="2" onchange="setEd({brief:this.value})">${esc(p.brief)}</textarea></div>
+    <div class="f"><label>Length (for rewrites)</label><select class="tx" onchange="setEd({length:this.value})">${Object.entries(LEN_TXT[p.format==='diorama'?'diorama':'other']).map(([v,l])=>`<option value="${v}" ${v===p.length?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="f"><label>Tone</label><input class="tx" value="${esc(p.tone||'')}" placeholder="playful, calm…" onchange="setEd({tone:this.value})"></div>
+    <div class="f"><label>Audience</label><input class="tx" value="${esc(p.audience||'')}" placeholder="kids, investors…" onchange="setEd({audience:this.value})"></div>
+    <div class="f"><label>Brand / corner tag</label><input class="tx" value="${esc(p.brand||'MIR')}" onchange="setEd({brand:this.value})"></div>
+    <div class="f w2"><label>Voice (changing it re-records on Continue)</label><div class="row2"><select class="tx" id="svo" onchange="setVoice(this.value)">${vOpts(p.voice)}</select><button type="button" class="b ico" title="Hear it" onclick="vPlay('#svo')">${ic('play')}</button></div></div>
+    <div class="f"><label title="Acted = the expressive narrator (GPU); each scene's mood sets the emotion. Changing it re-records on Continue.">Narration</label><select class="tx" onchange="setActing(this.value)">${actOpts(actOf(p))}</select></div>
+    ${heroDio(p)}${castDio(p)}${p.format==='diorama'?`<div class="f"><label title="AI music composed for every chapter (ACE-Step, local), crossfaded and kept low under the narrator">Music score</label><select class="tx" onchange="setEd({score:this.value})"><option value="on" ${(p.score||'on')==='on'?'selected':''}>On — music for every chapter</option><option value="off" ${p.score==='off'?'selected':''}>Off — voice only</option></select></div>
+    <div class="f"><label title="Soft effects on the sound words, the walks across town and the gold panels">Sound effects</label><select class="tx" onchange="setEd({score_sfx:this.value==='on'})"><option value="on" ${p.score_sfx!==false?'selected':''}>On</option><option value="off" ${p.score_sfx===false?'selected':''}>Off</option></select></div>
+    <div class="f"><label>Music level · ${(+(p.score_volume??1)).toFixed(2)}</label><input type="range" min="0" max="2.5" step="0.05" value="${p.score_volume??1}" onchange="setEd({score_volume:+this.value})"></div>`:''}
+    <div class="f"><label>Voice volume · ${(+(p.vo_volume??1.4)).toFixed(2)}</label><input type="range" min="0" max="3" step="0.05" value="${p.vo_volume??1.4}" onchange="setEd({vo_volume:+this.value})"></div>
+    <div class="f"><label>Accent colour</label><div class="sw2"><input type="color" value="${p.accent||STY[p.style].palette.acc}" onchange="setEd({accent:this.value})"><button class="b sm ghost" onclick="setEd({accent:''})">Style default</button></div></div>
+    <div class="f w2"><label>Music bed (from your library)</label><select class="tx" onchange="setEd({music:this.value})"><option value="">None</option>${auds}</select></div>
+    <div class="f"><label>Music volume · ${(+(p.music_volume??0.16)).toFixed(2)}</label><input type="range" min="0" max="1" step="0.02" value="${p.music_volume??0.16}" onchange="setEd({music_volume:+this.value})"></div>
+    <div class="f"><label>Format (for rewrites)</label><select class="tx" onchange="setEd({format:this.value})">${Object.entries(META.formats||{explainer:'Explainer',story:'Story (what-if)'}).map(([k,l])=>`<option value="${k}" ${k===(p.format||'explainer')?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
+    ${(p.cast||[]).length?`<div class="f w4"><label>Cast — each character's name and voice (their look is edited on a scene where they appear)</label><div style="display:flex;gap:8px;flex-wrap:wrap">${p.cast.map((c,k)=>`<div style="display:flex;gap:4px;align-items:center;border:1px solid var(--line2);border-radius:9px;padding:4px 6px">
+      <span style="width:12px;height:12px;border-radius:50%;background:${esc((c.look||{}).color||'#888')}"></span><input class="tx" style="width:110px;padding:3px 6px" value="${esc(c.name)}" onchange="castEd(${k},{name:this.value})">
+      <select class="tx" style="width:auto;padding:3px 6px" onchange="castEd(${k},{voice:this.value})"><option value="">narrator voice</option>${VOICES.map(v=>`<option value="${v.id}" ${v.id===c.voice?'selected':''}>${esc(v.label)}</option>`).join('')}</select></div>`).join('')}</div></div>`:''}
+    <div class="f"><label>AI-animated scenes</label><select class="tx" onchange="setEd({ai_scenes:this.value})"><option value="key" ${(p.ai_scenes||(p.format==='story'?'key':'off'))==='key'?'selected':''}>Key moments (hybrid)</option><option value="off" ${(p.ai_scenes||(p.format==='story'?'key':'off'))==='off'?'selected':''}>Off — motion graphics only</option></select></div>
+    <div class="f"><label>Continuous shots</label><select class="tx" onchange="setEd({continuous:this.value==='1'})"><option value="1" ${p.continuous!==false?'selected':''}>On — glide between beats</option><option value="0" ${p.continuous===false?'selected':''}>Off — cut every beat</option></select></div>
+    <div class="f"><label>MIR MEDIA LABS intro</label><select class="tx" onchange="setEd({intro:this.value==='1'})"><option value="1" ${p.intro!==false?'selected':''}>On</option><option value="0" ${p.intro===false?'selected':''}>Off</option></select></div>
+    <div class="f"><label>Spoken captions</label><select class="tx" onchange="setEd({captions:this.value==='1'})"><option value="1" ${p.captions!==false?'selected':''}>On</option><option value="0" ${p.captions===false?'selected':''}>Off</option></select></div>
+    <div class="f"><label>Pictures</label><select class="tx" onchange="setEd({art:this.value})"><option value="library" ${p.art!=='all'?'selected':''}>Library (fast)</option><option value="all" ${p.art==='all'?'selected':''}>Draw missing with AI</option></select></div>
+    <div class="f"><label>Mode</label><select class="tx" onchange="setEd({auto:this.value==='1'})"><option value="0" ${!p.auto?'selected':''}>Stop at each step</option><option value="1" ${p.auto?'selected':''}>Fully automatic</option></select></div>
+  </div></fieldset></details>`}
+let SETOPEN=false, AUDIO=[];
+async function loadAudio(){try{AUDIO=(await api('api/mg/media?kind=audio')).items||[]}catch(e){AUDIO=[]}}
+async function setEd(patch){await edit(patch);repaint()}
+async function castEd(k,patch){const cast=JSON.parse(JSON.stringify(CUR.cast||[]));Object.assign(cast[k],patch);await edit({cast});repaint()}
+async function setVoice(v){await edit({voice:v,beats:(CUR.beats||[]).map(b=>Object.assign({},b,{vo_line:''}))});repaint()}
+
+/* LIVE PREVIEW — the real Remotion scenes in the browser, rebuilt after every edit */
+let PVK='',PVS=[],PVT;
+function pvSync(p,force){const box=$('#pvw');if(!box)return;const show=p&&(p.beats||[]).length&&['assets','render','publish','done'].includes(p.stage)&&p.state!=='running';
+  if(!show){if(box.innerHTML){box.innerHTML='';PVK=''}return}
+  const cls=p.aspect==='9:16'?'v':p.aspect==='1:1'?'s':'';
+  if(!$('#pv-stage')){box.innerHTML=`<div class="pv"><div class="st ${cls}" id="pv-st"><div id="pv-stage"></div></div><div class="pvb"><button class="b sm" onclick="pvPlay()">${ic('play')} Play</button><button class="b sm ghost" onclick="pvSync(CUR,true)">${ic('refresh')} Reload</button><div class="chips" id="pv-chips"></div></div></div>`;MI.hydrate&&MI.hydrate(box);PVK=''}
+  $('#pv-st').className='st '+cls;
+  const key=p.id+'|'+p.updated;if(!force&&key===PVK)return;PVK=key;
+  clearTimeout(PVT);PVT=setTimeout(async()=>{try{const j=await api(`api/mg/${p.id}/project`);const B=mlab?'/':'';
+    const proj=Object.assign(j.project,{mediaBase:B+'/media/',refBase:B+'/refs/',fontBase:B+'/motion/fonts/',mgBase:B+'/mg/'});PVS=j.starts||[];
+    if(window.MirMotion){MirMotion.mount($('#pv-stage'),proj,{controls:true,loop:false})}
+    put($('#pv-chips'),PVS.map((s,i)=>`<button onclick="pvSeek(${i})">${i+1} · ${s.toFixed(1)}s</button>`).join(''))}catch(e){}},250)}
+function pvPlay(){try{MirMotion.toggle()}catch(e){}}
+function pvSeek(i){try{MirMotion.seek(Math.round((PVS[i]||0)*30));MirMotion.play();$('#pvw').scrollIntoView({behavior:'smooth',block:'nearest'})}catch(e){}}
+function restyle(){const cur=CUR.style;const html=`<div class="nd"><h2>Motion style</h2><p>The same script and voice, redrawn in another style. Pictures are re-picked for the new style; then render again.</p><div class="styles" id="rs">${styleCards(cur,'rsPick')}</div><div class="f"><button class="b ghost" onclick="$('#rs-d').close()">Cancel</button></div></div>`;
+  let d=$('#rs-d');if(!d){d=document.createElement('dialog');d.id='rs-d';document.body.appendChild(d)}d.innerHTML=html;MI.hydrate&&MI.hydrate(d);d.showModal()}
+async function rsPick(k){const d=$('#rs-d');if(d&&d.open)d.close();if(k===CUR.style)return;if(CUR.state==='running')return alert('Wait for the current step to finish.');
+  if(!CUR.beats.length||CUR.stage==='script'){await edit({style:k});paint();return}await act('restyle',{style:k})}
+
+/* FINAL */
+function final(p){const r=p.render||{};
+  if(!r.src)return `<div class="empty">${ic('video')} ${p.state==='running'?'Rendering…':'No render yet.'}</div>`;
+  const vert=p.aspect==='9:16';
+  return `<div class="sh">${ic('video')} Final cut</div><div class="fin"><video controls playsinline src="${esc(r.url)}" style="${vert?'max-width:360px;aspect-ratio:9/16':''}"></video><div class="box"><div class="kv">
+    <span>Length</span><span>${r.secs?Math.round(r.secs)+' s':'—'}</span><span>Style</span><span>${esc((STY[p.style]||{}).name||p.style)}</span><span>Library</span><span><code>${esc(r.src.split(':').pop())}</code></span>
+    <span>Saved to</span><span><code>${esc(r.copy||'—')}</code></span>
+    ${p.post?`<span>Social</span><span>Draft made — approve it in Social</span>`:''}</div>
+    ${(p.posts||[]).length?`<div style="font-size:12px;color:var(--ok);margin-top:10px">${ic('check')} ${(p.posts||[]).length} Social draft${(p.posts||[]).length>1?'s':''} made from this video</div>`:''}
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="b sm pri" onclick="postOpen()">${ic('send')} Post to Social</button><a class="b sm" href="${esc(r.url)}?dl=1">${ic('download')} Download</a>
+      <a class="b sm" href="motion/editor?p=${esc(p.project||'')}&session=${encodeURIComponent(SESSION)}">${ic('scissors')} Fine-tune in the editor</a>
+      <button class="b sm" onclick="redo('render')">${ic('refresh')} Re-render</button></div></div></div>`}
+
+function xClose(){let ov=false;try{ov=!!(window.frameElement&&/^(mml-mo|f)$/.test(window.frameElement.id))}catch(e){}
+  if(ov)parent.postMessage({mml:'motion-close',session:(CUR&&CUR.session)||''},'*');else location.replace('./')}
+{const q=new URLSearchParams(location.search);if(q.get('run'))SEL=q.get('run');$('#edlink').href='motion/editor?session='+encodeURIComponent(SESSION)}
+Promise.all([loadStyles(),loadVoices(),loadAudio()]).finally(refresh);
+setInterval(()=>{const a=document.activeElement;if(document.hidden||(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))||$('#nd').open||$('#pk').open||$('#po').open)return;refresh()},4000);
+</script>
 </body>
 </html>

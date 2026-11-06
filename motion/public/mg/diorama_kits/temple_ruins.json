@@ -1,0 +1,140 @@
+{
+ "id": "temple_ruins",
+ "world": "jungle",
+ "name": "Temple ruins",
+ "about": "an ancient stepped temple swallowed by the jungle, vines and statues - explorers, treasure, lost civilisations, traps",
+ "tags": [
+  "temple",
+  "ruins",
+  "ancient",
+  "maya",
+  "aztec",
+  "treasure",
+  "explorer",
+  "archaeology",
+  "lost city",
+  "jungle",
+  "adventure"
+ ],
+ "floor": "leaf",
+ "walls": "none",
+ "props": [
+  {
+   "t": "temple",
+   "x": 0.5,
+   "y": 0.3,
+   "w": 2.4,
+   "d": 2.0,
+   "h": 2.2
+  },
+  {
+   "t": "statue",
+   "x": 3.2,
+   "y": 0.6
+  },
+  {
+   "t": "bigtree",
+   "x": 3.0,
+   "y": 2.4,
+   "w": 1.0,
+   "h": 3.0
+  },
+  {
+   "t": "bush",
+   "x": 0.3,
+   "y": 2.8
+  },
+  {
+   "t": "rock",
+   "x": 1.4,
+   "y": 3.2
+  },
+  {
+   "t": "torch",
+   "x": 2.9,
+   "y": 1.5
+  }
+ ],
+ "st": {
+  "temple": [
+   [
+    1.7,
+    2.8
+   ],
+   -1,
+   [
+    1.7,
+    1.3,
+    1.4
+   ]
+  ],
+  "statue": [
+   [
+    2.9,
+    1.3
+   ],
+   -1,
+   [
+    3.5,
+    0.9,
+    1.6
+   ]
+  ],
+  "tree": [
+   [
+    2.4,
+    3.5
+   ],
+   1,
+   [
+    3.5,
+    2.9,
+    2
+   ]
+  ],
+  "center": [
+   [
+    1.0,
+    3.5
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   0.6,
+   2.4
+  ],
+  [
+   2.4,
+   2.3
+  ],
+  [
+   3.3,
+   3.6
+  ]
+ ],
+ "animals": [
+  [
+   "monkey",
+   3.4,
+   3.0,
+   "idle"
+  ],
+  [
+   "parrot",
+   3.6,
+   1.0,
+   "idle"
+  ],
+  [
+   "snake",
+   1.0,
+   3.0,
+   "walk"
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

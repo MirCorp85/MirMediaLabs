@@ -1,0 +1,297 @@
+{
+ "id": "diving_mask",
+ "kind": "hat",
+ "name": "Reef Diving Mask",
+ "desc": "A charcoal-rimmed snorkel mask with a brushed-steel frame and gold trim, strapped over the",
+ "tags": [
+  "headwear",
+  "mask",
+  "snorkel",
+  "diving",
+  "underwater",
+  "coral_reef_kingdom",
+  "goggles"
+ ],
+ "shapes": [
+  {
+   "s": "line",
+   "p": [
+    [
+     10.0,
+     -14.0
+    ],
+    [
+     -12.0,
+     -17.0
+    ],
+    [
+     -30.0,
+     -14.0
+    ],
+    [
+     -42.0,
+     -6.0
+    ]
+   ],
+   "stroke": "char1",
+   "lw": 6.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     10.0,
+     -15.0
+    ],
+    [
+     -12.0,
+     -18.0
+    ],
+    [
+     -30.0,
+     -15.0
+    ]
+   ],
+   "stroke": "graph2",
+   "lw": 1.5,
+   "a": 0.6
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     34.0,
+     19.0
+    ],
+    [
+     10.0,
+     34.0
+    ],
+    [
+     -6.0,
+     12.0
+    ],
+    [
+     -17.0,
+     -10.0
+    ],
+    [
+     -12.0,
+     -60.0
+    ]
+   ],
+   "stroke": "graph",
+   "lw": 8.0
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     34.0,
+     18.0
+    ],
+    [
+     10.0,
+     32.0
+    ],
+    [
+     -7.0,
+     11.0
+    ],
+    [
+     -18.0,
+     -10.0
+    ],
+    [
+     -13.0,
+     -58.0
+    ]
+   ],
+   "stroke": "silver",
+   "lw": 2.0,
+   "a": 0.5
+  },
+  {
+   "s": "rect",
+   "x": -6.0,
+   "y": -24.0,
+   "w": 8.0,
+   "h": 5.0,
+   "r": 2.0,
+   "fill": "steel2"
+  },
+  {
+   "s": "rect",
+   "x": -19.0,
+   "y": -68.0,
+   "w": 14.0,
+   "h": 10.0,
+   "r": 3.0,
+   "fill": "gold",
+   "stroke": "bronze",
+   "lw": 1.5
+  },
+  {
+   "s": "rect",
+   "x": 30.0,
+   "y": 14.0,
+   "w": 11.0,
+   "h": 10.0,
+   "r": 3.0,
+   "fill": "char0"
+  },
+  {
+   "s": "rect",
+   "x": 7.0,
+   "y": -29.0,
+   "w": 40.0,
+   "h": 32.0,
+   "r": 10.0,
+   "fill": "char1"
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     30.0,
+     -2.0
+    ],
+    [
+     44.0,
+     -2.0
+    ],
+    [
+     40.0,
+     8.0
+    ],
+    [
+     32.0,
+     8.0
+    ]
+   ],
+   "fill": "char0"
+  },
+  {
+   "s": "rect",
+   "x": 11.0,
+   "y": -26.0,
+   "w": 33.0,
+   "h": 25.0,
+   "r": 7.0,
+   "fill": [
+    "silver",
+    "steel"
+   ],
+   "stroke": "gold",
+   "lw": 2.0
+  },
+  {
+   "s": "rect",
+   "x": 14.0,
+   "y": -23.0,
+   "w": 27.0,
+   "h": 19.0,
+   "r": 5.0,
+   "fill": [
+    "light",
+    "glass"
+   ],
+   "a": 0.75
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     18.0,
+     -20.0
+    ],
+    [
+     25.0,
+     -20.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 2.0,
+   "anim": {
+    "k": "flicker",
+    "sp": 0.6,
+    "amp": 0.4,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     17.0,
+     -16.0
+    ],
+    [
+     19.0,
+     -16.0
+    ]
+   ],
+   "stroke": "white",
+   "lw": 1.5,
+   "a": 0.7
+  },
+  {
+   "s": "rect",
+   "x": 3.0,
+   "y": -19.0,
+   "w": 7.0,
+   "h": 9.0,
+   "r": 2.0,
+   "fill": "gold",
+   "stroke": "bronze",
+   "lw": 1.0
+  },
+  {
+   "s": "circle",
+   "x": -9.0,
+   "y": -76.0,
+   "r": 3.0,
+   "stroke": "light",
+   "lw": 1.5,
+   "a": 0.8,
+   "anim": {
+    "k": "bob",
+    "sp": 1.2,
+    "amp": 4,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "circle",
+   "x": -14.0,
+   "y": -86.0,
+   "r": 2.0,
+   "stroke": "light",
+   "lw": 1.2,
+   "a": 0.6,
+   "anim": {
+    "k": "bob",
+    "sp": 1.6,
+    "amp": 4,
+    "px": 0.0,
+    "py": 0.0
+   }
+  }
+ ],
+ "review": {
+  "score": 6.0,
+  "round": 1,
+  "problems": [
+   "At thumbnail size the mask reads more like a VR headset or ski goggles than a diving mask. The silver frame is a boxy rounded rectangle (11,-26 to 44,-1) with no nose pocket you can see and no soft skirt, so it looks like a box strapped to the face.",
+   "The snorkel tube does not run up the side of the head. Its curve (34,19)->(10,34)->(-6,12)->(-17,-10)->(-12,-60) drops below the chin to y=34 and then sweeps back across the jaw and neck. It reads as a chin strap or a loop around the face.",
+   "The mouthpiece rect at (30,14) sits forward of the face, under the mask. It is barely visible and doesn't clearly connect to the mouth, so the tube looks like it starts nowhere.",
+   "The tube is drawn over the back of the head as a dark line through the hair and skull. It isn't clearly attached to the strap or the side of the head.",
+   "The two bubble circles above the snorkel tip are fine, but the gold tip cap (-19,-68, 14x10) is small. The whole snorkel ends up as a thin wire, not a tube."
+  ]
+ },
+ "for": "a snorkel diving mask worn over the eyes with a snorkel tube",
+ "source": "minted",
+ "created": "2026-11-02"
+}

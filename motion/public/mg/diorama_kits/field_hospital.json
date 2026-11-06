@@ -1,0 +1,138 @@
+{
+ "id": "field_hospital",
+ "world": "war",
+ "name": "Field hospital",
+ "about": "a canvas field hospital tent with cots, a medic table and supplies - the wounded, nurses, doctors, letters home",
+ "tags": [
+  "field hospital",
+  "medic",
+  "wounded",
+  "nurse",
+  "war",
+  "army",
+  "doctor",
+  "triage",
+  "red cross"
+ ],
+ "floor": "dirt",
+ "walls": "back",
+ "props": [
+  {
+   "t": "bed",
+   "x": 0.3,
+   "y": 0.4,
+   "w": 1.6,
+   "d": 0.7,
+   "col": "olive2"
+  },
+  {
+   "t": "bed",
+   "x": 0.3,
+   "y": 1.5,
+   "w": 1.6,
+   "d": 0.7,
+   "col": "olive2"
+  },
+  {
+   "t": "table",
+   "x": 2.5,
+   "y": 0.5,
+   "w": 1.0,
+   "d": 0.6,
+   "col": "steel"
+  },
+  {
+   "t": "crate",
+   "x": 3.3,
+   "y": 2.0,
+   "w": 0.5,
+   "d": 0.5,
+   "h": 0.5
+  },
+  {
+   "t": "light",
+   "x": 1.8,
+   "y": 1.8,
+   "z": 2.0
+  },
+  {
+   "t": "barrel",
+   "x": 3.4,
+   "y": 3.2
+  }
+ ],
+ "st": {
+  "cots": [
+   [
+    1.3,
+    2.6
+   ],
+   -1,
+   [
+    1.1,
+    1.8,
+    0.6
+   ]
+  ],
+  "table": [
+   [
+    2.9,
+    1.5
+   ],
+   -1,
+   [
+    3.0,
+    0.8,
+    0.8
+   ]
+  ],
+  "supplies": [
+   [
+    2.8,
+    2.7
+   ],
+   1,
+   [
+    3.5,
+    2.2,
+    0.5
+   ]
+  ],
+  "center": [
+   [
+    2.2,
+    3.4
+   ],
+   1,
+   null
+  ]
+ },
+ "guests": [
+  [
+   2.0,
+   1.4
+  ],
+  [
+   1.0,
+   3.2
+  ],
+  [
+   3.3,
+   3.6
+  ]
+ ],
+ "regulars": [
+  [
+   0,
+   "explain",
+   {
+    "gender": "woman",
+    "outfit": "scrubs",
+    "color": "white",
+    "hair": "bun"
+   }
+  ]
+ ],
+ "source": "seed",
+ "created": "2026-10-29"
+}

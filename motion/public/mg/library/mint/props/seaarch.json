@@ -1,0 +1,606 @@
+{
+ "id": "seaarch",
+ "kind": "prop",
+ "name": "Sea Arch",
+ "desc": "A weathered natural stone arch, crusted with barnacles and tufts of tiny coral, that forms",
+ "tags": [
+  "reef",
+  "sea",
+  "stone",
+  "arch",
+  "gateway",
+  "landmark",
+  "coral",
+  "barnacles",
+  "underwater"
+ ],
+ "w": 3.0,
+ "d": 1.0,
+ "h": 2.5,
+ "shapes": [
+  {
+   "s": "ellipse",
+   "x": 0.0,
+   "y": 2.0,
+   "rx": 165.0,
+   "ry": 22.0,
+   "rot": 0.0,
+   "fill": "black",
+   "a": 0.3
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -142.0,
+     0.0
+    ],
+    [
+     -152.0,
+     -118.0
+    ],
+    [
+     -124.0,
+     -198.0
+    ],
+    [
+     -64.0,
+     -240.0
+    ],
+    [
+     0.0,
+     -250.0
+    ],
+    [
+     62.0,
+     -240.0
+    ],
+    [
+     126.0,
+     -196.0
+    ],
+    [
+     150.0,
+     -110.0
+    ],
+    [
+     142.0,
+     0.0
+    ],
+    [
+     80.0,
+     0.0
+    ],
+    [
+     88.0,
+     -92.0
+    ],
+    [
+     70.0,
+     -150.0
+    ],
+    [
+     30.0,
+     -178.0
+    ],
+    [
+     -20.0,
+     -181.0
+    ],
+    [
+     -62.0,
+     -158.0
+    ],
+    [
+     -84.0,
+     -100.0
+    ],
+    [
+     -78.0,
+     0.0
+    ]
+   ],
+   "fill": [
+    "stone",
+    "char1"
+   ],
+   "stroke": "char0",
+   "lw": 3.0
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     62.0,
+     -240.0
+    ],
+    [
+     126.0,
+     -196.0
+    ],
+    [
+     150.0,
+     -110.0
+    ],
+    [
+     142.0,
+     0.0
+    ],
+    [
+     80.0,
+     0.0
+    ],
+    [
+     88.0,
+     -92.0
+    ],
+    [
+     70.0,
+     -150.0
+    ],
+    [
+     30.0,
+     -178.0
+    ],
+    [
+     40.0,
+     -205.0
+    ]
+   ],
+   "fill": "char1",
+   "a": 0.45
+  },
+  {
+   "s": "poly",
+   "p": [
+    [
+     -142.0,
+     0.0
+    ],
+    [
+     -152.0,
+     -118.0
+    ],
+    [
+     -130.0,
+     -170.0
+    ],
+    [
+     -112.0,
+     -120.0
+    ],
+    [
+     -108.0,
+     0.0
+    ]
+   ],
+   "fill": "stone2",
+   "a": 0.35
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -146.0,
+     -130.0
+    ],
+    [
+     -130.0,
+     -215.0
+    ],
+    [
+     -60.0,
+     -238.0
+    ],
+    [
+     0.0,
+     -252.0
+    ],
+    [
+     60.0,
+     -238.0
+    ]
+   ],
+   "stroke": "silver",
+   "lw": 3.0,
+   "a": 0.7
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -74.0,
+     -110.0
+    ],
+    [
+     -60.0,
+     -165.0
+    ],
+    [
+     -18.0,
+     -176.0
+    ]
+   ],
+   "stroke": "steel2",
+   "lw": 2.0,
+   "a": 0.6
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -120.0,
+     -60.0
+    ],
+    [
+     -100.0,
+     -75.0
+    ],
+    [
+     -112.0,
+     -95.0
+    ]
+   ],
+   "stroke": "char0",
+   "lw": 2.0,
+   "a": 0.6
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     112.0,
+     -140.0
+    ],
+    [
+     100.0,
+     -120.0
+    ],
+    [
+     118.0,
+     -96.0
+    ]
+   ],
+   "stroke": "char0",
+   "lw": 2.0,
+   "a": 0.6
+  },
+  {
+   "s": "circle",
+   "x": -128.0,
+   "y": -40.0,
+   "r": 7.0,
+   "fill": "pale",
+   "stroke": "stone2",
+   "lw": 2.0
+  },
+  {
+   "s": "circle",
+   "x": -116.0,
+   "y": -30.0,
+   "r": 5.0,
+   "fill": "pale",
+   "stroke": "stone2",
+   "lw": 2.0
+  },
+  {
+   "s": "circle",
+   "x": -134.0,
+   "y": -150.0,
+   "r": 6.0,
+   "fill": "pale",
+   "stroke": "stone2",
+   "lw": 2.0
+  },
+  {
+   "s": "circle",
+   "x": -95.0,
+   "y": -205.0,
+   "r": 5.0,
+   "fill": "pale",
+   "stroke": "stone2",
+   "lw": 2.0
+  },
+  {
+   "s": "circle",
+   "x": -40.0,
+   "y": -232.0,
+   "r": 6.0,
+   "fill": "pale",
+   "stroke": "stone2",
+   "lw": 2.0
+  },
+  {
+   "s": "circle",
+   "x": -28.0,
+   "y": -238.0,
+   "r": 4.0,
+   "fill": "pale",
+   "stroke": "stone2",
+   "lw": 2.0
+  },
+  {
+   "s": "circle",
+   "x": 95.0,
+   "y": -212.0,
+   "r": 5.0,
+   "fill": "sand",
+   "stroke": "stone2",
+   "lw": 2.0
+  },
+  {
+   "s": "circle",
+   "x": 132.0,
+   "y": -70.0,
+   "r": 6.0,
+   "fill": "sand",
+   "stroke": "stone2",
+   "lw": 2.0
+  },
+  {
+   "s": "circle",
+   "x": 120.0,
+   "y": -55.0,
+   "r": 4.0,
+   "fill": "sand",
+   "stroke": "stone2",
+   "lw": 2.0
+  },
+  {
+   "s": "circle",
+   "x": 96.0,
+   "y": -24.0,
+   "r": 5.0,
+   "fill": "pale",
+   "stroke": "stone2",
+   "lw": 2.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -60.0,
+     -238.0
+    ],
+    [
+     -64.0,
+     -252.0
+    ],
+    [
+     -58.0,
+     -262.0
+    ]
+   ],
+   "stroke": "pink",
+   "lw": 4.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     -64.0,
+     -252.0
+    ],
+    [
+     -72.0,
+     -258.0
+    ]
+   ],
+   "stroke": "pink",
+   "lw": 3.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     30.0,
+     -246.0
+    ],
+    [
+     28.0,
+     -260.0
+    ],
+    [
+     36.0,
+     -268.0
+    ]
+   ],
+   "stroke": "ember",
+   "lw": 4.0
+  },
+  {
+   "s": "line",
+   "p": [
+    [
+     28.0,
+     -260.0
+    ],
+    [
+     20.0,
+     -266.0
+    ]
+   ],
+   "stroke": "ember",
+   "lw": 3.0
+  },
+  {
+   "s": "circle",
+   "x": -140.0,
+   "y": -95.0,
+   "r": 5.0,
+   "fill": "pink"
+  },
+  {
+   "s": "circle",
+   "x": -146.0,
+   "y": -100.0,
+   "r": 4.0,
+   "fill": "pink"
+  },
+  {
+   "s": "circle",
+   "x": 146.0,
+   "y": -150.0,
+   "r": 5.0,
+   "fill": "ember"
+  },
+  {
+   "s": "circle",
+   "x": 110.0,
+   "y": -180.0,
+   "r": 3.0,
+   "fill": "gold"
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -130.0,
+     0.0
+    ],
+    [
+     -142.0,
+     -30.0
+    ],
+    [
+     -128.0,
+     -58.0
+    ]
+   ],
+   "stroke": "olive",
+   "lw": 4.0,
+   "anim": {
+    "k": "sway",
+    "sp": 0.8,
+    "amp": 4,
+    "px": -130.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     -118.0,
+     0.0
+    ],
+    [
+     -108.0,
+     -26.0
+    ],
+    [
+     -120.0,
+     -46.0
+    ]
+   ],
+   "stroke": "olive2",
+   "lw": 3.0,
+   "anim": {
+    "k": "sway",
+    "sp": 1.1,
+    "amp": 4,
+    "px": -118.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     128.0,
+     0.0
+    ],
+    [
+     140.0,
+     -34.0
+    ],
+    [
+     126.0,
+     -62.0
+    ]
+   ],
+   "stroke": "olive",
+   "lw": 4.0,
+   "anim": {
+    "k": "sway",
+    "sp": 0.9,
+    "amp": 4,
+    "px": 128.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "curve",
+   "p": [
+    [
+     92.0,
+     0.0
+    ],
+    [
+     86.0,
+     -22.0
+    ],
+    [
+     96.0,
+     -40.0
+    ]
+   ],
+   "stroke": "olive2",
+   "lw": 3.0,
+   "anim": {
+    "k": "sway",
+    "sp": 1.2,
+    "amp": 4,
+    "px": 92.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "circle",
+   "x": 0.0,
+   "y": -120.0,
+   "r": 4.0,
+   "stroke": "glass",
+   "lw": 1.5,
+   "a": 0.6,
+   "anim": {
+    "k": "bob",
+    "sp": 1.0,
+    "amp": 4,
+    "px": 0.0,
+    "py": 0.0
+   }
+  },
+  {
+   "s": "circle",
+   "x": 14.0,
+   "y": -90.0,
+   "r": 3.0,
+   "stroke": "glass",
+   "lw": 1.5,
+   "a": 0.5,
+   "anim": {
+    "k": "bob",
+    "sp": 1.4,
+    "amp": 4,
+    "px": 0.0,
+    "py": 0.0
+   }
+  }
+ ],
+ "review": {
+  "score": 6.0,
+  "round": 1,
+  "problems": [
+   "The silhouette reads as a stone arch right away, and its scale next to the person works: the arch is about 1.1\u00d7 his height with a clear opening for the dolphins. That part is fine.",
+   "The barnacles don't read as barnacles. They are flat pale circles scattered sparsely, so at film scale they look like fairy lights, pearls or bubbles stuck to the rock. Barnacles need a cone or volcano shape with a dark centre hole, and they need to sit in clusters.",
+   "The 'tiny coral' barely exists. The only coral is two thin Y-shaped sprigs (pink at x\u2248-64 and ember at x\u224830) standing alone on the crown. They read as antennae or twigs, which gives the arch a bug-like look rather than a reef crust. Apart from 3-4 lone dots, nothing else on the rock says coral.",
+   "The ember orange (#ember) dots at x=146,y=-150 and x=132,y=-70 read as glowing embers or warning lights, not reef life. That is a stray colour note in the house look.",
+   "Inside the opening, the two bubble rings at (0,-120) and (14,-90) are so faint they read as stray floating marks, not bubbles.",
+   "The kelp strokes at the feet are dull olive lines on charcoal and disappear in the in-place and wide views."
+  ]
+ },
+ "for": "Natural stone arch covered in barnacles and tiny coral. It forms the reef's gateway, and the dolphins swoop through it in the playful entrance. It also gives th",
+ "source": "minted",
+ "created": "2026-11-02"
+}

@@ -1,0 +1,124 @@
+{
+  "id": "object-3d",
+  "status": "ready",
+  "pack": "openfield",
+  "credits": [
+    "Ported from wexloops/openfield (MIT, (c) 2026 David Wexler / Strangeloop Studios)"
+  ],
+  "origin": "openfield",
+  "name": "Object · Photo to 3D",
+  "section": "3d",
+  "native": "object3d",
+  "summary": "One photo of a thing becomes a textured 3D model (GLB with PBR maps) plus a turntable clip. Use it in Stage or any 3D app.",
+  "graphs": [
+    "object-draft.json",
+    "object-high.json",
+    "object-own-alpha.json"
+  ],
+  "inputs": [
+    {
+      "id": "image",
+      "type": "image",
+      "label": "Photo of the object",
+      "required": true,
+      "limits": {
+        "max_mb": 25
+      },
+      "help": "One thing, fully in frame, on any background (it is cut out for you)."
+    },
+    {
+      "id": "quality",
+      "type": "select",
+      "label": "Quality",
+      "default": "draft",
+      "options": [
+        {
+          "value": "draft",
+          "label": "Draft · faster"
+        },
+        {
+          "value": "high",
+          "label": "High · normal + AO maps"
+        }
+      ]
+    },
+    {
+      "id": "cutout",
+      "type": "select",
+      "label": "Background",
+      "default": "auto",
+      "options": [
+        {
+          "value": "auto",
+          "label": "Cut it out for me"
+        },
+        {
+          "value": "own",
+          "label": "Use the PNG's own transparency"
+        }
+      ]
+    },
+    {
+      "id": "seed",
+      "type": "seed",
+      "label": "Seed",
+      "default": -1
+    }
+  ],
+  "outputs": [
+    {
+      "type": "video",
+      "label": "Turntable"
+    },
+    {
+      "type": "model",
+      "label": "GLB"
+    }
+  ],
+  "models": [
+    {
+      "repo": "Comfy-Org/TRELLIS.2",
+      "file": "diffusion_models/trellis_2_bf16.safetensors",
+      "dir": "diffusion_models",
+      "gb": 10.34,
+      "phase": "denoise",
+      "license": "MIT (TRELLIS.2)"
+    },
+    {
+      "repo": "Comfy-Org/TRELLIS.2",
+      "file": "vae/trellis_2_shape_vae_bf16.safetensors",
+      "dir": "vae",
+      "gb": 1.1,
+      "phase": "decode",
+      "license": "MIT (TRELLIS.2)"
+    },
+    {
+      "repo": "Comfy-Org/TRELLIS.2",
+      "file": "vae/trellis_2_texture_vae_bf16.safetensors",
+      "dir": "vae",
+      "gb": 0.95,
+      "phase": "decode",
+      "license": "MIT (TRELLIS.2)"
+    },
+    {
+      "repo": "Comfy-Org/TRELLIS.2",
+      "file": "clip_vision/dino_v3_vit_l.safetensors",
+      "dir": "clip_vision",
+      "gb": 1.21,
+      "phase": "encode",
+      "license": "DINOv3 License"
+    },
+    {
+      "repo": "Comfy-Org/BiRefNet",
+      "file": "background_removal/birefnet.safetensors",
+      "dir": "background_removal",
+      "gb": 0.44,
+      "phase": "all",
+      "license": "MIT"
+    }
+  ],
+  "vram": {
+    "peak_gb": 14
+  },
+  "notes": "TRELLIS.2 runs in core ComfyUI 0.42. The GLB is kept on the Studio 3D shelf (download it or use it in Stage); the turntable lands in the library."
+}

@@ -1,0 +1,47 @@
+{
+ "id": "bee_smoker_hold",
+ "kind": "act",
+ "cat": "minted",
+ "desc": "holds up the bee smoker",
+ "loop": 2.4,
+ "pingpong": true,
+ "two": null,
+ "hold": [
+  null,
+  "bee_smoker"
+ ],
+ "keys": [
+  {
+   "u": 0,
+   "far": [
+    -58,
+    -188
+   ],
+   "near": [
+    70,
+    -262
+   ],
+   "look": [
+    1.5,
+    1
+   ]
+  },
+  {
+   "u": 1,
+   "far": [
+    -58,
+    -192
+   ],
+   "near": [
+    84,
+    -300
+   ],
+   "look": [
+    2,
+    0
+   ]
+  }
+ ],
+ "source": "minted",
+ "created": "2026-11-02"
+}
