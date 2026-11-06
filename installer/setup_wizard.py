@@ -1776,6 +1776,12 @@ if __name__ == "__main__":
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("MirCorp.MirMediaLabs.Setup")
     except Exception:
         pass
+    if "--selftest" in sys.argv:              # build check (installer\build.ps1): every module + Tk load, then exit 0
+        _t = tk.Tk()
+        _t.withdraw()
+        _t.after(300, _t.destroy)
+        _t.mainloop()
+        sys.exit(0)
     if "--uninstall" in sys.argv:
         uninstall()
     elif "--update" in sys.argv:
