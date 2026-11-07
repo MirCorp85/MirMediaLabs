@@ -11,6 +11,7 @@
 - **Setup:** ComfyUI 0.42.5; new optional model sets FLUX Klein, LTX-2.5 (both gated: paste your Hugging Face token) and Qwen-Image-Layered + BiRefNet; Studio / Design / CopyCat node packs; the vector art library is built at install.
 - **Settings → AI:** Hugging Face token and research engine fields (secrets are never shown again).
 - Every add-on engine path is configurable (`mml_config.json` / Settings: `freefield_dir`, `copycat_dir`, `kinetic_dir`, `motion_dir`, `sfx_dir`, `expressive_python`, export folders).
+- **Fix:** the first v1.0.39 Setup.exe could close at once on some PCs (a DLL was left out of the build). The build now refuses to finish if any DLL is missing and test-starts the setup before publishing.
 - **Android app 2.38:** Studio, Kinetic editor, MIR EXPLAINED, Rank reel, CopyCat and Design in the Media Lab menu, the + menu and the tablet side column.
 
 ## PC setup v1.0.38 + Android app 2.37 - new engines, ALTER, library hub

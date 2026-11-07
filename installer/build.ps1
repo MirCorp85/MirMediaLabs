@@ -41,6 +41,23 @@ if ($LASTEXITCODE) { & (Join-Path $tools 'uv.exe') pip install --python $py "yt-
 # phase-2 tools: Design's websocket bridge (flask-sock + websockets), Kinetic + Studio stage pixel passes (numpy + OpenCV)
 & $py -c "import importlib.util as u, sys; sys.exit(0 if all(u.find_spec(m) for m in ('flask_sock', 'websockets', 'numpy', 'cv2')) else 1)"
 if ($LASTEXITCODE) { & (Join-Path $tools 'uv.exe') pip install --python $py flask-sock websockets numpy opencv-python-headless }
+# Link-free build paths. When the build Python is reached through a junction or symlink (a moved folder, a shared toolchain)
+# and a DLL resolves to the real path, Nuitka drops it as an "outside dependency": v1.0.39's setup lost libffi-8.dll
+# (ctypes) and aborted at start. Use the real venv path and point pyvenv.cfg's home at the real base Python.
+$real = (& $py -c "import os, sys; print(os.path.realpath(sys.prefix) + '|' + os.path.realpath(sys.base_prefix))").Trim()
+$venvReal, $baseReal = $real.Split('|')
+$cfg = Join-Path $venvReal 'pyvenv.cfg'
+$cfgText = @(Get-Content $cfg)
+if ($cfgText -notcontains "home = $baseReal") { $cfgText -replace '^home\s*=.*$', "home = $baseReal" | Set-Content -Encoding ascii $cfg }
+$py = Join-Path $venvReal 'Scripts\python.exe'
+$env:NUITKA_CACHE_DIR = (& $py -c "import os, sys; print(os.path.realpath(sys.argv[1]))" $env:NUITKA_CACHE_DIR).Trim()
+
+function Assert-AllDlls($report, $what) {
+    # a DLL Nuitka left out makes the program abort on the import that needs it, so it must fail the build, not the user
+    $dropped = @(Select-String -Path $report -Pattern '<excluded_dll [^>]*reason="no outside dependencies' | ForEach-Object { $_.Line.Trim() })
+    if ($dropped.Count) { throw "Nuitka ($what) left out $($dropped.Count) DLL(s):`n$($dropped -join "`n")" }
+}
+
 if (-not (Test-Path (Join-Path $here 'pc_version.json'))) { '{"version": "1.0.0"}' | Set-Content -Encoding ascii (Join-Path $here 'pc_version.json') }
 if ($Bump) { & $py (Join-Path $here 'build_tool.py') bump }
 $ver = (Get-Content (Join-Path $here 'pc_version.json') | ConvertFrom-Json).version
@@ -65,9 +82,10 @@ $common = @("-m", "nuitka", "--low-memory", "--nofollow-import-to=yt_dlp.extract
             "--file-version=$ver.0", "--product-version=$ver.0", "--copyright=(c) 2026 MirCorp. GPL-3.0")
 $appArgs = $common + @("--standalone", "--include-package=openai", "--include-package=anthropic", "--include-package=yt_dlp", "--nofollow-import-to=imageio_ffmpeg", "--nofollow-import-to=tkinter", "--nofollow-import-to=PIL", "--include-package=flask_sock", "--include-package=simple_websocket", "--include-package=websockets",
                        "--output-filename=MirMediaLabs.exe", "--file-description=MIR MEDIA LABS",
-                       "--output-dir=$appOut", (Join-Path $src 'app_main.py'))
+                       "--output-dir=$appOut", "--report=$appOut\report.xml", (Join-Path $src 'app_main.py'))
 & $py @appArgs
 if ($LASTEXITCODE) { throw 'Nuitka (app) failed' }
+Assert-AllDlls "$appOut\report.xml" 'app'
 $dist = Join-Path $appOut 'app_main.dist'
 
 # 3. payload = compiled app + Android update folder + icon (never data\, never source)
@@ -126,10 +144,16 @@ $setupArgs = $common + @("--onefile", "--enable-plugin=tk-inter", "--include-pac
     "--include-data-files=$ico=MirMediaLabs.ico", "--include-data-files=$build\icon-64.png=icon-64.png",
     "--include-data-dir=$show=showcase",
     "--output-filename=MirMediaLabs-Setup.exe", "--file-description=MIR MEDIA LABS Setup",
-    "--output-dir=$setupOut", (Join-Path $here 'setup_wizard.py'))
+    "--output-dir=$setupOut", "--report=$setupOut\report.xml", (Join-Path $here 'setup_wizard.py'))
 & $py @setupArgs
 if ($LASTEXITCODE) { throw 'Nuitka (setup) failed' }
+Assert-AllDlls "$setupOut\report.xml" 'setup'
 $exe = Join-Path $setupOut 'MirMediaLabs-Setup.exe'
+# smoke test: the real exe unpacks, imports everything and opens (then closes) a Tk window; a crash fails the build
+$st = Start-Process $exe -ArgumentList '--selftest' -PassThru
+if (-not $st.WaitForExit(180000)) { $st | Stop-Process -Force; throw 'setup self-test timed out' }
+if ($st.ExitCode -ne 0) { throw ('setup self-test failed (exit 0x{0:X})' -f $st.ExitCode) }
+'setup self-test passed'
 Copy-Item $exe (Join-Path $root 'MirMediaLabs-Setup.exe') -Force
 "built MirMediaLabs-Setup.exe v$ver ($([math]::Round((Get-Item $exe).Length/1MB,1)) MB)"
 
