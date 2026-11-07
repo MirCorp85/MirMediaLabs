@@ -1,7 +1,7 @@
 """MOTION LIBRARY (Oct 29 2026, user: "a complete library … places, characters, objects, animals — the explained editor and
 the motion editor can share the same library since they use the same motion assets").
 
-One catalog for every editor: Motion Studio (Diorama pickers, Explainer pictures), MIR EXPLAINED (Drawing picker → "lib:" figures)
+One catalog for every editor: Motion Studio (Diorama pickers, Explainer pictures)
 and the agents. The vocabulary is dumped from the engine itself (TOOLS/MirRemotion/mg_assets/build_library.py →
 public/mg/library/vocab.json + characters.json + thumbs/*.webp), the places come from the kit library (motion_kits.py), so the
 server never offers something the renderer cannot draw.

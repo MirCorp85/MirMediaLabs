@@ -1,4 +1,4 @@
-r"""MOTION STUDIO — the step-by-step producer behind /mlab/motion (static/motion.html), modelled on the EXPLAINED and RANK
+r"""MOTION STUDIO — the step-by-step producer behind /mlab/motion (static/motion.html), modelled on a step-by-step
 REEL producers: one project per video, a pipeline with checkpoints, every step redoable, and ONE setting that changes the
 whole look — the motion STYLE (signature / grid / liquid / paper, tokens in motion/mg_assets/styles.json).
 
@@ -11,7 +11,7 @@ whole look — the motion STYLE (signature / grid / liquid / paper, tokens in mo
   publish     optional Social draft (approve-only in Social as always)
 
 Projects: data/motion_wizard/<uid>/<id>.json. Reuses remotion.py (save_project / start_job / clean), tts.py, series_audio
-(Whisper) and rankreel._to_lib. Automatic mode runs through to the final cut without stopping.
+(Whisper) and motion_util._to_lib. Automatic mode runs through to the final cut without stopping.
 """
 import json
 import os
@@ -22,7 +22,7 @@ import threading
 import time
 import uuid
 
-import core, motion_mint, motion_kits, motion_library, rankreel, remotion
+import core, motion_mint, motion_kits, motion_library, motion_util, remotion
 
 D = os.path.join(core.DATA, "motion_wizard")
 import engines
@@ -673,14 +673,14 @@ def _dio_fields(out, b):
         out["animals"] = an
     ex = b.get("extras")
     if isinstance(ex, dict) and ex.get("n"):
-        out["extras"] = {"n": max(1, min(4, int(rankreel._f(ex.get("n"), 2, 1, 4)))), "act": str(ex.get("act")) if str(ex.get("act")) in acts_v else "stand",
+        out["extras"] = {"n": max(1, min(4, int(motion_util._f(ex.get("n"), 2, 1, 4)))), "act": str(ex.get("act")) if str(ex.get("act")) in acts_v else "stand",
                          "look": _look(ex.get("look") if isinstance(ex.get("look"), dict) else {})}
     vf = []
     for v in (b.get("vfx") or [])[:3] if isinstance(b.get("vfx"), list) else []:
         if isinstance(v, dict) and str(v.get("kind") or "").lower() in (V.get("vfx") or {}):
             q = {"kind": str(v["kind"]).lower(), "at": re.sub(r"[^a-z0-9_]", "", str(v.get("at") or "hero").lower())[:16] or "hero"}
             if v.get("t") not in (None, ""):
-                q["t"] = rankreel._f(v["t"], 0, 0, 30)
+                q["t"] = motion_util._f(v["t"], 0, 0, 30)
             vf.append(q)
     if vf:
         out["vfx"] = vf
@@ -709,9 +709,9 @@ def _beat(i, b):
                 if v.get(k) not in (None, ""):
                     nv[k] = str(v[k])[:120]
             if v.get("at_manual") not in (None, ""):
-                nv["at_manual"] = rankreel._f(v["at_manual"], 0, 0, 60)
+                nv["at_manual"] = motion_util._f(v["at_manual"], 0, 0, 60)
             vs.append(nv)
-    out = {"n": i, "kind": kind, "line": str(b["line"])[:300], "visuals": vs, "status": "todo", "pad": rankreel._f(b.get("pad"), 0, -2, 10),
+    out = {"n": i, "kind": kind, "line": str(b["line"])[:300], "visuals": vs, "status": "todo", "pad": motion_util._f(b.get("pad"), 0, -2, 10),
            "mark": str(b.get("mark") or "")[:24], "cut": bool(b.get("cut")), "move": b.get("move") if b.get("move") in MOVES else ""}
     if b.get("shot") not in (None, ""):
         out["shot"] = str(b["shot"])[:8]
@@ -727,7 +727,7 @@ def _beat(i, b):
                     if it.get(k):
                         ni[k] = it[k]
                 if it.get("at_manual") not in (None, ""):
-                    ni["at_manual"] = rankreel._f(it["at_manual"], 0, 0, 60)
+                    ni["at_manual"] = motion_util._f(it["at_manual"], 0, 0, 60)
                 out["items"].append(ni)
     if kind == "quote" and not out.get("text"):
         out["text"] = out["line"]
@@ -750,7 +750,7 @@ def _beat(i, b):
             out["mood"] = b["mood"]
         if b.get("fx") in FXS:
             out["fx"] = b["fx"]
-            out["fxAt"] = rankreel._f(b.get("fxAt"), 0.9, 0, 30)
+            out["fxAt"] = motion_util._f(b.get("fxAt"), 0.9, 0, 30)
         ov = b.get("overlay")
         if isinstance(ov, dict) and ov.get("type") in OVERLAYS:
             o = {"type": ov["type"]}
@@ -759,7 +759,7 @@ def _beat(i, b):
                     o[k] = str(ov[k])[:40]
             for k in ("value", "ratio", "at"):
                 if ov.get(k) not in (None, ""):
-                    o[k] = rankreel._f(ov[k], 0, -1e9, 1e9)
+                    o[k] = motion_util._f(ov[k], 0, -1e9, 1e9)
             if isinstance(ov.get("items"), list):
                 o["items"] = [str(x)[:20] for x in ov["items"][:5]]
             out["overlay"] = o
@@ -1520,7 +1520,7 @@ def step_voice_dio(p, hk, sid=""):
     import hashlib
     import tts
     p["stage"] = "voice"
-    voice = p.get("voice") if p.get("voice") in tts.VOICES else rankreel.DEF_VOICE
+    voice = p.get("voice") if p.get("voice") in tts.VOICES else motion_util.DEF_VOICE
     engine = p.get("voice_engine") if p.get("voice_engine") in VOICE_ENGINES else "chatterbox"
     scale, cfg = INTENSITIES.get(p.get("voice_intensity") or "dramatic", INTENSITIES["dramatic"])
     beats = [b for b in p["beats"] if b["kind"] != "endcard"]
@@ -1554,12 +1554,12 @@ def step_voice_dio(p, hk, sid=""):
                 wav, used = _say(text, voice, engine, ex, cfg)
                 if not wav:
                     raise RuntimeError("the narrator didn't answer on take %d" % (gi + 1))
-                name = rankreel._to_lib(wav, p["user"], sid, text[:300])
+                name = motion_util._to_lib(wav, p["user"], sid, text[:300])
                 try:
                     core.index_add(name, dict(core.index().get(name) or {}, model=used, mode="motion-vo"))
                 except Exception:
                     pass
-                tk = {"sig": sig, "vo": name, "dur": round(rankreel._wav_secs(wav), 2), "words": None, "engine": used}
+                tk = {"sig": sig, "vo": name, "dur": round(motion_util._wav_secs(wav), 2), "words": None, "engine": used}
                 log(p, "take %d/%d · %d lines · %.1f s%s" % (gi + 1, len(groups), len(g), tk["dur"], "" if used == engine else " (fast voice)"), "done")
             takes.append(dict(tk, text=text))
             for b in g:
@@ -1628,7 +1628,7 @@ def step_voice(p, hk, sid=""):
     if p.get("format") == "diorama":
         return step_voice_dio(p, hk, sid)
     p["stage"] = "voice"
-    voice0 = p.get("voice") if p.get("voice") in tts.VOICES else rankreel.DEF_VOICE
+    voice0 = p.get("voice") if p.get("voice") in tts.VOICES else motion_util.DEF_VOICE
     cast = {c["id"]: c for c in p.get("cast") or []}
     beats = p["beats"]
     engine = p.get("voice_engine") if p.get("voice_engine") in VOICE_ENGINES else "chatterbox"
@@ -1671,13 +1671,13 @@ def step_voice(p, hk, sid=""):
 
 def _voice_take(p, b, i, wav, hk, sid):
     """Store one recorded line in the library + its word timings (drive cues, captions and mouths)."""
-    b["vo"] = rankreel._to_lib(wav, p["user"], sid, b["line"])
+    b["vo"] = motion_util._to_lib(wav, p["user"], sid, b["line"])
     if "chatterbox" in (b.get("vo_sig") or ""):
         try:
             core.index_add(b["vo"], dict(core.index().get(b["vo"]) or {}, model="chatterbox", mode="motion-vo"))
         except Exception:
             pass
-    b["vo_dur"] = round(rankreel._wav_secs(wav), 2)
+    b["vo_dur"] = round(motion_util._wav_secs(wav), 2)
     b["vo_line"] = b["line"]
     try:
         b["words"] = align_words(b["line"], [{"w": w.get("w"), "s": round(float(w.get("s") or 0), 2), "e": round(float(w.get("e") or 0), 2)}
@@ -2302,7 +2302,7 @@ def register(app, hk):
     from flask import jsonify, request, send_from_directory
 
     U = lambda: hk["uid"]()
-    motion_library.register(app, hk)            # the shared motion library (/api/mglib) for Motion Studio + MIR EXPLAINED
+    motion_library.register(app, hk)            # the shared motion library (/api/mglib) for Motion Studio
 
     try:                         # a restart kills worker threads: runs left "running" would look busy forever
         for ud in os.listdir(D) if os.path.isdir(D) else []:
@@ -2391,7 +2391,7 @@ def register(app, hk):
         pid = uuid.uuid4().hex[:12]
         p = {"id": pid, "user": U(), "brief": brief, "title": "", "style": st, "accent": str(b.get("accent") or "")[:9],
              "aspect": b.get("aspect") if b.get("aspect") in ASPECTS else "16:9", "length": b.get("length") if b.get("length") in LENGTHS else "medium",
-             "voice": b.get("voice") or rankreel.DEF_VOICE, "captions": bool(b.get("captions", True)), "art": b.get("art") if b.get("art") in ("library", "all") else "library",
+             "voice": b.get("voice") or motion_util.DEF_VOICE, "captions": bool(b.get("captions", True)), "art": b.get("art") if b.get("art") in ("library", "all") else "library",
              "music": "", "brand": str(b.get("brand") or "MIR")[:24], "tone": str(b.get("tone") or "")[:80], "audience": str(b.get("audience") or "")[:80],
              "auto": bool(b.get("auto")), "state": "running", "stage": "script", "beats": [], "created": time.time(), "log": [],
              "format": b.get("format") if b.get("format") in FORMATS else "explainer",
@@ -2465,7 +2465,7 @@ def register(app, hk):
             if "auto" in b:
                 p["auto"] = bool(b["auto"])
             if "vo_volume" in b:
-                p["vo_volume"] = rankreel._f(b["vo_volume"], 1.4, 0, 3)
+                p["vo_volume"] = motion_util._f(b["vo_volume"], 1.4, 0, 3)
             if b.get("style") in styles():
                 p["style"] = b["style"]
             if b.get("aspect") in ASPECTS:
@@ -2492,7 +2492,7 @@ def register(app, hk):
                 p["score_sfx"] = bool(b["score_sfx"])
                 p.pop("score_sig", None)
             if "score_volume" in b:
-                p["score_volume"] = rankreel._f(b["score_volume"], 1.0, 0, 2.5)
+                p["score_volume"] = motion_util._f(b["score_volume"], 1.0, 0, 2.5)
             if b.get("voice_engine") in VOICE_ENGINES:
                 p["voice_engine"] = b["voice_engine"]
             if b.get("voice_intensity") in INTENSITIES:
@@ -2510,7 +2510,7 @@ def register(app, hk):
             if b.get("art") in ("library", "all"):
                 p["art"] = b["art"]
             if "music_volume" in b:
-                p["music_volume"] = rankreel._f(b["music_volume"], 0.16, 0, 1)
+                p["music_volume"] = motion_util._f(b["music_volume"], 0.16, 0, 1)
             if isinstance(b.get("beats"), list):              # edited beat list (script step): lines, kinds, fields, visuals
                 incoming = [x for x in b["beats"][:220] if isinstance(x, dict) and x.get("line")]   # was [:40] — it cut 80-line films in half
                 if len(incoming) < len(p["beats"]) - 3 and not b.get("shrink_ok"):
@@ -2548,7 +2548,7 @@ def register(app, hk):
                             if e["at"] in (None, ""):
                                 v.pop("at_manual", None)
                             else:
-                                v["at_manual"] = rankreel._f(e["at"], 0, 0, 60)
+                                v["at_manual"] = motion_util._f(e["at"], 0, 0, 60)
                         if e.get("pick"):
                             v["pick"] = str(e["pick"])[:160]
                             resolve_visual(p, v, "library")
@@ -2562,7 +2562,7 @@ def register(app, hk):
                 try:
                     bt = p["beats"][int(e["n"])]
                     if "pad" in e:
-                        bt["pad"] = rankreel._f(e["pad"], 0, -2, 10)
+                        bt["pad"] = motion_util._f(e["pad"], 0, -2, 10)
                     if e.get("line"):
                         bt["line"] = str(e["line"])[:300]
                     for k in ("kicker", "title", "sub", "value", "prefix", "suffix", "label", "headline", "link", "a", "aval", "b", "bval", "text", "by", "line1", "line2", "who"):

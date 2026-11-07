@@ -1,4 +1,4 @@
-// MIR EXPLAINED component kit — shared primitives (stages, line-art car, callouts, panels, captions). All styling comes from theme.ts.
+// Signature component kit — shared primitives (stages, line-art car, callouts, panels, captions). All styling comes from theme.ts.
 import React, {useLayoutEffect, useRef} from 'react';
 import {AbsoluteFill, interpolate, random} from 'remotion';
 import {Grain, Vignette} from '../promo/fx';

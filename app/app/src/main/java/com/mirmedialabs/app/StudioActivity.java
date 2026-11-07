@@ -17,7 +17,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-/** MOTION STUDIO (/motion), NODE FLOW (/flow), STUDIO, KINETIC, MIR EXPLAINED, RANK REEL, COPYCAT and DESIGN — the lab's own pages in a full-screen WebView, signed in with this
+/** MOTION STUDIO (/motion), NODE FLOW (/flow), STUDIO, KINETIC, CAST, COPYCAT and DESIGN — the lab's own pages in a full-screen WebView, signed in with this
  *  phone's key + device id. The pages talk to their host with postMessage (motion-close · flow-close · motion-attach ·
  *  motion-editor), so they run inside a same-origin iframe and this shell forwards those messages to the MMLApp bridge:
  *  close → back to the lab, attach → the piece becomes the next request's reference, editor → the timeline editor. */
@@ -83,7 +83,7 @@ public final class StudioActivity extends Activity {
     static String page(String p) {
         if (p == null) return "motion";
         switch (p) {
-            case "flow": case "studio": case "motion/editor": case "explained": case "rankreel": case "copycat/": case "design":
+            case "flow": case "studio": case "motion/editor": case "cast": case "copycat/": case "design":
                 return p;
             default:
                 return "motion";

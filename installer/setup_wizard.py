@@ -688,7 +688,7 @@ class Installer:
         except RuntimeError as e:
             self.log("  Remotion browser will download on the first motion render (%s)" % str(e)[:120])
         vec = os.path.join(mdir, "mg_assets", "build_vectors.mjs")
-        if os.path.isfile(vec):                          # Lucide (ISC) → styled SVG library for Motion + EXPLAINED, ~1 min
+        if os.path.isfile(vec):                          # Lucide (ISC) → styled SVG library for Motion, ~1 min
             try:
                 self.sh([node, vec], cwd=mdir)
             except RuntimeError as e:

@@ -1,4 +1,4 @@
-// MIR EXPLAINED beat visuals. Each takes local time t (s since the beat started) + the beat's duration.
+// Signature beat visuals. Each takes local time t (s since the beat started) + the beat's duration.
 // Data comes from the episode JSON; geometry for the car comes from CAR (traced from the unveil photo).
 import React from 'react';
 import {AbsoluteFill, Img, OffthreadVideo, interpolate, staticFile} from 'remotion';

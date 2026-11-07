@@ -1,5 +1,5 @@
 // DioItem — one item of the shared MOTION LIBRARY drawn live (Oct 29 2026). Used by the Explainer "dio" pictures (kit.tsx
-// Visual), MIR EXPLAINED's Drawing figures ("lib:<id>", figures.tsx) and anything else that wants a library character / animal /
+// Visual), the Drawing figures ("lib:<id>", figures.tsx) and anything else that wants a library character / animal /
 // object / place that MOVES. Same engine as the Diorama (diorama_engine.ts drawLibItem), so every editor shares one look.
 import React, {useLayoutEffect, useRef} from 'react';
 import {drawLibItem} from './diorama_engine';

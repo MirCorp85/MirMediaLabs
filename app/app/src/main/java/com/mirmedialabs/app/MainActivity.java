@@ -288,8 +288,7 @@ public class MainActivity extends Activity {
         sh.row("chain", "Node flow", "wire models into a graph · run the whole chain", () -> StudioActivity.open(this, "flow"));
         sh.row("wand", "Studio", "100+ one-tap apps · relight, restyle, camera moves, talking photos", () -> StudioActivity.open(this, "studio"));
         sh.row("type", "Kinetic editor", "beat-synced kinetic type + FX → MP4", () -> StudioActivity.open(this, "motion/editor"));
-        sh.row("book", "MIR EXPLAINED", "topic → researched, narrated explainer video", () -> StudioActivity.open(this, "explained"));
-        sh.row("star", "Rank reel", "top-N countdown Shorts from real clips", () -> StudioActivity.open(this, "rankreel"));
+        sh.row("users", "Cast", "character packs · reference sheet · @Name in prompts", () -> StudioActivity.open(this, "cast"));
         sh.row("copy", "CopyCat", "swap the people or things in any video", () -> StudioActivity.open(this, "copycat/"));
         sh.row("palette", "Design", "layered canvas · split a picture into layers", () -> StudioActivity.open(this, "design"));
         sh.row("layers", "LoRA samples", "browse + apply community LoRAs", () -> loras.browse(Loras.roleOf(cur), ""));
@@ -475,11 +474,11 @@ public class MainActivity extends Activity {
         col.setPadding(Ui.dp(12), Ui.dp(8), Ui.dp(10), Ui.dp(12));
         col.addView(Ui.label(this, "Studios"), Ui.margins(Ui.lp(Ui.WRAP, Ui.WRAP), 2, 2, 0, 8));
         String[][] st = {{"film", "Video editor"}, {"tv", "Series studio"}, {"download", "Downloader"}, {"sparkle", "Motion studio"}, {"chain", "Node flow"},
-                          {"wand", "Studio"}, {"type", "Kinetic editor"}, {"book", "MIR EXPLAINED"}, {"star", "Rank reel"}, {"copy", "CopyCat"}, {"palette", "Design"}};
+                          {"wand", "Studio"}, {"type", "Kinetic editor"}, {"users", "Cast"}, {"copy", "CopyCat"}, {"palette", "Design"}};
         Runnable[] sgo = {() -> EditorActivity.open(this, null), () -> SeriesActivity.open(this, null), () -> GrabActivity.open(this, null),
                           () -> StudioActivity.open(this, "motion"), () -> StudioActivity.open(this, "flow"),
                           () -> StudioActivity.open(this, "studio"), () -> StudioActivity.open(this, "motion/editor"),
-                          () -> StudioActivity.open(this, "explained"), () -> StudioActivity.open(this, "rankreel"),
+                          () -> StudioActivity.open(this, "cast"),
                           () -> StudioActivity.open(this, "copycat/"), () -> StudioActivity.open(this, "design")};
         for (int i = 0; i < st.length; i++) {
             TextView r = Ui.bold(this, "[[" + st[i][0] + "]]  " + st[i][1], 13.5f, Ui.INK);
@@ -868,8 +867,7 @@ public class MainActivity extends Activity {
         sh.row("chain", "Node flow", "wire models into a graph · run the whole chain", () -> StudioActivity.open(this, "flow"));
         sh.row("wand", "Studio", "100+ one-tap apps · relight, restyle, camera moves, talking photos", () -> StudioActivity.open(this, "studio"));
         sh.row("type", "Kinetic editor", "beat-synced kinetic type + FX → MP4", () -> StudioActivity.open(this, "motion/editor"));
-        sh.row("book", "MIR EXPLAINED", "topic → researched, narrated explainer video", () -> StudioActivity.open(this, "explained"));
-        sh.row("star", "Rank reel", "top-N countdown Shorts from real clips", () -> StudioActivity.open(this, "rankreel"));
+        sh.row("users", "Cast", "character packs · reference sheet · @Name in prompts", () -> StudioActivity.open(this, "cast"));
         sh.row("copy", "CopyCat", "swap the people or things in any video", () -> StudioActivity.open(this, "copycat/"));
         sh.row("palette", "Design", "layered canvas · split a picture into layers", () -> StudioActivity.open(this, "design"));
         sh.row("sliders", "Parameters", "settings for the selected model", () -> openParams(cur));

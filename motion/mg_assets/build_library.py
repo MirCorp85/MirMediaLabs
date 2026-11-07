@@ -1,4 +1,4 @@
-"""MOTION LIBRARY builder (Oct 29 2026) - the ONE library the Motion Studio (Diorama + Explainer) and MIR EXPLAINED share.
+"""MOTION LIBRARY builder (Oct 29 2026) - the ONE library Motion Studio (Diorama + Explainer) uses.
 
   python -I mg_assets/build_library.py            vocab.json + characters.json + every thumbnail
   python -I mg_assets/build_library.py --vocab    vocab only (seconds)

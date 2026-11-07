@@ -7,7 +7,7 @@
 <title>MIR MOTION STUDIO · Producer</title>
 <link rel="icon" href="static/icon-512.png">
 <script src="static/mir-icons.js"></script>
-<!-- MOTION STUDIO producer (server/motion_wizard.py), modelled on the EXPLAINED / RANK REEL producers: projects rail ·
+<!-- MOTION STUDIO producer (server/motion_wizard.py), a step-by-step producer: projects rail ·
      hero + 5-phase pipeline · one "needs you" bar · a body per stage (Script / Assets / Final). The STYLE setting (four motion
      styles from TOOLS\MirRemotion\mg_assets\styles.json) drives every picture and every movement. The old timeline editor
      lives on at motion/editor ("Fine-tune in the editor"). Signature chrome, MIR ICONS only. -->
@@ -268,7 +268,7 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
 </div></dialog>
 <dialog id="pk"><div class="nd">
   <h2>Pick a picture</h2><p id="pk-sub">From this style's library, your own Media Lab pictures, or have the local model draw a new one.</p>
-  <div class="tabs2" id="pk-tabs"><button data-t="style" class="on" onclick="pkTab('style')">Style library</button><button data-t="motion" onclick="pkTab('motion')" title="Characters, animals, objects and movements that MOVE — the same library the Diorama and EXPLAINED use">Motion library</button><button data-t="mine" onclick="pkTab('mine')">My pictures</button><button data-t="draw" onclick="pkTab('draw')">Draw with AI</button></div>
+  <div class="tabs2" id="pk-tabs"><button data-t="style" class="on" onclick="pkTab('style')">Style library</button><button data-t="motion" onclick="pkTab('motion')" title="Characters, animals, objects and movements that MOVE — the same library the Diorama uses">Motion library</button><button data-t="mine" onclick="pkTab('mine')">My pictures</button><button data-t="draw" onclick="pkTab('draw')">Draw with AI</button></div>
   <div id="pk-search"><input class="tx" id="pk-q" style="margin-top:10px" placeholder="Search — rocket, brain, money…" oninput="pkSearch()"><div class="lib" id="pk-lib"></div></div>
   <div id="pk-draw" hidden><p style="margin:12px 0 6px">Describe the picture. Qwen-Image draws it in this video's style and cuts it out (about a minute; ComfyUI must be running). It's added to the style library for future videos too.</p>
     <input class="tx" id="pk-dq" placeholder="e.g. a tiny submarine with a periscope"><div class="f"><button class="b pri" onclick="pkDraw()"><i class="mi" data-ic="wand"></i> Draw it</button></div></div>
@@ -590,7 +590,7 @@ async function visAdd(i){const c=prompt('What should the new picture show? (a co
 function repaint(){$('#body')._h='';$('#set')._h='';paint();pvSync(CUR,true)}
 let VOA=null;function playVo(n){try{VOA&&VOA.pause()}catch(e){}VOA=new Audio('media/'+encodeURIComponent(n));VOA.play().catch(()=>{})}
 
-/* MOTION LIBRARY — the one library Motion Studio and MIR EXPLAINED share (motion/library, /api/mglib). libOpen(cats, tag, cb)
+/* MOTION LIBRARY — the one library Motion Studio uses (motion/library, /api/mglib). libOpen(cats, tag, cb)
    opens it as a picker over this page; cb(cat, item) gets the pick. */
 let LIBCB=null;
 function libOpen(cats,tag,cb){LIBCB=cb;let d=$('#libd');if(!d){document.body.insertAdjacentHTML('beforeend','<dialog id="libd" style="padding:0;border:1px solid var(--line2);border-radius:18px;background:var(--bg);width:min(1100px,96vw);height:min(820px,92vh)"><iframe id="libf" style="border:0;width:100%;height:100%;display:block"></iframe></dialog>');d=$('#libd')}
