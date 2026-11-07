@@ -1,4 +1,4 @@
-// MIR EXPLAINED style tokens: one source of truth for every Explained component.
+// Signature style tokens: one source of truth for every shared Signature component.
 // Two modes share one accent and one type family: STUDIO (cinematic hero moments) and HUD (blueprint breakdowns).
 import {Easing, interpolate} from 'remotion';
 

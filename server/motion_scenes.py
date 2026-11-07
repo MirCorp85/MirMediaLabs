@@ -6,7 +6,7 @@ For a story project:
   2. KEY MOMENTS   the writer's `key` beats (else: the cold open, FX moments, big actions) — about a third of the scenes
   3. KEYFRAME      Qwen-Image EDIT: the cast sheet(s) of who is on screen → that exact moment, place and framing (16:9)
   4. ANIMATE       MiniMax H3 image→video (6 s), prompted with the action of the line
-  5. SMOOTH        ffmpeg motion interpolation to 30 fps and the beat's length (EXPLAINED's smooth_plate method)
+  5. SMOOTH        ffmpeg motion interpolation to 30 fps and the beat's length (smooth-plate method)
 The beat gets `plate` = "lib:<file>.mp4"; Remotion (scenes.tsx StoryShot) plays it full-frame under the captions, data
 overlay and FX. Everything goes through the Media Lab queue (:5000/mlab/api/generate), so it waits its turn on the GPU.
 Every file lands in data/motion_wizard/scenes/<project>/ and is reused (a redo only remakes what's missing or changed).
@@ -67,7 +67,7 @@ ACT_MOTION = {"speech": "gives a passionate speech, gesturing", "talk": "talks e
               "catch": "snatches something flying past out of the air, lightning fast", "react": "jumps back, startled"}
 
 
-# ── Media Lab calls (the same ones explained_build.py makes) ──
+# ── Media Lab calls  ──
 def _call(path, body=None, timeout=180):
     req = urllib.request.Request(API + path, data=json.dumps(body).encode() if body is not None else None,
                                  headers={"Content-Type": "application/json"}, method="POST" if body is not None else "GET")

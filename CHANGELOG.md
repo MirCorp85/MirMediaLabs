@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased - Cast, Motion fix, EXPLAINED and Rank Reel removed
+- **Cast** (`/cast`, Tools → Cast, dock): character packs. Drop photos or describe someone and the lab draws a hero, back view and face close-up and puts them on ONE reference sheet. Type `@Name` in any lab prompt and the pack's sheet + locked description go with the request. "Use in CopyCat" opens CopyCat. Optional identity scores use InsightFace ArcFace (non-commercial) through a separate Python you set as `face_python` (or `MML_FACE_PYTHON`); without it packs still build.
+- **Fix: Motion Studio and the Kinetic editor showed a black screen in the installed app.** The lab loaded these add-ons with a string import the compiler can't see, so v1.0.39's .exe was built without them and `/motion` returned 404 inside a black frame. Add-ons are now plain imports and the build fails if any add-on module is missing from the compiled app.
+- **Removed:** MIR EXPLAINED and Rank Reel (panels, routes, server modules, research-engine setting, motion compositions). Motion Studio's own explainer format stays.
+- **Android app:** Cast replaces MIR EXPLAINED and Rank reel in the Media Lab menu, the + menu and the tablet side column.
+
 ## PC setup v1.0.39 + Android app 2.38 - Studio, Kinetic, MIR EXPLAINED, Rank Reel, CopyCat, Design
 - **Studio:** 100+ one-tap apps (relight, restyle, camera moves, talking photos, upscale, cutouts…) from the freefield catalogue plus the OpenField pack, run on your own ComfyUI. Missing models download from inside each app; gated ones use your Hugging Face token (Settings → AI).
 - **Motion Studio wizard:** one sentence → a narrated Diorama / Signature film, with the shared **Motion Library** (places, characters, objects, animals) at `/motion/library`.

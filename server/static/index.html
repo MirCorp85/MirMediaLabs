@@ -2409,7 +2409,7 @@ async function pcUpdate(){
 }
 
 /* phone tabs */
-function setTab(t){if(t==='production')return mmlProduction();if(t==='social')return mmlSocial();if(t==='editor')return mmlEditor();if(t==='series')return mmlSeries();if(t==='grab')return mmlGrab();if(t==='motion')return mmlMotion();if(t==='flow')return mmlFlow();if(t==='studio')return mmlStudio();if(t==='design')return mmlDesign();if(t==='copycat')return mmlCopyCat();if(t==='explained')return mmlExplained();if(t==='rankreel')return mmlRankReel();document.body.dataset.tab=t;$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
+function setTab(t){if(t==='production')return mmlProduction();if(t==='social')return mmlSocial();if(t==='editor')return mmlEditor();if(t==='series')return mmlSeries();if(t==='grab')return mmlGrab();if(t==='motion')return mmlMotion();if(t==='flow')return mmlFlow();if(t==='studio')return mmlStudio();if(t==='design')return mmlDesign();if(t==='copycat')return mmlCopyCat();document.body.dataset.tab=t;$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
 $$('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
 
 (async function boot(){
@@ -2455,22 +2455,14 @@ function civKeyWire(id,after){const box=document.getElementById(id);if(!box)retu
     b.disabled=true;try{const r=await api(LAPI+'token',{method:'POST',body:JSON.stringify({token:tok})});
       toast(clear?'Civitai key removed':'Civitai key saved'+(r.user?' — signed in as '+r.user:''));after&&after(r)}
     catch(e){toast(e.message)}b.disabled=false})}
-/* Add-on keys (owner): Hugging Face token for gated Studio models (FLUX Klein, LTX-2.5) and an optional research engine
-   for MIR EXPLAINED (any OpenAI-compatible URL + key you run yourself, e.g. a Kaggle notebook). Secrets are never echoed back. */
+/* Add-on key (owner): Hugging Face token for gated Studio models (FLUX Klein, LTX-2.5). Never echoed back. */
 async function addonKeys(){const slot=$('#addon-slot');if(!slot)return;let st={};try{st=await api('/api/addon-keys')}catch(e){return}
   slot.innerHTML=`<div class="fld wide"><label>Hugging Face token — needed for the gated Studio models (FLUX Klein, LTX-2.5). Free: huggingface.co → Settings → Access Tokens (read), and accept each model's licence on its page${st.hf_token?' · <b style="color:var(--grn)">saved</b>':''}</label>
   <div style="display:flex;gap:8px"><input id="ak-hf" type="password" autocomplete="off" spellcheck="false" placeholder="${st.hf_token?'•••••••• (paste a new token to replace)':'hf_…'}" style="flex:1">
-  <button class="btn pri" id="ak-hf-save">Save</button>${st.hf_token?'<button class="btn" id="ak-hf-clear">Remove</button>':''}</div></div>
-  <div class="fld wide"><label>Research engine for MIR EXPLAINED (optional) — an OpenAI-compatible URL you run (Kaggle / Colab notebook, LM Studio, vLLM). Empty = cloud brain, else the local engine</label>
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="ak-url" placeholder="https://…/v1" value="${esc(st.research_url||'')}" style="flex:2;min-width:180px">
-  <input id="ak-model" placeholder="model (optional)" value="${esc(st.research_model||'')}" style="flex:1;min-width:120px">
-  <input id="ak-key" type="password" autocomplete="off" placeholder="${st.research_key?'•••••••• key saved':'key (optional)'}" style="flex:1;min-width:120px">
-  <button class="btn pri" id="ak-r-save">Save</button></div></div>`;
+  <button class="btn pri" id="ak-hf-save">Save</button>${st.hf_token?'<button class="btn" id="ak-hf-clear">Remove</button>':''}</div></div>`;
   const post=async(body,msg)=>{try{await api('/api/addon-keys',{method:'POST',body:JSON.stringify(body)});toast(msg);addonKeys()}catch(e){toast(e.message)}};
   $('#ak-hf-save').onclick=()=>{const t=$('#ak-hf').value.trim();if(!t)return toast('Paste your Hugging Face token first');post({hf_token:t},'Hugging Face token saved')};
-  if($('#ak-hf-clear'))$('#ak-hf-clear').onclick=()=>post({hf_token:''},'Hugging Face token removed');
-  $('#ak-r-save').onclick=()=>{const k=$('#ak-key').value.trim(),u=$('#ak-url').value.trim();
-    post(Object.assign({research_url:u,research_model:$('#ak-model').value.trim()},k||!u?{research_key:k}:{}),u?'Research engine saved':'Research engine cleared')}}
+  if($('#ak-hf-clear'))$('#ak-hf-clear').onclick=()=>post({hf_token:''},'Hugging Face token removed');}
 const LAPI='/api/loras/';
 const LROLE={h3:'video',qimg:'image',ace:'music',music3:'music'};   // LoRA library tab per model
 const LCAN={h3:'video',qimg:'image',ace:'music'};                    // models that can load LoRAs (Music 3 can't)
@@ -2721,22 +2713,6 @@ function mmlProduction(){
   try{closeLB()}catch(e){}
 }
 window.addEventListener('message',function(e){if((e.data||{}).mml!=='prod-close')return;var f=document.getElementById('mml-pr');if(f)f.remove();});
-/* EXPLAINED (explainer.py / static/explained.html) — MIR EXPLAINED producer: trends → topic → research → script → video */
-function mmlExplained(){
-  var f=document.getElementById('mml-ex');if(f)return;
-  f=document.createElement('iframe');f.id='mml-ex';f.src='explained';f.allow='autoplay; fullscreen';
-  f.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9997;background:#08080A';document.body.appendChild(f);
-  try{closeLB()}catch(e){}
-}
-window.addEventListener('message',function(e){if((e.data||{}).mml!=='explained-close')return;var f=document.getElementById('mml-ex');if(f)f.remove();try{loadLib()}catch(x){}});
-/* RANK REEL producer (rankreel_wizard.py / static/rankreel.html) — viral ranking Shorts: moments → clips → script → render */
-function mmlRankReel(){
-  var f=document.getElementById('mml-rr');if(f)return;
-  f=document.createElement('iframe');f.id='mml-rr';f.src='rankreel';f.allow='autoplay; fullscreen';
-  f.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9997;background:#08080A';document.body.appendChild(f);
-  try{closeLB()}catch(e){}
-}
-window.addEventListener('message',function(e){if((e.data||{}).mml!=='rankreel-close')return;var f=document.getElementById('mml-rr');if(f)f.remove();try{loadLib()}catch(x){}});
 /* COPYCAT (copycat.py -> Next app at /copycat, Openjutsu MIT) — swap a person/object in a video, copy a dance onto another character */
 function mmlCopyCat(){
   var w=document.getElementById('mml-cc');if(w)return;

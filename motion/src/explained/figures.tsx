@@ -1,4 +1,4 @@
-// MIR EXPLAINED figure library (Oct 18, user: "more drawings and more animations with figure models and objects").
+// Signature figure library: drawn figure models and objects with their animations.
 // Hand-drawn line-art figures in the B house style (silver line, one amber accent). Every figure draws itself on
 // (draw 0→1, strokes staggered) and then keeps a small idle motion driven by t (fans spin, globe turns, smoke rises,
 // flag waves, crowd breathes). figFor(text) picks a figure from a scene's own words, so generated episodes get

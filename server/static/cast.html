@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#262624">
+<title>MIR MEDIA LABS · Cast</title>
+<link rel="icon" href="static/icon-512.png">
+<link rel="stylesheet" href="static/studio.css">
+<style>
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.cc{position:relative;border-radius:14px;border:1px solid var(--line);background:var(--panel);cursor:pointer;overflow:hidden;transition:border-color .15s,transform .15s}
+.cc:hover{border-color:var(--line2);transform:translateY(-1px)}
+.cc .th{aspect-ratio:3/4;background:var(--panel2) center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:28px}
+.cc .nm{padding:9px 11px 4px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc .bd{display:flex;gap:5px;flex-wrap:wrap;padding:0 11px 11px}
+.sc{font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--line)}
+.sc.g{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
+.sc.a{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.sc.r{color:var(--err);border-color:color-mix(in srgb,var(--err) 45%,transparent)}
+.cc .ccdel{position:absolute;top:8px;left:8px;width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.75;transition:opacity .15s,background .15s}
+.cc .ccdel:hover{opacity:1;background:#c0392b}
+.cc .run{position:absolute;top:8px;right:8px;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--acc);color:#fff}
+.newc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;aspect-ratio:3/4.6;border:1px dashed var(--line2);border-radius:14px;color:var(--dim);cursor:pointer}
+.newc:hover{color:var(--ink);border-color:var(--acc)}
+.dlg{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px}
+.box{width:min(1100px,100%);background:var(--bg);border:1px solid var(--line2);border-radius:16px;overflow:hidden}
+.box.sm{width:min(560px,100%)}
+.bh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.bb{padding:14px;display:flex;flex-direction:column;gap:12px}
+.fl{display:flex;flex-direction:column;gap:5px}.fl>span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.fl input,.fl textarea,.fl select{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:8px 10px;outline:0}
+.fl textarea{min-height:76px;resize:vertical}
+.drop{border:1px dashed var(--line2);border-radius:12px;padding:16px;text-align:center;color:var(--dim);cursor:pointer}
+.drop.on{border-color:var(--acc);color:var(--ink)}
+.pics{display:flex;gap:8px;flex-wrap:wrap}.pics img{width:74px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.seg{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;align-self:flex-start}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:8px;cursor:pointer;color:var(--dim)}.seg button.on{background:var(--panel2);color:var(--ink)}
+.dt{display:grid;grid-template-columns:300px 1fr;gap:16px}
+@media(max-width:820px){.dt{grid-template-columns:1fr}}
+.hero{border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--panel2)}.hero img{width:100%;display:block}
+.sec{font-size:11px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;margin:4px 0 -4px}
+.vw{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.vt{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.vt .im{aspect-ratio:9/14;background:var(--panel2) center/contain no-repeat;cursor:zoom-in}
+.vt .im.sq{aspect-ratio:1}
+.vt .ft{display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:12px}
+.vt .ft .eb{height:24px;padding:0 7px;font-size:11px}
+.wide img{width:100%;border-radius:10px;border:1px solid var(--line);cursor:zoom-in;display:block}
+.rs{position:relative}
+.rs .rsredo{position:absolute;top:8px;transform:translateX(-100%);height:26px;padding:0 9px;font-size:11px;background:var(--panel);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.rs .rslbl{position:absolute;bottom:8px;transform:translateX(-50%);font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(0,0,0,.55);color:#fff;pointer-events:none}
+.kit{display:grid;grid-template-columns:150px 110px 1fr;gap:12px;align-items:start}
+@media(max-width:640px){.kit{grid-template-columns:1fr 1fr}.kit .fl{grid-column:1/-1}}
+.kit img{width:100%;border-radius:10px;border:1px solid var(--line)}
+.log{font:11px/1.5 ui-monospace,Consolas,monospace;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;max-height:150px;overflow:auto;white-space:pre-wrap}
+.cands{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.cands img{width:100%;border-radius:10px;border:2px solid var(--line);cursor:pointer}.cands img:hover{border-color:var(--acc)}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.state{font-size:12px;padding:8px 11px;border-radius:10px;background:var(--panel);border:1px solid var(--line)}
+.state.err{border-color:color-mix(in srgb,var(--err) 45%,transparent);color:var(--err)}
+.zoom{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.zoom img{max-width:96vw;max-height:94vh}
+.st-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);opacity:0;transition:.2s;background:var(--panel2);border:1px solid var(--line2);padding:9px 14px;border-radius:10px;z-index:40;pointer-events:none}
+.st-toast.on{opacity:1;transform:translateX(-50%)}.st-toast.err{border-color:var(--err)}
+.help{font-size:12px;color:var(--dim);line-height:1.55}
+</style>
+</head>
+<body>
+<div class="st">
+  <header class="st-top">
+    <button class="eb ic" data-a="close" title="Back to the lab"><i class="mi" data-ic="arrow-left"></i></button>
+    <div class="st-brand"><i class="mi" data-ic="users"></i><b>CAST</b><small class="dim">character sheets every tool can use</small></div>
+    <span class="sp"></span>
+    <button class="eb pri" data-a="new"><i class="mi" data-ic="plus"></i><span>New character</span></button>
+  </header>
+  <main class="st-main" style="padding-top:14px">
+    <div id="grid" class="cg"></div>
+  </main>
+</div>
+
+<div id="dn" class="dlg" hidden><div class="box sm">
+  <div class="bh"><b>New character</b><span class="sp"></span><button class="eb ic" data-a="xnew"><i class="mi" data-ic="close"></i></button></div>
+  <div class="bb">
+    <div class="seg" id="nmode"><button class="on" data-m="photos">From photos</button><button data-m="text">From a description</button></div>
+    <div id="nphotos">
+      <div class="drop" id="drop"><i class="mi" data-ic="upload"></i> Drop up to 4 photos of the person (face visible) or click</div>
+      <div class="pics" id="pics" style="margin-top:8px"></div>
+      <div style="margin-top:8px;color:var(--dim)">The first picture becomes the hero: re-posed standing forward, full body, with the same face, body and clothes (nothing added), in high resolution. Every panel is made from that hero.</div>
+      <label style="display:flex;gap:6px;align-items:center;margin-top:6px;color:var(--dim)"><input type="checkbox" id="nheroup"> It is already a finished full-body standing design - use it as the hero untouched</label>
+    </div>
+    <label class="fl"><span>Name</span><input id="nname" placeholder="e.g. Maya"></label>
+    <label class="fl"><span id="ndescl">Look notes (optional)</span><textarea id="ndesc" placeholder="Age, build, hair, outfit, footwear, signature details…"></textarea></label>
+    <label class="fl"><span>Style</span><select id="nstyle"></select></label>
+    <label class="fl" id="ncustw" hidden><span>Style prompt</span><textarea id="ncust" placeholder="Describe the look every picture should share"></textarea></label>
+    <div class="help">Your first picture is re-posed into a standing, forward-facing full-body hero (same face, body and clothes; 2x AI upscaled). From it CAST makes the character sheet: front without the head, full back view and a close-up portrait. Checks the face against the source with ArcFace and redraws a weak view once.</div>
+    <div class="acts"><span class="sp"></span><button class="eb pri" data-a="create"><i class="mi" data-ic="sparkle"></i>Build character</button></div>
+  </div>
+</div></div>
+
+<div id="dd" class="dlg" hidden><div class="box">
+  <div class="bh"><b id="dname"></b><span id="dbadges" style="display:flex;gap:5px"></span><span class="sp"></span>
+    <button class="eb ic" data-a="xdet"><i class="mi" data-ic="close"></i></button></div>
+  <div class="bb" id="dbody"></div>
+</div></div>
+
+<div id="st-toast" class="st-toast"></div>
+<input type="file" id="fhero" accept="image/*" hidden>
+<input type="file" id="fphotos" accept="image/*" multiple hidden>
+<script>
+(function () {
+  document.write('<script src="static/mir-icons.js"><\/script>');
+})();
+</script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var FRAMED = window.parent !== window;
+  var THEMES = { claude: ['#262624', '#30302e', '#3a3936', '#f5f4ef', '#d97757'], graphite: ['#111214', '#18191c', '#212327', '#eceef1', '#7c8cff'],
+    obsidian: ['#0e0d0b', '#171512', '#211e19', '#f3eee4', '#e3a949'], midnight: ['#0b1220', '#101929', '#172236', '#e6ecf5', '#3fb8c9'],
+    paper: ['#f6f5f1', '#ffffff', '#f1efe9', '#1e1d1a', '#c2582f'] };
+  function theme(id) { var t = THEMES[id] || THEMES.claude, r = document.documentElement.style;
+    ['--bg', '--panel', '--panel2', '--ink', '--acc'].forEach(function (k, i) { r.setProperty(k, t[i]); }); }
+  try { theme(localStorage.getItem('mml.theme') || 'claude'); } catch (e) { theme('claude'); }
+  fetch('/api/prefs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.mltheme && d.mltheme.id) theme(d.mltheme.id); }).catch(function () { });
+
+  var S = { list: [], styles: [], views: [], open: null, mode: 'photos', photos: [] };
+  var VIEW_LABEL = {}, STYLE_LABEL = { photo: 'Photo-real', cinematic: 'Cinematic', pixar: '3D animated', anime: 'Anime', cartoon: '2D cartoon', custom: 'Custom…' };
+  var toastT;
+  function toast(t, err) { var e = $('#st-toast'); e.textContent = t; e.className = 'st-toast on' + (err ? ' err' : ''); clearTimeout(toastT); toastT = setTimeout(function () { e.className = 'st-toast'; }, err ? 5200 : 2600); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function mi(n) { return '<i class="mi" data-ic="' + n + '"></i>'; }
+  function icons() { try { window.MI && MI.hydrate ? MI.hydrate(document) : window.MI && MI.scan && MI.scan(document); } catch (e) { } }
+  function api(p, o) { return fetch(p, o).then(function (r) { return r.json().then(function (j) { if (!r.ok || j.error) throw new Error(j.error || ('HTTP ' + r.status)); return j; }); }); }
+  function post(p, b) { return api(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) }); }
+  function furl(c, f) { return 'api/assets/file?id=' + encodeURIComponent(c.id) + '&f=' + encodeURIComponent(f) + '&t=' + Math.round(c.updated || 0); }
+  function scls(v, k) { if (v == null) return 'r'; var lo = k === 'side' ? 0.25 : 0.45; return v >= lo + 0.1 ? 'g' : v >= lo ? 'a' : 'r'; }
+  function busy(c) { return c.build && (c.build.state === 'running'); }
+
+  function load() {
+    return api('api/char').then(function (d) {
+      S.list = d.characters || []; S.styles = d.styles || []; S.views = d.views || [];
+      S.views.forEach(function (v) { VIEW_LABEL[v[0]] = v[1]; });
+      grid();
+      if (S.open) { var c = S.list.find(function (x) { return x.id === S.open; }); if (c) detail(c); }
+      clearTimeout(S.poll);
+      if (S.list.some(busy)) S.poll = setTimeout(load, 3000);
+    }).catch(function (e) { toast(e.message, 1); });
+  }
+
+  function grid() {
+    var h = '<div class="newc" data-a="new">' + mi('plus') + '<span>New character</span></div>';
+    S.list.forEach(function (c) {
+      var th = c.files.hero || c.files.front ? ' style="background-image:url(\'' + furl(c, c.files.hero || c.files.front) + '\')"' : '';
+      var b = [];
+      if (c.score != null) b.push('<span class="sc ' + scls(c.score) + '">ID ' + c.score.toFixed(2) + '</span>');
+      if (c.kit) b.push('<span class="sc g">CopyCat kit</span>');
+      if (c.lora && c.lora.status === 'ready') b.push('<span class="sc g">LoRA</span>');
+      if (c.v < 2) b.push('<span class="sc">from series</span>');
+      if (c.build && c.build.state === 'pick') b.push('<span class="sc a">pick a hero</span>');
+      if (c.build && c.build.state === 'error') b.push('<span class="sc r">failed</span>');
+      h += '<div class="cc" data-id="' + esc(c.id) + '"><div class="th"' + th + '>' + (th ? '' : mi('user')) + '</div>' +
+        '<button class="ccdel" data-del="' + esc(c.id) + '" title="Delete ' + esc(c.name) + '" aria-label="Delete ' + esc(c.name) + '">' + mi('trash') + '</button>' +
+        (busy(c) ? '<span class="run">' + esc(c.build.step || 'building') + '…</span>' : '') +
+        '<div class="nm">' + esc(c.name) + '</div><div class="bd">' + b.join('') + '</div></div>';
+    });
+    $('#grid').innerHTML = h; icons();
+  }
+
+  function tile(c, k) {
+    var f = c.files[k], v = c.scores[k], sq = k === 'face';
+    return '<div class="vt"><div class="im' + (sq ? ' sq' : '') + '"' + (f ? ' data-zoom="' + furl(c, f) + '" style="background-image:url(\'' + furl(c, f) + '\')"' : '') + '></div>' +
+      '<div class="ft"><span>' + esc(VIEW_LABEL[k] || k) + '</span><span class="sp"></span>' +
+      (k in (c.scores || {}) ? '<span class="sc ' + scls(v, k) + '">' + (v == null ? 'no face' : v.toFixed(2)) + '</span>' : '') +
+      (c.files.hero && !busy(c) ? '<button class="eb" data-redo="' + k + '" title="Redraw this view">' + mi('refresh') + '</button>' : '') + '</div></div>';
+  }
+
+  // one Redo + label (with its face score) per panel of the reference sheet, placed from the panel spans the server recorded
+  function sheetRedo(c) {
+    var name = { front: 'front · no head', back: 'back', face: 'close-up' }, can = c.files.hero && !busy(c);
+    return (c.ref_panels || []).map(function (s) {
+      var v = (c.scores || {})[s.view];
+      return (can ? '<button class="eb rsredo" data-redo="' + esc(s.view) + '" style="left:calc(' + (s.x1 * 100) + '% - 8px)" title="Redraw the ' + name[s.view] + ' panel">' + mi('refresh') + 'Redo</button>' : '') +
+        '<span class="rslbl" style="left:' + ((s.x0 + s.x1) * 50) + '%">' + esc(name[s.view] || s.view) +
+        (typeof v === 'number' ? ' · <b class="sc ' + scls(v, s.view) + '" style="padding:0 5px">' + v.toFixed(2) + '</b>' : '') + '</span>';
+    }).join('');
+  }
+
+  function detail(c) {
+    S.open = c.id; $('#dd').hidden = false; $('#dname').textContent = c.name;
+    var bd = [];
+    if (c.score != null) bd.push('<span class="sc ' + scls(c.score) + '">identity ' + c.score.toFixed(2) + '</span>');
+    if (c.nc) bd.push('<span class="sc" title="ArcFace / InsightFace touched this pack — non-commercial model licence">NC face models</span>');
+    $('#dbadges').innerHTML = bd.join('');
+    var b = c.build || {}, h = '';
+    if (busy(c)) h += '<div class="state">' + mi('hourglass') + ' ' + esc(b.msg || ('Building ' + (b.step || '') + '…')) + '</div>';
+    if (b.state === 'error') h += '<div class="state err">' + esc(b.error || b.msg) + '</div>';
+    if (b.state === 'pick' && (b.cands || []).length) {
+      h += '<div class="sec">Pick the hero</div><div class="cands">' + b.cands.map(function (f) { return '<img src="' + furl(c, f) + '" data-pick="' + esc(f) + '">'; }).join('') + '</div>';
+    }
+    if (b.flags && b.flags.length && !busy(c)) h += '<div class="state">' + mi('warn') + ' Still weak after a redraw: ' + esc(b.flags.map(function (k) { return VIEW_LABEL[k] || k; }).join(', ')) + ' — redraw them again or replace the hero.</div>';
+    h += '<div class="dt"><div style="display:flex;flex-direction:column;gap:10px">';
+    h += '<div class="hero">' + (c.files.hero ? '<img src="' + furl(c, c.files.hero) + '" data-zoom="' + furl(c, c.files.hero) + '">' : '<div style="aspect-ratio:3/4;display:flex;align-items:center;justify-content:center" class="dim">no hero yet</div>') + '</div>';
+    h += '<div class="acts">' +
+      (busy(c) ? '<button class="eb" data-a="stop">' + mi('stop') + 'Stop</button>' :
+        '<button class="eb pri" data-a="buildall">' + mi('sparkle') + (c.files.front ? 'Rebuild all' : 'Build pack') + '</button>' +
+        (c.files.hero ? '<button class="eb" data-a="qa">' + mi('fingerprint') + 'Check identity</button>' : '') +
+        (c.files.front ? '<button class="eb" data-a="dataset" title="~20 varied pictures, identity-filtered, captioned with a trigger word">' + mi('layers') + 'LoRA dataset</button>' : '') +
+        '<button class="eb" data-a="herofile">' + mi('upload') + 'Replace hero</button>') + '</div>';
+    h += '<label class="fl"><span>Name</span><input id="ename" value="' + esc(c.name) + '"></label>' +
+      '<label class="fl"><span>Look notes</span><textarea id="edesc">' + esc(c.desc) + '</textarea></label>' +
+      '<label class="fl"><span>Style</span><select id="estyle">' + S.styles.map(function (s) { return '<option value="' + s + '"' + (s === c.style ? ' selected' : '') + '>' + esc(STYLE_LABEL[s] || s) + '</option>'; }).join('') + '</select></label>' +
+      '<label class="fl" id="ecustw"' + (c.style === 'custom' ? '' : ' hidden') + '><span>Style prompt</span><textarea id="ecust">' + esc(c.style_prompt) + '</textarea></label>' +
+      '<div class="acts"><button class="eb" data-a="save">' + mi('check') + 'Save</button><span class="sp"></span><button class="eb" data-a="del">' + mi('trash') + '</button></div>';
+    h += '</div><div style="display:flex;flex-direction:column;gap:12px">';
+    // Layout: hero on the left + ONE reference sheet = front without the head · full back · close-up portrait
+    h += '<div class="sec">Character sheet — front (no head) · back · close-up</div>' + (c.files.ref_sheet ? '<div class="wide rs"><img src="' + furl(c, c.files.ref_sheet) + '" data-zoom="' + furl(c, c.files.ref_sheet) + '">' + sheetRedo(c) + '</div>' :
+      (c.files.hero ? '<div class="dim help">Press Build pack to make the sheet.</div>' : '<div class="dim help">Built with the pack</div>'));
+    if (c.files.ref_sheet && !(c.ref_panels || []).length) h += '<div class="dim help">Rebuild the pack once to get a Redo button on each panel.</div>';
+    h += '<label class="fl"><span>Locked description (CopyCat and @' + esc((c.name || '').replace(/\s+/g, '')) + ' use these exact words)</span><textarea id="ecast" style="min-height:90px">' + esc(c.cast_text) + '</textarea>' +
+      '<div class="acts"><button class="eb" data-a="savecast">' + mi('lock') + 'Save description</button>' + (c.kit ? '<button class="eb pri" data-a="copycat">' + mi('users') + 'Use in CopyCat</button>' : '') + '</div></label>';
+    if (c.lora && c.lora.images) h += '<div class="state">' + mi('layers') + ' LoRA dataset: ' + c.lora.images + ' pictures · trigger <b>' + esc(c.lora.trigger) + '</b> · folder <code>' + esc(c.id) + '/lora_dataset</code>' + (c.lora.status === 'ready' ? ' · trained' : ' · ready to train') + '</div>';
+    if ((b.log || []).length) h += '<div class="sec">Build log</div><div class="log">' + esc(b.log.slice(-25).join('\n')) + '</div>';
+    h += '</div></div>';
+    var keep = document.activeElement && document.activeElement.id;
+    if (keep && /^e(name|desc|cust|cast)$/.test(keep) && $('#dd').dataset.id === c.id) return;   // don't wipe what they're typing
+    $('#dd').dataset.id = c.id; $('#dbody').innerHTML = h; icons();
+    var es = $('#estyle'); if (es) es.onchange = function () { $('#ecustw').hidden = es.value !== 'custom'; };
+  }
+
+  function cur() { return S.list.find(function (x) { return x.id === S.open; }); }
+  function act(a, el) {
+    var c = cur();
+    if (a === 'close') { if (FRAMED) return window.parent.postMessage({ mml: 'cast-close' }, '*'); location.href = './'; return; }
+    if (a === 'new') { $('#dn').hidden = false; return; }
+    if (a === 'xnew') { $('#dn').hidden = true; return; }
+    if (a === 'xdet') { $('#dd').hidden = true; S.open = null; return; }
+    if (a === 'create') return create();
+    if (!c) return;
+    if (a === 'buildall') return post('api/char/build', { id: c.id, steps: c.files.hero ? ['views', 'kit', 'qa'] : null }).then(load).catch(function (e) { toast(e.message, 1); });
+    if (a === 'dataset') return post('api/char/build', { id: c.id, steps: ['dataset'] }).then(function () { toast('Making the LoRA dataset (~20 renders)…'); load(); }).catch(function (e) { toast(e.message, 1); });
+    if (a === 'qa') return post('api/char/build', { id: c.id, steps: ['qa'] }).then(load).catch(function (e) { toast(e.message, 1); });
+    if (a === 'stop') return post('api/char/cancel', { id: c.id }).then(function () { toast('Stopping…'); setTimeout(load, 1500); });
+    if (a === 'herofile') { $('#fhero').click(); return; }
+    if (a === 'save') return post('api/char/update', { id: c.id, name: $('#ename').value, desc: $('#edesc').value, style: $('#estyle').value, style_prompt: ($('#ecust') || {}).value || '' }).then(function () { toast('Saved'); load(); }).catch(function (e) { toast(e.message, 1); });
+    if (a === 'savecast') return post('api/char/update', { id: c.id, cast_text: $('#ecast').value }).then(function () { toast('Description locked'); load(); }).catch(function (e) { toast(e.message, 1); });
+    if (a === 'del') { if (!confirm('Move ' + c.name + ' to the trash?')) return; return post('api/char/delete', { id: c.id }).then(function () { $('#dd').hidden = true; S.open = null; load(); }); }
+    if (a === 'copycat') { if (FRAMED) window.parent.postMessage({ mml: 'cast-copycat', id: c.id }, '*'); else location.href = 'copycat/?cast=' + encodeURIComponent(c.id); }
+  }
+
+  function create() {
+    var name = $('#nname').value.trim(), desc = $('#ndesc').value.trim(), style = $('#nstyle').value;
+    if (S.mode === 'photos' && !S.photos.length) return toast('Drop at least one photo', 1);
+    if (S.mode === 'text' && !desc) return toast('Describe the character', 1);
+    var fd = new FormData();
+    fd.append('name', name); fd.append('desc', desc); fd.append('style', style); fd.append('style_prompt', $('#ncust').value);
+    if (S.mode === 'photos') { S.photos.forEach(function (f) { fd.append('photos', f, f.name); }); if ($('#nheroup').checked) fd.append('hero_upload', '1'); }
+    else fd.append('_text', '1');
+    var btn = $('[data-a="create"]'); btn.disabled = true;
+    (S.mode === 'photos' ? api('api/char/new', { method: 'POST', body: fd }) : post('api/char/new', { name: name, desc: desc, style: style, style_prompt: $('#ncust').value }))
+      .then(function (c) { $('#dn').hidden = true; S.photos = []; pics(); $('#nname').value = ''; $('#ndesc').value = ''; S.open = c.id; load(); toast('Building ' + c.name + '…'); })
+      .catch(function (e) { toast(e.message, 1); }).then(function () { btn.disabled = false; });
+  }
+
+  function pics() { $('#pics').innerHTML = S.photos.map(function (f) { return '<img src="' + URL.createObjectURL(f) + '">'; }).join(''); }
+  function addFiles(fl) { [].slice.call(fl || []).filter(function (f) { return /^image\//.test(f.type); }).forEach(function (f) { if (S.photos.length < 4) S.photos.push(f); }); pics(); }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-del],[data-a],[data-id],[data-pick],[data-redo],[data-zoom],[data-m]'); if (!t) return;
+    if (t.dataset.del) {                                   // trash button on a card (doesn't open the character)
+      var dc = S.list.find(function (x) { return x.id === t.dataset.del; }); if (!dc) return;
+      if (!confirm('Move ' + dc.name + ' to the trash?')) return;
+      return post('api/char/delete', { id: dc.id }).then(function () { toast(dc.name + ' moved to the trash'); if (S.open === dc.id) { $('#dd').hidden = true; S.open = null; } load(); }).catch(function (er) { toast(er.message, 1); });
+    }
+    if (t.dataset.zoom && !t.dataset.a) { var z = document.createElement('div'); z.className = 'zoom'; z.innerHTML = '<img src="' + t.dataset.zoom + '">'; z.onclick = function () { z.remove(); }; document.body.appendChild(z); return; }
+    if (t.dataset.m) { S.mode = t.dataset.m; [].forEach.call(document.querySelectorAll('#nmode button'), function (b) { b.classList.toggle('on', b === t); });
+      $('#nphotos').hidden = S.mode !== 'photos'; $('#ndescl').textContent = S.mode === 'photos' ? 'Look notes (optional)' : 'Describe the character'; return; }
+    if (t.dataset.pick) return post('api/char/pick', { id: S.open, cand: t.dataset.pick }).then(load).catch(function (er) { toast(er.message, 1); });
+    if (t.dataset.redo) return post('api/char/build', { id: S.open, steps: ['views', 'kit', 'qa'], views: [t.dataset.redo] }).then(function () { toast('Redrawing ' + (VIEW_LABEL[t.dataset.redo] || t.dataset.redo) + '…'); load(); }).catch(function (er) { toast(er.message, 1); });
+    if (t.dataset.id && !t.dataset.a) { var c = S.list.find(function (x) { return x.id === t.dataset.id; }); if (c) detail(c); return; }
+    if (t.dataset.a) act(t.dataset.a, t);
+  });
+  var drop = $('#drop');
+  drop.onclick = function () { $('#fphotos').click(); };
+  $('#fphotos').onchange = function () { addFiles(this.files); this.value = ''; };
+  ['dragover', 'dragenter'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('on'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('on'); if (ev === 'drop') addFiles(e.dataTransfer.files); }); });
+  $('#fhero').onchange = function () {
+    var f = this.files[0]; this.value = ''; if (!f || !S.open) return;
+    var fd = new FormData(); fd.append('id', S.open); fd.append('file', f, f.name);
+    api('api/char/hero', { method: 'POST', body: fd }).then(function () { toast('Hero replaced — rebuild the pack to redraw the views'); load(); }).catch(function (e) { toast(e.message, 1); });
+  };
+  $('#nstyle').onchange = function () { $('#ncustw').hidden = this.value !== 'custom'; };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { var z = $('.zoom'); if (z) return z.remove(); if (!$('#dd').hidden) { $('#dd').hidden = true; S.open = null; } else $('#dn').hidden = true; } });
+  api('api/char').then(function (d) {
+    $('#nstyle').innerHTML = (d.styles || []).map(function (s) { return '<option value="' + s + '">' + esc(STYLE_LABEL[s] || s) + '</option>'; }).join('');
+  }).catch(function () { });
+  var q = new URLSearchParams(location.search); if (q.get('id')) S.open = q.get('id');
+  load();
+})();
+</script>
+<script src="/static/fonts/mir/mirfont.js" data-vars="--sans"></script>
+</body>
+</html>

@@ -915,6 +915,21 @@ def _ref_info(name):
 REFS_INDEX = os.path.join(core.DATA, "refs_index.json")
 
 
+def _cast_ref(src, name):
+    """A CAST picture as a lab attachment. One stable copy per picture version (no pile-up on every @mention)."""
+    import zlib
+    safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name)[:30].strip("_") or "char"
+    fn = "ref_cast_%s_%08x%s" % (safe, zlib.crc32(src.encode("utf-8")) ^ int(os.path.getmtime(src)), os.path.splitext(src)[1] or ".png")
+    dst = os.path.join(core.REFS, fn)
+    if not os.path.isfile(dst):
+        shutil.copy2(src, dst)
+    ix = core.load_json(REFS_INDEX, {})
+    if ix.get(fn) != uid():
+        ix[fn] = uid()
+        core.save_json(REFS_INDEX, ix)
+    return fn
+
+
 _REF_LOCK = threading.Lock()
 
 
@@ -1076,6 +1091,12 @@ def generate():
     if model not in renderers.RUNNERS and model != "auto":      # auto = MirAI Director decides in the worker
         return jsonify({"error": "unknown model"}), 400
     asked = [os.path.basename(str(n)) for n in (body.get("refs") or [])]
+    try:                                       # @Name → CAST character: name + locked description + reference sheet
+        import characters
+        prompt, cast_refs = characters.expand_mentions(uid(), prompt, len(asked))
+        asked += [_cast_ref(src, name) for src, name in cast_refs]
+    except Exception as e:                     # noqa: BLE001
+        print("[cast] @mention skipped:", e)
     if len(asked) > 16:
         return jsonify({"error": "too many attachments (%d) — 16 at most per request" % len(asked)}), 400
     refs = [n for n in asked if core.in_dir(core.REFS, n) and os.path.isfile(core.in_dir(core.REFS, n)) and _my_ref(n)]
@@ -1130,8 +1151,10 @@ def generate():
         job["literal"] = True
     if body.get("series"):                            # SERIES studio renders keep an unmarked reference copy
         job["keep_clean"] = True
-    if body.get("internal") and _loopback() and is_owner():   # a lab tool on this PC (preview generators): not a chat request
+    if body.get("internal") and ((_loopback() and is_owner()) or getattr(g, "series_runner", False)):   # lab tool jobs (previews, CAST views): not a chat request
         job["internal"] = True
+        if body.get("clean"):                   # a building block of a bigger piece: no watermark on every plate
+            job["clean"] = True
     if getattr(g, "series_runner", False):            # submitted by the background series runner (not the page)
         job["runner"] = True
     if body.get("social") and is_owner():           # Chat → Lab → Social: finished output becomes a VIRAL-Ω draft
@@ -1985,7 +2008,7 @@ def _series_submit(user_id, req):
     u = users.by_id(user_id) or (users.owner() if user_id in (None, "", "owner") else None)
     if not u:
         return None, "that person no longer has an account here", False
-    body = {k: req.get(k) for k in ("model", "prompt", "refs", "override", "session", "ctlcheck")}
+    body = {k: req.get(k) for k in ("model", "prompt", "refs", "override", "session", "ctlcheck", "loras", "literal", "internal", "clean")}
     body["series"] = True
     with app.test_request_context("/api/generate", method="POST", json=body):
         g.user = u
@@ -2129,7 +2152,7 @@ nodeflow.register(app, {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "sta
 
 
 
-# ── PHASE 2 TOOLS: Studio (freefield apps), Kinetic editor, Motion wizard + library, MIR EXPLAINED, Rank Reel, CopyCat, Design ──
+# ── PHASE 2 TOOLS: Studio (freefield apps), Kinetic editor, Motion wizard + library, CopyCat, Design, Cast ──
 # Each module owns its pages + /api routes; engine folders are configurable (engines.py) and installed by Setup.
 import engines  # noqa: E402
 
@@ -2139,24 +2162,54 @@ _MOTION_HK = {"uid": uid, "my_file": _my_file, "my_ref": _my_ref, "static": _sta
               "ask": _motion_ask, "words": _motion_words, "lib_list": _motion_lib, "is_owner": _OWN}
 
 
-def _phase2(name, hk):
-    """Register one add-on module; a missing optional dependency never takes the whole lab down."""
+def _phase2(name, load, hk):
+    """Register one add-on module; a missing optional dependency never takes the whole lab down.
+    load() must do a plain `import x` (never a string __import__): the compiled .exe (Nuitka) only bundles modules it
+    can see imported, and a string import left Motion/Kinetic out of v1.0.39 → /motion 404 → a black panel."""
     try:
-        mod = __import__(name)
-        mod.register(app, hk)
+        load().register(app, hk)
     except Exception as e:                       # noqa: BLE001
         print("[lab] %s not loaded: %s" % (name, e))
 
 
-_phase2("kinetic", _MOTION_HK)
-_phase2("motion_wizard", _MOTION_HK)            # also registers motion_library (/motion/library, /api/mglib)
-_phase2("rankreel", _MOTION_HK)
-_phase2("rankreel_wizard", _MOTION_HK)
-_phase2("freefield", {"uid": uid, "is_owner": _OWN, "static": _static, "session": _SESS})   # + ffpack (/studio-stage)
-_phase2("copycat", {"uid": uid, "is_owner": _OWN})
-_phase2("design", {"uid": uid, "is_owner": _OWN})
-_phase2("explainer", {"uid": uid, "push": events.push, "static": _static,
-                      "can_produce": lambda: None if _OWN() else "only the owner can run MIR EXPLAINED"})
+def _kinetic():
+    import kinetic
+    return kinetic
+
+
+def _motion_wizard():
+    import motion_wizard
+    return motion_wizard
+
+
+def _freefield():
+    import freefield
+    return freefield
+
+
+def _copycat():
+    import copycat
+    return copycat
+
+
+def _design():
+    import design
+    return design
+
+
+def _characters():
+    import characters
+    return characters
+
+
+ADDONS = ("kinetic", "motion_wizard", "freefield", "copycat", "design", "characters")   # build.ps1 checks they're compiled in
+_phase2("kinetic", _kinetic, _MOTION_HK)
+_phase2("motion_wizard", _motion_wizard, _MOTION_HK)   # also registers motion_library (/motion/library, /api/mglib)
+_phase2("freefield", _freefield, {"uid": uid, "is_owner": _OWN, "static": _static, "session": _SESS})   # + ffpack (/studio-stage)
+_phase2("copycat", _copycat, {"uid": uid, "is_owner": _OWN})
+_phase2("design", _design, {"uid": uid, "is_owner": _OWN})
+_phase2("characters", _characters, {"uid": uid, "static": _static, "store_ref": _store_ref,   # CAST character packs (/cast)
+                                    "submit": _series_submit, "job": _series_job, "cancel": _series_cancel})
 
 try:                                             # Design's live progress: /design/ws <-> ComfyUI /ws
     from flask_sock import Sock  # noqa: E402
@@ -2174,8 +2227,7 @@ except Exception as _e:                          # noqa: BLE001
 
 @app.route("/api/addon-keys", methods=["GET", "POST"])
 def addon_keys():
-    """Owner-only keys for add-ons: Hugging Face token (gated model downloads in Studio) and an optional research engine
-    (any OpenAI-compatible URL + key YOU run, e.g. a Kaggle notebook) for MIR EXPLAINED. GET never returns a secret."""
+    """Owner-only key for add-ons: the Hugging Face token (gated model downloads in Studio). GET never returns it."""
     if not _OWN():
         return jsonify({"error": "owner only"}), 403
     hf_file = os.path.join(core.DATA, "hf_token.txt")
@@ -2188,18 +2240,7 @@ def addon_keys():
                     f.write(tok)
             elif os.path.isfile(hf_file):
                 os.remove(hf_file)
-        if "research_url" in b:
-            url = str(b.get("research_url") or "").strip()[:300]
-            if url and not url.startswith(("http://", "https://")):
-                return jsonify({"error": "the research engine URL must start with http:// or https://"}), 400
-            core.save_pref("research_url", url)
-            core.save_pref("research_model", str(b.get("research_model") or "").strip()[:120])
-            if b.get("research_key") is not None and (str(b.get("research_key")).strip() or not url):
-                core.save_pref("research_key", str(b.get("research_key") or "").strip()[:300])
-    pr = core.prefs()
-    return jsonify({"hf_token": os.path.isfile(hf_file), "research_url": pr.get("research_url") or "",
-                    "research_model": pr.get("research_model") or "", "research_key": bool(pr.get("research_key")),
-                    "engines": engines.summary()})
+    return jsonify({"hf_token": os.path.isfile(hf_file), "engines": engines.summary()})
 
 
 def main():

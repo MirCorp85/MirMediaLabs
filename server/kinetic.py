@@ -1,5 +1,5 @@
 r"""MIR KINETIC — the Motion editor's engine: kinetic type on a beat grid + the OpenKatana effect packs (/motion/editor).
-Remotion (remotion.py) still serves Motion Studio, EXPLAINED, RANK REEL and Series.
+Remotion (remotion.py) still serves Motion Studio and Series.
 
 Engine: <install>/kinetic (engines.kinetic(); engine/ = film.html + core/blocks/compositor + fx/ OpenKatana packs, Apache-2.0;
 render/worker.mjs = a headless Chrome driven over CDP with Node's own WebSocket — no npm packages, no daemon).

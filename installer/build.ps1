@@ -58,6 +58,12 @@ function Assert-AllDlls($report, $what) {
     if ($dropped.Count) { throw "Nuitka ($what) left out $($dropped.Count) DLL(s):`n$($dropped -join "`n")" }
 }
 
+function Assert-Modules($report, $names) {
+    # an add-on Nuitka didn't compile in is just missing at run time (its panel 404s -> a black screen), so fail here
+    $missing = @($names | Where-Object { -not (Select-String -Path $report -Pattern ('<module name="' + $_ + '"') -Quiet) })
+    if ($missing.Count) { throw "Nuitka (app) left out lab add-on module(s): $($missing -join ', ')" }
+}
+
 if (-not (Test-Path (Join-Path $here 'pc_version.json'))) { '{"version": "1.0.0"}' | Set-Content -Encoding ascii (Join-Path $here 'pc_version.json') }
 if ($Bump) { & $py (Join-Path $here 'build_tool.py') bump }
 $ver = (Get-Content (Join-Path $here 'pc_version.json') | ConvertFrom-Json).version
@@ -86,6 +92,7 @@ $appArgs = $common + @("--standalone", "--include-package=openai", "--include-pa
 & $py @appArgs
 if ($LASTEXITCODE) { throw 'Nuitka (app) failed' }
 Assert-AllDlls "$appOut\report.xml" 'app'
+Assert-Modules "$appOut\report.xml" @('kinetic', 'motion_wizard', 'motion_library', 'remotion', 'freefield', 'copycat', 'design', 'characters', 'series_assets')
 $dist = Join-Path $appOut 'app_main.dist'
 
 # 3. payload = compiled app + Android update folder + icon (never data\, never source)
@@ -97,12 +104,13 @@ Copy-Item $dist (Join-Path $stage 'app') -Recurse
 Copy-Item (Join-Path $root 'server\mark.png') (Join-Path $stage 'app\mark.png')
 # ALTER kit (MIT scripts run by alter.py with the engine's Python) next to the compiled alter module
 Copy-Item (Join-Path $root 'server\alter_kit') (Join-Path $stage 'app\alter_kit') -Recurse
+# CAST identity helper: a plain script run by the optional InsightFace Python (never imported by the app)
+Copy-Item (Join-Path $root 'server\char_faceid.py') (Join-Path $stage 'app\char_faceid.py')
 # MIR MOTION engine source (Remotion daemon + scenes + prebuilt player/schema); the wizard installs Node + npm ci
 $mo = Join-Path $stage 'motion'
 New-Item -ItemType Directory -Force $mo | Out-Null
 foreach ($f in 'server.mjs', 'build_player.mjs', 'package.json', 'package-lock.json', 'tsconfig.json') { Copy-Item (Join-Path $root "motion\$f") $mo }
-foreach ($d in 'src', 'dist', 'public', 'episodes', 'mg_assets') { if (Test-Path (Join-Path $root "motion\$d")) { Copy-Item (Join-Path $root "motion\$d") (Join-Path $mo $d) -Recurse } }
-Copy-Item (Join-Path $root 'motion\explained_build.py') $mo                       # MIR EXPLAINED asset builder (engine Python)
+foreach ($d in 'src', 'dist', 'public', 'mg_assets') { if (Test-Path (Join-Path $root "motion\$d")) { Copy-Item (Join-Path $root "motion\$d") (Join-Path $mo $d) -Recurse } }
 # generated at setup (node mg_assets/build_vectors.mjs) or per user — never shipped
 foreach ($d in 'public\mg\vec', 'public\mg\art', 'public\episodes', 'public\mg\_raw') { Remove-Item (Join-Path $mo $d) -Recurse -Force -ErrorAction SilentlyContinue }
 # phase-2 engines that ship with the lab: MIR KINETIC (Apache-2.0 FX + OFL fonts), the OpenField Studio pack (MIT),

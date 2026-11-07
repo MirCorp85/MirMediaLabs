@@ -1,5 +1,5 @@
 // SIGNATURE — the house video style, as MIR MOTION scenes.
-// Same components as MIR EXPLAINED episodes (src/explained), wrapped for the Motion Studio catalog so Motion Studio,
+// Shared Signature components (src/explained: beats, kit, theme), wrapped for the Motion Studio catalog so Motion Studio,
 // the AI writer, MUSE, Series and Producer all build with it. Authored on a 1920×1080 stage and scaled to the project.
 import React from 'react';
 import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -101,11 +101,11 @@ export const SIG_SCENES: Record<string, any> = {
 		fields: [{k: 'src', t: 'media', label: 'Photo', accept: 'image', d: ''}, {k: 'credit', t: 'text', label: 'Credit (required for real photos)', d: 'IMAGE: SOURCE'}],
 		C: wrap(({t, dur, p, asset}) => <B.Photo t={t} dur={dur} asset={(n) => asset(n)} b={{photo: p.src, v: {credit: p.credit || ''}}} />)},
 	'sig-brand': {label: 'Signature · brand sting', group: 'Signature', icon: 'star', dur: 3.2, track: 'scene',
-		fields: [{k: 'series', t: 'text', label: 'Series', d: 'MIR EXPLAINED'}, {k: 'title', t: 'text', label: 'Episode title', d: 'The big idea'}],
-		C: wrap(({t, dur, p, asset}) => <B.Brand t={t} dur={dur} asset={asset} b={{}} series={p.series || 'MIR EXPLAINED'} title={p.title || ''} />)},
+		fields: [{k: 'series', t: 'text', label: 'Series', d: 'MIR MOTION'}, {k: 'title', t: 'text', label: 'Episode title', d: 'The big idea'}],
+		C: wrap(({t, dur, p, asset}) => <B.Brand t={t} dur={dur} asset={asset} b={{}} series={p.series || 'MIR MOTION'} title={p.title || ''} />)},
 	'sig-endcard': {label: 'Signature · end card (like + subscribe + app)', group: 'Signature', icon: 'heart', dur: 8, track: 'scene',
-		fields: [media(), {k: 'series', t: 'text', label: 'Series', d: 'MIR EXPLAINED'}, {k: 'title', t: 'text', label: 'Episode title', d: ''}],
-		C: wrap(({t, dur, p, asset}) => <B.EndCard t={t} dur={dur} asset={asset} b={{plate: p.src}} series={p.series || 'MIR EXPLAINED'} title={p.title || ''} />)},
+		fields: [media(), {k: 'series', t: 'text', label: 'Series', d: 'MIR MOTION'}, {k: 'title', t: 'text', label: 'Episode title', d: ''}],
+		C: wrap(({t, dur, p, asset}) => <B.EndCard t={t} dur={dur} asset={asset} b={{plate: p.src}} series={p.series || 'MIR MOTION'} title={p.title || ''} />)},
 	'sig-captions': {label: 'Signature · captions (karaoke chunks)', group: 'Signature', icon: 'message', dur: 8, track: 'captions',
 		fields: [{k: 'text', t: 'long', label: 'Text (auto-timed) — or use Auto-caption', d: ''}, {k: 'words', t: 'json', label: 'Word timings [{w,s,e}]', d: []}],
 		C: SigCaptions},

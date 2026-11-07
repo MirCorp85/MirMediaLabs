@@ -8,7 +8,7 @@
 <base href="../">
 <link rel="icon" href="static/icon-512.png">
 <script src="static/mir-icons.js"></script>
-<!-- MIR MOTION LIBRARY (Oct 29 2026): the ONE library Motion Studio (Diorama + Explainer) and MIR EXPLAINED share — worlds, places,
+<!-- MIR MOTION LIBRARY (Oct 29 2026): the ONE library Motion Studio (Diorama + Explainer) uses — worlds, places,
      characters, animals, movement sets, rides, objects, scenery. Fed by /api/mglib (server/motion_library.py); thumbnails are
      drawn by the Diorama engine itself (motion/mg_assets/build_library.py). Browse it at /motion/library, or open
      it as a picker: motion/library?pick=characters,animals&for=<tag> posts {type:'mglib-pick', for, item} to the opener and closes
@@ -57,7 +57,7 @@ main{padding:14px 16px 40px}
 </head>
 <body>
 <div class="top">
-  <div class="hd"><i class="mi" data-ic="layers"></i><h1>MOTION LIBRARY</h1><span class="sub" id="sub">shared by Motion Studio and MIR EXPLAINED</span><span class="sp"></span>
+  <div class="hd"><i class="mi" data-ic="layers"></i><h1>MOTION LIBRARY</h1><span class="sub" id="sub">shared by Motion Studio</span><span class="sp"></span>
     <button class="b" id="close" hidden onclick="closeMe()"><i class="mi" data-ic="close"></i> Close</button></div>
   <div class="srch"><input id="q" placeholder="Search: dog, soldier, castle, drive, coffee…" oninput="paint()"><select id="world" onchange="paint()" title="Places of one world"><option value="">All worlds</option></select></div>
   <div class="tabs" id="tabs"></div>

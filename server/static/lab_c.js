@@ -110,14 +110,26 @@
     if (d.mml === 'studio-attach' && d.ref) try { atts.push(d.ref); saveAtts(); renderAtts(); setTab('create'); toast('Attached — ready for your next request'); } catch (x) { }
   });
 
+  // ── CAST (characters.py / static/cast.html): character-sheet packs; "Use in CopyCat" closes CAST and opens CopyCat ──
+  window.mmlCast = function (id) {
+    var f = document.getElementById('mml-cast'); if (f) return;
+    f = document.createElement('iframe'); f.id = 'mml-cast'; f.src = 'cast' + (id ? '?id=' + encodeURIComponent(id) : ''); f.allow = 'clipboard-write';
+    f.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:10000;background:#000'; document.body.appendChild(f);
+    try { closeLB(); } catch (e) { }
+  };
+  window.addEventListener('message', function (e) {
+    var d = e.data || {}; if (d.mml !== 'cast-close' && d.mml !== 'cast-copycat') return;
+    var f = document.getElementById('mml-cast'); if (f) f.remove();
+    if (d.mml === 'cast-copycat') { var w = document.getElementById('mml-cc'); if (w) w.remove(); try { mmlCopyCat(d.id); } catch (x) { } }
+  });
+
   // ── Tools: everything that isn't a main feature ────────────────────────────────────────────────────────────────
   function tools() {
     var T = [['diamond', 'Studio', 'open-weights apps · image · video · audio', function () { mmlStudio(); }],
              ['sparkle', 'Motion studio', 'Remotion titles · captions · lyric & long videos', function () { mmlMotion(); }],
              ['bolt', 'Kinetic editor', 'kinetic type on a beat grid · effects', function () { mmlMotion({ editor: 1 }); }],
-             ['radar', 'MIR EXPLAINED', 'trending topic → research → script', function () { mmlExplained(); }],
-             ['star', 'Rank Reel', 'viral ranking Shorts · moments → clips → render', function () { mmlRankReel(); }],
              ['pencil', 'Design', 'layered canvas · posters · mockups · Edit Elements', function () { mmlDesign(); }],
+             ['users', 'Cast', 'character sheets · consistent faces for every tool', function () { mmlCast(); }],
              ['user', 'CopyCat', 'swap a person in a video · copy a dance', function () { mmlCopyCat(); }],
              ['download', 'Downloader', 'links → MP3 / MP4', function () { mmlGrab(); }],
              ['tv', 'Series studio', 'build a series by hand', function () { mmlSeries(); }],
@@ -137,8 +149,8 @@
   // ── bottom dock (desktop) / tab bar (phone): the six main features ──────────────────────────────────────────────
   var nav = $('nav.tabs');
   if (nav) {
-    nav.innerHTML = [['create', 'lab', 'Create'], ['projects', 'layers', 'Projects'], ['library', 'grid', 'Library'], ['editor', 'scissors', 'Editor'], ['studio', 'diamond', 'Studio'], ['design', 'pencil', 'Design'], ['motion', 'sparkle', 'Motion'], ['copycat', 'user', 'CopyCat'], ['flow', 'chain', 'Flow'],
-                     ['explained', 'radar', 'Explained'], ['rankreel', 'star', 'Rank Reel'], ['publish', 'globe', 'Publish'], ['tools', 'wand', 'Tools']]
+    nav.innerHTML = [['create', 'lab', 'Create'], ['projects', 'layers', 'Projects'], ['library', 'grid', 'Library'], ['editor', 'scissors', 'Editor'], ['studio', 'diamond', 'Studio'], ['design', 'pencil', 'Design'], ['motion', 'sparkle', 'Motion'], ['cast', 'users', 'Cast'], ['copycat', 'user', 'CopyCat'], ['flow', 'chain', 'Flow'],
+                     ['publish', 'globe', 'Publish'], ['tools', 'wand', 'Tools']]
       .map(function (b) { return '<button data-t="' + b[0] + '"' + (b[0] === 'create' ? ' class="on"' : '') + '>' + mi(b[1]) + b[2] + '</button>'; }).join('');
     var wide = function () { return window.matchMedia('(min-width: 861px)').matches; };
     nav.querySelectorAll('button').forEach(function (b) {
@@ -151,9 +163,8 @@
         if (t === 'flow') return mmlFlow();
         if (t === 'studio') return mmlStudio();
         if (t === 'design') return mmlDesign();
+        if (t === 'cast') return mmlCast();
         if (t === 'copycat') return mmlCopyCat();
-        if (t === 'explained') return mmlExplained();
-        if (t === 'rankreel') return mmlRankReel();
         if (t === 'tools') return tools();
         if (t === 'create') return goHome();
         if (t === 'library' && wide()) { document.body.classList.toggle('lc-libwide'); b.classList.toggle('on', document.body.classList.contains('lc-libwide')); return; }

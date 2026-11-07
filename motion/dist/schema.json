@@ -371,7 +371,7 @@
      "k": "series",
      "t": "text",
      "label": "Series",
-     "d": "MIR EXPLAINED"
+     "d": "MIR MOTION"
     },
     {
      "k": "title",
@@ -399,7 +399,7 @@
      "k": "series",
      "t": "text",
      "label": "Series",
-     "d": "MIR EXPLAINED"
+     "d": "MIR MOTION"
     },
     {
      "k": "title",
@@ -427,189 +427,6 @@
      "t": "json",
      "label": "Word timings [{w,s,e}]",
      "d": []
-    }
-   ]
-  },
-  "rankreel": {
-   "label": "Rank Reel (ranking Short)",
-   "group": "Social",
-   "icon": "list",
-   "dur": 25,
-   "track": "scene",
-   "fields": [
-    {
-     "k": "title",
-     "t": "long",
-     "label": "Title (2 lines — Enter splits)",
-     "d": "Ranking the best\nfootball moments"
-    },
-    {
-     "k": "keywords",
-     "t": "text",
-     "label": "Highlight words (comma)",
-     "d": "football moments"
-    },
-    {
-     "k": "kwColor",
-     "t": "color",
-     "label": "Keyword colour",
-     "d": "#2dd4bf"
-    },
-    {
-     "k": "items",
-     "t": "json",
-     "label": "Clips [{src,label,rank,trimIn,dur,verdict,vo,voDur}]",
-     "d": [
-      {
-       "rank": 1,
-       "label": "Instant Karma",
-       "dur": 5,
-       "verdict": "Number one. Nobody saw that coming."
-      },
-      {
-       "rank": 2,
-       "label": "Red Card",
-       "dur": 5,
-       "verdict": "The ref had seen enough."
-      },
-      {
-       "rank": 3,
-       "label": "Keeper Panic",
-       "dur": 5,
-       "verdict": ""
-      },
-      {
-       "rank": 4,
-       "label": "Own Goal",
-       "dur": 5,
-       "verdict": ""
-      },
-      {
-       "rank": 5,
-       "label": "Bicycle Kick",
-       "dur": 5,
-       "verdict": ""
-      }
-     ]
-    },
-    {
-     "k": "order",
-     "t": "select",
-     "label": "Play order",
-     "opts": [
-      "shuffle",
-      "countdown",
-      "custom"
-     ],
-     "d": "shuffle"
-    },
-    {
-     "k": "seed",
-     "t": "num",
-     "label": "Shuffle seed",
-     "min": 1,
-     "max": 9999,
-     "d": 7
-    },
-    {
-     "k": "intro",
-     "t": "num",
-     "label": "Hook intro (s)",
-     "min": 0,
-     "max": 3,
-     "step": 0.1,
-     "d": 0
-    },
-    {
-     "k": "hook",
-     "t": "text",
-     "label": "Hook text",
-     "d": "WAIT FOR #1"
-    },
-    {
-     "k": "captions",
-     "t": "bool",
-     "label": "Verdict captions",
-     "d": false
-    },
-    {
-     "k": "clipVolume",
-     "t": "num",
-     "label": "Clip volume",
-     "min": 0,
-     "max": 2,
-     "step": 0.05,
-     "d": 0.8
-    },
-    {
-     "k": "duckVolume",
-     "t": "num",
-     "label": "Clip volume under VO",
-     "min": 0,
-     "max": 1,
-     "step": 0.05,
-     "d": 0.25
-    },
-    {
-     "k": "voVolume",
-     "t": "num",
-     "label": "VO volume",
-     "min": 0,
-     "max": 3,
-     "step": 0.05,
-     "d": 1.6
-    },
-    {
-     "k": "sting",
-     "t": "media",
-     "label": "Rank sting sound",
-     "accept": "audio",
-     "d": ""
-    },
-    {
-     "k": "titleSize",
-     "t": "num",
-     "label": "Title size",
-     "min": 40,
-     "max": 140,
-     "d": 68
-    },
-    {
-     "k": "ladderSize",
-     "t": "num",
-     "label": "Ladder size",
-     "min": 30,
-     "max": 100,
-     "d": 70
-    },
-    {
-     "k": "verdictSize",
-     "t": "num",
-     "label": "Verdict caption size",
-     "min": 40,
-     "max": 110,
-     "d": 74
-    },
-    {
-     "k": "titleBand",
-     "t": "num",
-     "label": "Title band height",
-     "min": 0.12,
-     "max": 0.32,
-     "step": 0.01,
-     "d": 0.15
-    },
-    {
-     "k": "fit",
-     "t": "select",
-     "label": "Clip fit (auto: vertical fills, 16:9 shown whole on blur)",
-     "opts": [
-      "auto",
-      "cover",
-      "blur",
-      "contain"
-     ],
-     "d": "auto"
     }
    ]
   },
